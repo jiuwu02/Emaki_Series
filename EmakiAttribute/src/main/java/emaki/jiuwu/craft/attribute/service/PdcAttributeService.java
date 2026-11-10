@@ -293,7 +293,7 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         return gateRegistry.rejectingGateId(player, itemStack, actualSlot);
     }
 
-    private PdcAttributeCollection collectFilteredContribution(Player player,
+    PdcAttributeCollection collectFilteredContribution(Player player,
             ItemStack itemStack,
             Map<String, PdcAttributePayload> payloads,
             String actualSlot,
@@ -357,7 +357,7 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         );
     }
 
-    private PdcAttributeCollection collectRawContribution(Collection<PdcAttributePayload> payloads) {
+    PdcAttributeCollection collectRawContribution(Collection<PdcAttributePayload> payloads) {
         Map<String, Double> values = new LinkedHashMap<>();
         List<Object> signatureParts = new ArrayList<>();
         if (payloads != null) {
@@ -375,14 +375,14 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         );
     }
 
-    private FilterOutcome evaluateRule(Player player,
+    FilterOutcome evaluateRule(Player player,
             PdcAttributePayload payload,
             PdcReadRule rule,
             List<String> loreLines) {
         return evaluateFlexibleRule(player, payload, rule, loreLines);
     }
 
-    private FilterOutcome evaluateFlexibleRule(Player player,
+    FilterOutcome evaluateFlexibleRule(Player player,
             PdcAttributePayload payload,
             PdcReadRule rule,
             List<String> loreLines) {
@@ -408,7 +408,7 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         return new FilterOutcome(combineResults(results, rule.conditionType(), rule.requiredCount()), traces);
     }
 
-    private ConditionOutcome evaluateCondition(Player player,
+    ConditionOutcome evaluateCondition(Player player,
             PdcAttributePayload payload,
             List<String> loreLines,
             RuleCondition condition) {
@@ -429,7 +429,7 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         };
     }
 
-    private ConditionOutcome evaluateSingleValueCondition(Player player,
+    ConditionOutcome evaluateSingleValueCondition(Player player,
             PdcAttributePayload payload,
             RuleCondition condition,
             String rawValue,
@@ -476,7 +476,7 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         );
     }
 
-    private ConditionOutcome evaluateLoreRegexCondition(Player player,
+    ConditionOutcome evaluateLoreRegexCondition(Player player,
             PdcAttributePayload payload,
             List<String> loreLines,
             RuleCondition condition) {
@@ -569,49 +569,9 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         });
     }
 
-    private boolean combineResults(List<Boolean> results, String conditionType, Integer requiredCount) {
-        if (results == null || results.isEmpty()) {
-            return true;
-        }
-        String mode = Texts.lower(conditionType);
-        if ("any_of".equals(mode)) {
-            return results.stream().anyMatch(Boolean::booleanValue);
-        }
-        if ("at_least".equals(mode)) {
-            int count = requiredCount == null ? 1 : requiredCount;
-            return results.stream().filter(Boolean::booleanValue).count() >= count;
-        }
-        if ("exactly".equals(mode)) {
-            int count = requiredCount == null ? 1 : requiredCount;
-            return results.stream().filter(Boolean::booleanValue).count() == count;
-        }
-        if ("none_of".equals(mode)) {
-            return results.stream().noneMatch(Boolean::booleanValue);
-        }
-        return results.stream().allMatch(Boolean::booleanValue);
-    }
+    private boolean combineResults(List<Boolean> results, String conditionType, Integer requiredCount) { return new PdcAttributeServiceDelegate(this).combineResults(results, conditionType, requiredCount); }
 
-    private List<String> readLoreLines(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir()) {
-            return List.of();
-        }
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (itemMeta == null || !itemMeta.hasLore()) {
-            return List.of();
-        }
-        var lore = ItemTextBridge.loreLines(itemMeta);
-        if (lore == null || lore.isEmpty()) {
-            return List.of();
-        }
-        List<String> lines = new ArrayList<>();
-        for (var line : lore) {
-            String plain = Texts.normalizeWhitespace(MiniMessages.plainText(line));
-            if (Texts.isNotBlank(plain)) {
-                lines.add(plain);
-            }
-        }
-        return lines.isEmpty() ? List.of() : List.copyOf(lines);
-    }
+    private List<String> readLoreLines(ItemStack itemStack) { return new PdcAttributeServiceDelegate(this).readLoreLines(itemStack); }
 
     static ItemSlotGate resolveItemSlotGate(Collection<PdcAttributePayload> payloads, String actualSlot) {
         if (payloads == null || payloads.isEmpty()) {
@@ -792,16 +752,16 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         }
     }
 
-    private record FilterOutcome(boolean accepted, List<String> resolvedConditions) {
+    record FilterOutcome(boolean accepted, List<String> resolvedConditions) {
 
-        private FilterOutcome {
+        FilterOutcome {
             resolvedConditions = resolvedConditions == null ? List.of() : List.copyOf(resolvedConditions);
         }
     }
 
-    private record ConditionOutcome(Boolean accepted, List<String> traces) {
+    record ConditionOutcome(Boolean accepted, List<String> traces) {
 
-        private ConditionOutcome {
+        ConditionOutcome {
             traces = traces == null ? List.of() : List.copyOf(traces);
         }
 

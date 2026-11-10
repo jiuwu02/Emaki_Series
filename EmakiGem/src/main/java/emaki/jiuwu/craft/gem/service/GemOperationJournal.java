@@ -74,48 +74,32 @@ public final class GemOperationJournal {
         }
     }
 
-    private static final Map<EmakiGemPlugin, GemOperationJournal> INSTANCES = new ConcurrentHashMap<>();
-    private static final String DEBUG_JOURNAL_MODULE = "state";
+    static final Map<EmakiGemPlugin, GemOperationJournal> INSTANCES = new ConcurrentHashMap<>();
+    static final String DEBUG_JOURNAL_MODULE = "state";
 
-    private final EmakiGemPlugin plugin;
+    final EmakiGemPlugin plugin;
     private final EmakiScheduling scheduling;
-    private final CraftOperationJournal<GemPayload> journal;
-    private final Set<String> compensationGates = ConcurrentHashMap.newKeySet();
+    final CraftOperationJournal<GemPayload> journal;
+    final Set<String> compensationGates = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean recovering = new AtomicBoolean();
     private final AtomicBoolean recoveryStarted = new AtomicBoolean();
 
-    private GemOperationJournal(EmakiGemPlugin plugin, EmakiScheduling scheduling) {
+    GemOperationJournal(EmakiGemPlugin plugin, EmakiScheduling scheduling) {
         this.plugin = plugin;
         this.scheduling = scheduling;
         Path root = plugin.getDataFolder().toPath().resolve("data/operation-journal");
         this.journal = CraftOperationJournal.ofPersisted(Integer.MAX_VALUE, new GemCodec(), plugin, root);
     }
 
-    public static GemOperationJournal forPlugin(EmakiGemPlugin plugin, EmakiScheduling scheduling) {
-        return INSTANCES.computeIfAbsent(plugin, ignored -> new GemOperationJournal(plugin, scheduling));
-    }
+    public static GemOperationJournal forPlugin(EmakiGemPlugin plugin, EmakiScheduling scheduling) { return GemOperationJournalDelegate.forPlugin(plugin, scheduling); }
 
-    public static void release(EmakiGemPlugin plugin) {
-        if (plugin != null) {
-            INSTANCES.remove(plugin);
-        }
-    }
+    public static void release(EmakiGemPlugin plugin) { GemOperationJournalDelegate.release(plugin); }
 
-    public String begin(String kind, UUID playerId) {
-        return begin(UUID.randomUUID().toString(), kind, playerId);
-    }
+    public String begin(String kind, UUID playerId) { return new GemOperationJournalDelegate(this).begin(kind, playerId); }
 
-    public String begin(String operationId, String kind, UUID playerId) {
-        String resolvedOperationId = operationId == null || operationId.isBlank()
-                ? UUID.randomUUID().toString()
-                : operationId;
-        save(new Entry(resolvedOperationId, kind, playerId, Phase.PREPARED, GemPayload.empty()));
-        return resolvedOperationId;
-    }
+    public String begin(String operationId, String kind, UUID playerId) { return new GemOperationJournalDelegate(this).begin(operationId, kind, playerId); }
 
-    public boolean contains(String operationId) {
-        return operationId != null && journal.contains(operationId);
-    }
+    public boolean contains(String operationId) { return new GemOperationJournalDelegate(this).contains(operationId); }
 
     public void charged(String operationId, GemEconomyService.ChargeResult result) {
         Entry current = load(operationId);
@@ -179,16 +163,7 @@ public final class GemOperationJournal {
         save(current.withPhase(current.phase(), current.payload().withEvent("duplicate_confirm")));
     }
 
-    public void rerollRefreshDegraded(String operationId, String reason) {
-        Entry current = load(operationId);
-        if (current == null) {
-            return;
-        }
-        String resolved = reason == null || reason.isBlank() ? "refresh_unknown" : reason;
-        save(current.withPhase(current.phase(), current.payload()
-                .withError(resolved)
-                .withEvent("refresh_degraded:" + resolved)));
-    }
+    public void rerollRefreshDegraded(String operationId, String reason) { new GemOperationJournalDelegate(this).rerollRefreshDegraded(operationId, reason); }
 
     public boolean beginCompensation(String operationId, String reason) {
         Entry current = load(operationId);
@@ -239,11 +214,9 @@ public final class GemOperationJournal {
         }
     }
 
-    public void advance(String operationId, Phase phase) {
-        advanceAsync(operationId, phase);
-    }
+    public void advance(String operationId, Phase phase) { new GemOperationJournalDelegate(this).advance(operationId, phase); }
 
-    private CompletableFuture<Void> advanceAsync(String operationId, Phase phase) {
+    CompletableFuture<Void> advanceAsync(String operationId, Phase phase) {
         Entry current = load(operationId);
         if (current == null || phase == null) {
             return CompletableFuture.completedFuture(null);
@@ -258,7 +231,7 @@ public final class GemOperationJournal {
         return phase == Phase.COMPLETED ? archive(updated) : CompletableFuture.completedFuture(null);
     }
 
-    private boolean anchorsEnabled() {
+    boolean anchorsEnabled() {
         return plugin.debugLogger() != null
                 && plugin.debugLogger().shouldLog(DEBUG_JOURNAL_MODULE, (UUID) null);
     }
@@ -267,21 +240,7 @@ public final class GemOperationJournal {
             Phase from,
             Phase to,
             long startedAt,
-            Throwable failure) {
-        if (!anchorsEnabled()) {
-            return;
-        }
-        Anchors.Builder anchor = Anchors.of()
-                .op(operationId)
-                .phase(from + "->" + to)
-                .elapsedMs((System.nanoTime() - startedAt) / 1_000_000L);
-        if (failure != null) {
-            anchor.cause(AsyncFailures.unwrap(failure));
-        }
-        String entry = anchor.render();
-        plugin.debugLogger().log(DEBUG_JOURNAL_MODULE, (UUID) null, "journal.transition",
-                Map.of("entry", entry == null ? "" : entry));
-    }
+            Throwable failure) { new GemOperationJournalDelegate(this).anchorTransition(operationId, from, to, startedAt, failure); }
 
     public void compensationPending(String operationId, String error) {
         Entry current = load(operationId);
@@ -428,7 +387,7 @@ public final class GemOperationJournal {
         return result;
     }
 
-    private CompletableFuture<Void> applyRecovery(List<Entry> entries,
+    CompletableFuture<Void> applyRecovery(List<Entry> entries,
             GemEconomyService economyService,
             GemRerollSessionService rerollSessionService) {
         List<CompletableFuture<Void>> tasks = new ArrayList<>();
@@ -449,7 +408,7 @@ public final class GemOperationJournal {
         return CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new));
     }
 
-    private CompletableFuture<Void> recoverReroll(Entry entry,
+    CompletableFuture<Void> recoverReroll(Entry entry,
             GemEconomyService economyService,
             GemRerollSessionService rerollSessionService) {
         if (entry.phase() == Phase.CANDIDATE_OPEN && rerollSessionService != null) {
@@ -478,7 +437,7 @@ public final class GemOperationJournal {
         return CompletableFuture.completedFuture(null);
     }
 
-    private CompletableFuture<Void> recoverRerollCompensation(Entry entry,
+    CompletableFuture<Void> recoverRerollCompensation(Entry entry,
             GemEconomyService economyService,
             Phase terminalPhase,
             String reason) {
@@ -521,7 +480,7 @@ public final class GemOperationJournal {
         return completion;
     }
 
-    private CompletableFuture<Void> recoverCompensation(Entry entry, GemEconomyService economyService) {
+    CompletableFuture<Void> recoverCompensation(Entry entry, GemEconomyService economyService) {
         CompletableFuture<Void> completion = new CompletableFuture<>();
         Player player = entry.playerId() == null ? null : Bukkit.getPlayer(entry.playerId());
         if (player == null || !player.isOnline()) {
@@ -556,7 +515,7 @@ public final class GemOperationJournal {
         return completion;
     }
 
-    private RerollSnapshot snapshot(Entry entry) {
+    RerollSnapshot snapshot(Entry entry) {
         GemPayload payload = entry.payload();
         return new RerollSnapshot(
                 entry.operationId(),
@@ -574,11 +533,9 @@ public final class GemOperationJournal {
                 decodeMaterials(payload.materials()));
     }
 
-    private boolean isReroll(Entry entry) {
-        return entry.kind() != null && entry.kind().startsWith("gem-reroll-");
-    }
+    boolean isReroll(Entry entry) { return new GemOperationJournalDelegate(this).isReroll(entry); }
 
-    private Phase terminalPhase(String reason) {
+    Phase terminalPhase(String reason) {
         if (reason == null) {
             return Phase.ABANDONED;
         }
@@ -591,7 +548,7 @@ public final class GemOperationJournal {
         };
     }
 
-    private void save(Entry entry) {
+    void save(Entry entry) {
         if (!journal.contains(entry.operationId())) {
             journal.begin(entry.operationId(), entry.kind(), entry.playerId(), entry.phase().name(), entry.payload());
         } else {
@@ -599,7 +556,7 @@ public final class GemOperationJournal {
         }
     }
 
-    private Entry load(String operationId) {
+    Entry load(String operationId) {
         if (operationId == null) {
             return null;
         }
@@ -607,12 +564,9 @@ public final class GemOperationJournal {
         return entry == null ? null : toGemEntry(entry);
     }
 
-    private CompletableFuture<Void> archive(Entry entry) {
-        compensationGates.remove(entry.operationId());
-        return journal.archive(entry.operationId());
-    }
+    CompletableFuture<Void> archive(Entry entry) { return new GemOperationJournalDelegate(this).archive(entry); }
 
-    private Entry toGemEntry(CraftOperationJournal.Entry<GemPayload> entry) {
+    Entry toGemEntry(CraftOperationJournal.Entry<GemPayload> entry) {
         Phase phase;
         try {
             phase = Phase.valueOf(entry.phase().toUpperCase(Locale.ROOT));
@@ -623,7 +577,7 @@ public final class GemOperationJournal {
         return new Entry(entry.operationId(), entry.kind(), entry.playerId(), phase, payload);
     }
 
-    private record GemPayload(
+    record GemPayload(
             List<Map<String, Object>> currencies,
             List<Map<String, Object>> materials,
             String error,
@@ -639,7 +593,7 @@ public final class GemOperationJournal {
             boolean compensationAttempted,
             List<String> events) {
 
-        private GemPayload {
+        GemPayload {
             currencies = currencies == null ? List.of() : List.copyOf(currencies);
             materials = materials == null ? List.of() : List.copyOf(materials);
             error = error == null ? "" : error;
@@ -652,25 +606,25 @@ public final class GemOperationJournal {
             events = events == null ? List.of() : List.copyOf(events);
         }
 
-        private static GemPayload empty() {
+        static GemPayload empty() {
             return new GemPayload(List.of(), List.of(), "", Map.of(), Map.of(), "", "", "",
                     0L, 0L, "", false, false, List.of());
         }
 
-        private GemPayload withCosts(List<Map<String, Object>> nextCurrencies,
+        GemPayload withCosts(List<Map<String, Object>> nextCurrencies,
                 List<Map<String, Object>> nextMaterials) {
             return new GemPayload(nextCurrencies, nextMaterials, error, original, candidate, operationType,
                     configFingerprint, instanceFingerprint, createdAt, expiryAt, terminalReason,
                     compensationPending, compensationAttempted, events);
         }
 
-        private GemPayload withError(String nextError) {
+        GemPayload withError(String nextError) {
             return new GemPayload(currencies, materials, nextError, original, candidate, operationType,
                     configFingerprint, instanceFingerprint, createdAt, expiryAt, terminalReason,
                     compensationPending, compensationAttempted, events);
         }
 
-        private GemPayload withReroll(Map<String, Object> nextOriginal,
+        GemPayload withReroll(Map<String, Object> nextOriginal,
                 Map<String, Object> nextCandidate,
                 String nextOperationType,
                 String nextConfigFingerprint,
@@ -682,19 +636,19 @@ public final class GemOperationJournal {
                     compensationPending, compensationAttempted, events);
         }
 
-        private GemPayload withTerminal(String nextReason, boolean nextCompensationPending) {
+        GemPayload withTerminal(String nextReason, boolean nextCompensationPending) {
             return new GemPayload(currencies, materials, error, original, candidate, operationType,
                     configFingerprint, instanceFingerprint, createdAt, expiryAt, nextReason,
                     nextCompensationPending, compensationAttempted, events);
         }
 
-        private GemPayload withCompensationAttempted(boolean attempted) {
+        GemPayload withCompensationAttempted(boolean attempted) {
             return new GemPayload(currencies, materials, error, original, candidate, operationType,
                     configFingerprint, instanceFingerprint, createdAt, expiryAt, terminalReason,
                     compensationPending, attempted, events);
         }
 
-        private GemPayload withEvent(String event) {
+        GemPayload withEvent(String event) {
             if (event == null || event.isBlank()) {
                 return this;
             }
@@ -706,7 +660,7 @@ public final class GemOperationJournal {
         }
     }
 
-    private static final class GemCodec implements CraftOperationJournal.Codec<GemPayload> {
+    static final class GemCodec implements CraftOperationJournal.Codec<GemPayload> {
 
         @Override
         public Map<String, Object> encode(GemPayload payload) {
@@ -798,7 +752,7 @@ public final class GemOperationJournal {
         }
 
 
-        private static Number number(Object value) {
+        static Number number(Object value) {
             if (value instanceof Number number) {
                 return number;
             }
@@ -810,77 +764,26 @@ public final class GemOperationJournal {
         }
     }
 
-    private List<Map<String, Object>> encodeCurrencies(List<GemDefinition.CurrencyCost> costs) {
-        List<Map<String, Object>> values = new ArrayList<>();
-        for (GemDefinition.CurrencyCost cost : costs) {
-            Map<String, Object> value = new LinkedHashMap<>();
-            value.put("provider", cost.provider());
-            value.put("currency_id", cost.currencyId());
-            value.put("amount", cost.amount());
-            values.add(value);
-        }
-        return List.copyOf(values);
-    }
+    private List<Map<String, Object>> encodeCurrencies(List<GemDefinition.CurrencyCost> costs) { return new GemOperationJournalDelegate(this).encodeCurrencies(costs); }
 
-    private List<Map<String, Object>> encodeMaterials(List<GemDefinition.MaterialCost> costs) {
-        List<Map<String, Object>> values = new ArrayList<>();
-        for (GemDefinition.MaterialCost cost : costs) {
-            Map<String, Object> value = new LinkedHashMap<>();
-            value.put("item", ItemSourceUtil.toShorthand(cost.itemSource()));
-            value.put("amount", cost.amount());
-            values.add(value);
-        }
-        return List.copyOf(values);
-    }
+    private List<Map<String, Object>> encodeMaterials(List<GemDefinition.MaterialCost> costs) { return new GemOperationJournalDelegate(this).encodeMaterials(costs); }
 
-    private List<GemDefinition.CurrencyCost> decodeCurrencies(List<Map<String, Object>> values) {
-        List<GemDefinition.CurrencyCost> costs = new ArrayList<>();
-        for (Map<String, Object> value : values) {
-            costs.add(new GemDefinition.CurrencyCost(
-                    text(value.get("provider")),
-                    text(value.get("currency_id")),
-                    number(value.get("amount")).doubleValue(),
-                    0D,
-                    "",
-                    ""));
-        }
-        return List.copyOf(costs);
-    }
+    private List<GemDefinition.CurrencyCost> decodeCurrencies(List<Map<String, Object>> values) { return new GemOperationJournalDelegate(this).decodeCurrencies(values); }
 
-    private List<GemDefinition.MaterialCost> decodeMaterials(List<Map<String, Object>> values) {
-        List<GemDefinition.MaterialCost> costs = new ArrayList<>();
-        for (Map<String, Object> value : values) {
-            ItemSourceRef source = ItemSourceUtil.parse(text(value.get("item")));
-            if (source != null) {
-                costs.add(new GemDefinition.MaterialCost(source, number(value.get("amount")).intValue()));
-            }
-        }
-        return List.copyOf(costs);
-    }
+    private List<GemDefinition.MaterialCost> decodeMaterials(List<Map<String, Object>> values) { return new GemOperationJournalDelegate(this).decodeMaterials(values); }
 
-    private String text(Object value) {
-        return value == null ? "" : String.valueOf(value);
-    }
+    String text(Object value) { return new GemOperationJournalDelegate(this).text(value); }
 
-    private Number number(Object value) {
-        if (value instanceof Number number) {
-            return number;
-        }
-        try {
-            return Double.parseDouble(text(value));
-        } catch (NumberFormatException ignored) {
-            return 0D;
-        }
-    }
+    Number number(Object value) { return new GemOperationJournalDelegate(this).number(value); }
 
-    private record Entry(
+    record Entry(
             String operationId,
             String kind,
             UUID playerId,
             Phase phase,
             GemPayload payload) {
 
-        private Entry withPhase(Phase nextPhase, GemPayload nextPayload) {
+        Entry withPhase(Phase nextPhase, GemPayload nextPayload) {
             return new Entry(operationId, kind, playerId, nextPhase, nextPayload);
         }
     }

@@ -128,7 +128,7 @@ public final class ItemEditorModule implements EditorModule {
     }
 
     private static final List<String> RARITY_OPTIONS = List.of("common", "uncommon", "rare", "epic");
-    private static final List<String> LIST_COMPONENTS = List.of(
+    static final List<String> LIST_COMPONENTS = List.of(
             "minecraft:lore",
             "minecraft:enchantments",
             "minecraft:attribute_modifiers",
@@ -151,55 +151,37 @@ public final class ItemEditorModule implements EditorModule {
     private static final MinecraftItemComponentCatalog CATALOG = new MinecraftItemComponentCatalog();
     private static final ActionLineValidator ACTION_VALIDATOR = ActionLineValidator.coreLib();
 
-    private final EmakiItemPlugin plugin;
-    private EditorService service;
+    final EmakiItemPlugin plugin;
+    EditorService service;
 
     public ItemEditorModule(EmakiItemPlugin plugin) {
         this.plugin = plugin;
     }
 
-    public void bind(EditorService service) {
-        this.service = service;
-    }
+    public void bind(EditorService service) { new ItemEditorModuleDelegate(this).bind(service); }
 
-    public EditorService service() {
-        return service;
-    }
+    public EditorService service() { return new ItemEditorModuleDelegate(this).service(); }
 
     @Override
-    public String rootCommand() {
-        return "emakiitem";
-    }
+    public String rootCommand() { return new ItemEditorModuleDelegate(this).rootCommand(); }
 
     @Override
-    public List<EditorBrowserRoot> roots() {
-        return List.of();
-    }
+    public List<EditorBrowserRoot> roots() { return new ItemEditorModuleDelegate(this).roots(); }
 
     @Override
-    public EditorMenuMeta meta(String menuId) {
-        return ItemEditorMenus.meta(menuId);
-    }
+    public EditorMenuMeta meta(String menuId) { return new ItemEditorModuleDelegate(this).meta(menuId); }
 
     @Override
-    public List<EditorFieldSpec> fields(EditorSession session, String menuId) {
-        return ItemEditorMenus.specs(menuId, session);
-    }
+    public List<EditorFieldSpec> fields(EditorSession session, String menuId) { return new ItemEditorModuleDelegate(this).fields(session, menuId); }
 
     @Override
-    public String homeMenuId() {
-        return ItemEditorMenus.HOME;
-    }
+    public String homeMenuId() { return new ItemEditorModuleDelegate(this).homeMenuId(); }
 
     @Override
-    public String titleKey(String menuId) {
-        return ItemEditorMenus.titleKey(menuId);
-    }
+    public String titleKey(String menuId) { return new ItemEditorModuleDelegate(this).titleKey(menuId); }
 
     @Override
-    public String templateId(String menuId) {
-        return ItemEditorMenus.template(menuId);
-    }
+    public String templateId(String menuId) { return new ItemEditorModuleDelegate(this).templateId(menuId); }
 
     @Override
     public EditorValidator validator(EditorBrowserRoot root, Path file) {
@@ -216,27 +198,7 @@ public final class ItemEditorModule implements EditorModule {
         return ItemEditorMenus.setMenu(menuId) ? SET_SCOPE : EditorSession.SCOPE_DEFAULT;
     }
 
-    public EditorValidator documentValidator() {
-        return (candidate, docId, source) -> {
-            try {
-                YamlSection section = YamlFiles.load(candidate.text());
-                if (section == null) {
-                    return "unparseable_yaml";
-                }
-                EmakiItemDefinition definition = new EmakiItemDefinitionParser(plugin.getLogger())
-                        .parse(section, source.toString());
-                if (definition == null) {
-                    return "definition_parse_failed";
-                }
-                if (!docId.equals(definition.id())) {
-                    return "id_changed";
-                }
-            } catch (RuntimeException failure) {
-                return "unparseable_yaml";
-            }
-            return null;
-        };
-    }
+    public EditorValidator documentValidator() { return new ItemEditorModuleDelegate(this).documentValidator(); }
 
     private static final EditorValidator SET_VALIDATOR = (candidate, docId, source) -> {
         Object rawId = candidate.value("id");
@@ -289,63 +251,7 @@ public final class ItemEditorModule implements EditorModule {
         }
     }
 
-    static String skeleton(String itemId) {
-        return """
-                id: "%s"
-
-                item:
-                  source: "minecraft-stone"
-                  components:
-                    custom_name: "<white>%s</white>"
-
-                equip_slot: "all"
-
-                update:
-                  enabled: false
-                  version: 1
-                  triggers:
-                    join: true
-                    held_change: true
-                    inventory_click: true
-                    inventory_drag: true
-                    pickup: true
-                    interact: true
-                    command: true
-
-                effects: []
-
-                set:
-                  id: ""
-                  piece: ""
-
-                condition:
-                  type: "all_of"
-                  required_count: 0
-                  invalid_as_failure: true
-                  entries: []
-                  on_pass:
-                    actions: []
-                  on_fail:
-                    message: ""
-                    block_output: false
-                    actions: []
-
-                repair:
-                  enabled: false
-                  materials: []
-                  economy:
-                    enabled: false
-                    restore: "100%%"
-                    currencies: []
-                  disabled_display:
-                    name_prefix: ""
-                    lore_append: []
-                  on_disabled: []
-                  on_repaired: []
-
-                actions: {}
-                """.formatted(itemId, itemId);
-    }
+    static String skeleton(String itemId) { return ItemEditorModuleDelegate.skeleton(itemId); }
 
     @Override
     public List<EditorField> extraFields(EditorSession session, String menuId) {
@@ -364,16 +270,7 @@ public final class ItemEditorModule implements EditorModule {
     }
 
     @Override
-    public Material fieldIcon(EditorField field) {
-        String specific = specificIcon(field.id());
-        if (specific == null) {
-            return null;
-        }
-        String name = specific.startsWith("minecraft-")
-                ? specific.substring("minecraft-".length())
-                : specific;
-        return Material.matchMaterial(name.toUpperCase(Locale.ROOT));
-    }
+    public Material fieldIcon(EditorField field) { return new ItemEditorModuleDelegate(this).fieldIcon(field); }
 
     @Override
     public ItemStack renderCustomSlot(EditorSession session, String menuId, GuiTemplate.ResolvedSlot slot) {
@@ -647,74 +544,17 @@ public final class ItemEditorModule implements EditorModule {
         return fields;
     }
 
-    private String componentDescription(MinecraftItemComponentCatalog.Entry entry) {
-        String description = entry.descriptionText();
-        String requirement = entry.versionRequirement();
-        if (requirement.isBlank()) {
-            return description;
-        }
-        String note = plugin.messageService().message("editor.value.version", Map.of("version", requirement));
-        return description.isBlank() ? note : description + "<newline>" + note;
-    }
+    private String componentDescription(MinecraftItemComponentCatalog.Entry entry) { return new ItemEditorModuleDelegate(this).componentDescription(entry); }
 
-    private static boolean matchesFilter(MinecraftItemComponentCatalog.Entry entry, String filter) {
-        return Texts.lower(entry.componentId()).contains(filter)
-                || Texts.lower(entry.displayNameOrId()).contains(filter);
-    }
+    private static boolean matchesFilter(MinecraftItemComponentCatalog.Entry entry, String filter) { return ItemEditorModuleDelegate.matchesFilter(entry, filter); }
 
-    public static String componentDraftKey(String componentId) {
-        return componentId != null && componentId.startsWith("minecraft:")
-                ? componentId.substring("minecraft:".length())
-                : componentId;
-    }
+    public static String componentDraftKey(String componentId) { return ItemEditorModuleDelegate.componentDraftKey(componentId); }
 
-    private static EditorField.Kind editorKind(MinecraftItemComponentCatalog.Entry entry) {
-        if (entry.nonValued()) {
-            return EditorField.Kind.TOGGLE;
-        }
-        if ("minecraft:rarity".equals(entry.componentId())) {
-            return EditorField.Kind.CYCLE;
-        }
-        String format = Texts.lower(entry.valueFormat());
-        if (format.startsWith("boolean")) {
-            return EditorField.Kind.TOGGLE;
-        }
-        if (format.contains("integer") || format.contains("number")) {
-            return EditorField.Kind.NUMBER;
-        }
-        if (LIST_COMPONENTS.contains(entry.componentId())) {
-            return EditorField.Kind.LIST;
-        }
-        return EditorField.Kind.TEXT;
-    }
+    private static EditorField.Kind editorKind(MinecraftItemComponentCatalog.Entry entry) { return ItemEditorModuleDelegate.editorKind(entry); }
 
-    static String materialOf(EditorSession session) {
-        Object source = session.draft().value("item", "item_source");
-        if (source == null) {
-            source = session.draft().value("item", "source");
-        }
-        String raw = Texts.toStringSafe(source).trim();
-        if (raw.isEmpty()) {
-            return "";
-        }
-        return raw.startsWith("minecraft-") ? "minecraft:" + raw.substring("minecraft-".length()) : raw;
-    }
+    static String materialOf(EditorSession session) { return ItemEditorModuleDelegate.materialOf(session); }
 
-    static String skinSummary(EditorSession session) {
-        Object profile = session.draft().value("item", "components",
-                ProfileComponentSupport.PROFILE_COMPONENT_ID);
-        String url = ProfileComponentSupport.textureUrlOf(profile);
-        if (url != null) {
-            return url;
-        }
-        String value = ProfileComponentSupport.textureValueOf(profile);
-        if (value != null) {
-            return value.length() > 32 ? value.substring(0, 32) + "..." : value;
-        }
-        return profile instanceof Map<?, ?> map && map.get("name") != null
-                ? Texts.toStringSafe(map.get("name"))
-                : "-";
-    }
+    static String skinSummary(EditorSession session) { return ItemEditorModuleDelegate.skinSummary(session); }
 
     private ItemStack renderPreview(EditorSession session, GuiSlot slot) {
         try {
@@ -750,19 +590,7 @@ public final class ItemEditorModule implements EditorModule {
                 });
     }
 
-    private static Map<String, Object> buildProfile(String text) {
-        String trimmed = text == null ? "" : text.trim();
-        if (trimmed.isEmpty()) {
-            return null;
-        }
-        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-            return ProfileComponentSupport.profileWithTextureUrl(trimmed);
-        }
-        if (trimmed.length() > 24 && trimmed.matches("[A-Za-z0-9+/=]+")) {
-            return ProfileComponentSupport.profileWithTextureValue(trimmed);
-        }
-        return ProfileComponentSupport.profileWithPlayerName(trimmed);
-    }
+    private static Map<String, Object> buildProfile(String text) { return ItemEditorModuleDelegate.buildProfile(text); }
 
     private void handleComponentField(EditorSession session, EditorField field, GuiClickContext click) {
         String componentId = field.id().substring(COMPONENT_FIELD_PREFIX.length());
@@ -816,9 +644,7 @@ public final class ItemEditorModule implements EditorModule {
         }
     }
 
-    private String componentLabel(EditorField field, String componentId) {
-        return field.displayName() != null ? field.displayName() : componentId;
-    }
+    private String componentLabel(EditorField field, String componentId) { return new ItemEditorModuleDelegate(this).componentLabel(field, componentId); }
 
     private void promptComponentValue(EditorSession session, EditorField field, String componentId,
             String[] path) {
@@ -870,17 +696,9 @@ public final class ItemEditorModule implements EditorModule {
         service.openMenu(session, EditorService.MENU_LIST_ENTRIES);
     }
 
-    private YamlTextDocument draft(EditorSession session) {
-        return session.draft(session.current().scope());
-    }
+    YamlTextDocument draft(EditorSession session) { return new ItemEditorModuleDelegate(this).draft(session); }
 
-    private static boolean isTruthy(Object value) {
-        if (value instanceof Boolean bool) {
-            return bool;
-        }
-        String text = Texts.toStringSafe(value).trim();
-        return "true".equalsIgnoreCase(text) || "yes".equalsIgnoreCase(text);
-    }
+    private static boolean isTruthy(Object value) { return ItemEditorModuleDelegate.isTruthy(value); }
 
     private void promptComponentSearch(EditorSession session) {
         String current = Texts.toStringSafe(session.context(CONTEXT_COMPONENT_FILTER)).trim();
@@ -900,18 +718,7 @@ public final class ItemEditorModule implements EditorModule {
                 });
     }
 
-    private static Object parseYamlValue(String text) {
-        String trimmed = text == null ? "" : text.trim();
-        if (trimmed.isEmpty()) {
-            return "";
-        }
-        try {
-            Object parsed = YamlFiles.load("value: " + trimmed).asMap().get("value");
-            return parsed == null ? trimmed : parsed;
-        } catch (RuntimeException failure) {
-            return trimmed;
-        }
-    }
+    private static Object parseYamlValue(String text) { return ItemEditorModuleDelegate.parseYamlValue(text); }
 
     private String componentHint(String componentId) {
         MinecraftItemComponentCatalog.Entry entry = CATALOG.entry(componentId);
@@ -948,32 +755,13 @@ public final class ItemEditorModule implements EditorModule {
                 Map.of("stage", descriptor.get().id(), "params", builder.toString()));
     }
 
-    private static boolean isActionList(String listPath) {
-        return listPath != null && listPath.contains("actions");
-    }
+    private static boolean isActionList(String listPath) { return ItemEditorModuleDelegate.isActionList(listPath); }
 
-    private static String composeHint(String formatHint, String currentValue) {
-        if (formatHint == null || formatHint.isBlank()) {
-            return currentValue;
-        }
-        return formatHint + "\n" + currentValue;
-    }
+    private static String composeHint(String formatHint, String currentValue) { return ItemEditorModuleDelegate.composeHint(formatHint, currentValue); }
 
-    private static boolean isEditableScalar(Object value) {
-        return !(value instanceof Map<?, ?>) && !(value instanceof List<?>);
-    }
+    private static boolean isEditableScalar(Object value) { return ItemEditorModuleDelegate.isEditableScalar(value); }
 
-    private static Object parseNumber(String text) {
-        try {
-            return Integer.parseInt(text.trim());
-        } catch (NumberFormatException ignored) {
-            try {
-                return Double.parseDouble(text.trim());
-            } catch (NumberFormatException ignoredAgain) {
-                return text;
-            }
-        }
-    }
+    private static Object parseNumber(String text) { return ItemEditorModuleDelegate.parseNumber(text); }
 
     private List<String> setIds() {
         List<String> ids = new ArrayList<>();
@@ -998,7 +786,7 @@ public final class ItemEditorModule implements EditorModule {
         return ids;
     }
 
-    private static String specificIcon(String fieldId) {
+    static String specificIcon(String fieldId) {
         return SPECIFIC_ICONS.get(fieldId);
     }
 }

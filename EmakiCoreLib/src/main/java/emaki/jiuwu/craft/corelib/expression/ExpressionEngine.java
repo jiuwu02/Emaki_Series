@@ -18,9 +18,9 @@ import net.objecthunter.exp4j.function.Function;
 public final class ExpressionEngine {
 
     static final Pattern VARIABLE_PATTERN = Pattern.compile("%([^%\\s]+)%");
-    private static final double INTEGER_ROUNDING_EPSILON = 1.0E-9D;
-    private static final String DEFAULT_RANDOM_CHARS = "abcdefghijklmnopqrstuvwxyz";
-    private static final Function[] CUSTOM_FUNCTIONS = new Function[]{
+    static final double INTEGER_ROUNDING_EPSILON = 1.0E-9D;
+    static final String DEFAULT_RANDOM_CHARS = "abcdefghijklmnopqrstuvwxyz";
+    static final Function[] CUSTOM_FUNCTIONS = new Function[]{
         new Function("ceil", 1) {
             @Override
             public double apply(double... args) {
@@ -71,18 +71,7 @@ public final class ExpressionEngine {
     private ExpressionEngine() {
     }
 
-    public static boolean isBuiltinFunctionName(String name) {
-        if (Texts.isBlank(name)) {
-            return false;
-        }
-        String lowered = Texts.lower(name);
-        for (Function function : CUSTOM_FUNCTIONS) {
-            if (lowered.equals(function.getName())) {
-                return true;
-            }
-        }
-        return false;
-    }
+    public static boolean isBuiltinFunctionName(String name) { return ExpressionEngineDelegate.isBuiltinFunctionName(name); }
 
     public static boolean registerDynamicFunction(String name, Function function) {
         if (Texts.isBlank(name) || function == null || isBuiltinFunctionName(name)) {
@@ -114,21 +103,13 @@ public final class ExpressionEngine {
         return removed;
     }
 
-    private static List<Function> dynamicFunctionSnapshot() {
+    static List<Function> dynamicFunctionSnapshot() {
         synchronized (DYNAMIC_FUNCTIONS_LOCK) {
             return DYNAMIC_FUNCTIONS.isEmpty() ? List.of() : List.copyOf(DYNAMIC_FUNCTIONS.values());
         }
     }
 
-    private static Function[] mergedFunctions() {
-        List<Function> dynamic = dynamicFunctionSnapshot();
-        if (dynamic.isEmpty()) {
-            return CUSTOM_FUNCTIONS;
-        }
-        List<Function> merged = new ArrayList<>(List.of(CUSTOM_FUNCTIONS));
-        merged.addAll(dynamic);
-        return merged.toArray(new Function[0]);
-    }
+    private static Function[] mergedFunctions() { return ExpressionEngineDelegate.mergedFunctions(); }
 
     static boolean isNumericOnlyExpression(String expression) {
         if (Texts.isBlank(expression)) {
@@ -156,99 +137,29 @@ public final class ExpressionEngine {
         return ExpressionRules.isNumericOnlyLowered(lowered);
     }
 
-    public static double evaluate(String expression) {
-        return evaluate(expression, Map.of());
-    }
+    public static double evaluate(String expression) { return ExpressionEngineDelegate.evaluate(expression); }
 
-    public static double evaluate(String expression, Map<String, ?> variables) {
-        Double value = evaluateNumberOrNull(expression, variables);
-        return value == null ? 0D : value;
-    }
+    public static double evaluate(String expression, Map<String, ?> variables) { return ExpressionEngineDelegate.evaluate(expression, variables); }
 
-    public static Map<String, Double> resolveVariables(Map<String, Object> rawValues, Map<String, ?> context) {
-        Map<String, Double> resolved = new LinkedHashMap<>();
-        if (rawValues == null || rawValues.isEmpty()) {
-            return resolved;
-        }
-        Map<String, Object> evalContext = new LinkedHashMap<>();
-        if (context != null) {
-            evalContext.putAll(context);
-        }
-        for (Map.Entry<String, Object> entry : rawValues.entrySet()) {
-            String key = entry.getKey();
-            Object raw = entry.getValue();
-            double value;
-            if (raw instanceof Number number) {
-                value = number.doubleValue();
-            } else {
-                String expression = raw == null ? "0" : String.valueOf(raw).trim();
-                value = evaluate(expression, evalContext);
-            }
-            resolved.put(key, value);
-            evalContext.put(key, value);
-        }
-        return resolved;
-    }
+    public static Map<String, Double> resolveVariables(Map<String, Object> rawValues, Map<String, ?> context) { return ExpressionEngineDelegate.resolveVariables(rawValues, context); }
 
-    public static Map<String, Object> resolveMixedVariables(Map<String, Object> rawValues, Map<String, ?> context) {
-        Map<String, Object> resolved = new LinkedHashMap<>();
-        if (rawValues == null || rawValues.isEmpty()) {
-            return resolved;
-        }
-        Map<String, Object> evalContext = new LinkedHashMap<>();
-        if (context != null) {
-            evalContext.putAll(context);
-        }
-        for (Map.Entry<String, Object> entry : rawValues.entrySet()) {
-            String key = entry.getKey();
-            if (Texts.isBlank(key)) {
-                continue;
-            }
-            Object value = resolveMixedVariableValue(entry.getValue(), evalContext);
-            resolved.put(key, value);
-            evalContext.put(key, value);
-        }
-        return resolved;
-    }
+    public static Map<String, Object> resolveMixedVariables(Map<String, Object> rawValues, Map<String, ?> context) { return ExpressionEngineDelegate.resolveMixedVariables(rawValues, context); }
 
-    public static NumericEvaluationResult evaluateNumericDetailed(String expression) {
-        return evaluateNumericDetailed(expression, Map.of());
-    }
+    public static NumericEvaluationResult evaluateNumericDetailed(String expression) { return ExpressionEngineDelegate.evaluateNumericDetailed(expression); }
 
-    public static NumericEvaluationResult evaluateNumericDetailed(String expression, Map<String, ?> variables) {
-        return evaluateNumberDetailed(expression, NumericEvaluationScope.of(variables), 0);
-    }
+    public static NumericEvaluationResult evaluateNumericDetailed(String expression, Map<String, ?> variables) { return ExpressionEngineDelegate.evaluateNumericDetailed(expression, variables); }
 
-    public static String evaluateString(String expression) {
-        return evaluateString(expression, Map.of());
-    }
+    public static String evaluateString(String expression) { return ExpressionEngineDelegate.evaluateString(expression); }
 
-    public static String evaluateString(String expression, Map<String, ?> variables) {
-        if (expression == null) {
-            return "";
-        }
-        if (!ExpressionEngineSupport.validateExpressionLength(expression) || ExpressionEngineSupport.containsDangerousChars(expression)) {
-            return "";
-        }
-        TextEvaluationResult result = evaluateStringTemplateDetailed(expression, TextEvaluationScope.of(variables), 0);
-        return result.value();
-    }
+    public static String evaluateString(String expression, Map<String, ?> variables) { return ExpressionEngineDelegate.evaluateString(expression, variables); }
 
-    public static String evaluateStringConfig(Object config) {
-        return evaluateStringConfig(config, Map.of());
-    }
+    public static String evaluateStringConfig(Object config) { return ExpressionEngineDelegate.evaluateStringConfig(config); }
 
-    public static String evaluateStringConfig(Object config, Map<String, ?> variables) {
-        return evaluateStringConfigDetailed(config, variables).value();
-    }
+    public static String evaluateStringConfig(Object config, Map<String, ?> variables) { return ExpressionEngineDelegate.evaluateStringConfig(config, variables); }
 
-    public static List<String> evaluateStringLinesConfig(Object config) {
-        return evaluateStringLinesConfig(config, Map.of());
-    }
+    public static List<String> evaluateStringLinesConfig(Object config) { return ExpressionEngineDelegate.evaluateStringLinesConfig(config); }
 
-    public static List<String> evaluateStringLinesConfig(Object config, Map<String, ?> variables) {
-        return evaluateStringConfigDetailed(config, variables).lines();
-    }
+    public static List<String> evaluateStringLinesConfig(Object config, Map<String, ?> variables) { return ExpressionEngineDelegate.evaluateStringLinesConfig(config, variables); }
 
     public static TextEvaluationResult evaluateStringConfigDetailed(Object config) {
         return evaluateStringConfigDetailed(config, Map.of());
@@ -258,153 +169,42 @@ public final class ExpressionEngine {
         return evaluateStringConfigDetailed(config, TextEvaluationScope.of(variables), 0);
     }
 
-    public static Boolean evaluateBoolean(String expression) {
-        return evaluateBoolean(expression, Map.of());
-    }
+    public static Boolean evaluateBoolean(String expression) { return ExpressionEngineDelegate.evaluateBoolean(expression); }
 
-    public static Boolean evaluateBoolean(String expression, Map<String, ?> variables) {
-        String prepared = prepareExpression(expression, variables);
-        if (prepared == null) {
-            return null;
-        }
-        return BooleanExpressionEvaluator.evaluatePreparedBoolean(prepared);
-    }
+    public static Boolean evaluateBoolean(String expression, Map<String, ?> variables) { return ExpressionEngineDelegate.evaluateBoolean(expression, variables); }
 
-    public static boolean evaluateBoolean(String expression, Map<String, ?> variables, boolean fallback) {
-        Boolean value = evaluateBoolean(expression, variables);
-        return value == null ? fallback : value;
-    }
+    public static boolean evaluateBoolean(String expression, Map<String, ?> variables, boolean fallback) { return ExpressionEngineDelegate.evaluateBoolean(expression, variables, fallback); }
 
-    private static Object resolveMixedVariableValue(Object raw, Map<String, ?> variables) {
-        if (raw == null) {
-            return "";
-        }
-        if (raw instanceof Number || raw instanceof Boolean) {
-            return raw;
-        }
-        TextEvaluationResult text = evaluateStringConfigDetailed(raw, variables);
-        if (text.success()) {
-            return coerceResolvedTextValue(raw, text.value());
-        }
-        NumericEvaluationResult numeric = evaluateRandomConfigDetailed(raw, variables);
-        if (numeric.success()) {
-            return numeric.value();
-        }
-        return coerceResolvedTextValue(raw, text.value());
-    }
+    static Object resolveMixedVariableValue(Object raw, Map<String, ?> variables) { return ExpressionEngineDelegate.resolveMixedVariableValue(raw, variables); }
 
-    private static Object coerceResolvedTextValue(Object raw, String value) {
-        String safeValue = Texts.toStringSafe(value);
-        if (raw instanceof Map<?, ?> && looksLikeTextConfig(raw)) {
-            return safeValue;
-        }
-        if (raw instanceof Iterable<?>) {
-            return safeValue;
-        }
-        Double numeric = Numbers.tryParseDouble(safeValue, null);
-        return numeric == null ? safeValue : numeric;
-    }
+    static Object coerceResolvedTextValue(Object raw, String value) { return ExpressionEngineDelegate.coerceResolvedTextValue(raw, value); }
 
-    private static Double evaluateNumberOrNull(String expression, Map<String, ?> variables) {
-        NumericEvaluationResult result = evaluateNumericDetailed(expression, variables);
-        return result.success() ? result.value() : null;
-    }
+    static Double evaluateNumberOrNull(String expression, Map<String, ?> variables) { return ExpressionEngineDelegate.evaluateNumberOrNull(expression, variables); }
 
-    public static double evaluateRandomConfig(Object config) {
-        return evaluateRandomConfig(config, Map.of());
-    }
+    public static double evaluateRandomConfig(Object config) { return ExpressionEngineDelegate.evaluateRandomConfig(config); }
 
-    public static double evaluateRandomConfig(Object config, Map<String, ?> variables) {
-        NumericEvaluationResult result = evaluateRandomConfigDetailed(config, variables);
-        return result.success() ? result.value() : 0D;
-    }
+    public static double evaluateRandomConfig(Object config, Map<String, ?> variables) { return ExpressionEngineDelegate.evaluateRandomConfig(config, variables); }
 
-    public static NumericEvaluationResult evaluateRandomConfigDetailed(Object config) {
-        return evaluateRandomConfigDetailed(config, Map.of());
-    }
+    public static NumericEvaluationResult evaluateRandomConfigDetailed(Object config) { return ExpressionEngineDelegate.evaluateRandomConfigDetailed(config); }
 
-    public static NumericEvaluationResult evaluateRandomConfigDetailed(Object config, Map<String, ?> variables) {
-        return evaluateRandomConfigDetailed(config, NumericEvaluationScope.of(variables), 0);
-    }
+    public static NumericEvaluationResult evaluateRandomConfigDetailed(Object config, Map<String, ?> variables) { return ExpressionEngineDelegate.evaluateRandomConfigDetailed(config, variables); }
 
-    public static String replaceVariables(String expression, Map<String, ?> variables) {
-        if (expression == null) {
-            return "";
-        }
-        if (variables == null || variables.isEmpty()) {
-            return expression;
-        }
-        Matcher matcher = VARIABLE_PATTERN.matcher(expression);
-        StringBuilder buffer = new StringBuilder();
-        while (matcher.find()) {
-            Object value = variables.get(matcher.group(1));
-            matcher.appendReplacement(buffer, Matcher.quoteReplacement(Texts.toStringSafe(value)));
-        }
-        matcher.appendTail(buffer);
-        return buffer.toString();
-    }
+    public static String replaceVariables(String expression, Map<String, ?> variables) { return ExpressionEngineDelegate.replaceVariables(expression, variables); }
 
-    public static String evaluateExpressionBlock(String innerExpression, Matcher matcher, Map<String, ?> variables) {
-        String prepared = Texts.toStringSafe(innerExpression);
-        if (matcher != null) {
-            for (int group = 1; group <= matcher.groupCount(); group++) {
-                String groupValue = matcher.group(group);
-                if (groupValue != null) {
-                    prepared = prepared.replace("$" + group, groupValue);
-                }
-            }
-        }
-        prepared = replaceVariables(prepared, variables);
-        if (!isPureNumericExpression(prepared)) {
-            Boolean booleanResult = evaluateBoolean(prepared, Map.of());
-            return booleanResult == null ? evaluateString(prepared, Map.of()) : Boolean.toString(booleanResult);
-        }
-        try {
-            double result = evaluate(prepared);
-            if (Math.abs(result - Math.rint(result)) <= INTEGER_ROUNDING_EPSILON) {
-                return Long.toString(Math.round(result));
-            }
-            return Numbers.formatNumber(result, "0.##");
-        } catch (Exception e) {
-            return prepared;
-        }
-    }
+    public static String evaluateExpressionBlock(String innerExpression, Matcher matcher, Map<String, ?> variables) { return ExpressionEngineDelegate.evaluateExpressionBlock(innerExpression, matcher, variables); }
 
-    public static void clearThreadLocalCache() {
-        ExpressionCache.clearThreadLocal();
-    }
+    public static void clearThreadLocalCache() { ExpressionEngineDelegate.clearThreadLocalCache(); }
 
-    public static void clearGlobalCache() {
-        ExpressionCache.clearGlobal();
-    }
+    public static void clearGlobalCache() { ExpressionEngineDelegate.clearGlobalCache(); }
 
-    private static String prepareExpression(String expression, Map<String, ?> variables) {
-        if (Texts.isBlank(expression)) {
-            return null;
-        }
-        if (!ExpressionEngineSupport.validateExpressionLength(expression) || ExpressionEngineSupport.containsDangerousChars(expression)) {
-            return null;
-        }
-        String prepared = replaceVariables(expression, variables).trim();
-        if (Texts.isBlank(prepared) || !ExpressionEngineSupport.validateExpressionLength(prepared) || ExpressionEngineSupport.containsDangerousChars(prepared)) {
-            return null;
-        }
-        return prepared;
-    }
+    static String prepareExpression(String expression, Map<String, ?> variables) { return ExpressionEngineDelegate.prepareExpression(expression, variables); }
 
 
-    static boolean isPureNumericExpression(String expression) {
-        return ExpressionRules.isPureNumericExpression(expression);
-    }
+    static boolean isPureNumericExpression(String expression) { return ExpressionEngineDelegate.isPureNumericExpression(expression); }
 
-    static String abbreviate(Object value) {
-        String text = Texts.toStringSafe(value).replace('\n', ' ').replace('\r', ' ').trim();
-        return text.length() <= 96 ? text : text.substring(0, 93) + "...";
-    }
+    static String abbreviate(Object value) { return ExpressionEngineDelegate.abbreviate(value); }
 
-    static Boolean parseBooleanLiteral(String raw) {
-        return BooleanExpressionEvaluator.parseBooleanLiteral(raw);
-    }
+    static Boolean parseBooleanLiteral(String raw) { return ExpressionEngineDelegate.parseBooleanLiteral(raw); }
 
     static NumericEvaluationResult evaluateNumberDetailed(String expression,
             NumericEvaluationScope scope,
@@ -456,102 +256,21 @@ public final class ExpressionEngine {
         }
     }
 
-    private static NumericPreparation prepareNumericExpression(String expression,
+    static NumericPreparation prepareNumericExpression(String expression,
             NumericEvaluationScope scope,
-            int depth) {
-        if (scope.variables().isEmpty()) {
-            return new NumericPreparation(expression, List.of());
-        }
-        Matcher matcher = VARIABLE_PATTERN.matcher(expression);
-        StringBuilder buffer = new StringBuilder();
-        List<String> issues = new ArrayList<>();
-        while (matcher.find()) {
-            String name = matcher.group(1);
-            if (!scope.variables().containsKey(name)) {
-                issues.add("数值表达式变量 '{" + name + "}' 缺失。");
-                matcher.appendReplacement(buffer, "0");
-                continue;
-            }
-            NumericEvaluationResult variableResult = resolveNumericVariable(name, scope.variables().get(name),
-                    scope, depth + 1);
-            if (!variableResult.success()) {
-                issues.addAll(variableResult.issues());
-                matcher.appendReplacement(buffer, "0");
-                continue;
-            }
-            matcher.appendReplacement(buffer, Matcher.quoteReplacement(Numbers.toPlainString(variableResult.value())));
-        }
-        matcher.appendTail(buffer);
-        return new NumericPreparation(buffer.toString(), issues);
-    }
+            int depth) { return ExpressionEngineDelegate.prepareNumericExpression(expression, scope, depth); }
 
-    private static NumericEvaluationResult resolveNumericVariable(String name,
+    static NumericEvaluationResult resolveNumericVariable(String name,
             Object rawValue,
             NumericEvaluationScope scope,
-            int depth) {
-        if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
-            return NumericEvaluationResult.failure("数值表达式变量 '{" + name + "}' 超过最大嵌套深度 " + ExpressionRules.MAX_NESTED_DEPTH + ".");
-        }
-        Double cached = scope.resolvedVariables().get(name);
-        if (cached != null) {
-            return NumericEvaluationResult.success(cached);
-        }
-        if (scope.resolvingVariables().contains(name)) {
-            return NumericEvaluationResult.failure("数值表达式变量 '{" + name
-                    + "}' 引用了自身。");
-        }
-        scope.resolvingVariables().add(name);
-        try {
-            NumericEvaluationResult result = resolveNumericVariableValue(name, rawValue, scope, depth + 1);
-            if (result.success()) {
-                scope.resolvedVariables().put(name, result.value());
-            }
-            return result;
-        } finally {
-            scope.resolvingVariables().remove(scope.resolvingVariables().size() - 1);
-        }
-    }
+            int depth) { return ExpressionEngineDelegate.resolveNumericVariable(name, rawValue, scope, depth); }
 
-    private static NumericEvaluationResult resolveNumericVariableValue(String name,
+    static NumericEvaluationResult resolveNumericVariableValue(String name,
             Object rawValue,
             NumericEvaluationScope scope,
-            int depth) {
-        if (rawValue == null) {
-            return NumericEvaluationResult.failure("数值表达式变量 '{" + name + "}' 为 null。");
-        }
-        if (rawValue instanceof Number number) {
-            return NumericEvaluationResult.success(number.doubleValue());
-        }
-        if (rawValue instanceof Boolean) {
-            return NumericEvaluationResult.failure("数值表达式变量 '{" + name + "}' 是布尔值，不能用于数值表达式。");
-        }
-        if (rawValue instanceof String text) {
-            NumericEvaluationResult result = RandomExpressionEvaluator.evaluateNumericTextDetailed(text, scope, depth + 1, ExpressionRules.MAX_NESTED_DEPTH);
-            if (result.success()) {
-                return result;
-            }
-            List<String> issues = new ArrayList<>();
-            issues.add("数值表达式变量 '{" + name + "}' 必须解析为数字，但得到字符串: "
-                    + abbreviate(text));
-            issues.addAll(result.issues());
-            return NumericEvaluationResult.failure(issues);
-        }
-        String type = normalizedConfigType(rawValue);
-        if (isStringConfigType(type) || isBooleanConfigType(type)) {
-            return NumericEvaluationResult.failure("数值表达式变量 '{" + name + "}' 使用了 "
-                    + type + " 配置，不能用于数值表达式。");
-        }
-        NumericEvaluationResult result = evaluateRandomConfigDetailed(rawValue, scope, depth + 1);
-        if (result.success()) {
-            return result;
-        }
-        List<String> issues = new ArrayList<>();
-        issues.add("数值表达式变量 '{" + name + "}' 必须解析为数值配置。");
-        issues.addAll(result.issues());
-        return NumericEvaluationResult.failure(issues);
-    }
+            int depth) { return ExpressionEngineDelegate.resolveNumericVariableValue(name, rawValue, scope, depth); }
 
-    private static TextEvaluationResult evaluateStringConfigDetailed(Object config,
+    static TextEvaluationResult evaluateStringConfigDetailed(Object config,
             TextEvaluationScope scope,
             int depth) {
         if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
@@ -636,60 +355,11 @@ public final class ExpressionEngine {
                 + "'.支持的文本类型: string、random_text、random_char、weighted_random_char、conditional_char、boolean。");
     }
 
-    private static TextEvaluationResult evaluateRandomTextLinesDetailed(Object config,
+    static TextEvaluationResult evaluateRandomTextLinesDetailed(Object config,
             TextEvaluationScope scope,
-            int depth) {
-        if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
-            return TextEvaluationResult.failure("随机文本配置超过最大嵌套深度 "
-                    + ExpressionRules.MAX_NESTED_DEPTH + ".");
-        }
-        TextEvaluationScope scoped = textScopeWithConfigVariables(config, scope);
-        List<Object> candidates = randomTextLineCandidates(config);
-        if (candidates.isEmpty()) {
-            return TextEvaluationResult.failure("随机文本配置缺少 'lines' 或 'values'。");
-        }
+            int depth) { return ExpressionEngineDelegate.evaluateRandomTextLinesDetailed(config, scope, depth); }
 
-        TextIntegerResult count = evaluateTextRollCount(config, scoped, depth + 1);
-        TextBooleanResult allowDuplicates = evaluateTextAllowDuplicates(config, scoped, depth + 1);
-        List<String> issues = new ArrayList<>();
-        issues.addAll(count.issues());
-        issues.addAll(allowDuplicates.issues());
-        int requestedCount = Math.max(0, count.value());
-        if (!allowDuplicates.value()) {
-            requestedCount = Math.min(requestedCount, candidates.size());
-        }
-        if (requestedCount <= 0) {
-            return new TextEvaluationResult(issues.isEmpty(), "", List.of(), issues);
-        }
-
-        List<Object> selected = new ArrayList<>();
-        if (allowDuplicates.value()) {
-            for (int index = 0; index < requestedCount; index++) {
-                selected.add(candidates.get(Randoms.randomInt(0, candidates.size() - 1)));
-            }
-        } else {
-            List<Object> shuffled = Randoms.shuffle(candidates);
-            selected.addAll(shuffled.subList(0, requestedCount));
-        }
-
-        List<String> lines = new ArrayList<>();
-        for (Object rawLine : selected) {
-            TextEvaluationResult lineResult = evaluateStringConfigDetailed(rawLine, scoped.fresh(), depth + 1);
-            issues.addAll(lineResult.issues());
-            if (lineResult.lines().isEmpty()) {
-                lines.add(lineResult.value());
-                continue;
-            }
-            lines.addAll(lineResult.lines());
-        }
-        String separator = Texts.toStringSafe(ConfigNodes.get(config, "separator"));
-        if (separator.isEmpty()) {
-            separator = "\n";
-        }
-        return new TextEvaluationResult(issues.isEmpty(), String.join(separator, lines), lines, issues);
-    }
-
-    private static TextEvaluationResult evaluateRandomCharsDetailed(Object config,
+    static TextEvaluationResult evaluateRandomCharsDetailed(Object config,
             TextEvaluationScope scope,
             int depth,
             boolean weighted) {
@@ -723,7 +393,7 @@ public final class ExpressionEngine {
         return new TextEvaluationResult(issues.isEmpty(), value, value.isEmpty() ? List.of() : List.of(value), issues);
     }
 
-    private static TextEvaluationResult evaluateConditionalCharDetailed(Object config,
+    static TextEvaluationResult evaluateConditionalCharDetailed(Object config,
             TextEvaluationScope scope,
             int depth) {
         if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
@@ -787,109 +457,27 @@ public final class ExpressionEngine {
         return evaluateConditionalCharValue(value, scoped, depth + 1, issues);
     }
 
-    private static TextEvaluationResult evaluateConditionalCharValue(Object value,
+    static TextEvaluationResult evaluateConditionalCharValue(Object value,
             TextEvaluationScope scope,
             int depth,
-            List<String> issues) {
-        TextEvaluationResult result = evaluateStringConfigDetailed(value, scope.fresh(), depth + 1);
-        List<String> allIssues = new ArrayList<>(issues == null ? List.of() : issues);
-        allIssues.addAll(result.issues());
-        return new TextEvaluationResult(allIssues.isEmpty(), result.value(), result.lines(), allIssues);
-    }
+            List<String> issues) { return ExpressionEngineDelegate.evaluateConditionalCharValue(value, scope, depth, issues); }
 
-    private static TextEvaluationResult evaluateTextListDetailed(Object config,
+    static TextEvaluationResult evaluateTextListDetailed(Object config,
             TextEvaluationScope scope,
-            int depth) {
-        if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
-            return TextEvaluationResult.failure("文本列表超过最大嵌套深度 " + ExpressionRules.MAX_NESTED_DEPTH + ".");
-        }
-        List<String> lines = new ArrayList<>();
-        List<String> issues = new ArrayList<>();
-        for (Object entry : ConfigNodes.asObjectList(config)) {
-            TextEvaluationResult result = evaluateStringConfigDetailed(entry, scope.fresh(), depth + 1);
-            issues.addAll(result.issues());
-            if (result.lines().isEmpty()) {
-                lines.add(result.value());
-                continue;
-            }
-            lines.addAll(result.lines());
-        }
-        return new TextEvaluationResult(issues.isEmpty(), String.join("\n", lines), lines, issues);
-    }
+            int depth) { return ExpressionEngineDelegate.evaluateTextListDetailed(config, scope, depth); }
 
-    private static TextEvaluationResult evaluateStringTemplateDetailed(String template,
+    static TextEvaluationResult evaluateStringTemplateDetailed(String template,
             TextEvaluationScope scope,
-            int depth) {
-        if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
-            return TextEvaluationResult.failure("文本表达式超过最大嵌套深度 "
-                    + ExpressionRules.MAX_NESTED_DEPTH + ".");
-        }
-        if (template == null) {
-            return TextEvaluationResult.success("");
-        }
-        if (!ExpressionEngineSupport.validateExpressionLength(template)) {
-            return TextEvaluationResult.failure("文本表达式长度超过 "
-                    + ExpressionRules.MAX_EXPRESSION_LENGTH + " 个字符: " + abbreviate(template));
-        }
-        if (ExpressionEngineSupport.containsDangerousChars(template)) {
-            return TextEvaluationResult.failure("文本表达式包含不支持的字符: "
-                    + abbreviate(template));
-        }
-        TextPreparation preparation = prepareTextTemplate(template, scope, depth + 1);
-        String prepared = BooleanExpressionEvaluator.unquote(preparation.value());
-        if (!ExpressionEngineSupport.validateExpressionLength(prepared)) {
-            List<String> issues = new ArrayList<>(preparation.issues());
-            issues.add("预处理后的文本表达式长度超过 "
-                    + ExpressionRules.MAX_EXPRESSION_LENGTH + " 个字符: " + abbreviate(prepared));
-            return TextEvaluationResult.failure(issues, "", List.of());
-        }
-        if (ExpressionEngineSupport.containsDangerousChars(prepared)) {
-            List<String> issues = new ArrayList<>(preparation.issues());
-            issues.add("预处理后的文本表达式包含不支持的字符: " + abbreviate(prepared));
-            return TextEvaluationResult.failure(issues, "", List.of());
-        }
-        return new TextEvaluationResult(preparation.issues().isEmpty(), prepared, List.of(prepared),
-                preparation.issues());
-    }
+            int depth) { return ExpressionEngineDelegate.evaluateStringTemplateDetailed(template, scope, depth); }
 
-    private static TextPreparation prepareTextTemplate(String template, TextEvaluationScope scope, int depth) {
-        Matcher matcher = VARIABLE_PATTERN.matcher(template);
-        StringBuilder buffer = new StringBuilder();
-        List<String> issues = new ArrayList<>();
-        while (matcher.find()) {
-            String name = matcher.group(1);
-            if (!scope.variables().containsKey(name)) {
-                issues.add("文本表达式变量 '{" + name + "}' 缺失。");
-                matcher.appendReplacement(buffer, "");
-                continue;
-            }
-            TextEvaluationResult variable = resolveTextVariable(name, scope.variables().get(name), scope, depth + 1);
-            issues.addAll(variable.issues());
-            matcher.appendReplacement(buffer, Matcher.quoteReplacement(variable.value()));
-        }
-        matcher.appendTail(buffer);
-        return new TextPreparation(buffer.toString(), issues);
-    }
+    static TextPreparation prepareTextTemplate(String template, TextEvaluationScope scope, int depth) { return ExpressionEngineDelegate.prepareTextTemplate(template, scope, depth); }
 
-    private static TextEvaluationResult resolveTextVariable(String name,
+    static TextEvaluationResult resolveTextVariable(String name,
             Object rawValue,
             TextEvaluationScope scope,
-            int depth) {
-        if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
-            return TextEvaluationResult.failure("文本表达式变量 '{" + name + "}' 超过最大嵌套深度 " + ExpressionRules.MAX_NESTED_DEPTH + ".");
-        }
-        if (scope.resolvingVariables().contains(name)) {
-            return TextEvaluationResult.failure("文本表达式变量 '{" + name + "}' 引用了自身。");
-        }
-        scope.resolvingVariables().add(name);
-        try {
-            return resolveTextVariableValue(name, rawValue, scope, depth + 1);
-        } finally {
-            scope.resolvingVariables().remove(scope.resolvingVariables().size() - 1);
-        }
-    }
+            int depth) { return ExpressionEngineDelegate.resolveTextVariable(name, rawValue, scope, depth); }
 
-    private static TextEvaluationResult resolveTextVariableValue(String name,
+    static TextEvaluationResult resolveTextVariableValue(String name,
             Object rawValue,
             TextEvaluationScope scope,
             int depth) {
@@ -932,124 +520,22 @@ public final class ExpressionEngine {
         return evaluateStringConfigDetailed(rawValue, scope, depth + 1);
     }
 
-    private static TextIntegerResult evaluateTextRollCount(Object config, TextEvaluationScope scope, int depth) {
-        Object value = ConfigNodes.get(config, "count");
-        if (value == null) {
-            return new TextIntegerResult(1, List.of());
-        }
-        NumericEvaluationResult result = evaluateRandomConfigDetailed(value,
-                NumericEvaluationScope.of(scope.variables()),
-                depth + 1);
-        if (result.success()) {
-            return new TextIntegerResult(Math.max(0, (int) Math.round(result.value())), List.of());
-        }
-        List<String> issues = new ArrayList<>();
-        issues.add("随机文本掷取次数必须解析为数字。");
-        issues.addAll(result.issues());
-        return new TextIntegerResult(0, issues);
-    }
+    static TextIntegerResult evaluateTextRollCount(Object config, TextEvaluationScope scope, int depth) { return ExpressionEngineDelegate.evaluateTextRollCount(config, scope, depth); }
 
-    private static TextBooleanResult evaluateTextAllowDuplicates(Object config, TextEvaluationScope scope, int depth) {
-        Object value = ConfigNodes.get(config, "allow_duplicates");
-        if (value == null) {
-            return new TextBooleanResult(false, List.of());
-        }
-        return evaluateTextBooleanValue(value, scope, depth + 1, false);
-    }
+    static TextBooleanResult evaluateTextAllowDuplicates(Object config, TextEvaluationScope scope, int depth) { return ExpressionEngineDelegate.evaluateTextAllowDuplicates(config, scope, depth); }
 
-    private static TextBooleanResult evaluateTextBooleanValue(Object value,
+    static TextBooleanResult evaluateTextBooleanValue(Object value,
             TextEvaluationScope scope,
             int depth,
-            boolean fallback) {
-        if (value == null) {
-            return new TextBooleanResult(fallback, List.of());
-        }
-        if (value instanceof Boolean bool) {
-            return new TextBooleanResult(bool, List.of());
-        }
-        if (value instanceof Number number) {
-            return new TextBooleanResult(number.doubleValue() > 0D, List.of());
-        }
-        Object expression = value;
-        if (!(value instanceof String)) {
-            TextEvaluationScope scoped = textScopeWithConfigVariables(value, scope);
-            expression = ConfigNodes.get(value, "value");
-            if (expression == null) {
-                return new TextBooleanResult(fallback, List.of("布尔文本配置缺少 value 或 expression。"));
-            }
-            scope = scoped;
-        }
-        Boolean result = evaluateBoolean(Texts.toStringSafe(expression), scope.variables());
-        if (result == null) {
-            return new TextBooleanResult(fallback, List.of("布尔文本配置无法求值: "
-                    + abbreviate(expression)));
-        }
-        return new TextBooleanResult(result, List.of());
-    }
+            boolean fallback) { return ExpressionEngineDelegate.evaluateTextBooleanValue(value, scope, depth, fallback); }
 
-    private static List<Object> randomTextLineCandidates(Object config) {
-        Object value = ConfigNodes.get(config, "lines");
-        if (value == null) {
-            return List.of();
-        }
-        List<Object> result = new ArrayList<>();
-        for (Object entry : ConfigNodes.asObjectList(value)) {
-            if (entry != null) {
-                result.add(entry);
-            }
-        }
-        return result;
-    }
+    static List<Object> randomTextLineCandidates(Object config) { return ExpressionEngineDelegate.randomTextLineCandidates(config); }
 
-    private static TextCandidates randomCharCandidates(Object config, TextEvaluationScope scope, int depth) {
-        Object raw = ConfigNodes.get(config, "chars");
-        if (raw == null) {
-            raw = DEFAULT_RANDOM_CHARS;
-        }
-        List<String> result = new ArrayList<>();
-        List<String> issues = new ArrayList<>();
-        if (raw instanceof String text) {
-            TextEvaluationResult evaluated = evaluateStringConfigDetailed(text, scope.fresh(), depth + 1);
-            issues.addAll(evaluated.issues());
-            evaluated.value().codePoints()
-                    .mapToObj(codePoint -> new String(Character.toChars(codePoint)))
-                    .filter(Texts::isNotBlank)
-                    .forEach(result::add);
-            return new TextCandidates(result, issues);
-        }
-        for (Object entry : ConfigNodes.asObjectList(raw)) {
-            if (entry == null) {
-                continue;
-            }
-            TextEvaluationResult evaluated = evaluateStringConfigDetailed(entry, scope.fresh(), depth + 1);
-            issues.addAll(evaluated.issues());
-            if (Texts.isNotBlank(evaluated.value())) {
-                result.add(evaluated.value());
-            }
-        }
-        return new TextCandidates(result, issues);
-    }
+    static TextCandidates randomCharCandidates(Object config, TextEvaluationScope scope, int depth) { return ExpressionEngineDelegate.randomCharCandidates(config, scope, depth); }
 
     private static List<String> selectRandomChars(List<String> candidates,
             int requestedCount,
-            boolean allowDuplicates) {
-        int safeCount = requestedCount;
-        if (!allowDuplicates) {
-            safeCount = Math.min(safeCount, candidates.size());
-        }
-        if (safeCount <= 0) {
-            return List.of();
-        }
-        List<String> selected = new ArrayList<>();
-        if (allowDuplicates) {
-            for (int index = 0; index < safeCount; index++) {
-                selected.add(candidates.get(Randoms.randomInt(0, candidates.size() - 1)));
-            }
-            return selected;
-        }
-        selected.addAll(Randoms.shuffle(candidates).subList(0, safeCount));
-        return selected;
-    }
+            boolean allowDuplicates) { return ExpressionEngineDelegate.selectRandomChars(candidates, requestedCount, allowDuplicates); }
 
     private static List<String> selectWeightedRandomChars(Object config,
             List<String> candidates,
@@ -1093,130 +579,38 @@ public final class ExpressionEngine {
         return selected;
     }
 
-    private static List<WeightedChar> weightedCharCandidates(Object config,
+    static List<WeightedChar> weightedCharCandidates(Object config,
             List<String> candidates,
             TextEvaluationScope scope,
             int depth,
-            List<String> issues) {
-        Object rawWeights = ConfigNodes.get(config, "weights");
-        if (rawWeights == null) {
-            issues.add("加权随机字符配置缺少 'weights'。");
-            return List.of();
-        }
-        List<Object> weights = ConfigNodes.asObjectList(rawWeights);
-        if (weights.size() != candidates.size()) {
-            issues.add("加权随机字符配置要求权重数量与字符数量一致。");
-            return List.of();
-        }
-        List<WeightedChar> result = new ArrayList<>();
-        for (int index = 0; index < candidates.size(); index++) {
-            NumericEvaluationResult weight = evaluateRandomConfigDetailed(weights.get(index),
-                    NumericEvaluationScope.of(scope.variables()),
-                    depth + 1);
-            if (!weight.success()) {
-                issues.add("索引 " + index + " 处的加权随机字符权重无效。");
-                issues.addAll(weight.issues());
-                continue;
-            }
-            if (weight.value() > 0D) {
-                result.add(new WeightedChar(candidates.get(index), weight.value()));
-            }
-        }
-        if (result.isEmpty()) {
-            issues.add("加权随机字符配置没有正权重。");
-        }
-        return result;
-    }
+            List<String> issues) { return ExpressionEngineDelegate2.weightedCharCandidates(config, candidates, scope, depth, issues); }
 
-    private static List<Randoms.Weighted<WeightedChar>> weightedItems(List<WeightedChar> candidates) {
-        List<Randoms.Weighted<WeightedChar>> result = new ArrayList<>();
-        for (WeightedChar candidate : candidates) {
-            result.add(new Randoms.Weighted<>(candidate, candidate.weight()));
-        }
-        return result;
-    }
+    static List<Randoms.Weighted<WeightedChar>> weightedItems(List<WeightedChar> candidates) { return ExpressionEngineDelegate2.weightedItems(candidates); }
 
 
-    private static TextEvaluationScope textScopeWithConfigVariables(Object config, TextEvaluationScope scope) {
-        return scope.withVariables(mergedConfigVariables(config, scope.variables()));
-    }
+    static TextEvaluationScope textScopeWithConfigVariables(Object config, TextEvaluationScope scope) { return ExpressionEngineDelegate2.textScopeWithConfigVariables(config, scope); }
 
-    private static Map<String, ?> mergedConfigVariables(Object config, Map<String, ?> variables) {
-        Map<String, Object> localVariables = ConfigNodes.entries(ConfigNodes.get(config, "variables"));
-        if (localVariables.isEmpty()) {
-            return variables == null || variables.isEmpty() ? Map.of() : variables;
-        }
-        Map<String, Object> merged = new LinkedHashMap<>();
-        if (variables != null) {
-            for (Map.Entry<String, ?> entry : variables.entrySet()) {
-                if (Texts.isNotBlank(entry.getKey())) {
-                    merged.put(entry.getKey(), entry.getValue());
-                }
-            }
-        }
-        for (Map.Entry<String, Object> entry : localVariables.entrySet()) {
-            if (Texts.isNotBlank(entry.getKey())) {
-                merged.put(entry.getKey(), ConfigNodes.toPlainData(entry.getValue()));
-            }
-        }
-        return merged;
-    }
+    static Map<String, ?> mergedConfigVariables(Object config, Map<String, ?> variables) { return ExpressionEngineDelegate2.mergedConfigVariables(config, variables); }
 
 
-    private static boolean looksLikeTextConfig(Object config) {
-        String type = normalizedConfigType(config);
-        if (isStringConfigType(type)
-                || ExpressionEngineSupport.isRandomTextConfigType(type)
-                || ExpressionEngineSupport.isRandomCharConfigType(type)
-                || ExpressionEngineSupport.isWeightedRandomCharConfigType(type)
-                || ExpressionEngineSupport.isConditionalCharConfigType(type)
-                || isBooleanConfigType(type)) {
-            return true;
-        }
-        return Texts.isBlank(type) && (ExpressionEngineSupport.hasRandomTextLines(config)
-                || ConfigNodes.get(config, "text") != null);
-    }
+    static boolean looksLikeTextConfig(Object config) { return ExpressionEngineDelegate2.looksLikeTextConfig(config); }
 
 
-    private static String formatTextNumber(double value) {
-        if (Math.abs(value - Math.rint(value)) <= INTEGER_ROUNDING_EPSILON) {
-            return Long.toString(Math.round(value));
-        }
-        return Numbers.formatNumber(value, "0.##");
-    }
+    private static String formatTextNumber(double value) { return ExpressionEngineDelegate2.formatTextNumber(value); }
 
-    private static NumericEvaluationResult evaluateRandomConfigDetailed(Object config,
+    static NumericEvaluationResult evaluateRandomConfigDetailed(Object config,
             NumericEvaluationScope scope,
-            int depth) {
-        return RandomExpressionEvaluator.evaluateRandomConfigDetailed(config, scope, depth, ExpressionRules.MAX_NESTED_DEPTH);
-    }
+            int depth) { return ExpressionEngineDelegate2.evaluateRandomConfigDetailed(config, scope, depth); }
 
-    static NumericEvaluationScope scopeWithConfigVariables(Object config, NumericEvaluationScope scope) {
-        Map<String, ?> merged = mergedConfigVariables(config, scope.variables());
-        return merged == scope.variables() ? scope : scope.withVariables(merged);
-    }
+    static NumericEvaluationScope scopeWithConfigVariables(Object config, NumericEvaluationScope scope) { return ExpressionEngineDelegate2.scopeWithConfigVariables(config, scope); }
 
-    static String normalizedConfigType(Object config) {
-        return Texts.lower(ConfigNodes.string(config, "type", "")).replace('-', '_').trim();
-    }
+    static String normalizedConfigType(Object config) { return ExpressionEngineDelegate2.normalizedConfigType(config); }
 
-    static boolean isStringConfigType(String type) {
-        return "string".equals(type);
-    }
+    static boolean isStringConfigType(String type) { return ExpressionEngineDelegate2.isStringConfigType(type); }
 
-    static boolean isBooleanConfigType(String type) {
-        return "boolean".equals(type);
-    }
+    static boolean isBooleanConfigType(String type) { return ExpressionEngineDelegate2.isBooleanConfigType(type); }
 
-    static boolean isNumericConfigType(String type) {
-        return switch (type) {
-            case "constant", "range", "uniform", "gaussian",
-                    "skew_normal", "triangle", "expression" ->
-                true;
-            default ->
-                false;
-        };
-    }
+    static boolean isNumericConfigType(String type) { return ExpressionEngineDelegate2.isNumericConfigType(type); }
 
     public record NumericEvaluationResult(boolean success, double value, List<String> issues) {
 
@@ -1282,46 +676,46 @@ public final class ExpressionEngine {
         }
     }
 
-    private record NumericPreparation(String expression, List<String> issues) {
+    record NumericPreparation(String expression, List<String> issues) {
 
-        private NumericPreparation {
+        NumericPreparation {
             issues = issues == null || issues.isEmpty() ? List.of() : List.copyOf(issues);
         }
     }
 
-    private record TextPreparation(String value, List<String> issues) {
+    record TextPreparation(String value, List<String> issues) {
 
-        private TextPreparation {
+        TextPreparation {
             value = Texts.toStringSafe(value);
             issues = issues == null || issues.isEmpty() ? List.of() : List.copyOf(issues);
         }
     }
 
-    private record TextIntegerResult(int value, List<String> issues) {
+    record TextIntegerResult(int value, List<String> issues) {
 
-        private TextIntegerResult {
+        TextIntegerResult {
             issues = issues == null || issues.isEmpty() ? List.of() : List.copyOf(issues);
         }
     }
 
-    private record TextBooleanResult(boolean value, List<String> issues) {
+    record TextBooleanResult(boolean value, List<String> issues) {
 
-        private TextBooleanResult {
+        TextBooleanResult {
             issues = issues == null || issues.isEmpty() ? List.of() : List.copyOf(issues);
         }
     }
 
-    private record TextCandidates(List<String> values, List<String> issues) {
+    record TextCandidates(List<String> values, List<String> issues) {
 
-        private TextCandidates {
+        TextCandidates {
             values = values == null || values.isEmpty() ? List.of() : List.copyOf(values);
             issues = issues == null || issues.isEmpty() ? List.of() : List.copyOf(issues);
         }
     }
 
-    private record WeightedChar(String value, double weight) {
+    record WeightedChar(String value, double weight) {
 
-        private WeightedChar {
+        WeightedChar {
             value = Texts.toStringSafe(value);
         }
     }
@@ -1351,7 +745,7 @@ public final class ExpressionEngine {
             Map<String, Double> resolvedVariables,
             List<String> resolvingVariables) {
 
-        private static final NumericEvaluationScope EMPTY_SCOPE = new NumericEvaluationScope(
+        static final NumericEvaluationScope EMPTY_SCOPE = new NumericEvaluationScope(
                 Map.of(), Map.of(), List.of());
 
         static NumericEvaluationScope of(Map<String, ?> variables) {

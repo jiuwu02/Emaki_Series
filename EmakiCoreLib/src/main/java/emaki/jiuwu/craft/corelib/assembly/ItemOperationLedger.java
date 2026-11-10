@@ -490,7 +490,7 @@ public final class ItemOperationLedger {
         pdc.removeMigrating(itemStack, partition, LEGACY_PARTITION, PRESENTATION_SNAPSHOT_FIELD);
     }
 
-    private UpdateResult applyInternal(ActionContext context,
+    UpdateResult applyInternal(ActionContext context,
                                        ItemStack itemStack,
                                        List<ItemOperationEntry> entries,
                                        String operationId,
@@ -598,15 +598,7 @@ public final class ItemOperationLedger {
     private String reconcileCustomName(String oldManagedName,
                                        String currentName,
                                        String newManagedName,
-                                       boolean managedOverlayRemains) {
-        if (currentName.equals(oldManagedName)) {
-            return newManagedName;
-        }
-        if (newManagedName.equals(oldManagedName)) {
-            return currentName;
-        }
-        return managedOverlayRemains ? newManagedName : currentName;
-    }
+                                       boolean managedOverlayRemains) { return new ItemOperationLedgerDelegate(this).reconcileCustomName(oldManagedName, currentName, newManagedName, managedOverlayRemains); }
 
     boolean hasAssemblyNameOverlay(ItemStack itemStack, ItemOperationBaseView baseView) {
         ItemPresentationSnapshot snapshot = readPresentationSnapshot(itemStack);
@@ -631,28 +623,9 @@ public final class ItemOperationLedger {
         return !Texts.toStringSafe(baseCustomName).equals(Texts.toStringSafe(baseView.customName()));
     }
 
-    private boolean hasNameOverlay(List<ItemOperationEntry> entries) {
-        if (entries == null) {
-            return false;
-        }
-        for (ItemOperationEntry entry : entries) {
-            if (entry != null && entry.nameRecords() != null && !entry.nameRecords().isEmpty()) {
-                return true;
-            }
-        }
-        return false;
-    }
+    private boolean hasNameOverlay(List<ItemOperationEntry> entries) { return new ItemOperationLedgerDelegate(this).hasNameOverlay(entries); }
 
-    private boolean writeDisplay(ItemStack itemStack, String customName, List<String> lore) {
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (itemMeta == null) {
-            return false;
-        }
-        ItemTextBridge.customName(itemMeta, Texts.isBlank(customName) ? null : MiniMessages.parse(customName));
-        ItemTextBridge.setLoreLines(itemMeta, lore);
-        itemStack.setItemMeta(itemMeta);
-        return true;
-    }
+    private boolean writeDisplay(ItemStack itemStack, String customName, List<String> lore) { return new ItemOperationLedgerDelegate(this).writeDisplay(itemStack, customName, lore); }
 
     private boolean operationsFieldPresent(ItemStack itemStack) {
         if (pdc.has(itemStack, partition, FIELD, PersistentDataType.STRING)) {
@@ -693,50 +666,17 @@ public final class ItemOperationLedger {
         return ItemPresentationSnapshot.decodeStrict(payload);
     }
 
-    private List<String> currentLore(ItemStack itemStack) {
-        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
-        List<String> lore = ItemTextBridge.loreLines(itemMeta);
-        return lore == null || lore.isEmpty() ? List.of() : List.copyOf(lore);
-    }
+    private List<String> currentLore(ItemStack itemStack) { return new ItemOperationLedgerDelegate(this).currentLore(itemStack); }
 
-    private String currentCustomName(ItemStack itemStack) {
-        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
-        if (!ItemTextBridge.hasCustomName(itemMeta)) {
-            return "";
-        }
-        return MiniMessages.serialize(ItemTextBridge.customName(itemMeta));
-    }
+    private String currentCustomName(ItemStack itemStack) { return new ItemOperationLedgerDelegate(this).currentCustomName(itemStack); }
 
-    private ReadResult safeReadResult(ReadResult readResult) {
+    ReadResult safeReadResult(ReadResult readResult) {
         return readResult == null ? ReadResult.corrupt(List.of()) : readResult;
     }
 
-    private int operationIndex(List<ItemOperationEntry> entries, String operationId) {
-        if (entries == null || Texts.isBlank(operationId)) {
-            return -1;
-        }
-        for (int index = 0; index < entries.size(); index++) {
-            ItemOperationEntry entry = entries.get(index);
-            if (entry != null && operationId.equals(entry.operationId())) {
-                return index;
-            }
-        }
-        return -1;
-    }
+    private int operationIndex(List<ItemOperationEntry> entries, String operationId) { return new ItemOperationLedgerDelegate(this).operationIndex(entries, operationId); }
 
-    private List<ItemOperationEntry> normalizeEntries(List<ItemOperationEntry> entries) {
-        if (entries == null || entries.isEmpty()) {
-            return List.of();
-        }
-        Map<String, ItemOperationEntry> byId = new LinkedHashMap<>();
-        for (ItemOperationEntry entry : entries) {
-            if (entry == null || entry.isEmpty() || Texts.isBlank(entry.operationId())) {
-                continue;
-            }
-            byId.put(entry.operationId(), entry);
-        }
-        return byId.isEmpty() ? List.of() : List.copyOf(byId.values());
-    }
+    private List<ItemOperationEntry> normalizeEntries(List<ItemOperationEntry> entries) { return new ItemOperationLedgerDelegate(this).normalizeEntries(entries); }
 
     private void writeAll(ItemStack itemStack, List<ItemOperationEntry> entries) {
         if (itemStack == null || itemStack.getType().isAir()) {
@@ -754,12 +694,7 @@ public final class ItemOperationLedger {
         pdc.removeMigrating(itemStack, partition, LEGACY_PARTITION, FIELD);
     }
 
-    private Object parsePayload(String payload) {
-        if (Texts.isBlank(payload)) {
-            return null;
-        }
-        return YamlFiles.load(payload).get("ops");
-    }
+    private Object parsePayload(String payload) { return new ItemOperationLedgerDelegate(this).parsePayload(payload); }
 
     public record UpdateResult(boolean success, ReadResult readResult) {
 

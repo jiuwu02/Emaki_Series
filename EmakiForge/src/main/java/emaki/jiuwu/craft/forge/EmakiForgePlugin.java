@@ -75,7 +75,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private final AtomicReference<ForgeRuntimeSnapshot> runtimeSnapshot = new AtomicReference<>(
             new ForgeRuntimeSnapshot(0L, ForgeRuntimeStatus.STARTING, null, null, null, null, null,
                     null, null, null, null, System.nanoTime()));
-    private final ForgeRuntimeMetrics runtimeMetrics = new ForgeRuntimeMetrics();
+    final ForgeRuntimeMetrics runtimeMetrics = new ForgeRuntimeMetrics();
 
     private final ForgeLifecycleCoordinator lifecycleCoordinator = new ForgeLifecycleCoordinator();
     private ForgeCommandRouter commandRouter;
@@ -98,12 +98,12 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgeService forgeService;
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
-    private ChatInputService chatInputService;
-    private ForgeEditorModule editorModule;
-    private EditorService editorService;
+    ChatInputService chatInputService;
+    ForgeEditorModule editorModule;
+    EditorService editorService;
     private ForgePlaceholderExpansion placeholderExpansion;
     private TaskToken autoSaveTask;
-    private DebugCommand debugCommand;
+    DebugCommand debugCommand;
     private ForgeStageRegistrar stageRegistrar;
     private final EmakiForgeApi.Bridge forgeApiBridge =
             new DefaultEmakiForgeApi(this);
@@ -238,20 +238,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     private void registerCoreShutdownBarrier(EmakiCoreLibPlugin coreLibPlugin,
-            CompletableFuture<Void> shutdownFuture) {
-        if (coreLibPlugin == null) {
-            getLogger().warning("[shutdown] CoreLib 依赖关闭屏障不可用");
-            return;
-        }
-        try {
-            if (!coreLibPlugin.registerDependentShutdown("forge", shutdownFuture)) {
-                getLogger().warning("[shutdown] CoreLib 拒绝了 Forge 依赖关闭屏障");
-            }
-        } catch (Throwable throwable) {
-            getLogger().warning("[shutdown] CoreLib 依赖关闭屏障注册失败: "
-                    + String.valueOf(throwable.getMessage()));
-        }
-    }
+            CompletableFuture<Void> shutdownFuture) { new EmakiForgePluginDelegate(this).registerCoreShutdownBarrier(coreLibPlugin, shutdownFuture); }
 
     private void clearRuntimeRegistrationsForShutdown() {
         try {
@@ -296,9 +283,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         ConfigPrecheckLifecycleSupport.logReport(messageService(), "forge");
     }
 
-    private void registerConfigPrecheckContributor() {
-        ConfigPrecheckLifecycleSupport.register(new ForgeConfigPrecheckContributor(this));
-    }
+    private void registerConfigPrecheckContributor() { new EmakiForgePluginDelegate(this).registerConfigPrecheckContributor(); }
 
     private void applyRuntimeComponents(ForgeRuntimeComponents components) {
         appConfigLoader = components.appConfigLoader();
@@ -329,14 +314,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 messageService, bootstrapService, recipeLoader, guiTemplateLoader));
     }
 
-    private void reportLegacyItemSources() {
-        LegacyItemSourceScanner.report(
-                getDataFolder().toPath(),
-                ForgeLegacyTargets.specs(),
-                getLogger(),
-                "emakiforge"
-        );
-    }
+    private void reportLegacyItemSources() { new EmakiForgePluginDelegate(this).reportLegacyItemSources(); }
 
     private void registerCommandHandler() {
         registerCommand(
@@ -439,9 +417,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return snapshot.bootstrapService() == null ? bootstrapService : snapshot.bootstrapService();
     }
 
-    public EmakiCoreLibPlugin coreLib() {
-        return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
-    }
+    public EmakiCoreLibPlugin coreLib() { return new EmakiForgePluginDelegate(this).coreLib(); }
 
     public ActionLineRunner actionLines() {
         return coreLib().actionLineRunner(this);
@@ -492,21 +468,13 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return components == null ? recipeBookGuiService : components.recipeBookGuiService();
     }
 
-    public ChatInputService chatInputService() {
-        return chatInputService;
-    }
+    public ChatInputService chatInputService() { return new EmakiForgePluginDelegate(this).chatInputService(); }
 
-    public ForgeEditorModule editorModule() {
-        return editorModule;
-    }
+    public ForgeEditorModule editorModule() { return new EmakiForgePluginDelegate(this).editorModule(); }
 
-    public EditorService editorService() {
-        return editorService;
-    }
+    public EditorService editorService() { return new EmakiForgePluginDelegate(this).editorService(); }
 
-    public DebugCommand debugCommand() {
-        return debugCommand;
-    }
+    public DebugCommand debugCommand() { return new EmakiForgePluginDelegate(this).debugCommand(); }
 
     public ForgeRuntimeSnapshot runtimeSnapshot() {
         return runtimeSnapshot.get();
@@ -536,9 +504,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return lifecycleCoordinator.requestedGeneration() == generation;
     }
 
-    public ForgeRuntimeMetrics runtimeMetrics() {
-        return runtimeMetrics;
-    }
+    public ForgeRuntimeMetrics runtimeMetrics() { return new EmakiForgePluginDelegate(this).runtimeMetrics(); }
 
     boolean isShutdownStarted() {
         return shutdownStarted.get();
@@ -712,25 +678,13 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
     }
 
-    private DebugLogger buildDebugLogger(LanguageLoader loader) {
+    DebugLogger buildDebugLogger(LanguageLoader loader) {
         DebugLogger debugLogger = new DebugLogger(this, loader);
         debugLogger.setFallbackLoader(coreLib().languageLoader());
         return debugLogger;
     }
 
-    private DebugLogger replacementDebugLogger(DebugLogger previous, LanguageLoader nextLanguageLoader) {
-        DebugLogger replacement = buildDebugLogger(nextLanguageLoader);
-        if (previous == null || !previous.isGlobalEnabled()) {
-            return replacement;
-        }
-        if (previous.trackedPlayers().isEmpty() && previous.enabledModules().isEmpty()) {
-            replacement.enableAll();
-            return replacement;
-        }
-        previous.enabledModules().forEach(replacement::enableModule);
-        previous.trackedPlayers().forEach(replacement::addPlayer);
-        return replacement;
-    }
+    private DebugLogger replacementDebugLogger(DebugLogger previous, LanguageLoader nextLanguageLoader) { return new EmakiForgePluginDelegate(this).replacementDebugLogger(previous, nextLanguageLoader); }
 
     private void applyRuntimeFields(ForgeRuntimeSnapshot snapshot) {
         if (snapshot == null) {

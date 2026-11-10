@@ -150,10 +150,10 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     public record CandidateDocument(File file, String content, Exception failure) {
     }
 
-    private record DeferredRecipe(File file, YamlSection configuration, String recipeId) {
+    record DeferredRecipe(File file, YamlSection configuration, String recipeId) {
     }
 
-    private record DeferredSourceValidation(File file,
+    record DeferredSourceValidation(File file,
             String recipeId,
             String yamlPath,
             Object raw,
@@ -161,25 +161,25 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             Map<String, Integer> typeDistribution) {
     }
 
-    private final EmakiForgePlugin forgePlugin;
+    final EmakiForgePlugin forgePlugin;
     private final Supplier<ActionEngine> actionEngineSupplier;
-    private final ItemIdentifierService itemIdentifierService;
+    final ItemIdentifierService itemIdentifierService;
     private final boolean deferRuntimeValidation;
-    private final List<RecipeLoadIssue> structuredIssues = new ArrayList<>();
+    final List<RecipeLoadIssue> structuredIssues = new ArrayList<>();
     private final Map<String, Integer> inputSourceTypes = new LinkedHashMap<>();
     private final Map<String, Integer> outputSourceTypes = new LinkedHashMap<>();
     private final Map<ItemSourceProbeState, Integer> sourceStatuses = new LinkedHashMap<>();
-    private final List<File> discoveredFiles = new ArrayList<>();
-    private final List<DeferredRecipe> deferredRecipes = new ArrayList<>();
-    private final List<DeferredSourceValidation> deferredSourceValidations = new ArrayList<>();
+    final List<File> discoveredFiles = new ArrayList<>();
+    final List<DeferredRecipe> deferredRecipes = new ArrayList<>();
+    final List<DeferredSourceValidation> deferredSourceValidations = new ArrayList<>();
     private long generation;
     private long startedNanos;
     private int parsed;
-    private int skipped;
+    int skipped;
     private int duplicates;
     private boolean completingDeferredRuntimeValidation;
     private String candidateFileSummaryHash = "";
-    private volatile RecipeLoadReport report = RecipeLoadReport.empty(0L);
+    volatile RecipeLoadReport report = RecipeLoadReport.empty(0L);
 
     public RecipeLoader(EmakiForgePlugin plugin,
                         Supplier<ActionEngine> actionEngineSupplier) {
@@ -347,14 +347,10 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         }
     }
 
-    public RecipeLoadReport report() {
-        return report;
-    }
+    public RecipeLoadReport report() { return new RecipeLoaderDelegate(this).report(); }
 
     @Override
-    protected String directoryName() {
-        return "recipes";
-    }
+    protected String directoryName() { return new RecipeLoaderDelegate(this).directoryName(); }
 
     @Override
     protected String typeName() {
@@ -362,12 +358,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     }
 
     @Override
-    protected void beforeFilesLoaded(File directory, List<File> files) {
-        discoveredFiles.clear();
-        if (files != null) {
-            discoveredFiles.addAll(files);
-        }
-    }
+    protected void beforeFilesLoaded(File directory, List<File> files) { new RecipeLoaderDelegate(this).beforeFilesLoaded(directory, files); }
 
     @Override
     protected Recipe parse(File file, YamlSection configuration) {
@@ -421,21 +412,13 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         return recipe;
     }
 
-    public Recipe parseDocument(File file, YamlSection configuration) {
-        return parse(file, configuration);
-    }
+    public Recipe parseDocument(File file, YamlSection configuration) { return new RecipeLoaderDelegate(this).parseDocument(file, configuration); }
 
     @Override
-    protected String idOf(Recipe value) {
-        return value.id();
-    }
+    protected String idOf(Recipe value) { return new RecipeLoaderDelegate(this).idOf(value); }
 
     @Override
-    protected void onBlankId(File file) {
-        recordIssue(file, "", "id", IssueSeverity.ERROR, "BLANK_ID",
-                "配方 ID 不能为空", true, null, null);
-        skipped++;
-    }
+    protected void onBlankId(File file) { new RecipeLoaderDelegate(this).onBlankId(file); }
 
     @Override
     protected void onDuplicateId(File file, String id) {
@@ -446,10 +429,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     }
 
     @Override
-    protected void onDirectoryCreateFailed(File directory) {
-        recordIssue(directory, "", "", IssueSeverity.ERROR, "DIRECTORY_CREATE_FAILED",
-                "无法创建配方目录", true, null, null);
-    }
+    protected void onDirectoryCreateFailed(File directory) { new RecipeLoaderDelegate(this).onDirectoryCreateFailed(directory); }
 
     @Override
     protected void onLoadFailure(File file, Exception exception) {
@@ -459,20 +439,9 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     }
 
     @Override
-    protected void onPreparationFailure(File directory, RuntimeException exception) {
-        recordIssue(directory, "", "", IssueSeverity.ERROR, "PREPARATION_FAILED",
-                "配方目录准备失败: " + exceptionSummary(exception), true, null, null);
-    }
+    protected void onPreparationFailure(File directory, RuntimeException exception) { new RecipeLoaderDelegate(this).onPreparationFailure(directory, exception); }
 
-    public List<Recipe> byPermission(Player player) {
-        List<Recipe> result = new ArrayList<>();
-        for (Recipe recipe : all().values()) {
-            if (!recipe.requiresPermission() || (player != null && player.hasPermission(recipe.permission()))) {
-                result.add(recipe);
-            }
-        }
-        return result;
-    }
+    public List<Recipe> byPermission(Player player) { return new RecipeLoaderDelegate(this).byPermission(player); }
 
     private boolean validateOutputSchema(File file, String recipeId, YamlSection configuration) {
         Object result = ConfigNodes.get(configuration, "result");
@@ -610,27 +579,9 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     }
 
     private boolean validateDeclaredIdentity(File file, String recipeId, Object entry,
-            String path, String key) {
-        if (!ConfigNodes.contains(entry, key)) {
-            return true;
-        }
-        if (Texts.isNotBlank(ConfigNodes.string(entry, key, null))) {
-            return true;
-        }
-        recordIssue(file, recipeId, path + "." + key, IssueSeverity.ERROR, "IDENTITY_BLANK",
-                key + " 声明后不能为空", true, null, null);
-        return false;
-    }
+            String path, String key) { return new RecipeLoaderDelegate(this).validateDeclaredIdentity(file, recipeId, entry, path, key); }
 
-    private String normalizedIdentity(Object entry, String... keys) {
-        for (String key : keys) {
-            String value = ConfigNodes.string(entry, key, null);
-            if (Texts.isNotBlank(value)) {
-                return Texts.lower(value.trim());
-            }
-        }
-        return "";
-    }
+    private String normalizedIdentity(Object entry, String... keys) { return new RecipeLoaderDelegate(this).normalizedIdentity(entry, keys); }
 
     private boolean validateActions(File file, Recipe recipe) {
         if (recipe == null || recipe.action() == null) {
@@ -653,29 +604,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                                   Recipe recipe,
                                   String phase,
                                   List<String> lines,
-                                  ActionEngine engine) {
-        if (lines == null || lines.isEmpty()) {
-            return true;
-        }
-        for (int index = 0; index < lines.size(); index++) {
-            String line = lines.get(index);
-            if (Texts.isBlank(line)) {
-                continue;
-            }
-            ActionEngine.Result compiled = engine.compile(line, null);
-            if (compiled.successful()) {
-                continue;
-            }
-
-            String reason = compiled.diagnostics().isEmpty()
-                    ? "未通过编译"
-                    : forgePlugin.coreLib().messageService().renderFirstDiagnostic(compiled.diagnostics());
-            recordIssue(file, recipe.id(), "actions." + phase + "[" + index + "]", IssueSeverity.ERROR,
-                    "INVALID_ACTION_LINE", "操作行未通过编译: " + reason, true, null, null);
-            return false;
-        }
-        return true;
-    }
+                                  ActionEngine engine) { return new RecipeLoaderDelegate(this).validatePhase(file, recipe, phase, lines, engine); }
 
     private void validateRecipeSources(File file, YamlSection configuration, Recipe recipe) {
         List<Object> blueprints = ConfigNodes.asObjectList(configuration.get("blueprint_requirements"));
@@ -719,39 +648,11 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         return copy;
     }
 
-    private List<Object> prioritizeContainers(Object raw) {
-        List<Object> result = new ArrayList<>();
-        for (Object entry : ConfigNodes.asObjectList(raw)) {
-            Map<String, Object> values = new LinkedHashMap<>(ConfigNodes.entries(entry));
-            if (values.containsKey("item_sources")) {
-                values.put("item_sources", prioritizeAlternatives(values.get("item_sources")));
-            }
-            result.add(values.isEmpty() ? ConfigNodes.toPlainData(entry) : values);
-        }
-        return result;
-    }
+    private List<Object> prioritizeContainers(Object raw) { return new RecipeLoaderDelegate(this).prioritizeContainers(raw); }
 
-    private List<Object> prioritizeAlternatives(Object raw) {
-        List<Object> ready = new ArrayList<>();
-        List<Object> unavailable = new ArrayList<>();
-        List<Object> alternatives = ConfigNodes.asObjectList(raw);
-        if (alternatives.isEmpty() && raw != null) {
-            alternatives = List.of(raw);
-        }
-        for (Object alternative : alternatives) {
-            ItemSourceRef source = ItemSourceUtil.parse(alternative);
-            Object plain = ConfigNodes.toPlainData(alternative);
-            if (itemIdentifierService.probeSource(source).ready()) {
-                ready.add(plain);
-            } else {
-                unavailable.add(plain);
-            }
-        }
-        ready.addAll(unavailable);
-        return ready;
-    }
+    List<Object> prioritizeAlternatives(Object raw) { return new RecipeLoaderDelegate(this).prioritizeAlternatives(raw); }
 
-    private void recordFinalizationFailure(DeferredRecipe deferred, String summary) {
+    void recordFinalizationFailure(DeferredRecipe deferred, String summary) {
         if (deferred == null) {
             return;
         }
@@ -763,68 +664,13 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         skipped++;
     }
 
-    private void mergeGuiCandidateIssues(GuiTemplateLoader guiTemplateLoader) {
-        if (!(guiTemplateLoader instanceof ForgeGuiTemplateLoader forgeGuiTemplateLoader)) {
-            return;
-        }
-        for (ForgeGuiTemplateLoader.CandidateIssue issue : forgeGuiTemplateLoader.candidateIssues()) {
-            if (issue == null) {
-                continue;
-            }
-            recordIssue(issue.file(), "", "gui", IssueSeverity.ERROR,
-                    issue.code(), issue.summary(), true, null, null);
-        }
-    }
+    private void mergeGuiCandidateIssues(GuiTemplateLoader guiTemplateLoader) { new RecipeLoaderDelegate(this).mergeGuiCandidateIssues(guiTemplateLoader); }
 
-    private void validateGuiSources(GuiTemplateLoader guiTemplateLoader) {
-        if (guiTemplateLoader == null) {
-            return;
-        }
-        for (Map.Entry<String, GuiTemplate> entry : guiTemplateLoader.all().entrySet()) {
-            String templateId = entry.getKey();
-            var loadedEntry = guiTemplateLoader.entry(templateId);
-            File file = loadedEntry == null ? null : loadedEntry.file();
-            YamlSection configuration = loadedEntry == null ? null : loadedEntry.configuration();
-            if (configuration == null) {
-                continue;
-            }
-            for (Map.Entry<String, Object> slotEntry : ConfigNodes.entries(configuration.get("slots")).entrySet()) {
-                Object item = ConfigNodes.get(slotEntry.getValue(), "item");
-                Object alternatives = guiItemAlternatives(item, slotEntry.getValue());
-                if (alternatives == null) {
-                    continue;
-                }
-                String yamlPath = "gui." + templateId + ".slots." + slotEntry.getKey() + ".item";
-                try {
-                    validateAlternativeGroup(file, "", yamlPath,
-                            alternatives, true, new LinkedHashMap<>());
-                } catch (RuntimeException | LinkageError failure) {
-                    recordIssue(file, "", yamlPath, IssueSeverity.ERROR,
-                            "GUI_SOURCE_VALIDATION_FAILED",
-                            "GUI 物品来源校验失败: " + exceptionSummary(failure),
-                            true, null, null);
-                }
-            }
-        }
-    }
+    private void validateGuiSources(GuiTemplateLoader guiTemplateLoader) { new RecipeLoaderDelegate(this).validateGuiSources(guiTemplateLoader); }
 
-    private Object guiItemAlternatives(Object item, Object slot) {
-        Object source = ConfigNodes.get(item, "source");
-        if (source != null) {
-            return source;
-        }
-        source = ConfigNodes.get(item, "item_sources");
-        if (source != null) {
-            return source;
-        }
-        source = ConfigNodes.get(slot, "item_sources");
-        if (source != null) {
-            return source;
-        }
-        return item;
-    }
+    Object guiItemAlternatives(Object item, Object slot) { return new RecipeLoaderDelegate(this).guiItemAlternatives(item, slot); }
 
-    private void validateAlternativeGroup(File file,
+    void validateAlternativeGroup(File file,
                                           String recipeId,
                                           String yamlPath,
                                           Object raw,
@@ -885,7 +731,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         }
     }
 
-    private void recordIssue(File file,
+    void recordIssue(File file,
                              String recipeId,
                              String yamlPath,
                              IssueSeverity severity,
@@ -917,65 +763,11 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         }
     }
 
-    private String summarizeDocuments(List<CandidateDocument> documents) {
-        if (documents == null) {
-            return "";
-        }
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            for (CandidateDocument document : documents) {
-                if (document == null || document.file() == null) {
-                    continue;
-                }
-                digest.update(document.file().getPath().getBytes(StandardCharsets.UTF_8));
-                if (document.content() != null) {
-                    digest.update(document.content().getBytes(StandardCharsets.UTF_8));
-                } else if (document.failure() != null) {
-                    digest.update(exceptionSummary(document.failure()).getBytes(StandardCharsets.UTF_8));
-                }
-            }
-            return HexFormat.of().formatHex(digest.digest(), 0, 8);
-        } catch (Exception exception) {
-            return "unavailable";
-        }
-    }
+    String summarizeDocuments(List<CandidateDocument> documents) { return new RecipeLoaderDelegate(this).summarizeDocuments(documents); }
 
-    private String summarizeFiles(List<File> files) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            for (File file : files) {
-                if (file == null) {
-                    continue;
-                }
-                digest.update(canonicalPath(file).getBytes(StandardCharsets.UTF_8));
-                digest.update(Long.toString(file.length()).getBytes(StandardCharsets.UTF_8));
-                digest.update(Long.toString(file.lastModified()).getBytes(StandardCharsets.UTF_8));
-                if (file.isFile() && file.canRead()) {
-                    digest.update(Files.readAllBytes(file.toPath()));
-                }
-            }
-            return HexFormat.of().formatHex(digest.digest(), 0, 8);
-        } catch (Exception exception) {
-            return "unavailable";
-        }
-    }
+    private String summarizeFiles(List<File> files) { return new RecipeLoaderDelegate(this).summarizeFiles(files); }
 
-    private String canonicalPath(File file) {
-        if (file == null) {
-            return "";
-        }
-        try {
-            return file.getCanonicalPath();
-        } catch (Exception exception) {
-            return file.getAbsolutePath();
-        }
-    }
+    String canonicalPath(File file) { return new RecipeLoaderDelegate(this).canonicalPath(file); }
 
-    private String exceptionSummary(Throwable throwable) {
-        if (throwable == null) {
-            return "unknown";
-        }
-        String message = Texts.toStringSafe(throwable.getMessage());
-        return throwable.getClass().getSimpleName() + (message.isBlank() ? "" : ": " + message);
-    }
+    String exceptionSummary(Throwable throwable) { return new RecipeLoaderDelegate(this).exceptionSummary(throwable); }
 }

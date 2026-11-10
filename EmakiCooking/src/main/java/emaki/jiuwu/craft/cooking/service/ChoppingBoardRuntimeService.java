@@ -52,19 +52,19 @@ import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 
 public final class ChoppingBoardRuntimeService {
 
-    private static final double DISPLAY_SEARCH_RADIUS = 1.5D;
+    static final double DISPLAY_SEARCH_RADIUS = 1.5D;
 
-    private final EmakiCookingPlugin plugin;
-    private final MessageService messageService;
-    private final CookingSettingsService settingsService;
+    final EmakiCookingPlugin plugin;
+    final MessageService messageService;
+    final CookingSettingsService settingsService;
     private final CookingBlockMatcher blockMatcher;
-    private final StationStateStore stateStore;
+    final StationStateStore stateStore;
     private final CookingRecipeService recipeService;
-    private final ItemSourceService itemSourceService;
-    private final CookingDisplayService displayService;
+    final ItemSourceService itemSourceService;
+    final CookingDisplayService displayService;
     private final CookingTextDisplayService textDisplayService;
     private final Map<StationCoordinates, String> renderedProgress = new ConcurrentHashMap<>();
-    private CookingCompletionCoordinator completionCoordinator;
+    CookingCompletionCoordinator completionCoordinator;
 
     public ChoppingBoardRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,
@@ -86,12 +86,7 @@ public final class ChoppingBoardRuntimeService {
         this.textDisplayService = Objects.requireNonNull(textDisplayService, "textDisplayService");
     }
 
-    public void setCompletionCoordinator(CookingCompletionCoordinator completionCoordinator) {
-        this.completionCoordinator = completionCoordinator;
-        if (completionCoordinator != null) {
-            completionCoordinator.register(completionStateAccess());
-        }
-    }
+    public void setCompletionCoordinator(CookingCompletionCoordinator completionCoordinator) { new ChoppingBoardRuntimeServiceDelegate(this).setCompletionCoordinator(completionCoordinator); }
 
     CookingStationStateAccess completionStateAccess() {
         return new CookingStationStateAccess() {
@@ -239,20 +234,7 @@ public final class ChoppingBoardRuntimeService {
     private boolean handleReturnInput(StationInteraction interaction,
             Player player,
             StationCoordinates coordinates,
-            ChoppingBoardState state) {
-        if (state == null || !state.hasInputSource()) {
-            debugStation("station.chopping_rejected", Map.of(
-                    "player", player.getName(),
-                    "station", coordinates.runtimeKey(),
-                    "operation", "return_input",
-                    "reason", state == null ? "no_state" : "no_input_source"
-            ));
-            return false;
-        }
-        returnStoredInput(player, coordinates, state);
-        interaction.cancel();
-        return true;
-    }
+            ChoppingBoardState state) { return new ChoppingBoardRuntimeServiceDelegate(this).handleReturnInput(interaction, player, coordinates, state); }
 
     private boolean handleOccupiedBoard(StationInteraction interaction,
             Block block,
@@ -583,11 +565,9 @@ public final class ChoppingBoardRuntimeService {
         ));
     }
 
-    private String plainItemName(String source) {
-        return MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(source).orElse(""));
-    }
+    private String plainItemName(String source) { return new ChoppingBoardRuntimeServiceDelegate(this).plainItemName(source); }
 
-    private boolean appendInput(Player player, Block block, StationCoordinates coordinates, ChoppingBoardState state, ItemStack hand, long now) {
+    boolean appendInput(Player player, Block block, StationCoordinates coordinates, ChoppingBoardState state, ItemStack hand, long now) {
         if (player == null || block == null || coordinates == null || state == null || !state.hasInputSource()
                 || hand == null || hand.getType().isAir()) {
             return false;
@@ -635,41 +615,13 @@ public final class ChoppingBoardRuntimeService {
         return true;
     }
 
-    private boolean matchesInputSource(String candidateSource, String storedSource) {
-        ItemSourceRef candidate = ItemSourceUtil.parse(candidateSource);
-        ItemSourceRef stored = ItemSourceUtil.parse(storedSource);
-        if (candidate != null && stored != null) {
-            return ItemSourceUtil.matches(stored, candidate);
-        }
-        return candidateSource != null && storedSource != null && candidateSource.equalsIgnoreCase(storedSource);
-    }
+    private boolean matchesInputSource(String candidateSource, String storedSource) { return new ChoppingBoardRuntimeServiceDelegate(this).matchesInputSource(candidateSource, storedSource); }
 
-    private ItemStack takeMainHandStack(Player player) {
-        if (player == null) {
-            return null;
-        }
-        ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hand == null || hand.getType().isAir()) {
-            return null;
-        }
-        ItemStack consumed = hand.clone();
-        player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
-        return consumed;
-    }
+    private ItemStack takeMainHandStack(Player player) { return new ChoppingBoardRuntimeServiceDelegate(this).takeMainHandStack(player); }
 
-    private Map<String, Object> serializeItemTemplate(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir()) {
-            return Map.of();
-        }
-        ItemStack template = itemStack.clone();
-        template.setAmount(1);
-        return StoredItemCodec.serialize(template);
-    }
+    private Map<String, Object> serializeItemTemplate(ItemStack itemStack) { return new ChoppingBoardRuntimeServiceDelegate(this).serializeItemTemplate(itemStack); }
 
-    private int addAmounts(int current, int added) {
-        long total = (long) Math.max(0, current) + Math.max(0, added);
-        return total > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.max(1, (int) total);
-    }
+    private int addAmounts(int current, int added) { return new ChoppingBoardRuntimeServiceDelegate(this).addAmounts(current, added); }
 
     private boolean isTool(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
@@ -682,7 +634,7 @@ public final class ChoppingBoardRuntimeService {
         return CookingMatchers.accepts(settingsService.choppingToolRequirement(), itemStack, source, null);
     }
 
-    private void returnStoredInput(Player player, StationCoordinates coordinates, ChoppingBoardState state) {
+    void returnStoredInput(Player player, StationCoordinates coordinates, ChoppingBoardState state) {
         clearDisplay(coordinates, state == null ? null : state.displayEntityId(), state == null ? null : state.inputSource());
         renderedProgress.remove(coordinates);
         textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
@@ -700,79 +652,15 @@ public final class ChoppingBoardRuntimeService {
         ));
     }
 
-    private void applyToolDamage(Player player, ItemStack itemStack, int amount) {
-        if (player == null || itemStack == null || itemStack.getType().isAir() || amount <= 0) {
-            return;
-        }
-        ItemMeta meta = itemStack.getItemMeta();
-        if (!(meta instanceof Damageable damageable)) {
-            return;
-        }
-        int maxDurability = itemStack.getType().getMaxDurability();
-        if (maxDurability <= 0) {
-            return;
-        }
-        int nextDamage = damageable.getDamage() + amount;
-        if (nextDamage >= maxDurability) {
-            player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
-            return;
-        }
-        damageable.setDamage(nextDamage);
-        itemStack.setItemMeta(meta);
-        player.getInventory().setItemInMainHand(itemStack);
-    }
+    private void applyToolDamage(Player player, ItemStack itemStack, int amount) { new ChoppingBoardRuntimeServiceDelegate(this).applyToolDamage(player, itemStack, amount); }
 
-    private void maybeDamagePlayer(Player player, Integer chance, Integer value) {
-        if (player == null || chance == null || value == null || chance <= 0 || value <= 0) {
-            return;
-        }
-        if (ThreadLocalRandom.current().nextInt(100) >= chance) {
-            return;
-        }
-        player.damage(value);
-        CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.cut_hurt", Map.of("damage", value));
-    }
+    private void maybeDamagePlayer(Player player, Integer chance, Integer value) { new ChoppingBoardRuntimeServiceDelegate(this).maybeDamagePlayer(player, chance, value); }
 
-    private void saveState(StationCoordinates coordinates, ChoppingBoardState state) {
-        stateStore.saveAsync(coordinates, serializeState(coordinates, state));
-    }
+    void saveState(StationCoordinates coordinates, ChoppingBoardState state) { new ChoppingBoardRuntimeServiceDelegate(this).saveState(coordinates, state); }
 
-    private Map<String, Object> serializeState(StationCoordinates coordinates, ChoppingBoardState state) {
-        Map<String, Object> root = CookingRuntimeUtil.buildStateRoot(StationType.CHOPPING_BOARD, coordinates);
-        if (state.hasInputSource()) {
-            Map<String, Object> inputItem = new LinkedHashMap<>();
-            inputItem.put("source", state.inputSource());
-            inputItem.put("amount", state.inputAmount());
-            if (state.inputItemData() != null && !state.inputItemData().isEmpty()) {
-                inputItem.put("item", state.inputItemData());
-            }
-            root.put("input_item", inputItem);
-        }
-        root.put("timestamps", Map.of("last_interaction_ms", state.lastInteractionMs()));
-        root.put("chopping_board", Map.of("cut_count", state.cutCount()));
-        return root;
-    }
+    Map<String, Object> serializeState(StationCoordinates coordinates, ChoppingBoardState state) { return new ChoppingBoardRuntimeServiceDelegate(this).serializeState(coordinates, state); }
 
-    private ChoppingBoardState readState(YamlSection section) {
-        if (section == null || !StationType.CHOPPING_BOARD.folderName().equalsIgnoreCase(section.getString("station_type", ""))) {
-            return null;
-        }
-        String inputSource = section.getString("input_item.source", "");
-        Map<String, Object> inputItemData = readItemData(section.get("input_item.item"));
-        int fallbackAmount = Math.max(1, CookingRuntimeUtil.parseInteger(inputItemData.get("amount"), 1));
-        Integer inputAmount = section.getInt("input_item.amount", fallbackAmount);
-        Integer cutCount = section.getInt("chopping_board.cut_count", 0);
-        UUID displayId = CookingRuntimeUtil.parseUuid(section.getString("display_entity.uuid", ""));
-        long lastInteraction = CookingRuntimeUtil.parseLong(section.get("timestamps.last_interaction_ms"), 0L);
-        return new ChoppingBoardState(
-                inputSource,
-                inputItemData,
-                inputAmount == null ? fallbackAmount : inputAmount,
-                cutCount == null ? 0 : cutCount,
-                lastInteraction,
-                displayId
-        );
-    }
+    ChoppingBoardState readState(YamlSection section) { return new ChoppingBoardRuntimeServiceDelegate(this).readState(section); }
 
     private void refreshDisplay(StationCoordinates coordinates, String inputSource, Map<String, Object> inputItemData) {
         ItemSourceRef source = ItemSourceUtil.parse(inputSource);
@@ -805,90 +693,19 @@ public final class ChoppingBoardRuntimeService {
         ));
     }
 
-    private Map<String, Object> readItemData(Object raw) {
-        Object plain = ConfigNodes.toPlainData(raw);
-        if (!(plain instanceof Map<?, ?> map)) {
-            return Map.of();
-        }
-        return Map.copyOf(MapYamlSection.normalizeMap(map));
-    }
+    Map<String, Object> readItemData(Object raw) { return new ChoppingBoardRuntimeServiceDelegate(this).readItemData(raw); }
 
-    private ItemStack storedItemOrFallback(String sourceText, Map<String, Object> itemData, int amount) {
-        ItemStack storedItem = StoredItemCodec.deserialize(itemData);
-        if (storedItem != null && !storedItem.getType().isAir()) {
-            storedItem.setAmount(Math.max(1, amount));
-            return storedItem;
-        }
-        ItemSourceRef source = ItemSourceUtil.parse(sourceText);
-        return source == null ? null : itemSourceService.createItem(source, amount);
-    }
+    ItemStack storedItemOrFallback(String sourceText, Map<String, Object> itemData, int amount) { return new ChoppingBoardRuntimeServiceDelegate(this).storedItemOrFallback(sourceText, itemData, amount); }
 
-    private List<ItemStack> storedInputStacks(String sourceText, Map<String, Object> itemData, int amount) {
-        ItemStack template = storedItemOrFallback(sourceText, itemData, 1);
-        if (template == null || template.getType().isAir()) {
-            return List.of();
-        }
-        int remaining = Math.max(0, amount);
-        if (remaining <= 0) {
-            return List.of();
-        }
-        int maxStackSize = Math.max(1, template.getType().getMaxStackSize());
-        List<ItemStack> stacks = new ArrayList<>();
-        while (remaining > 0) {
-            int stackAmount = Math.min(maxStackSize, remaining);
-            ItemStack stack = template.clone();
-            stack.setAmount(stackAmount);
-            stacks.add(stack);
-            remaining -= stackAmount;
-        }
-        return List.copyOf(stacks);
-    }
+    private List<ItemStack> storedInputStacks(String sourceText, Map<String, Object> itemData, int amount) { return new ChoppingBoardRuntimeServiceDelegate(this).storedInputStacks(sourceText, itemData, amount); }
 
-    private void giveStoredInput(Player player, List<ItemStack> itemStacks) {
-        if (player == null || itemStacks == null || itemStacks.isEmpty()) {
-            return;
-        }
-        boolean filledHand = false;
-        ItemStack hand = player.getInventory().getItemInMainHand();
-        for (ItemStack itemStack : itemStacks) {
-            if (itemStack == null || itemStack.getType().isAir()) {
-                continue;
-            }
-            if (!filledHand && (hand == null || hand.getType().isAir())) {
-                player.getInventory().setItemInMainHand(itemStack);
-                filledHand = true;
-                continue;
-            }
-            InventoryItemUtil.giveOrDrop(player, itemStack);
-        }
-    }
+    private void giveStoredInput(Player player, List<ItemStack> itemStacks) { new ChoppingBoardRuntimeServiceDelegate(this).giveStoredInput(player, itemStacks); }
 
-    private String inputDisplayName(ChoppingBoardState state) {
-        if (state == null || !state.hasInputSource()) {
-            return "";
-        }
-        String storedName = storedItemDisplayName(state.inputItemData());
-        if (Texts.isNotBlank(storedName)) {
-            return storedName;
-        }
-        String sourceName = EmakiCoreLibApi.itemDisplayName(state.inputSource()).orElse("");
-        return Texts.isBlank(sourceName) ? state.inputSource() : sourceName;
-    }
+    String inputDisplayName(ChoppingBoardState state) { return new ChoppingBoardRuntimeServiceDelegate(this).inputDisplayName(state); }
 
-    private String storedItemDisplayName(Map<String, Object> itemData) {
-        ItemStack storedItem = StoredItemCodec.deserialize(itemData);
-        if (storedItem == null || storedItem.getType().isAir()) {
-            return "";
-        }
-        ItemMeta itemMeta = storedItem.getItemMeta();
-        if (!ItemTextBridge.hasCustomName(itemMeta)) {
-            return "";
-        }
-        String displayName = MiniMessages.serialize(ItemTextBridge.customName(itemMeta));
-        return Texts.isBlank(displayName) ? "" : displayName;
-    }
+    String storedItemDisplayName(Map<String, Object> itemData) { return new ChoppingBoardRuntimeServiceDelegate(this).storedItemDisplayName(itemData); }
 
-    private void refreshText(StationCoordinates coordinates, ChoppingBoardState state) {
+    void refreshText(StationCoordinates coordinates, ChoppingBoardState state) {
         if (!settingsService.textDisplayEnabled(StationType.CHOPPING_BOARD)
                 || coordinates == null || state == null || !state.hasInputSource()) {
             if (coordinates != null) {
@@ -940,82 +757,32 @@ public final class ChoppingBoardRuntimeService {
         renderedProgress.put(coordinates, progressKey);
     }
 
-    private void appendLine(StringBuilder builder, String line) {
-        if (Texts.isBlank(line)) {
-            return;
-        }
-        if (builder.length() > 0) {
-            builder.append('\n');
-        }
-        builder.append(line);
-    }
+    private void appendLine(StringBuilder builder, String line) { new ChoppingBoardRuntimeServiceDelegate(this).appendLine(builder, line); }
 
-    private void debugStation(String langKey, Map<String, ?> replacements) {
+    void debugStation(String langKey, Map<String, ?> replacements) {
         if (plugin == null || plugin.debugLogger() == null) {
             return;
         }
         plugin.debugLogger().log("station", (UUID) null, langKey, replacements);
     }
 
-    private void clearDisplay(StationCoordinates coordinates, UUID knownId, String inputSource) {
-        if (coordinates == null) {
-            return;
-        }
-        displayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
-        if (knownId == null) {
-            return;
-        }
-        Location baseLocation = coordinates.location(0.5D, 0.5D, 0.5D);
-        Location targetLocation = resolveDisplayLocation(coordinates, inputSource);
-        Location searchLocation = targetLocation == null ? baseLocation : targetLocation;
-        if (searchLocation != null && searchLocation.getWorld() != null) {
-            Entity trackedEntity = Bukkit.getEntity(knownId);
-            if (trackedEntity instanceof ItemDisplay) {
-                trackedEntity.remove();
-            }
-        }
-        if (searchLocation != null && searchLocation.getWorld() != null) {
-            for (Entity entity : searchLocation.getWorld().getNearbyEntities(searchLocation,
-                    DISPLAY_SEARCH_RADIUS,
-                    DISPLAY_SEARCH_RADIUS,
-                    DISPLAY_SEARCH_RADIUS)) {
-                if (entity instanceof ItemDisplay) {
-                    entity.remove();
-                }
-            }
-        }
-    }
+    private void clearDisplay(StationCoordinates coordinates, UUID knownId, String inputSource) { new ChoppingBoardRuntimeServiceDelegate(this).clearDisplay(coordinates, knownId, inputSource); }
 
-    private Location resolveDisplayLocation(StationCoordinates coordinates, String inputSource) {
-        if (coordinates == null || Texts.isBlank(inputSource)) {
-            return null;
-        }
-        ItemSourceRef source = ItemSourceUtil.parse(inputSource);
-        ItemStack itemStack = itemSourceService.createItem(source, 1);
-        if (source == null || itemStack == null || itemStack.getType().isAir()) {
-            return null;
-        }
-        CookingSettingsService.DisplayAdjustmentProfile adjustment = settingsService.displayAdjustment(
-                StationType.CHOPPING_BOARD,
-                source,
-                itemStack.getType().isBlock()
-        );
-        return adjustment.applyOffset(coordinates.location(0D, 0D, 0D));
-    }
+    Location resolveDisplayLocation(StationCoordinates coordinates, String inputSource) { return new ChoppingBoardRuntimeServiceDelegate(this).resolveDisplayLocation(coordinates, inputSource); }
 
-    private record ChoppingBoardState(String inputSource,
+    record ChoppingBoardState(String inputSource,
             Map<String, Object> inputItemData,
             int inputAmount,
             int cutCount,
             long lastInteractionMs,
             UUID displayEntityId) {
 
-        private ChoppingBoardState {
+        ChoppingBoardState {
             inputItemData = inputItemData == null || inputItemData.isEmpty() ? Map.of() : Map.copyOf(inputItemData);
             inputAmount = Math.max(1, inputAmount);
         }
 
-        private boolean hasInputSource() {
+        boolean hasInputSource() {
             return inputSource != null && !inputSource.isBlank();
         }
     }

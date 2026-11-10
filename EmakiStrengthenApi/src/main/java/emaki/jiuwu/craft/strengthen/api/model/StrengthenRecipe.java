@@ -243,24 +243,24 @@ public final class StrengthenRecipe {
         }
     }
 
-    private final String id;
-    private final String displayName;
-    private final String guiTemplate;
-    private final EconomyConfig economy;
-    private final Limits limits;
-    private final Map<Integer, Double> successRates;
-    private final Map<String, StatLineDefinition> statLines;
-    private final Map<Integer, StarStage> stars;
-    private final StrengthenConditionGroup conditions;
-    private final String conditionType;
+    final String id;
+    final String displayName;
+    final String guiTemplate;
+    final EconomyConfig economy;
+    final Limits limits;
+    final Map<Integer, Double> successRates;
+    final Map<String, StatLineDefinition> statLines;
+    final Map<Integer, StarStage> stars;
+    final StrengthenConditionGroup conditions;
+    final String conditionType;
     private final int conditionRequiredCount;
     private final StrengthenBranchNode branchTree;
     private final Object nameActions;
     private final Object loreActions;
-    private final Object matcherConfig;
-    private final List<String> slotGroups;
-    private final List<String> statsAny;
-    private final List<String> sourcePatterns;
+    final Object matcherConfig;
+    final List<String> slotGroups;
+    final List<String> statsAny;
+    final List<String> sourcePatterns;
 
     /**
      * Creates a recipe carrying only its structural configuration, with no
@@ -553,34 +553,22 @@ public final class StrengthenRecipe {
     }
 
     /** {@return the recipe id} */
-    public String id() {
-        return id;
-    }
+    public String id() { return new StrengthenRecipeDelegate(this).id(); }
 
     /** {@return the recipe display name} */
-    public String displayName() {
-        return displayName;
-    }
+    public String displayName() { return new StrengthenRecipeDelegate(this).displayName(); }
 
     /** {@return the GUI template id used to render this recipe} */
-    public String guiTemplate() {
-        return guiTemplate;
-    }
+    public String guiTemplate() { return new StrengthenRecipeDelegate(this).guiTemplate(); }
 
     /** {@return the recipe-level economy configuration} */
-    public EconomyConfig economy() {
-        return economy;
-    }
+    public EconomyConfig economy() { return new StrengthenRecipeDelegate(this).economy(); }
 
     /** {@return the numeric limits of the recipe} */
-    public Limits limits() {
-        return limits;
-    }
+    public Limits limits() { return new StrengthenRecipeDelegate(this).limits(); }
 
     /** {@return the per-target-star success rates} */
-    public Map<Integer, Double> successRates() {
-        return successRates;
-    }
+    public Map<Integer, Double> successRates() { return new StrengthenRecipeDelegate(this).successRates(); }
 
     /**
      * {@return the accepted slot groups, empty when unrestricted}
@@ -588,9 +576,7 @@ public final class StrengthenRecipe {
      * <p>Combined with {@link #matcherConfig()}, {@link #statsAny()} and
      * {@link #sourcePatterns()} as a logical AND.
      */
-    public List<String> slotGroups() {
-        return slotGroups;
-    }
+    public List<String> slotGroups() { return new StrengthenRecipeDelegate(this).slotGroups(); }
 
     /**
      * {@return the any-of stat ids that must be present, empty when unrestricted}
@@ -598,9 +584,7 @@ public final class StrengthenRecipe {
      * <p>Combined with {@link #matcherConfig()}, {@link #slotGroups()} and
      * {@link #sourcePatterns()} as a logical AND.
      */
-    public List<String> statsAny() {
-        return statsAny;
-    }
+    public List<String> statsAny() { return new StrengthenRecipeDelegate(this).statsAny(); }
 
     /**
      * {@return the accepted item source shorthand patterns, empty when unrestricted}
@@ -608,9 +592,7 @@ public final class StrengthenRecipe {
      * <p>Combined with {@link #matcherConfig()}, {@link #slotGroups()} and
      * {@link #statsAny()} as a logical AND.
      */
-    public List<String> sourcePatterns() {
-        return sourcePatterns;
-    }
+    public List<String> sourcePatterns() { return new StrengthenRecipeDelegate(this).sourcePatterns(); }
 
     /** {@return whether any matching criterion is configured at all} */
     public boolean matchingConfigured() {
@@ -621,24 +603,16 @@ public final class StrengthenRecipe {
     }
 
     /** {@return the stat-line definitions keyed by id} */
-    public Map<String, StatLineDefinition> statLines() {
-        return statLines;
-    }
+    public Map<String, StatLineDefinition> statLines() { return new StrengthenRecipeDelegate(this).statLines(); }
 
     /** {@return the star stages keyed by star level} */
-    public Map<Integer, StarStage> stars() {
-        return stars;
-    }
+    public Map<Integer, StarStage> stars() { return new StrengthenRecipeDelegate(this).stars(); }
 
     /** {@return the activation conditions of the recipe} */
-    public StrengthenConditionGroup conditions() {
-        return conditions;
-    }
+    public StrengthenConditionGroup conditions() { return new StrengthenRecipeDelegate(this).conditions(); }
 
     /** {@return the condition combination type (e.g. {@code all_of}/{@code any_of})} */
-    public String conditionType() {
-        return conditionType;
-    }
+    public String conditionType() { return new StrengthenRecipeDelegate(this).conditionType(); }
 
     /** {@return the required count for any-of conditions} */
     public int conditionRequiredCount() {
@@ -671,9 +645,7 @@ public final class StrengthenRecipe {
      * <p>Evaluated as a logical AND together with {@link #slotGroups()},
      * {@link #statsAny()} and {@link #sourcePatterns()}.
      */
-    public Object matcherConfig() {
-        return matcherConfig;
-    }
+    public Object matcherConfig() { return new StrengthenRecipeDelegate(this).matcherConfig(); }
 
     /** {@return whether an optional {@code matcher} configuration is present} */
     public boolean matcherConfigured() {
@@ -807,88 +779,14 @@ public final class StrengthenRecipe {
     }
 
 
-    static Map<String, Double> resolveExpressions(Map<String, Object> rawValues, Map<String, ?> context) {
-        Map<String, Double> resolved = new LinkedHashMap<>();
-        if (rawValues == null || rawValues.isEmpty()) {
-            return resolved;
-        }
-        Map<String, Object> evalContext = new LinkedHashMap<>();
-        if (context != null) {
-            evalContext.putAll(context);
-        }
-        for (Map.Entry<String, Object> entry : rawValues.entrySet()) {
-            if (entry.getKey() == null || entry.getValue() == null) {
-                continue;
-            }
-            String key = StrengthenApiValues.lower(entry.getKey());
-            double value = StrengthenRecipeSupport.resolveNumericValue(entry.getValue(), evalContext);
-            resolved.put(key, value);
-            evalContext.put(key, value);
-        }
-        return resolved;
-    }
+    static Map<String, Double> resolveExpressions(Map<String, Object> rawValues, Map<String, ?> context) { return StrengthenRecipeDelegate.resolveExpressions(rawValues, context); }
 
-    static Map<String, Object> resolveMixedExpressions(Map<String, Object> rawValues, Map<String, ?> context) {
-        if (rawValues == null || rawValues.isEmpty()) {
-            return Map.of();
-        }
-        Map<String, Object> resolved = new LinkedHashMap<>();
-        Map<String, Object> evalContext = new LinkedHashMap<>();
-        if (context != null) {
-            evalContext.putAll(context);
-        }
-        for (Map.Entry<String, Object> entry : rawValues.entrySet()) {
-            if (entry.getKey() == null || entry.getValue() == null) {
-                continue;
-            }
-            String key = StrengthenApiValues.lower(entry.getKey());
-            Object value = StrengthenApiValues.evaluateMixed(entry.getValue(), evalContext);
-            resolved.put(key, value);
-            evalContext.put(key, value);
-        }
-        return Map.copyOf(resolved);
-    }
+    static Map<String, Object> resolveMixedExpressions(Map<String, Object> rawValues, Map<String, ?> context) { return StrengthenRecipeDelegate.resolveMixedExpressions(rawValues, context); }
 
 
-    static List<String> normalizeLower(List<String> values) {
-        if (values == null || values.isEmpty()) {
-            return List.of();
-        }
-        List<String> result = new ArrayList<>();
-        for (String value : values) {
-            String normalized = StrengthenApiValues.lower(value);
-            if (StrengthenApiValues.isNotBlank(normalized)) {
-                result.add(normalized);
-            }
-        }
-        return List.copyOf(result);
-    }
+    static List<String> normalizeLower(List<String> values) { return StrengthenRecipeDelegate.normalizeLower(values); }
 
-    static List<String> normalizeStripped(List<String> values) {
-        if (values == null || values.isEmpty()) {
-            return List.of();
-        }
-        List<String> result = new ArrayList<>();
-        for (String value : values) {
-            String normalized = StrengthenApiValues.stripMiniTags(value);
-            if (StrengthenApiValues.isNotBlank(normalized)) {
-                result.add(normalized);
-            }
-        }
-        return List.copyOf(result);
-    }
+    static List<String> normalizeStripped(List<String> values) { return StrengthenRecipeDelegate.normalizeStripped(values); }
 
-    static List<String> normalizeList(List<String> values) {
-        if (values == null || values.isEmpty()) {
-            return List.of();
-        }
-        List<String> result = new ArrayList<>();
-        for (String value : values) {
-            String normalized = StrengthenApiValues.toStringSafe(value);
-            if (StrengthenApiValues.isNotBlank(normalized)) {
-                result.add(normalized);
-            }
-        }
-        return List.copyOf(result);
-    }
+    static List<String> normalizeList(List<String> values) { return StrengthenRecipeDelegate.normalizeList(values); }
 }

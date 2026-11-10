@@ -55,22 +55,22 @@ import emaki.jiuwu.craft.corelib.condition.ConditionNode;
 public final class StrengthenAttemptService {
 
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
-    private static final String OPERATION_NAMESPACE = "strengthen";
+    static final String OPERATION_NAMESPACE = "strengthen";
     private static final int MAX_JOURNAL_ENTRIES = 4_096;
 
-    private final EmakiStrengthenPlugin plugin;
+    final EmakiStrengthenPlugin plugin;
     private final StrengthenRecipeResolver recipeResolver;
     private final MaterialPlanResolver materialPlanResolver;
     private final ChanceCalculator chanceCalculator;
     private final StrengthenEconomyService economyService;
     private final StrengthenSnapshotBuilder snapshotBuilder;
-    private final StrengthenActionCoordinator actionCoordinator;
+    final StrengthenActionCoordinator actionCoordinator;
     private final EmakiItemAssemblyService itemAssemblyService;
-    private final StrengthenPdcAttributeWriter pdcAttributeWriter;
-    private final ItemOperationLedger operationLedger;
-    private final ThreadOwnership threadOwnership;
-    private final AtomicBoolean accepting = new AtomicBoolean(true);
-    private final CraftOperationJournal<JournalEntry> operationJournal =
+    final StrengthenPdcAttributeWriter pdcAttributeWriter;
+    final ItemOperationLedger operationLedger;
+    final ThreadOwnership threadOwnership;
+    final AtomicBoolean accepting = new AtomicBoolean(true);
+    final CraftOperationJournal<JournalEntry> operationJournal =
             CraftOperationJournal.ofMemory(MAX_JOURNAL_ENTRIES);
 
     public StrengthenAttemptService(EmakiStrengthenPlugin plugin,
@@ -95,15 +95,11 @@ public final class StrengthenAttemptService {
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger, placeholderRegistry);
     }
 
-    public boolean canStrengthen(ItemStack itemStack) {
-        return readState(itemStack).eligible();
-    }
+    public boolean canStrengthen(ItemStack itemStack) { return new StrengthenAttemptServiceDelegate(this).canStrengthen(itemStack); }
 
-    public StrengthenState readState(ItemStack itemStack) {
-        return resolveState(itemStack).state();
-    }
+    public StrengthenState readState(ItemStack itemStack) { return new StrengthenAttemptServiceDelegate(this).readState(itemStack); }
 
-    private ResolvedState resolveState(ItemStack itemStack) {
+    ResolvedState resolveState(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return new ResolvedState(StrengthenState.ineligible("strengthen.error.no_target", null, ""), StoredState.empty(null, ""));
         }
@@ -237,15 +233,7 @@ public final class StrengthenAttemptService {
     private AttemptResult internalFailure(Player player,
             AttemptContext context,
             AttemptPreview resolvedPreview,
-            String operationId) {
-        try {
-            AttemptPreview failedPreview = resolvedPreview == null ? preview(player, context) : resolvedPreview;
-            return AttemptResult.failure("strengthen.error.internal", failedPreview,
-                    replacements(failedPreview, failedPreview.currentStar()), operationId);
-        } catch (RuntimeException | LinkageError ignored) {
-            return AttemptResult.failure("strengthen.error.internal", null, Map.of(), operationId);
-        }
-    }
+            String operationId) { return new StrengthenAttemptServiceDelegate(this).internalFailure(player, context, resolvedPreview, operationId); }
 
     private AttemptResult attemptOnce(Player player,
             AttemptContext context,
@@ -336,46 +324,21 @@ public final class StrengthenAttemptService {
                 rebuilt, resultStar, resultTemper, progress.newlyReached(), operationId, outcome));
     }
 
-    private AttemptResult finishAttempt(Player player, AttemptResult result) {
-        if (isPlayerOwned(player)) {
-            try {
-                Bukkit.getPluginManager().callEvent(new StrengthenAttemptEvent(player, result));
-            } catch (RuntimeException | LinkageError exception) {
-                plugin.messageService().warning("console.strengthen_result_dispatch_failed", Map.of(
-                        "operation_id", Texts.toStringSafe(result.operationId()),
-                        "error", String.valueOf(exception.getMessage())));
-            }
-        }
-        return result;
-    }
+    private AttemptResult finishAttempt(Player player, AttemptResult result) { return new StrengthenAttemptServiceDelegate(this).finishAttempt(player, result); }
 
-    private boolean isPlayerOwned(Player player) {
-        return threadOwnership != null && player != null && threadOwnership.isEntityOwned(player);
-    }
+    boolean isPlayerOwned(Player player) { return new StrengthenAttemptServiceDelegate(this).isPlayerOwned(player); }
 
-    public boolean accepting() {
-        return accepting.get();
-    }
+    public boolean accepting() { return new StrengthenAttemptServiceDelegate(this).accepting(); }
 
-    public void freezeAccepting() {
-        accepting.set(false);
-    }
+    public void freezeAccepting() { new StrengthenAttemptServiceDelegate(this).freezeAccepting(); }
 
-    public void resumeAccepting() {
-        accepting.set(true);
-    }
+    public void resumeAccepting() { new StrengthenAttemptServiceDelegate(this).resumeAccepting(); }
 
-    public boolean drain(long timeout, TimeUnit unit) {
-        return operationJournal.drain(timeout, unit);
-    }
+    public boolean drain(long timeout, TimeUnit unit) { return new StrengthenAttemptServiceDelegate(this).drain(timeout, unit); }
 
-    public Map<String, String> journalSnapshot() {
-        Map<String, String> snapshot = new LinkedHashMap<>();
-        operationJournal.snapshot().forEach((operationId, entry) -> snapshot.put(operationId, entry.phase()));
-        return Map.copyOf(snapshot);
-    }
+    public Map<String, String> journalSnapshot() { return new StrengthenAttemptServiceDelegate(this).journalSnapshot(); }
 
-    private AttemptStart beginOperation(String journalKey, UUID playerId, int fingerprint) {
+    AttemptStart beginOperation(String journalKey, UUID playerId, int fingerprint) {
         CraftOperationJournal.Entry<JournalEntry> existing = operationJournal.beginIfAbsent(
                 journalKey, OPERATION_NAMESPACE, playerId, new JournalEntry(fingerprint, null));
         if (existing != null) {
@@ -400,29 +363,15 @@ public final class StrengthenAttemptService {
         pruneJournal();
     }
 
-    private void finishInFlight(String journalKey) {
-        operationJournal.release(journalKey);
-    }
+    private void finishInFlight(String journalKey) { new StrengthenAttemptServiceDelegate(this).finishInFlight(journalKey); }
 
-    private void pruneJournal() {
-        operationJournal.prune(entry -> {
-            AttemptResult result = entry.payload() == null ? null : entry.payload().result();
-            return result != null && !result.compensationPending();
-        });
-    }
+    private void pruneJournal() { new StrengthenAttemptServiceDelegate(this).pruneJournal(); }
 
-    private String resolveOperationId(AttemptContext context) {
-        String supplied = context == null ? "" : Texts.trim(context.operationId());
-        return Texts.isBlank(supplied) ? UUID.randomUUID().toString() : supplied;
-    }
+    private String resolveOperationId(AttemptContext context) { return new StrengthenAttemptServiceDelegate(this).resolveOperationId(context); }
 
-    private String journalKey(Player player, String operationId) {
-        return (player == null ? "-" : player.getUniqueId().toString()) + ":" + operationId;
-    }
+    private String journalKey(Player player, String operationId) { return new StrengthenAttemptServiceDelegate(this).journalKey(player, operationId); }
 
-    private int attemptFingerprint(AttemptContext context) {
-        return context == null ? 0 : Objects.hash(context.targetItem(), context.materialInputs());
-    }
+    private int attemptFingerprint(AttemptContext context) { return new StrengthenAttemptServiceDelegate(this).attemptFingerprint(context); }
 
     private void logOperation(Player player, String operationId, String phase, AttemptOutcome outcome) {
         UUID playerId = player == null ? null : player.getUniqueId();
@@ -575,9 +524,7 @@ public final class StrengthenAttemptService {
             String resultSlotId,
             CoreActionItemTarget itemTarget,
             int star,
-            int temper) {
-        return triggerSuccessActions(player, recipe, resultSlotId, itemTarget, star, temper, "");
-    }
+            int temper) { return new StrengthenAttemptServiceDelegate(this).triggerSuccessActions(player, recipe, resultSlotId, itemTarget, star, temper); }
 
     public CompletableFuture<Boolean> triggerSuccessActions(Player player,
             StrengthenRecipe recipe,
@@ -585,10 +532,7 @@ public final class StrengthenAttemptService {
             CoreActionItemTarget itemTarget,
             int star,
             int temper,
-            String operationId) {
-        return actionCoordinator.triggerSuccessActions(
-                player, recipe, resultSlotId, itemTarget, star, temper, operationId);
-    }
+            String operationId) { return new StrengthenAttemptServiceDelegate(this).triggerSuccessActions(player, recipe, resultSlotId, itemTarget, star, temper, operationId); }
 
     public CompletableFuture<Boolean> triggerFailureActions(Player player,
             StrengthenRecipe recipe,
@@ -598,10 +542,7 @@ public final class StrengthenAttemptService {
             int resultStar,
             int temper,
             boolean dropped,
-            boolean protectionApplied) {
-        return triggerFailureActions(player, recipe, resultSlotId, itemTarget, wasStar, resultStar, temper,
-                dropped, protectionApplied, "");
-    }
+            boolean protectionApplied) { return new StrengthenAttemptServiceDelegate(this).triggerFailureActions(player, recipe, resultSlotId, itemTarget, wasStar, resultStar, temper, dropped, protectionApplied); }
 
     public CompletableFuture<Boolean> triggerFailureActions(Player player,
             StrengthenRecipe recipe,
@@ -612,10 +553,7 @@ public final class StrengthenAttemptService {
             int temper,
             boolean dropped,
             boolean protectionApplied,
-            String operationId) {
-        return actionCoordinator.triggerFailureActions(player, recipe, resultSlotId, itemTarget, wasStar, resultStar,
-                temper, dropped, protectionApplied, operationId);
-    }
+            String operationId) { return new StrengthenAttemptServiceDelegate(this).triggerFailureActions(player, recipe, resultSlotId, itemTarget, wasStar, resultStar, temper, dropped, protectionApplied, operationId); }
 
     public void broadcastFirstReach(Player player, ItemStack resultItem, Set<Integer> newlyReached) {
         if (player == null || newlyReached == null || newlyReached.isEmpty()) {
@@ -652,18 +590,11 @@ public final class StrengthenAttemptService {
         }
     }
 
-    private AttemptPreview ineligiblePreview(String errorKey, StrengthenState state) {
-        return ineligiblePreview(errorKey, state, null);
-    }
+    AttemptPreview ineligiblePreview(String errorKey, StrengthenState state) { return new StrengthenAttemptServiceDelegate(this).ineligiblePreview(errorKey, state); }
 
-    private AttemptPreview ineligiblePreview(String errorKey, StrengthenState state, StrengthenRecipe recipe) {
-        int currentStar = state == null ? 0 : state.currentStar();
-        int temper = state == null ? 0 : state.temperLevel();
-        return new AttemptPreview(false, errorKey, state, recipe, currentStar, currentStar, 0D, List.of(),
-                currentStar, temper, false, 0, Map.of(), Set.of(), List.of(), List.of());
-    }
+    AttemptPreview ineligiblePreview(String errorKey, StrengthenState state, StrengthenRecipe recipe) { return new StrengthenAttemptServiceDelegate(this).ineligiblePreview(errorKey, state, recipe); }
 
-    private StoredState readStoredState(ItemStack itemStack, ItemSourceRef baseSource, String fallbackSignature) {
+    StoredState readStoredState(ItemStack itemStack, ItemSourceRef baseSource, String fallbackSignature) {
         if (itemAssemblyService == null || itemStack == null || !itemAssemblyService.isEmakiItem(itemStack)) {
             return StoredState.empty(baseSource, fallbackSignature);
         }
@@ -689,23 +620,7 @@ public final class StrengthenAttemptService {
         );
     }
 
-    private Set<Integer> parseFlagSet(Object raw) {
-        Set<Integer> flags = new LinkedHashSet<>();
-        if (raw instanceof Iterable<?> iterable) {
-            for (Object entry : iterable) {
-                Integer value = Numbers.tryParseInt(entry, null);
-                if (value != null) {
-                    flags.add(value);
-                }
-            }
-        } else if (raw != null) {
-            Integer value = Numbers.tryParseInt(raw, null);
-            if (value != null) {
-                flags.add(value);
-            }
-        }
-        return flags;
-    }
+    private Set<Integer> parseFlagSet(Object raw) { return new StrengthenAttemptServiceDelegate(this).parseFlagSet(raw); }
 
     private ItemStack rebuildWithState(ItemStack itemStack, StrengthenState state, String materialsSignature,
             ActionContext actionContext) {
@@ -736,56 +651,13 @@ public final class StrengthenAttemptService {
     }
 
     private void applyStrengthenOperations(ItemStack itemStack, StrengthenRecipe recipe, StrengthenState state,
-            ActionContext actionContext) {
-        Object nameActions = recipe.cumulativeNameActions(state.currentStar(), state.branchPath());
-        Object loreActions = recipe.cumulativeLoreActions(state.currentStar(), state.branchPath());
-        if ((nameActions instanceof List<?> nameList && nameList.isEmpty())
-                && (loreActions instanceof List<?> loreList && loreList.isEmpty())) {
-            return;
-        }
-        String operationId = OPERATION_NAMESPACE + ":" + recipe.id() + ":star_" + state.currentStar();
-        Map<String, Object> variables = new LinkedHashMap<>();
-        Map<String, Object> mixedVariables = recipe.cumulativeMixedVariables(state.currentStar(), state.branchPath());
-        if (mixedVariables != null) {
-            variables.putAll(mixedVariables);
-        }
-        variables.put("star", state.currentStar());
-        variables.put("temper", state.temperLevel());
-        variables.put("max_temper", recipe.limits().maxTemper());
-        operationLedger.revertAll(itemStack, OPERATION_NAMESPACE);
-        operationLedger.apply(actionContext, itemStack, operationId, OPERATION_NAMESPACE, nameActions, loreActions, variables);
-    }
+            ActionContext actionContext) { new StrengthenAttemptServiceDelegate(this).applyStrengthenOperations(itemStack, recipe, state, actionContext); }
 
-    private String buildMaterialsSignature(AttemptPreview preview) {
-        return SignatureUtil.stableSignature(materialSignatureRows(
-                preview == null ? List.of() : preview.optionalMaterials()));
-    }
+    String buildMaterialsSignature(AttemptPreview preview) { return new StrengthenAttemptServiceDelegate(this).buildMaterialsSignature(preview); }
 
-    static List<Object> materialSignatureRows(List<AttemptMaterial> materials) {
-        Map<String, Integer> amountsByIdentity = new TreeMap<>();
-        Map<String, MaterialSignatureEntry> identities = new TreeMap<>();
-        if (materials != null) {
-            for (AttemptMaterial material : materials) {
-                if (material == null || material.consumedAmount() <= 0) {
-                    continue;
-                }
-                MaterialSignatureEntry identity = new MaterialSignatureEntry(
-                        material.materialId(), material.countKey(), 0);
-                String key = identity.materialId() + "\u0000" + identity.countKey();
-                identities.putIfAbsent(key, identity);
-                amountsByIdentity.merge(key, material.consumedAmount(), Integer::sum);
-            }
-        }
-        List<Object> signatureData = new ArrayList<>();
-        for (Map.Entry<String, MaterialSignatureEntry> entry : identities.entrySet()) {
-            MaterialSignatureEntry identity = entry.getValue();
-            signatureData.add(new MaterialSignatureEntry(identity.materialId(), identity.countKey(),
-                    amountsByIdentity.getOrDefault(entry.getKey(), 0)).row());
-        }
-        return List.copyOf(signatureData);
-    }
+    static List<Object> materialSignatureRows(List<AttemptMaterial> materials) { return StrengthenAttemptServiceDelegate.materialSignatureRows(materials); }
 
-    private Map<String, Object> replacements(AttemptPreview preview, int star) {
+    Map<String, Object> replacements(AttemptPreview preview, int star) {
         Map<String, Object> replacements = new LinkedHashMap<>();
         replacements.put("star", star);
         replacements.put("temper", preview == null ? 0 : preview.failureTemper());
@@ -805,81 +677,25 @@ public final class StrengthenAttemptService {
         return replacements;
     }
 
-    private String renderCosts(List<AttemptCost> costs) {
-        if (costs == null || costs.isEmpty()) {
-            return freeCostLabel();
-        }
-        List<String> parts = new ArrayList<>();
-        for (AttemptCost cost : costs) {
-            parts.add(cost.amount() + " " + cost.displayName());
-        }
-        return String.join(", ", parts);
-    }
+    private String renderCosts(List<AttemptCost> costs) { return new StrengthenAttemptServiceDelegate(this).renderCosts(costs); }
 
-    private String freeCostLabel() {
-        var message = plugin.messageService() == null
-                ? ""
-                : plugin.messageService().message("strengthen.misc.free_cost");
-        return Texts.isBlank(message) ? "免费" : message;
-    }
+    String freeCostLabel() { return new StrengthenAttemptServiceDelegate(this).freeCostLabel(); }
 
-    private Set<Integer> collectFirstReach(Set<Integer> currentFlags, int targetStar) {
-        if (targetStar <= 0 || currentFlags != null && currentFlags.contains(targetStar)) {
-            return Set.of();
-        }
-        return Set.of(targetStar);
-    }
+    private Set<Integer> collectFirstReach(Set<Integer> currentFlags, int targetStar) { return new StrengthenAttemptServiceDelegate(this).collectFirstReach(currentFlags, targetStar); }
 
-    private void applyPdcAttributes(ItemStack itemStack, StrengthenRecipe recipe, StrengthenState state) {
-        pdcAttributeWriter.applyPdcAttributes(itemStack, recipe, state);
-    }
+    void applyPdcAttributes(ItemStack itemStack, StrengthenRecipe recipe, StrengthenState state) { new StrengthenAttemptServiceDelegate(this).applyPdcAttributes(itemStack, recipe, state); }
 
-    private void clearPdcAttributes(ItemStack itemStack) {
-        pdcAttributeWriter.clearPdcAttributes(itemStack);
-    }
+    void clearPdcAttributes(ItemStack itemStack) { new StrengthenAttemptServiceDelegate(this).clearPdcAttributes(itemStack); }
 
-    private void preserveOtherAttributePayloads(ItemStack original, ItemStack rebuilt) {
-        pdcAttributeWriter.preserveOtherAttributePayloads(original, rebuilt);
-    }
+    void preserveOtherAttributePayloads(ItemStack original, ItemStack rebuilt) { new StrengthenAttemptServiceDelegate(this).preserveOtherAttributePayloads(original, rebuilt); }
 
-    static StarProgress collectStarProgress(Set<Integer> currentFlags, Set<Integer> reachedNow) {
-        Set<Integer> updated = new LinkedHashSet<>(currentFlags == null ? Set.of() : currentFlags);
-        Set<Integer> newlyReached = new LinkedHashSet<>();
-        if (reachedNow != null) {
-            for (Integer stage : reachedNow) {
-                if (stage != null && updated.add(stage)) {
-                    newlyReached.add(stage);
-                }
-            }
-        }
-        return new StarProgress(Set.copyOf(updated), Set.copyOf(newlyReached));
-    }
+    static StarProgress collectStarProgress(Set<Integer> currentFlags, Set<Integer> reachedNow) { return StrengthenAttemptServiceDelegate.collectStarProgress(currentFlags, reachedNow); }
 
-    private static ConditionGroup toCoreConditionGroup(StrengthenConditionGroup group) {
-        if (group == null) {
-            return ConditionGroup.empty();
-        }
-        List<ConditionNode> nodes = new ArrayList<>();
-        for (StrengthenConditionNode node : group.conditions()) {
-            ConditionNode converted = toCoreConditionNode(node);
-            if (converted != null) {
-                nodes.add(converted);
-            }
-        }
-        return new ConditionGroup(group.conditionType(), group.requiredCount(), nodes);
-    }
+    static ConditionGroup toCoreConditionGroup(StrengthenConditionGroup group) { return StrengthenAttemptServiceDelegate.toCoreConditionGroup(group); }
 
-    private static ConditionNode toCoreConditionNode(StrengthenConditionNode node) {
-        if (node == null) {
-            return null;
-        }
-        if (node.groupNode()) {
-            return ConditionNode.group(toCoreConditionGroup(node.group()));
-        }
-        return new ConditionNode(node.type(), node.expression(), null, node.data());
-    }
+    static ConditionNode toCoreConditionNode(StrengthenConditionNode node) { return StrengthenAttemptServiceDelegate.toCoreConditionNode(node); }
 
-    private record StoredState(boolean hasLayer,
+    record StoredState(boolean hasLayer,
             String recipeId,
             int currentStar,
             int crackLevel,
@@ -891,12 +707,12 @@ public final class StrengthenAttemptService {
             String baseSourceSignature,
             String branchPath) {
 
-        private static StoredState empty(ItemSourceRef baseSource, String fallbackSignature) {
+        static StoredState empty(ItemSourceRef baseSource, String fallbackSignature) {
             String signature = Texts.isBlank(fallbackSignature) ? ItemSourceUtil.toShorthand(baseSource) : fallbackSignature;
             return new StoredState(false, "", 0, 0, Set.of(), 0, 0, 0L, "", signature, "");
         }
 
-        private StoredState withBaseSourceSignature(String fallbackSignature) {
+        StoredState withBaseSourceSignature(String fallbackSignature) {
             String resolvedSignature = Texts.isBlank(baseSourceSignature) ? fallbackSignature : baseSourceSignature;
             if (Objects.equals(baseSourceSignature, resolvedSignature)) {
                 return this;
@@ -917,7 +733,7 @@ public final class StrengthenAttemptService {
         }
     }
 
-    private record ResolvedState(StrengthenState state, StoredState stored) {
+    record ResolvedState(StrengthenState state, StoredState stored) {
 
     }
 
@@ -936,19 +752,19 @@ public final class StrengthenAttemptService {
             FAILED
         }
 
-        private static BranchSelection failure(String errorKey) {
+        static BranchSelection failure(String errorKey) {
             return new BranchSelection(Outcome.FAILED, errorKey, null, "", "", "", Map.of());
         }
 
-        private static BranchSelection pending(Map<String, StrengthenBranchNode> options) {
+        static BranchSelection pending(Map<String, StrengthenBranchNode> options) {
             return new BranchSelection(Outcome.PENDING_CHOICE, "", null, "", "", "", StrengthenAttemptServiceSupport.describe(options));
         }
 
-        private static BranchSelection invalid(Map<String, StrengthenBranchNode> options) {
+        static BranchSelection invalid(Map<String, StrengthenBranchNode> options) {
             return new BranchSelection(Outcome.INVALID_CHOICE, "", null, "", "", "", StrengthenAttemptServiceSupport.describe(options));
         }
 
-        private static BranchSelection applied(ItemStack rebuilt,
+        static BranchSelection applied(ItemStack rebuilt,
                 String branchId,
                 StrengthenBranchNode node,
                 String branchPath) {
@@ -962,9 +778,9 @@ public final class StrengthenAttemptService {
 
     }
 
-    private record AttemptStart(boolean started, AttemptResult existingResult, String errorKey) {
+    record AttemptStart(boolean started, AttemptResult existingResult, String errorKey) {
     }
 
-    private record JournalEntry(int fingerprint, AttemptResult result) {
+    record JournalEntry(int fingerprint, AttemptResult result) {
     }
 }

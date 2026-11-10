@@ -56,37 +56,37 @@ public final class CookingSettingsService {
 
     private static final Pattern RANGE_PATTERN = Pattern.compile("^\\s*(-?\\d+(?:\\.\\d+)?)\\s*-\\s*(-?\\d+(?:\\.\\d+)?)\\s*$");
 
-    private static final String[] LIT_SOURCE_KEYS = {"lit_item_sources"};
-    private static final String[] UNLIT_SOURCE_KEYS = {"unlit_item_sources"};
-    private static final DisplayAdjustmentProfile DEFAULT_ITEM_DISPLAY_ADJUSTMENT = new DisplayAdjustmentProfile(
+    static final String[] LIT_SOURCE_KEYS = {"lit_item_sources"};
+    static final String[] UNLIT_SOURCE_KEYS = {"unlit_item_sources"};
+    static final DisplayAdjustmentProfile DEFAULT_ITEM_DISPLAY_ADJUSTMENT = new DisplayAdjustmentProfile(
             new Vector3(0.5D, 1.02D, 0.5D),
             new RotationProfile(AxisRotation.fixed(90D), AxisRotation.fixed(0D), AxisRotation.fixed(0D)),
             new Vector3(0.5D, 0.5D, 0.5D)
     );
-    private static final DisplayAdjustmentProfile DEFAULT_BLOCK_DISPLAY_ADJUSTMENT = new DisplayAdjustmentProfile(
+    static final DisplayAdjustmentProfile DEFAULT_BLOCK_DISPLAY_ADJUSTMENT = new DisplayAdjustmentProfile(
             new Vector3(0.5D, 1.125D, 0.5D),
             new RotationProfile(AxisRotation.fixed(0D), AxisRotation.fixed(90D), AxisRotation.fixed(0D)),
             new Vector3(0.25D, 0.25D, 0.25D)
     );
 
     private final JavaPlugin plugin;
-    private volatile YamlSection configuration = new MapYamlSection();
+    volatile YamlSection configuration = new MapYamlSection();
     private volatile YamlSection steamerGuiConfiguration = new MapYamlSection();
     private volatile YamlSection ovenGuiConfiguration = new MapYamlSection();
     private volatile YamlSection juicerGuiConfiguration = new MapYamlSection();
     private volatile YamlSection fermentationBarrelGuiConfiguration = new MapYamlSection();
-    private volatile Map<String, ItemDisplayAdjustmentOverride> itemAdjustments = Map.of();
-    private volatile Set<String> globalDisabledWorlds = Set.of();
-    private volatile Map<StationType, Set<String>> stationDisabledWorlds = Map.of();
-    private volatile Map<StationType, List<ItemSourceRef>> stationBlockSourceCache = Map.of();
+    volatile Map<String, ItemDisplayAdjustmentOverride> itemAdjustments = Map.of();
+    volatile Set<String> globalDisabledWorlds = Set.of();
+    volatile Map<StationType, Set<String>> stationDisabledWorlds = Map.of();
+    volatile Map<StationType, List<ItemSourceRef>> stationBlockSourceCache = Map.of();
 
-    private final ChoppingBoardSettings choppingBoardSettings;
-    private final GrinderSettings grinderSettings;
-    private final WokSettings wokSettings;
-    private final SteamerSettings steamerSettings;
-    private final OvenSettings ovenSettings;
-    private final JuicerSettings juicerSettings;
-    private final FermentationBarrelSettings fermentationBarrelSettings;
+    final ChoppingBoardSettings choppingBoardSettings;
+    final GrinderSettings grinderSettings;
+    final WokSettings wokSettings;
+    final SteamerSettings steamerSettings;
+    final OvenSettings ovenSettings;
+    final JuicerSettings juicerSettings;
+    final FermentationBarrelSettings fermentationBarrelSettings;
 
     public CookingSettingsService(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -130,9 +130,7 @@ public final class CookingSettingsService {
         }
     }
 
-    private static String deprecatedKeyHint(boolean nested, String nestedHint) {
-        return nested ? nestedHint : "旧键仅作兼容读取";
-    }
+    private static String deprecatedKeyHint(boolean nested, String nestedHint) { return CookingSettingsServiceDelegate.deprecatedKeyHint(nested, nestedHint); }
 
     private void reportDeprecatedMatcherKeys(String ownerPath, String nestedKey, String legacySourcesKey, String legacyMatcherKey) {
         YamlSection owner = configuration.getSection(ownerPath);
@@ -145,39 +143,15 @@ public final class CookingSettingsService {
                 + deprecatedKeyHint(nested != null && !nested.isEmpty(), "嵌套配置优先"));
     }
 
-    public List<ItemSourceRef> stationBlockSources(StationType stationType) {
-        if (stationType == null) {
-            return List.of();
-        }
-        List<ItemSourceRef> sources = stationBlockSourceCache.get(stationType);
-        return sources == null ? List.of() : sources;
-    }
+    public List<ItemSourceRef> stationBlockSources(StationType stationType) { return new CookingSettingsServiceDelegate(this).stationBlockSources(stationType); }
 
-    public ItemSourceRef stationBlockSource(StationType stationType) {
-        List<ItemSourceRef> sources = stationBlockSources(stationType);
-        return sources.isEmpty() ? null : sources.getFirst();
-    }
+    public ItemSourceRef stationBlockSource(StationType stationType) { return new CookingSettingsServiceDelegate(this).stationBlockSource(stationType); }
 
-    public boolean isInteractionDisabled(StationType stationType, String worldName) {
-        String world = normalizeWorldName(worldName);
-        if (world.isBlank()) {
-            return false;
-        }
-        if (globalDisabledWorlds.contains(world)) {
-            return true;
-        }
-        Set<String> stationWorlds = stationType == null ? null : stationDisabledWorlds.get(stationType);
-        return stationWorlds != null && stationWorlds.contains(world);
-    }
+    public boolean isInteractionDisabled(StationType stationType, String worldName) { return new CookingSettingsServiceDelegate(this).isInteractionDisabled(stationType, worldName); }
 
-    public Set<String> globalDisabledWorlds() {
-        return globalDisabledWorlds;
-    }
+    public Set<String> globalDisabledWorlds() { return new CookingSettingsServiceDelegate(this).globalDisabledWorlds(); }
 
-    public Set<String> disabledWorlds(StationType stationType) {
-        Set<String> worlds = stationType == null ? null : stationDisabledWorlds.get(stationType);
-        return worlds == null ? Set.of() : worlds;
-    }
+    public Set<String> disabledWorlds(StationType stationType) { return new CookingSettingsServiceDelegate(this).disabledWorlds(stationType); }
 
     public boolean onlyRecipeItems(StationType stationType) {
         String stationPath = stationPath(stationType) + ".only_recipe_items";
@@ -187,36 +161,15 @@ public final class CookingSettingsService {
         return configuration.getBoolean("input_rules.only_recipe_items", true);
     }
 
-    public String displayEntitiesBackend() {
-        String backend = Texts.normalizeId(configuration.getString("display_entities.backend", "auto"));
-        return switch (backend) {
-            case "packet_events", "bukkit" -> backend;
-            default -> "auto";
-        };
-    }
+    public String displayEntitiesBackend() { return new CookingSettingsServiceDelegate(this).displayEntitiesBackend(); }
 
-    public double displayEntitiesViewDistanceBlocks() {
-        return Math.max(1D, configuration.getDouble("display_entities.view_distance_blocks", 48D));
-    }
+    public double displayEntitiesViewDistanceBlocks() { return new CookingSettingsServiceDelegate(this).displayEntitiesViewDistanceBlocks(); }
 
-    public int displayEntitiesRefreshIntervalTicks() {
-        return Math.max(1, configuration.getInt("display_entities.refresh_interval_ticks", 20));
-    }
+    public int displayEntitiesRefreshIntervalTicks() { return new CookingSettingsServiceDelegate(this).displayEntitiesRefreshIntervalTicks(); }
 
-    public double wokDisplayLayoutRadius() {
-        return wokSettings.displayLayoutRadius();
-    }
+    public double wokDisplayLayoutRadius() { return new CookingSettingsServiceDelegate(this).wokDisplayLayoutRadius(); }
 
-    public boolean textDisplayEnabled(StationType stationType) {
-        if (stationType == null) {
-            return false;
-        }
-        if (!configuration.getBoolean("display_entities.text.enabled", true)) {
-            return false;
-        }
-        String stationPath = "display_entities.text.stations." + stationType.folderName() + ".enabled";
-        return configuration.getBoolean(stationPath, true);
-    }
+    public boolean textDisplayEnabled(StationType stationType) { return new CookingSettingsServiceDelegate(this).textDisplayEnabled(stationType); }
 
     public TextDisplayProfile textDisplayProfile(StationType stationType) {
         Vector3 defaultOffset = readVector3(
@@ -245,48 +198,13 @@ public final class CookingSettingsService {
         return new TextDisplayProfile(offset, scale, billboard, lineWidth, backgroundArgb, shadow, seeThrough);
     }
 
-    private Vector3 readVector3(YamlSection section, Vector3 fallback) {
-        if (section == null || section.isEmpty()) {
-            return fallback;
-        }
-        Double x = section.getDouble("x", null);
-        Double y = section.getDouble("y", null);
-        Double z = section.getDouble("z", null);
-        if (x == null && y == null && z == null) {
-            return fallback;
-        }
-        return new Vector3(
-                x == null ? fallback.x() : x,
-                y == null ? fallback.y() : y,
-                z == null ? fallback.z() : z
-        );
-    }
+    Vector3 readVector3(YamlSection section, Vector3 fallback) { return new CookingSettingsServiceDelegate(this).readVector3(section, fallback); }
 
-    private String normalizeBillboard(String value) {
-        return switch (Texts.lower(Texts.toStringSafe(value).trim())) {
-            case "fixed" -> "fixed";
-            case "vertical" -> "vertical";
-            case "horizontal" -> "horizontal";
-            default -> "center";
-        };
-    }
+    private String normalizeBillboard(String value) { return new CookingSettingsServiceDelegate(this).normalizeBillboard(value); }
 
     public boolean matchesInteraction(StationType stationType,
             String operation,
-            StationInteraction interaction) {
-        if (stationType == null || Texts.isBlank(operation) || interaction == null) {
-            return false;
-        }
-        StationInteractionType configured = null;
-        YamlSection interactions = configuration.getSection(stationPath(stationType) + ".interactions");
-        if (interactions != null && !interactions.isEmpty()) {
-            configured = StationInteractionType.parse(interactions.getString(operation, ""));
-        }
-        if (configured == null) {
-            configured = defaultInteraction(stationType, operation);
-        }
-        return interaction.matches(configured);
-    }
+            StationInteraction interaction) { return new CookingSettingsServiceDelegate(this).matchesInteraction(stationType, operation, interaction); }
 
     public DisplayAdjustmentProfile displayAdjustment(StationType stationType, ItemSourceRef source, boolean blockDisplay) {
         DisplayAdjustmentKind kind = blockDisplay ? DisplayAdjustmentKind.BLOCK : DisplayAdjustmentKind.ITEM;
@@ -302,373 +220,149 @@ public final class CookingSettingsService {
         return override == null ? fallback : override.resolve(stationType, fallback);
     }
 
-    public boolean choppingDropResult() {
-        return choppingBoardSettings.dropResult();
-    }
-
-    public boolean choppingSpaceRestriction() {
-        return choppingBoardSettings.spaceRestriction();
-    }
-
-    public long choppingInteractionDelayMs() {
-        return choppingBoardSettings.interactionDelayMs();
-    }
-
-    public ItemRequirement choppingToolRequirement() {
-        return choppingBoardSettings.toolRequirement();
-    }
-
-    public boolean choppingCutDamageEnabled() {
-        return choppingBoardSettings.cutDamageEnabled();
-    }
-
-    public int choppingCutDamageChance() {
-        return choppingBoardSettings.cutDamageChance();
-    }
-
-    public int choppingCutDamageValue() {
-        return choppingBoardSettings.cutDamageValue();
-    }
-
-    public boolean grinderDropResult() {
-        return grinderSettings.dropResult();
-    }
-
-    public int grinderCheckDelayTicks() {
-        return grinderSettings.checkDelayTicks();
-    }
-
-    public boolean wokDropResult() {
-        return wokSettings.dropResult();
-    }
-
-    public boolean wokNeedBowl() {
-        return wokSettings.needBowl();
-    }
-
-    public long wokStirDelayMs() {
-        return wokSettings.stirDelayMs();
-    }
-
-    public long wokTimeoutMs() {
-        return wokSettings.timeoutMs();
-    }
-
-    public ItemRequirement wokSpatulaRequirement() {
-        return wokSettings.spatulaRequirement();
-    }
-
-    public List<HeatLevelRule> wokHeatLevels() {
-        return wokSettings.heatLevels();
-    }
-
-    public boolean wokIgniteHeatSource() {
-        return wokSettings.igniteHeatSource();
-    }
-
-    public boolean wokScaldDamageEnabled() {
-        return wokSettings.scaldDamageEnabled();
-    }
-
-    public int wokScaldDamageValue() {
-        return wokSettings.scaldDamageValue();
-    }
-
-    public boolean wokStirAnimationEnabled() {
-        return wokSettings.stirAnimationEnabled();
-    }
-
-    public int wokStirAnimationDurationTicks() {
-        return wokSettings.stirAnimationDurationTicks();
-    }
-
-    public double wokStirAnimationHeight() {
-        return wokSettings.stirAnimationHeight();
-    }
-
-    public String wokStirAnimationAxis() {
-        return wokSettings.stirAnimationAxis();
-    }
-
-    public double wokStirAnimationRotation() {
-        return wokSettings.stirAnimationRotation();
-    }
-
-    public boolean wokFailureEnabled() {
-        return wokSettings.failureEnabled();
-    }
-
-    public int wokFailureChance() {
-        return wokSettings.failureChance();
-    }
-
-    public String wokFailureOutputSource() {
-        return wokSettings.failureOutputSource();
-    }
-
-    public String wokInvalidResultSource() {
-        return wokSettings.invalidResultSource();
-    }
-
-    public boolean steamerDropResult() {
-        return steamerSettings.dropResult();
-    }
-
-    public String steamerInventoryTitle() {
-        return steamerSettings.inventoryTitle();
-    }
-
-    public int steamerInventoryRows() {
-        return steamerSettings.inventoryRows();
-    }
-
-    public List<Integer> steamerIngredientSlots() {
-        return steamerSettings.ingredientSlots();
-    }
-
-    public List<ItemSourceRef> steamerHeatSources() {
-        return steamerSettings.heatSources();
-    }
-
-    public List<HeatSourceIgnitionRule> steamerHeatSourceIgnitionRules() {
-        return steamerSettings.heatSourceIgnitionRules();
-    }
-
-    public boolean steamerIgniteHeatSource() {
-        return steamerSettings.igniteHeatSource();
-    }
-
-    public List<SteamerFuelRule> steamerFuels() {
-        return steamerSettings.fuels();
-    }
-
-    public List<SteamerMoistureRule> steamerMoistureSources() {
-        return steamerSettings.moistureSources();
-    }
-
-    public boolean steamerResetProgressWhenSteamEmpty() {
-        return steamerSettings.resetProgressWhenSteamEmpty();
-    }
-
-    public int steamerSteamProductionEfficiency() {
-        return steamerSettings.steamProductionEfficiency();
-    }
-
-    public int steamerSteamConversionEfficiency() {
-        return steamerSettings.steamConversionEfficiency();
-    }
-
-    public int steamerSteamConsumptionEfficiency() {
-        return steamerSettings.steamConsumptionEfficiency();
-    }
-
-    public boolean ovenDropResult() {
-        return ovenSettings.dropResult();
-    }
-
-    public String ovenInventoryTitle() {
-        return ovenSettings.inventoryTitle();
-    }
-
-    public int ovenInventoryRows() {
-        return ovenSettings.inventoryRows();
-    }
-
-    public List<Integer> ovenIngredientSlots() {
-        return ovenSettings.ingredientSlots();
-    }
-
-    public List<OvenFuelRule> ovenFuels() {
-        return ovenSettings.fuels();
-    }
-
-    public int ovenHeatMin() {
-        return ovenSettings.heatMin();
-    }
-
-    public int ovenHeatMax() {
-        return ovenSettings.heatMax();
-    }
-
-    public int ovenHeatDecayPerSecond() {
-        return ovenSettings.heatDecayPerSecond();
-    }
-
-    public boolean juicerDropResult() {
-        return juicerSettings.dropResult();
-    }
-
-    public boolean juicerRequireContainer() {
-        return juicerSettings.requireContainer();
-    }
-
-    public ItemRequirement juicerContainerRequirement() {
-        return juicerSettings.containerRequirement();
-    }
-
-    public int juicerMaxFluidMl() {
-        return juicerSettings.maxFluidMl();
-    }
-
-    public int juicerDefaultServingMl() {
-        return juicerSettings.defaultServingMl();
-    }
-
-    public String juicerInventoryTitle() {
-        return juicerSettings.inventoryTitle();
-    }
-
-    public int juicerInventoryRows() {
-        return juicerSettings.inventoryRows();
-    }
-
-    public List<Integer> juicerIngredientSlots() {
-        return juicerSettings.ingredientSlots();
-    }
-
-    public boolean fermentationBarrelDropResult() {
-        return fermentationBarrelSettings.dropResult();
-    }
-
-    public boolean fermentationBarrelPauseWhenOpen() {
-        return fermentationBarrelSettings.pauseWhenOpen();
-    }
-
-    public String fermentationBarrelInventoryTitle() {
-        return fermentationBarrelSettings.inventoryTitle();
-    }
-
-    public int fermentationBarrelInventoryRows() {
-        return fermentationBarrelSettings.inventoryRows();
-    }
-
-    public List<Integer> fermentationBarrelIngredientSlots() {
-        return fermentationBarrelSettings.ingredientSlots();
-    }
-
-    static List<Integer> ingredientSlots(YamlSection guiConfiguration, int inventorySize, int fallbackCount) {
-        LinkedHashSet<Integer> slots = new LinkedHashSet<>();
-        YamlSection slotsSection = guiConfiguration.getSection("slots");
-        if (slotsSection != null && !slotsSection.isEmpty()) {
-            for (String key : slotsSection.getKeys(false)) {
-                YamlSection slotSection = slotsSection.getSection(key);
-                if (slotSection == null || slotSection.isEmpty()) {
-                    addSlotIndexes(slots, slotsSection.get(key), inventorySize);
-                    continue;
-                }
-                String type = Texts.lower(slotSection.getString("type", ""));
-                if (Texts.isNotBlank(type) && !"ingredient".equals(type)) {
-                    continue;
-                }
-                addSlotIndexes(slots, slotSection.get("slots"), inventorySize);
-            }
-        }
-        if (slots.isEmpty()) {
-            for (int slot = 0; slot < Math.min(fallbackCount, inventorySize); slot++) {
-                slots.add(slot);
-            }
-        }
-        return List.copyOf(slots);
-    }
-
-    static List<ItemSourceRef> parseSources(Object raw) {
-        List<ItemSourceRef> result = new ArrayList<>();
-        for (Object token : ConfigNodes.asObjectList(raw)) {
-            ItemSourceRef source = ItemSourceUtil.parse(token);
-            if (source != null) {
-                result.add(source);
-            }
-        }
-        return List.copyOf(result);
-    }
-
-    static ItemSourceRef parseLitSource(Map<String, Object> normalized) {
-        return ItemSourceUtil.parse(firstPresent(normalized, LIT_SOURCE_KEYS));
-    }
-
-    static ItemSourceRef parseUnlitSource(Map<String, Object> normalized) {
-        return ItemSourceUtil.parse(firstPresent(normalized, UNLIT_SOURCE_KEYS));
-    }
-
-    static Object firstPresent(Map<String, Object> values, String... keys) {
-        if (values == null || keys == null) {
-            return null;
-        }
-        for (String key : keys) {
-            if (values.containsKey(key)) {
-                return values.get(key);
-            }
-        }
-        return null;
-    }
-
-    private String stationPath(StationType stationType) {
-        return "stations." + stationType.folderName();
-    }
-
-    private StationInteractionType defaultInteraction(StationType stationType, String operation) {
-        return switch (stationType) {
-            case CHOPPING_BOARD -> switch (operation) {
-                case INTERACTION_PLACE_INPUT, INTERACTION_PROCESS -> StationInteractionType.SHIFT_LEFT_CLICK;
-                case INTERACTION_RETURN_INPUT -> StationInteractionType.RIGHT_CLICK;
-                default -> null;
-            };
-            case WOK -> switch (operation) {
-                case INTERACTION_ADD_INGREDIENT, INTERACTION_STIR, INTERACTION_SERVE, INTERACTION_RETURN_INGREDIENT -> StationInteractionType.SHIFT_LEFT_CLICK;
-                case INTERACTION_INSPECT -> StationInteractionType.SHIFT_RIGHT_CLICK;
-                default -> null;
-            };
-            case GRINDER -> INTERACTION_START.equals(operation) ? StationInteractionType.SHIFT_LEFT_CLICK : null;
-            case STEAMER -> switch (operation) {
-                case INTERACTION_OPEN -> StationInteractionType.SHIFT_RIGHT_CLICK;
-                case INTERACTION_FUEL, INTERACTION_MOISTURE -> StationInteractionType.RIGHT_CLICK;
-                default -> null;
-            };
-            case OVEN -> switch (operation) {
-                case INTERACTION_OPEN -> StationInteractionType.SHIFT_RIGHT_CLICK;
-                case INTERACTION_FUEL, INTERACTION_INSPECT -> StationInteractionType.SHIFT_LEFT_CLICK;
-                default -> null;
-            };
-            case JUICER -> switch (operation) {
-                case INTERACTION_OPEN -> StationInteractionType.SHIFT_RIGHT_CLICK;
-                case INTERACTION_PROCESS, INTERACTION_SERVE -> StationInteractionType.SHIFT_LEFT_CLICK;
-                case INTERACTION_INSPECT -> StationInteractionType.RIGHT_CLICK;
-                default -> null;
-            };
-            case FERMENTATION_BARREL -> switch (operation) {
-                case INTERACTION_OPEN -> StationInteractionType.SHIFT_RIGHT_CLICK;
-                case INTERACTION_START, INTERACTION_SERVE -> StationInteractionType.SHIFT_LEFT_CLICK;
-                case INTERACTION_INSPECT -> StationInteractionType.RIGHT_CLICK;
-                default -> null;
-            };
-        };
-    }
-
-    static Integer configurationValueToInt(Object raw, Integer fallback) {
-        return Numbers.tryParseInt(raw, fallback);
-    }
-
-    private static void addSlotIndexes(LinkedHashSet<Integer> sink, Object raw, int inventorySize) {
-        if (sink == null || raw == null || inventorySize <= 0) {
-            return;
-        }
-        if (raw instanceof Iterable<?> iterable) {
-            for (Object entry : iterable) {
-                addSlotIndex(sink, entry, inventorySize);
-            }
-            return;
-        }
-        addSlotIndex(sink, raw, inventorySize);
-    }
-
-    private static void addSlotIndex(LinkedHashSet<Integer> sink, Object raw, int inventorySize) {
-        Integer slot = configurationValueToInt(raw, null);
-        if (slot != null && slot >= 0 && slot < inventorySize) {
-            sink.add(slot);
-        }
-    }
-
-    private DisplayAdjustmentProfile resolveDefaultDisplayAdjustment(StationType stationType, DisplayAdjustmentKind kind) {
+    public boolean choppingDropResult() { return new CookingSettingsServiceDelegate(this).choppingDropResult(); }
+
+    public boolean choppingSpaceRestriction() { return new CookingSettingsServiceDelegate(this).choppingSpaceRestriction(); }
+
+    public long choppingInteractionDelayMs() { return new CookingSettingsServiceDelegate(this).choppingInteractionDelayMs(); }
+
+    public ItemRequirement choppingToolRequirement() { return new CookingSettingsServiceDelegate(this).choppingToolRequirement(); }
+
+    public boolean choppingCutDamageEnabled() { return new CookingSettingsServiceDelegate(this).choppingCutDamageEnabled(); }
+
+    public int choppingCutDamageChance() { return new CookingSettingsServiceDelegate(this).choppingCutDamageChance(); }
+
+    public int choppingCutDamageValue() { return new CookingSettingsServiceDelegate(this).choppingCutDamageValue(); }
+
+    public boolean grinderDropResult() { return new CookingSettingsServiceDelegate(this).grinderDropResult(); }
+
+    public int grinderCheckDelayTicks() { return new CookingSettingsServiceDelegate(this).grinderCheckDelayTicks(); }
+
+    public boolean wokDropResult() { return new CookingSettingsServiceDelegate(this).wokDropResult(); }
+
+    public boolean wokNeedBowl() { return new CookingSettingsServiceDelegate(this).wokNeedBowl(); }
+
+    public long wokStirDelayMs() { return new CookingSettingsServiceDelegate(this).wokStirDelayMs(); }
+
+    public long wokTimeoutMs() { return new CookingSettingsServiceDelegate(this).wokTimeoutMs(); }
+
+    public ItemRequirement wokSpatulaRequirement() { return new CookingSettingsServiceDelegate(this).wokSpatulaRequirement(); }
+
+    public List<HeatLevelRule> wokHeatLevels() { return new CookingSettingsServiceDelegate(this).wokHeatLevels(); }
+
+    public boolean wokIgniteHeatSource() { return new CookingSettingsServiceDelegate(this).wokIgniteHeatSource(); }
+
+    public boolean wokScaldDamageEnabled() { return new CookingSettingsServiceDelegate(this).wokScaldDamageEnabled(); }
+
+    public int wokScaldDamageValue() { return new CookingSettingsServiceDelegate(this).wokScaldDamageValue(); }
+
+    public boolean wokStirAnimationEnabled() { return new CookingSettingsServiceDelegate(this).wokStirAnimationEnabled(); }
+
+    public int wokStirAnimationDurationTicks() { return new CookingSettingsServiceDelegate(this).wokStirAnimationDurationTicks(); }
+
+    public double wokStirAnimationHeight() { return new CookingSettingsServiceDelegate(this).wokStirAnimationHeight(); }
+
+    public String wokStirAnimationAxis() { return new CookingSettingsServiceDelegate(this).wokStirAnimationAxis(); }
+
+    public double wokStirAnimationRotation() { return new CookingSettingsServiceDelegate(this).wokStirAnimationRotation(); }
+
+    public boolean wokFailureEnabled() { return new CookingSettingsServiceDelegate(this).wokFailureEnabled(); }
+
+    public int wokFailureChance() { return new CookingSettingsServiceDelegate(this).wokFailureChance(); }
+
+    public String wokFailureOutputSource() { return new CookingSettingsServiceDelegate(this).wokFailureOutputSource(); }
+
+    public String wokInvalidResultSource() { return new CookingSettingsServiceDelegate(this).wokInvalidResultSource(); }
+
+    public boolean steamerDropResult() { return new CookingSettingsServiceDelegate(this).steamerDropResult(); }
+
+    public String steamerInventoryTitle() { return new CookingSettingsServiceDelegate(this).steamerInventoryTitle(); }
+
+    public int steamerInventoryRows() { return new CookingSettingsServiceDelegate(this).steamerInventoryRows(); }
+
+    public List<Integer> steamerIngredientSlots() { return new CookingSettingsServiceDelegate(this).steamerIngredientSlots(); }
+
+    public List<ItemSourceRef> steamerHeatSources() { return new CookingSettingsServiceDelegate(this).steamerHeatSources(); }
+
+    public List<HeatSourceIgnitionRule> steamerHeatSourceIgnitionRules() { return new CookingSettingsServiceDelegate(this).steamerHeatSourceIgnitionRules(); }
+
+    public boolean steamerIgniteHeatSource() { return new CookingSettingsServiceDelegate(this).steamerIgniteHeatSource(); }
+
+    public List<SteamerFuelRule> steamerFuels() { return new CookingSettingsServiceDelegate(this).steamerFuels(); }
+
+    public List<SteamerMoistureRule> steamerMoistureSources() { return new CookingSettingsServiceDelegate(this).steamerMoistureSources(); }
+
+    public boolean steamerResetProgressWhenSteamEmpty() { return new CookingSettingsServiceDelegate(this).steamerResetProgressWhenSteamEmpty(); }
+
+    public int steamerSteamProductionEfficiency() { return new CookingSettingsServiceDelegate(this).steamerSteamProductionEfficiency(); }
+
+    public int steamerSteamConversionEfficiency() { return new CookingSettingsServiceDelegate(this).steamerSteamConversionEfficiency(); }
+
+    public int steamerSteamConsumptionEfficiency() { return new CookingSettingsServiceDelegate(this).steamerSteamConsumptionEfficiency(); }
+
+    public boolean ovenDropResult() { return new CookingSettingsServiceDelegate(this).ovenDropResult(); }
+
+    public String ovenInventoryTitle() { return new CookingSettingsServiceDelegate(this).ovenInventoryTitle(); }
+
+    public int ovenInventoryRows() { return new CookingSettingsServiceDelegate(this).ovenInventoryRows(); }
+
+    public List<Integer> ovenIngredientSlots() { return new CookingSettingsServiceDelegate(this).ovenIngredientSlots(); }
+
+    public List<OvenFuelRule> ovenFuels() { return new CookingSettingsServiceDelegate(this).ovenFuels(); }
+
+    public int ovenHeatMin() { return new CookingSettingsServiceDelegate(this).ovenHeatMin(); }
+
+    public int ovenHeatMax() { return new CookingSettingsServiceDelegate(this).ovenHeatMax(); }
+
+    public int ovenHeatDecayPerSecond() { return new CookingSettingsServiceDelegate(this).ovenHeatDecayPerSecond(); }
+
+    public boolean juicerDropResult() { return new CookingSettingsServiceDelegate(this).juicerDropResult(); }
+
+    public boolean juicerRequireContainer() { return new CookingSettingsServiceDelegate(this).juicerRequireContainer(); }
+
+    public ItemRequirement juicerContainerRequirement() { return new CookingSettingsServiceDelegate(this).juicerContainerRequirement(); }
+
+    public int juicerMaxFluidMl() { return new CookingSettingsServiceDelegate(this).juicerMaxFluidMl(); }
+
+    public int juicerDefaultServingMl() { return new CookingSettingsServiceDelegate(this).juicerDefaultServingMl(); }
+
+    public String juicerInventoryTitle() { return new CookingSettingsServiceDelegate(this).juicerInventoryTitle(); }
+
+    public int juicerInventoryRows() { return new CookingSettingsServiceDelegate(this).juicerInventoryRows(); }
+
+    public List<Integer> juicerIngredientSlots() { return new CookingSettingsServiceDelegate(this).juicerIngredientSlots(); }
+
+    public boolean fermentationBarrelDropResult() { return new CookingSettingsServiceDelegate(this).fermentationBarrelDropResult(); }
+
+    public boolean fermentationBarrelPauseWhenOpen() { return new CookingSettingsServiceDelegate(this).fermentationBarrelPauseWhenOpen(); }
+
+    public String fermentationBarrelInventoryTitle() { return new CookingSettingsServiceDelegate(this).fermentationBarrelInventoryTitle(); }
+
+    public int fermentationBarrelInventoryRows() { return new CookingSettingsServiceDelegate(this).fermentationBarrelInventoryRows(); }
+
+    public List<Integer> fermentationBarrelIngredientSlots() { return new CookingSettingsServiceDelegate(this).fermentationBarrelIngredientSlots(); }
+
+    static List<Integer> ingredientSlots(YamlSection guiConfiguration, int inventorySize, int fallbackCount) { return CookingSettingsServiceDelegate.ingredientSlots(guiConfiguration, inventorySize, fallbackCount); }
+
+    static List<ItemSourceRef> parseSources(Object raw) { return CookingSettingsServiceDelegate.parseSources(raw); }
+
+    static ItemSourceRef parseLitSource(Map<String, Object> normalized) { return CookingSettingsServiceDelegate.parseLitSource(normalized); }
+
+    static ItemSourceRef parseUnlitSource(Map<String, Object> normalized) { return CookingSettingsServiceDelegate.parseUnlitSource(normalized); }
+
+    static Object firstPresent(Map<String, Object> values, String... keys) { return CookingSettingsServiceDelegate.firstPresent(values, keys); }
+
+    String stationPath(StationType stationType) { return new CookingSettingsServiceDelegate(this).stationPath(stationType); }
+
+    StationInteractionType defaultInteraction(StationType stationType, String operation) { return new CookingSettingsServiceDelegate(this).defaultInteraction(stationType, operation); }
+
+    static Integer configurationValueToInt(Object raw, Integer fallback) { return CookingSettingsServiceDelegate.configurationValueToInt(raw, fallback); }
+
+    static void addSlotIndexes(LinkedHashSet<Integer> sink, Object raw, int inventorySize) { CookingSettingsServiceDelegate.addSlotIndexes(sink, raw, inventorySize); }
+
+    static void addSlotIndex(LinkedHashSet<Integer> sink, Object raw, int inventorySize) { CookingSettingsServiceDelegate.addSlotIndex(sink, raw, inventorySize); }
+
+    DisplayAdjustmentProfile resolveDefaultDisplayAdjustment(StationType stationType, DisplayAdjustmentKind kind) {
         DisplayAdjustmentProfile resolved = kind == DisplayAdjustmentKind.BLOCK
                 ? DEFAULT_BLOCK_DISPLAY_ADJUSTMENT
                 : DEFAULT_ITEM_DISPLAY_ADJUSTMENT;
@@ -681,41 +375,15 @@ public final class CookingSettingsService {
         return stationDefaults == null ? resolved : stationDefaults.resolve(resolved);
     }
 
-    private Map<StationType, List<ItemSourceRef>> loadStationBlockSources() {
-        EnumMap<StationType, List<ItemSourceRef>> result = new EnumMap<>(StationType.class);
-        for (StationType stationType : StationType.values()) {
-            result.put(stationType, parseSources(configuration.get(stationPath(stationType) + ".block_item_sources")));
-        }
-        return Map.copyOf(result);
-    }
+    private Map<StationType, List<ItemSourceRef>> loadStationBlockSources() { return new CookingSettingsServiceDelegate(this).loadStationBlockSources(); }
 
-    private Map<StationType, Set<String>> loadStationDisabledWorlds() {
-        EnumMap<StationType, Set<String>> result = new EnumMap<>(StationType.class);
-        for (StationType stationType : StationType.values()) {
-            Set<String> worlds = disabledWorldSet(configuration.get(stationPath(stationType) + ".disabled_worlds"));
-            if (!worlds.isEmpty()) {
-                result.put(stationType, worlds);
-            }
-        }
-        return result.isEmpty() ? Map.of() : Map.copyOf(result);
-    }
+    private Map<StationType, Set<String>> loadStationDisabledWorlds() { return new CookingSettingsServiceDelegate(this).loadStationDisabledWorlds(); }
 
-    private Set<String> disabledWorldSet(Object raw) {
-        LinkedHashSet<String> result = new LinkedHashSet<>();
-        for (Object token : ConfigNodes.asObjectList(raw)) {
-            String world = normalizeWorldName(Texts.toStringSafe(token));
-            if (!world.isBlank()) {
-                result.add(world);
-            }
-        }
-        return result.isEmpty() ? Set.of() : Set.copyOf(result);
-    }
+    Set<String> disabledWorldSet(Object raw) { return new CookingSettingsServiceDelegate(this).disabledWorldSet(raw); }
 
-    private String normalizeWorldName(String worldName) {
-        return Texts.toStringSafe(worldName).trim().toLowerCase(Locale.ROOT);
-    }
+    String normalizeWorldName(String worldName) { return new CookingSettingsServiceDelegate(this).normalizeWorldName(worldName); }
 
-    private Map<String, ItemDisplayAdjustmentOverride> loadItemAdjustments() {
+    Map<String, ItemDisplayAdjustmentOverride> loadItemAdjustments() {
         Path directory = plugin.getDataFolder().toPath().resolve("item_adjustments");
         try {
             YamlFiles.ensureDirectory(directory);
@@ -745,15 +413,9 @@ public final class CookingSettingsService {
         return loaded.isEmpty() ? Map.of() : Map.copyOf(loaded);
     }
 
-    private boolean isYamlFile(Path path) {
-        if (path == null || path.getFileName() == null) {
-            return false;
-        }
-        String name = path.getFileName().toString().toLowerCase(Locale.ROOT);
-        return name.endsWith(".yml") || name.endsWith(".yaml");
-    }
+    private boolean isYamlFile(Path path) { return new CookingSettingsServiceDelegate(this).isYamlFile(path); }
 
-    private ItemDisplayAdjustmentOverride parseItemDisplayAdjustment(Path file, YamlSection section) {
+    ItemDisplayAdjustmentOverride parseItemDisplayAdjustment(Path file, YamlSection section) {
         if (section == null || section.isEmpty()) {
             return null;
         }
@@ -790,21 +452,9 @@ public final class CookingSettingsService {
         );
     }
 
-    private StationType resolveStationType(String value) {
-        if (Texts.isBlank(value)) {
-            return null;
-        }
-        String normalized = Texts.normalizeId(value);
-        for (StationType stationType : StationType.values()) {
-            if (normalized.equals(Texts.normalizeId(stationType.folderName()))
-                    || normalized.equals(Texts.normalizeId(stationType.name()))) {
-                return stationType;
-            }
-        }
-        return null;
-    }
+    private StationType resolveStationType(String value) { return new CookingSettingsServiceDelegate(this).resolveStationType(value); }
 
-    private DisplayAdjustmentSpec parseDisplayAdjustmentSpec(YamlSection section) {
+    DisplayAdjustmentSpec parseDisplayAdjustmentSpec(YamlSection section) {
         if (section == null || section.isEmpty()) {
             return null;
         }
@@ -817,29 +467,9 @@ public final class CookingSettingsService {
         return new DisplayAdjustmentSpec(offset, rotation, scale);
     }
 
-    private PartialVector parsePartialVector(YamlSection section, String path, boolean allowScalar) {
-        if (section == null || Texts.isBlank(path) || !section.contains(path)) {
-            return null;
-        }
-        Object raw = section.get(path);
-        if (allowScalar && raw instanceof Number scalar) {
-            double value = scalar.doubleValue();
-            return new PartialVector(value, value, value);
-        }
-        YamlSection nested = section.getSection(path);
-        if (nested == null || nested.isEmpty()) {
-            return null;
-        }
-        Double x = nested.getDouble("x", null);
-        Double y = nested.getDouble("y", null);
-        Double z = nested.getDouble("z", null);
-        if (x == null && y == null && z == null) {
-            return null;
-        }
-        return new PartialVector(x, y, z);
-    }
+    PartialVector parsePartialVector(YamlSection section, String path, boolean allowScalar) { return new CookingSettingsServiceDelegate(this).parsePartialVector(section, path, allowScalar); }
 
-    private RotationOverride parseRotationOverride(YamlSection section) {
+    RotationOverride parseRotationOverride(YamlSection section) {
         if (section == null || section.isEmpty()) {
             return null;
         }
@@ -852,7 +482,7 @@ public final class CookingSettingsService {
         return new RotationOverride(x, y, z);
     }
 
-    private AxisRotation parseAxisRotation(Object raw) {
+    AxisRotation parseAxisRotation(Object raw) {
         if (raw == null) {
             return null;
         }
@@ -872,9 +502,7 @@ public final class CookingSettingsService {
         return AxisRotation.fixed(parseDouble(text, 0D));
     }
 
-    private double parseDouble(String raw, double fallback) {
-        return Numbers.tryParseDouble(raw, fallback);
-    }
+    double parseDouble(String raw, double fallback) { return new CookingSettingsServiceDelegate(this).parseDouble(raw, fallback); }
 
     public record HeatLevelRule(ItemSourceRef source, ItemSourceRef litSource, ItemSourceRef unlitSource, int level) {
     }
@@ -915,12 +543,9 @@ public final class CookingSettingsService {
         }
     }
 
-    static ItemRequirement requirementOf(ItemSourceRef source, Matcher matcher) {
-        List<ItemSourceRef> sources = source == null ? List.of() : List.of(source);
-        return new ItemRequirement(sources, matcher, ItemRequirement.sourceIdentity(sources));
-    }
+    static ItemRequirement requirementOf(ItemSourceRef source, Matcher matcher) { return CookingSettingsServiceDelegate.requirementOf(source, matcher); }
 
-    private enum DisplayAdjustmentKind {
+    enum DisplayAdjustmentKind {
         ITEM("item"),
         BLOCK("block");
 
@@ -1026,9 +651,9 @@ public final class CookingSettingsService {
         }
     }
 
-    private record PartialVector(Double x, Double y, Double z) {
+    record PartialVector(Double x, Double y, Double z) {
 
-        private Vector3 resolve(Vector3 fallback) {
+        Vector3 resolve(Vector3 fallback) {
             return new Vector3(
                     x == null ? fallback.x() : x,
                     y == null ? fallback.y() : y,
@@ -1037,9 +662,9 @@ public final class CookingSettingsService {
         }
     }
 
-    private record RotationOverride(AxisRotation x, AxisRotation y, AxisRotation z) {
+    record RotationOverride(AxisRotation x, AxisRotation y, AxisRotation z) {
 
-        private RotationProfile resolve(RotationProfile fallback) {
+        RotationProfile resolve(RotationProfile fallback) {
             return new RotationProfile(
                     x == null ? fallback.x() : x,
                     y == null ? fallback.y() : y,
@@ -1048,9 +673,9 @@ public final class CookingSettingsService {
         }
     }
 
-    private record DisplayAdjustmentSpec(PartialVector offset, RotationOverride rotation, PartialVector scale) {
+    record DisplayAdjustmentSpec(PartialVector offset, RotationOverride rotation, PartialVector scale) {
 
-        private DisplayAdjustmentProfile resolve(DisplayAdjustmentProfile fallback) {
+        DisplayAdjustmentProfile resolve(DisplayAdjustmentProfile fallback) {
             return new DisplayAdjustmentProfile(
                     offset == null ? fallback.offset() : offset.resolve(fallback.offset()),
                     rotation == null ? fallback.rotation() : rotation.resolve(fallback.rotation()),
@@ -1059,11 +684,11 @@ public final class CookingSettingsService {
         }
     }
 
-    private record ItemDisplayAdjustmentOverride(String source,
+    record ItemDisplayAdjustmentOverride(String source,
             DisplayAdjustmentSpec shared,
             Map<StationType, DisplayAdjustmentSpec> stations) {
 
-        private DisplayAdjustmentProfile resolve(StationType stationType, DisplayAdjustmentProfile fallback) {
+        DisplayAdjustmentProfile resolve(StationType stationType, DisplayAdjustmentProfile fallback) {
             DisplayAdjustmentSpec stationSpec = stations == null ? null : stations.get(stationType);
             if (stationSpec != null) {
                 return stationSpec.resolve(fallback);
@@ -1072,41 +697,13 @@ public final class CookingSettingsService {
         }
     }
 
-    public List<String> getStationActions(StationType stationType, String operation) {
-        if (stationType == null || Texts.isBlank(operation)) {
-            return List.of();
-        }
-        String path = "stations." + stationType.folderName() + ".actions." + operation;
-        List<String> actions = configuration.getStringList(path);
-        return actions == null ? List.of() : actions;
-    }
+    public List<String> getStationActions(StationType stationType, String operation) { return new CookingSettingsServiceDelegate(this).getStationActions(stationType, operation); }
 
-    public boolean nutritionEnabled() {
-        return configuration.getBoolean("nutrition.enabled", true);
-    }
+    public boolean nutritionEnabled() { return new CookingSettingsServiceDelegate(this).nutritionEnabled(); }
 
-    public int nutritionSaveIntervalSeconds() {
-        return Math.max(0, configuration.getInt("nutrition.save_interval_seconds", 300));
-    }
+    public int nutritionSaveIntervalSeconds() { return new CookingSettingsServiceDelegate2(this).nutritionSaveIntervalSeconds(); }
 
-    public List<NutritionFoodSource> nutritionFoodSources() {
-        List<NutritionFoodSource> result = new ArrayList<>();
-        for (Map<?, ?> entry : configuration.getMapList("nutrition.food_sources")) {
-            Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            List<ItemSourceRef> sources = parseSources(normalized.get("item_sources"));
-            Matcher matcher = CookingMatchers.parse(normalized, "matcher");
-            if (sources.isEmpty() && matcher == null) {
-                continue;
-            }
-            Map<String, Double> nutrition = parseNutritionAmounts(normalized.get("nutrition"));
-            List<String> actions = stringList(normalized.get("actions"));
-            if (nutrition.isEmpty() && actions.isEmpty()) {
-                continue;
-            }
-            result.add(new NutritionFoodSource(sources, nutrition, actions, matcher));
-        }
-        return List.copyOf(result);
-    }
+    public List<NutritionFoodSource> nutritionFoodSources() { return new CookingSettingsServiceDelegate2(this).nutritionFoodSources(); }
 
     public List<NutritionSingleThreshold> nutritionSingleThresholds() {
         List<NutritionSingleThreshold> result = new ArrayList<>();
@@ -1158,55 +755,11 @@ public final class CookingSettingsService {
         return List.copyOf(result);
     }
 
-    private Map<String, Double> parseNutritionAmounts(Object raw) {
-        Map<String, Object> normalized = MapYamlSection.normalizeMap(raw instanceof Map<?, ?> map ? map : Map.of());
-        Map<String, Double> result = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : normalized.entrySet()) {
-            String typeId = Texts.normalizeId(entry.getKey());
-            if (Texts.isBlank(typeId)) {
-                continue;
-            }
-            Double amount = configurationValueToDouble(entry.getValue(), Double.NaN);
-            if (amount != null && !amount.isNaN()) {
-                result.put(typeId, amount);
-            }
-        }
-        return result;
-    }
+    Map<String, Double> parseNutritionAmounts(Object raw) { return new CookingSettingsServiceDelegate2(this).parseNutritionAmounts(raw); }
 
-    private List<String> stringList(Object raw) {
-        List<String> result = new ArrayList<>();
-        for (Object token : ConfigNodes.asObjectList(raw)) {
-            String value = Texts.toStringSafe(token);
-            if (Texts.isNotBlank(value)) {
-                result.add(value);
-            }
-        }
-        return result;
-    }
+    List<String> stringList(Object raw) { return new CookingSettingsServiceDelegate2(this).stringList(raw); }
 
-    private List<String> normalizeIds(List<String> raw) {
-        List<String> result = new ArrayList<>();
-        for (String token : raw) {
-            String id = Texts.normalizeId(token);
-            if (Texts.isNotBlank(id)) {
-                result.add(id);
-            }
-        }
-        return result;
-    }
+    private List<String> normalizeIds(List<String> raw) { return new CookingSettingsServiceDelegate2(this).normalizeIds(raw); }
 
-    private Double configurationValueToDouble(Object raw, double fallback) {
-        if (raw instanceof Number number) {
-            return number.doubleValue();
-        }
-        if (raw instanceof String text && Texts.isNotBlank(text)) {
-            try {
-                return Double.parseDouble(text.trim());
-            } catch (NumberFormatException ignored) {
-                return fallback;
-            }
-        }
-        return fallback;
-    }
+    Double configurationValueToDouble(Object raw, double fallback) { return new CookingSettingsServiceDelegate2(this).configurationValueToDouble(raw, fallback); }
 }

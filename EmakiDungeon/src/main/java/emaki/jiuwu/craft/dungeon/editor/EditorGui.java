@@ -35,13 +35,13 @@ import org.bukkit.plugin.Plugin;
 
 public final class EditorGui implements Listener {
 
-    private static final int CONTENT_SLOTS = 45;
-    private static final int SLOT_PREV = 45;
-    private static final int SLOT_ACTION = 46;
-    private static final int SLOT_NEXT = 47;
-    private static final int SLOT_BACK = 49;
-    private static final int SLOT_INFO = 50;
-    private static final int SLOT_CLOSE = 53;
+    static final int CONTENT_SLOTS = 45;
+    static final int SLOT_PREV = 45;
+    static final int SLOT_ACTION = 46;
+    static final int SLOT_NEXT = 47;
+    static final int SLOT_BACK = 49;
+    static final int SLOT_INFO = 50;
+    static final int SLOT_CLOSE = 53;
     private static final int SLOT_HELP = 14;
     private static final int SLOT_EXITS = 15;
     private static final int SLOT_POS1 = 20;
@@ -58,7 +58,7 @@ public final class EditorGui implements Listener {
     private static final int SLOT_MODULES = 16;
     private static final int MODULE_INFO_SLOT = 44;
     private static final int OPTION_PAGE_SIZE = 27;
-    private static final int LIST_PAGE_SIZE = 45;
+    static final int LIST_PAGE_SIZE = 45;
 
     enum Panel {
         MAIN, META, WAVES, SPAWN, WAVE, GATES, GATE, BRANCHES, OPTION, CASE, EXITS,
@@ -67,12 +67,12 @@ public final class EditorGui implements Listener {
 
     static final class EditorHolder implements InventoryHolder {
 
-        private final UUID playerId;
-        private final Panel panel;
-        private final String[] path;
-        private final int page;
+        final UUID playerId;
+        final Panel panel;
+        final String[] path;
+        final int page;
         private boolean discardArmed;
-        private Inventory inventory;
+        Inventory inventory;
 
         EditorHolder(UUID playerId, Panel panel, String[] path, int page) {
             this.playerId = playerId;
@@ -87,10 +87,10 @@ public final class EditorGui implements Listener {
         }
     }
 
-    private record MetaField(String key, Material material, String[] path, boolean numeric) {
+    record MetaField(String key, Material material, String[] path, boolean numeric) {
     }
 
-    private static final List<MetaField> META_FIELDS = List.of(
+    static final List<MetaField> META_FIELDS = List.of(
             new MetaField("display_name", Material.NAME_TAG, new String[] { "display-name" }, false),
             new MetaField("description", Material.PAPER, new String[] { "description" }, false),
             new MetaField("difficulty_group", Material.EMERALD, new String[] { "difficulty-group" }, false),
@@ -101,8 +101,8 @@ public final class EditorGui implements Listener {
     );
 
     private final Plugin plugin;
-    private final EditorService service;
-    private final MessageService messages;
+    final EditorService service;
+    final MessageService messages;
     private final ChatInputService chatInput;
 
     public EditorGui(Plugin plugin,
@@ -115,34 +115,15 @@ public final class EditorGui implements Listener {
         this.chatInput = chatInput;
     }
 
-    public void openMain(Player player) {
-        open(player, Panel.MAIN, new String[0], 0);
-    }
+    public void openMain(Player player) { new EditorGuiDelegate(this).openMain(player); }
 
-    public void closeIfEditor(Player player) {
-        Inventory inventory = player.getOpenInventory().getTopInventory();
-        if (inventory.getHolder() instanceof EditorHolder) {
-            player.closeInventory();
-        }
-    }
+    public void closeIfEditor(Player player) { new EditorGuiDelegate(this).closeIfEditor(player); }
 
-    private void open(Player player, Panel panel, String[] path, int page) {
-        EditorHolder holder = new EditorHolder(player.getUniqueId(), panel, path, page);
-        Inventory inventory = render(player, holder);
-        holder.inventory = inventory;
-        player.openInventory(inventory);
-    }
+    void open(Player player, Panel panel, String[] path, int page) { new EditorGuiDelegate(this).open(player, panel, path, page); }
 
-    private void reopen(Player player, EditorHolder holder) {
-        EditorSession session = service.sessionOf(holder.playerId);
-        if (session == null) {
-            player.closeInventory();
-            return;
-        }
-        open(player, holder.panel, holder.path, holder.page);
-    }
+    void reopen(Player player, EditorHolder holder) { new EditorGuiDelegate(this).reopen(player, holder); }
 
-    private Inventory render(Player player, EditorHolder holder) {
+    Inventory render(Player player, EditorHolder holder) {
         EditorSession session = service.sessionOf(holder.playerId);
         String title = messages.message("editor.gui.title", Map.of(
                 "dungeon", session == null ? "-" : session.dungeonId()));
@@ -172,7 +153,7 @@ public final class EditorGui implements Listener {
         return inventory;
     }
 
-    private void renderMain(Inventory inventory, EditorSession session, EditorHolder holder) {
+    void renderMain(Inventory inventory, EditorSession session, EditorHolder holder) {
         inventory.setItem(SLOT_META, navItem(Material.BOOK, "editor.gui.meta"));
         inventory.setItem(SLOT_WAVES, navItem(Material.REDSTONE, "editor.gui.waves"));
         inventory.setItem(SLOT_GATES, navItem(Material.IRON_DOOR, "editor.gui.gates"));
@@ -198,19 +179,9 @@ public final class EditorGui implements Listener {
         inventory.setItem(SLOT_CLOSE, navItem(Material.BARRIER, "editor.gui.close"));
     }
 
-    private void renderMeta(Inventory inventory, EditorSession session, EditorHolder holder) {
-        YamlTextDocument view = session.configDoc().view();
-        for (int index = 0; index < META_FIELDS.size(); index++) {
-            MetaField field = META_FIELDS.get(index);
-            Object current = view.value(field.path());
-            inventory.setItem(index, item(field.material(), fieldKey(field.key()),
-                    List.of(valueLine(current == null ? "" : String.valueOf(current)))));
-        }
-        renderNav(inventory, holder, 1, null);
-        inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_main"));
-    }
+    void renderMeta(Inventory inventory, EditorSession session, EditorHolder holder) { new EditorGuiDelegate(this).renderMeta(inventory, session, holder); }
 
-    private void renderSpawnList(Inventory inventory, EditorSession session, EditorHolder holder) {
+    void renderSpawnList(Inventory inventory, EditorSession session, EditorHolder holder) {
         List<String> ids = mapKeys(session.flowDoc().view(), "spawn_points");
         int[] range = pageRange(holder.page, ids.size(), LIST_PAGE_SIZE);
         for (int index = range[0]; index < range[1]; index++) {
@@ -225,7 +196,7 @@ public final class EditorGui implements Listener {
         inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_main"));
     }
 
-    private void renderSpawnWaves(Inventory inventory, EditorSession session, EditorHolder holder) {
+    void renderSpawnWaves(Inventory inventory, EditorSession session, EditorHolder holder) {
         String spawnId = holder.path[0];
         YamlTextDocument view = session.flowDoc().view();
         List<Object> waves = sequence(view, "spawn_points", spawnId, "waves");
@@ -246,25 +217,9 @@ public final class EditorGui implements Listener {
         inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_waves"));
     }
 
-    private void renderWave(Inventory inventory, EditorSession session, EditorHolder holder) {
-        String spawnId = holder.path[0];
-        YamlTextDocument view = session.flowDoc().view();
-        Object interval = view.value("spawn_points", spawnId, "waves", holder.path[1], "interval");
-        boolean drop = !Boolean.FALSE.equals(
-                view.value("spawn_points", spawnId, "waves", holder.path[1], "drop_loot"));
-        int mobs = sequenceSize(view, "spawn_points", spawnId, "waves", holder.path[1], "mobs");
-        inventory.setItem(10, item(Material.CLOCK, "editor.gui.field.interval",
-                List.of(valueLine(interval == null ? "2s" : String.valueOf(interval)))));
-        inventory.setItem(12, navItem(drop ? Material.LIME_CONCRETE : Material.RED_CONCRETE,
-                drop ? "editor.gui.field.drop_loot_on" : "editor.gui.field.drop_loot_off"));
-        inventory.setItem(14, item(Material.BONE, "editor.gui.field.mobs",
-                List.of(valueLine(messages.message("editor.gui.mob_count",
-                        Map.of("count", String.valueOf(mobs)))))));
-        renderNav(inventory, holder, 1, null);
-        inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_spawn"));
-    }
+    void renderWave(Inventory inventory, EditorSession session, EditorHolder holder) { new EditorGuiDelegate(this).renderWave(inventory, session, holder); }
 
-    private void renderGateList(Inventory inventory, EditorSession session, EditorHolder holder) {
+    void renderGateList(Inventory inventory, EditorSession session, EditorHolder holder) {
         List<String> ids = mapKeys(session.flowDoc().view(), "gates");
         int[] range = pageRange(holder.page, ids.size(), LIST_PAGE_SIZE);
         for (int index = range[0]; index < range[1]; index++) {
@@ -279,7 +234,7 @@ public final class EditorGui implements Listener {
         inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_main"));
     }
 
-    private void renderGate(Inventory inventory, EditorSession session, EditorHolder holder) {
+    void renderGate(Inventory inventory, EditorSession session, EditorHolder holder) {
         String gateId = holder.path[0];
         YamlTextDocument view = session.flowDoc().view();
         String logic = textOf(view.value("gates", gateId, "logic"), "AND");
@@ -301,7 +256,7 @@ public final class EditorGui implements Listener {
         inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_gates"));
     }
 
-    private void renderExitList(Inventory inventory, EditorSession session, EditorHolder holder) {
+    void renderExitList(Inventory inventory, EditorSession session, EditorHolder holder) {
         YamlTextDocument view = session.flowDoc().view();
         List<String> ids = mapKeys(view, "exit_points");
         int[] range = pageRange(holder.page, ids.size(), LIST_PAGE_SIZE);
@@ -319,21 +274,9 @@ public final class EditorGui implements Listener {
         inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_main"));
     }
 
-    private void renderOptionList(Inventory inventory, EditorSession session, EditorHolder holder) {
-        List<String> ids = mapKeys(session.flowDoc().view(), "options");
-        int[] range = pageRange(holder.page, ids.size(), LIST_PAGE_SIZE);
-        for (int index = range[0]; index < range[1]; index++) {
-            String id = ids.get(index);
-            String mode = textOf(session.flowDoc().view().value("options", id, "select_mode"), "single");
-            inventory.setItem(index - range[0], item(Material.SPRUCE_SAPLING, id,
-                    List.of(valueLine(mode))));
-        }
-        int pages = pageCount(ids.size(), LIST_PAGE_SIZE);
-        renderNav(inventory, holder, pages, Material.COMPASS);
-        inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_main"));
-    }
+    void renderOptionList(Inventory inventory, EditorSession session, EditorHolder holder) { new EditorGuiDelegate(this).renderOptionList(inventory, session, holder); }
 
-    private void renderOption(Inventory inventory, EditorSession session, EditorHolder holder) {
+    void renderOption(Inventory inventory, EditorSession session, EditorHolder holder) {
         String optionId = holder.path[0];
         YamlTextDocument view = session.flowDoc().view();
         List<String> caseKeys = mapKeys(view, "options", optionId, "cases");
@@ -371,7 +314,7 @@ public final class EditorGui implements Listener {
         inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_branches"));
     }
 
-    private void renderCase(Inventory inventory, EditorSession session, EditorHolder holder) {
+    void renderCase(Inventory inventory, EditorSession session, EditorHolder holder) {
         String optionId = holder.path[0];
         String caseKey = holder.path[1];
         YamlTextDocument view = session.flowDoc().view();
@@ -395,23 +338,9 @@ public final class EditorGui implements Listener {
         inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_option"));
     }
 
-    private void renderModules(Inventory inventory, EditorSession session, EditorHolder holder) {
-        YamlTextDocument view = session.flowDoc().view();
-        List<EditorModules.ModuleSpec> specs = EditorModules.all();
-        for (int index = 0; index < specs.size(); index++) {
-            EditorModules.ModuleSpec spec = specs.get(index);
-            int count = moduleNodeIds(view, spec).size();
-            String label = messages.message("editor.marker." + spec.type(), Map.of());
-            String countLine = messages.message("editor.gui.module_count",
-                    Map.of("count", String.valueOf(count)));
-            inventory.setItem(index, item(Material.CHEST, "editor.gui.module_item",
-                    List.of(countLine, spec.section()), "type", label));
-        }
-        renderNav(inventory, holder, 1, null);
-        inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_main"));
-    }
+    void renderModules(Inventory inventory, EditorSession session, EditorHolder holder) { new EditorGuiDelegate(this).renderModules(inventory, session, holder); }
 
-    private void renderModuleFields(Inventory inventory, EditorSession session, EditorHolder holder) {
+    void renderModuleFields(Inventory inventory, EditorSession session, EditorHolder holder) {
         EditorModules.ModuleSpec spec = EditorModules.of(holder.path[0]);
         if (spec == null) {
             return;
@@ -441,192 +370,53 @@ public final class EditorGui implements Listener {
         inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.module_back"));
     }
 
-    private List<String> moduleNodeIds(YamlTextDocument view, EditorModules.ModuleSpec spec) {
-        Object raw = view.value(spec.section());
-        if (!(raw instanceof Map<?, ?> map)) {
-            return new ArrayList<>();
-        }
-        if (spec.single()) {
-            return new ArrayList<>(List.of(""));
-        }
-        List<String> ids = new ArrayList<>(map.size());
-        for (Object key : map.keySet()) {
-            ids.add(String.valueOf(key));
-        }
-        return ids;
-    }
+    List<String> moduleNodeIds(YamlTextDocument view, EditorModules.ModuleSpec spec) { return new EditorGuiDelegate(this).moduleNodeIds(view, spec); }
 
     private String[] moduleFieldPath(EditorModules.ModuleSpec spec, String nodeId,
-            EditorModules.Field field) {
-        int offset = spec.single() ? 1 : 2;
-        String[] result = new String[offset + field.path().length];
-        result[0] = spec.section();
-        if (!spec.single()) {
-            result[1] = nodeId;
-        }
-        System.arraycopy(field.path(), 0, result, offset, field.path().length);
-        return result;
-    }
+            EditorModules.Field field) { return new EditorGuiDelegate(this).moduleFieldPath(spec, nodeId, field); }
 
-    private Material materialOf(EditorModules.Kind kind) {
-        return switch (kind) {
-            case TEXT -> Material.PAPER;
-            case NUMBER, DECIMAL -> Material.CLOCK;
-            case BOOLEAN -> Material.LEVER;
-        };
-    }
+    private Material materialOf(EditorModules.Kind kind) { return new EditorGuiDelegate(this).materialOf(kind); }
 
-    private Double parseDoubleOrNull(String text) {
-        try {
-            return Double.parseDouble(Texts.trim(text));
-        } catch (NumberFormatException exception) {
-            return null;
-        }
-    }
+    private Double parseDoubleOrNull(String text) { return new EditorGuiDelegate(this).parseDoubleOrNull(text); }
 
-    private void renderNav(Inventory inventory, EditorHolder holder, int pages, Material actionMaterial) {
-        if (pages > 1) {
-            inventory.setItem(SLOT_PREV, navItem(Material.ARROW, "editor.gui.prev"));
-            inventory.setItem(SLOT_NEXT, navItem(Material.ARROW, "editor.gui.next"));
-            inventory.setItem(SLOT_INFO, navItem(Material.BOOK, "editor.gui.page",
-                    "page", String.valueOf(holder.page + 1),
-                    "total", String.valueOf(pages)));
-        }
-        if (actionMaterial != null) {
-            inventory.setItem(SLOT_ACTION, navItem(actionMaterial, "editor.gui.add"));
-        }
-        inventory.setItem(SLOT_CLOSE, navItem(Material.BARRIER, "editor.gui.close"));
-    }
+    void renderNav(Inventory inventory, EditorHolder holder, int pages, Material actionMaterial) { new EditorGuiDelegate(this).renderNav(inventory, holder, pages, actionMaterial); }
 
-    private void fill(Inventory inventory) {
-        for (int slot = 0; slot < 54; slot++) {
-            if (inventory.getItem(slot) == null) {
-                inventory.setItem(slot, navItem(Material.GRAY_STAINED_GLASS_PANE, "editor.gui.filler"));
-            }
-        }
-    }
+    void fill(Inventory inventory) { new EditorGuiDelegate(this).fill(inventory); }
 
-    private String pointText(FlowPoint point) {
-        return point == null ? "-" : point.x() + "," + point.y() + "," + point.z();
-    }
+    private String pointText(FlowPoint point) { return new EditorGuiDelegate(this).pointText(point); }
 
-    private String fieldKey(String key) {
-        return "editor.gui.field." + key;
-    }
+    String fieldKey(String key) { return new EditorGuiDelegate(this).fieldKey(key); }
 
-    private String valueLine(String value) {
-        return messages.message("editor.gui.value", Map.of("value", value == null ? "" : value));
-    }
+    String valueLine(String value) { return new EditorGuiDelegate(this).valueLine(value); }
 
-    private ItemStack item(Material material, String messageKey, List<String> lore, String... replacements) {
-        ItemStack stack = new ItemStack(material);
-        ItemMeta meta = stack.getItemMeta();
-        meta.displayName(MiniMessages.parse(messages.message(messageKey, argsMap(replacements))));
-        if (!lore.isEmpty()) {
-            List<Component> lines = new ArrayList<>(lore.size());
-            for (String line : lore) {
-                lines.add(MiniMessages.parse(line));
-            }
-            meta.lore(lines);
-        }
-        meta.getPersistentDataContainer().set(
-                new org.bukkit.NamespacedKey("emakidungeon", "editor_nav"),
-                PersistentDataType.STRING, messageKey);
-        stack.setItemMeta(meta);
-        return stack;
-    }
+    ItemStack item(Material material, String messageKey, List<String> lore, String... replacements) { return new EditorGuiDelegate(this).item(material, messageKey, lore, replacements); }
 
-    private ItemStack navItem(Material material, String messageKey, String... replacements) {
-        return item(material, messageKey, List.of(), replacements);
-    }
+    ItemStack navItem(Material material, String messageKey, String... replacements) { return new EditorGuiDelegate(this).navItem(material, messageKey, replacements); }
 
-    private Map<String, Object> argsMap(String... replacements) {
-        Map<String, Object> args = new LinkedHashMap<>();
-        for (int index = 0; index + 1 < replacements.length; index += 2) {
-            args.put(replacements[index], replacements[index + 1]);
-        }
-        return args;
-    }
+    Map<String, Object> argsMap(String... replacements) { return new EditorGuiDelegate(this).argsMap(replacements); }
 
-    private List<String> mapKeys(YamlTextDocument view, String... path) {
-        Object value = view.value(path);
-        if (!(value instanceof Map<?, ?> map)) {
-            return new ArrayList<>();
-        }
-        List<String> keys = new ArrayList<>(map.size());
-        for (Object key : map.keySet()) {
-            keys.add(String.valueOf(key));
-        }
-        return keys;
-    }
+    List<String> mapKeys(YamlTextDocument view, String... path) { return new EditorGuiDelegate(this).mapKeys(view, path); }
 
-    private int mapSize(Object value) {
-        return value instanceof Map<?, ?> map ? map.size() : 0;
-    }
+    int mapSize(Object value) { return new EditorGuiDelegate(this).mapSize(value); }
 
-    private List<Object> sequence(YamlTextDocument view, String... path) {
-        Object value = view.value(path);
-        return value instanceof List<?> list ? new ArrayList<>(list) : new ArrayList<>();
-    }
+    List<Object> sequence(YamlTextDocument view, String... path) { return new EditorGuiDelegate(this).sequence(view, path); }
 
-    private int sequenceSize(YamlTextDocument view, String... path) {
-        Object value = view.value(path);
-        return value instanceof List<?> list ? list.size() : 0;
-    }
+    int sequenceSize(YamlTextDocument view, String... path) { return new EditorGuiDelegate(this).sequenceSize(view, path); }
 
-    private String mapText(Object mapValue, String key, String fallback) {
-        if (mapValue instanceof Map<?, ?> map && map.get(key) != null) {
-            return String.valueOf(map.get(key));
-        }
-        return fallback;
-    }
+    private String mapText(Object mapValue, String key, String fallback) { return new EditorGuiDelegate(this).mapText(mapValue, key, fallback); }
 
-    private String textOf(Object value, String fallback) {
-        return value == null ? fallback : String.valueOf(value);
-    }
+    String textOf(Object value, String fallback) { return new EditorGuiDelegate(this).textOf(value, fallback); }
 
-    private int pageCount(int size, int pageSize) {
-        return Math.max(1, (size + pageSize - 1) / pageSize);
-    }
+    int pageCount(int size, int pageSize) { return new EditorGuiDelegate(this).pageCount(size, pageSize); }
 
-    private int[] pageRange(int page, int size, int pageSize) {
-        int pages = pageCount(size, pageSize);
-        int safePage = Math.max(0, Math.min(page, pages - 1));
-        int from = safePage * pageSize;
-        int to = Math.min(from + pageSize, size);
-        if (from > to) {
-            from = to;
-        }
-        return new int[] { from, to };
-    }
+    int[] pageRange(int page, int size, int pageSize) { return new EditorGuiDelegate(this).pageRange(page, size, pageSize); }
 
-    private Integer parseIntOrNull(String text) {
-        try {
-            return Integer.parseInt(Texts.trim(text));
-        } catch (NumberFormatException exception) {
-            return null;
-        }
-    }
+    Integer parseIntOrNull(String text) { return new EditorGuiDelegate(this).parseIntOrNull(text); }
 
     @EventHandler(priority = EventPriority.HIGH)
-    public void onClick(InventoryClickEvent event) {
-        if (!(event.getView().getTopInventory().getHolder() instanceof EditorHolder holder)) {
-            return;
-        }
-        event.setCancelled(true);
-        Player player = (Player) event.getWhoClicked();
-        EditorSession session = service.sessionOf(holder.playerId);
-        if (session == null) {
-            player.closeInventory();
-            return;
-        }
-        if (event.getClickedInventory() != event.getView().getTopInventory()) {
-            return;
-        }
-        handleClick(player, holder, session, event.getRawSlot());
-    }
+    public void onClick(InventoryClickEvent event) { new EditorGuiDelegate(this).onClick(event); }
 
-    private void handleClick(Player player, EditorHolder holder, EditorSession session, int slot) {
+    void handleClick(Player player, EditorHolder holder, EditorSession session, int slot) {
         switch (holder.panel) {
             case MAIN -> handleMain(player, holder, session, slot);
             case META -> handleMeta(player, holder, session, slot);
@@ -646,7 +436,7 @@ public final class EditorGui implements Listener {
         }
     }
 
-    private void handleMain(Player player, EditorHolder holder, EditorSession session, int slot) {
+    void handleMain(Player player, EditorHolder holder, EditorSession session, int slot) {
         switch (slot) {
             case SLOT_META -> open(player, Panel.META, new String[0], 0);
             case SLOT_WAVES -> open(player, Panel.WAVES, new String[0], 0);
@@ -681,67 +471,13 @@ public final class EditorGui implements Listener {
         }
     }
 
-    private void handleMeta(Player player, EditorHolder holder, EditorSession session, int slot) {
-        if (handleCommonNav(player, holder, session, slot, Panel.MAIN)) {
-            return;
-        }
-        if (slot < 0 || slot >= META_FIELDS.size()) {
-            return;
-        }
-        MetaField field = META_FIELDS.get(slot);
-        prompt(player, holder, field.key(), text -> {
-            String value = Texts.trim(text);
-            Object parsed = field.numeric() ? parseIntOrNull(value) : value;
-            if (parsed == null) {
-                invalid(player, holder, value);
-                return;
-            }
-            applyEdit(player, holder, session, true, doc -> doc.set(parsed, field.path()),
-                    field.key(), String.valueOf(parsed));
-        });
-    }
+    void handleMeta(Player player, EditorHolder holder, EditorSession session, int slot) { new EditorGuiDelegate(this).handleMeta(player, holder, session, slot); }
 
-    private void handleSpawnList(Player player, EditorHolder holder, EditorSession session, int slot) {
-        if (handleCommonNav(player, holder, session, slot, Panel.MAIN)) {
-            return;
-        }
-        if (slot == SLOT_ACTION) {
-            service.mark(player, "spawn", null);
-            reopen(player, holder);
-            return;
-        }
-        List<String> ids = mapKeys(session.flowDoc().view(), "spawn_points");
-        int[] range = pageRange(holder.page, ids.size(), LIST_PAGE_SIZE);
-        int index = range[0] + slot;
-        if (slot >= 0 && slot < CONTENT_SLOTS && index < range[1]) {
-            open(player, Panel.SPAWN, new String[] { ids.get(index) }, 0);
-        }
-    }
+    void handleSpawnList(Player player, EditorHolder holder, EditorSession session, int slot) { new EditorGuiDelegate(this).handleSpawnList(player, holder, session, slot); }
 
-    private void handleSpawnWaves(Player player, EditorHolder holder, EditorSession session, int slot) {
-        if (handleCommonNav(player, holder, session, slot, Panel.WAVES)) {
-            return;
-        }
-        String spawnId = holder.path[0];
-        if (slot == SLOT_ACTION) {
-            applyEdit(player, holder, session, false, doc -> {
-                Map<String, Object> wave = new LinkedHashMap<>();
-                wave.put("interval", "2s");
-                wave.put("drop_loot", true);
-                wave.put("mobs", new ArrayList<>());
-                doc.appendListItem(wave, "spawn_points", spawnId, "waves");
-            }, "field.add_wave", "1");
-            return;
-        }
-        List<Object> waves = sequence(session.flowDoc().view(), "spawn_points", spawnId, "waves");
-        int[] range = pageRange(holder.page, waves.size(), LIST_PAGE_SIZE);
-        int index = range[0] + slot;
-        if (slot >= 0 && slot < CONTENT_SLOTS && index < range[1]) {
-            open(player, Panel.WAVE, new String[] { spawnId, String.valueOf(index) }, 0);
-        }
-    }
+    void handleSpawnWaves(Player player, EditorHolder holder, EditorSession session, int slot) { new EditorGuiDelegate(this).handleSpawnWaves(player, holder, session, slot); }
 
-    private void handleWave(Player player, EditorHolder holder, EditorSession session, int slot) {
+    void handleWave(Player player, EditorHolder holder, EditorSession session, int slot) {
         if (handleCommonNav(player, holder, session, slot, Panel.SPAWN)) {
             return;
         }
@@ -786,103 +522,15 @@ public final class EditorGui implements Listener {
         }
     }
 
-    private void handleGateList(Player player, EditorHolder holder, EditorSession session, int slot) {
-        if (handleCommonNav(player, holder, session, slot, Panel.MAIN)) {
-            return;
-        }
-        if (slot == SLOT_ACTION) {
-            service.mark(player, "gate", null);
-            reopen(player, holder);
-            return;
-        }
-        List<String> ids = mapKeys(session.flowDoc().view(), "gates");
-        int[] range = pageRange(holder.page, ids.size(), LIST_PAGE_SIZE);
-        int index = range[0] + slot;
-        if (slot >= 0 && slot < CONTENT_SLOTS && index < range[1]) {
-            open(player, Panel.GATE, new String[] { ids.get(index) }, 0);
-        }
-    }
+    void handleGateList(Player player, EditorHolder holder, EditorSession session, int slot) { new EditorGuiDelegate(this).handleGateList(player, holder, session, slot); }
 
-    private void handleGate(Player player, EditorHolder holder, EditorSession session, int slot) {
-        if (handleCommonNav(player, holder, session, slot, Panel.GATES)) {
-            return;
-        }
-        String gateId = holder.path[0];
-        switch (slot) {
-            case 10 -> {
-                String current = textOf(session.flowDoc().view().value("gates", gateId, "logic"), "AND");
-                String next = "AND".equalsIgnoreCase(current) ? "OR" : "AND";
-                applyEdit(player, holder, session, false,
-                        doc -> doc.set(next, "gates", gateId, "logic"), "field.logic", next);
-            }
-            case 12 -> prompt(player, holder, "open_mode", text -> {
-                String value = Texts.trim(text);
-                if (value.isEmpty()) {
-                    invalid(player, holder, value);
-                    return;
-                }
-                applyEdit(player, holder, session, false,
-                        doc -> doc.set(value, "gates", gateId, "open_mode"), "field.open_mode", value);
-            });
-            case SLOT_ACTION -> {
-                if (requireCorners(player, session)) {
-                    applyEdit(player, holder, session, false, doc ->
-                            doc.appendListItem(flatRegion(session), "gates", gateId, "door_regions"),
-                            "field.door_regions", "1");
-                }
-            }
-            case 18 -> applyEdit(player, holder, session, false, doc -> {
-                int last = doc.sequenceSize("gates", gateId, "door_regions") - 1;
-                if (last >= 0) {
-                    doc.removeListItem(last, "gates", gateId, "door_regions");
-                }
-            }, "field.door_regions", "-1");
-            default -> {
-            }
-        }
-    }
+    void handleGate(Player player, EditorHolder holder, EditorSession session, int slot) { new EditorGuiDelegate(this).handleGate(player, holder, session, slot); }
 
-    private void handleExitList(Player player, EditorHolder holder, EditorSession session, int slot) {
-        if (handleCommonNav(player, holder, session, slot, Panel.MAIN)) {
-            return;
-        }
-        if (slot == SLOT_ACTION) {
-            service.mark(player, "exit", null);
-            reopen(player, holder);
-            return;
-        }
-        List<String> ids = mapKeys(session.flowDoc().view(), "exit_points");
-        int[] range = pageRange(holder.page, ids.size(), LIST_PAGE_SIZE);
-        int index = range[0] + slot;
-        if (slot >= 0 && slot < CONTENT_SLOTS && index < range[1]) {
-            String exitId = ids.get(index);
-            Object confirm = session.flowDoc().view().value("exit_points", exitId, "need_confirm");
-            boolean next = Boolean.FALSE.equals(confirm);
-            applyEdit(player, holder, session, false,
-                    doc -> doc.set(next, "exit_points", exitId, "need_confirm"),
-                    next ? "need_confirm_on" : "need_confirm_off",
-                    String.valueOf(next));
-        }
-    }
+    void handleExitList(Player player, EditorHolder holder, EditorSession session, int slot) { new EditorGuiDelegate(this).handleExitList(player, holder, session, slot); }
 
-    private void handleOptionList(Player player, EditorHolder holder, EditorSession session, int slot) {
-        if (handleCommonNav(player, holder, session, slot, Panel.MAIN)) {
-            return;
-        }
-        if (slot == SLOT_ACTION) {
-            service.mark(player, "option", null);
-            reopen(player, holder);
-            return;
-        }
-        List<String> ids = mapKeys(session.flowDoc().view(), "options");
-        int[] range = pageRange(holder.page, ids.size(), LIST_PAGE_SIZE);
-        int index = range[0] + slot;
-        if (slot >= 0 && slot < CONTENT_SLOTS && index < range[1]) {
-            open(player, Panel.OPTION, new String[] { ids.get(index) }, 0);
-        }
-    }
+    void handleOptionList(Player player, EditorHolder holder, EditorSession session, int slot) { new EditorGuiDelegate(this).handleOptionList(player, holder, session, slot); }
 
-    private void handleOption(Player player, EditorHolder holder, EditorSession session, int slot) {
+    void handleOption(Player player, EditorHolder holder, EditorSession session, int slot) {
         if (handleCommonNav(player, holder, session, slot, Panel.BRANCHES)) {
             return;
         }
@@ -968,7 +616,7 @@ public final class EditorGui implements Listener {
         }
     }
 
-    private void handleCase(Player player, EditorHolder holder, EditorSession session, int slot) {
+    void handleCase(Player player, EditorHolder holder, EditorSession session, int slot) {
         if (handleCommonNav(player, holder, session, slot, Panel.OPTION)) {
             return;
         }
@@ -1021,30 +669,11 @@ public final class EditorGui implements Listener {
         }
     }
 
-    private boolean requireCorners(Player player, EditorSession session) {
-        if (session.pos1() == null) {
-            messages.send(player, "editor.pos_missing", Map.of("which", "1"));
-            return false;
-        }
-        if (session.pos2() == null) {
-            messages.send(player, "editor.pos_missing", Map.of("which", "2"));
-            return false;
-        }
-        return true;
-    }
+    boolean requireCorners(Player player, EditorSession session) { return new EditorGuiDelegate(this).requireCorners(player, session); }
 
-    private void handleModules(Player player, EditorHolder holder, EditorSession session, int slot) {
-        if (handleCommonNav(player, holder, session, slot, Panel.MAIN)) {
-            return;
-        }
-        List<EditorModules.ModuleSpec> specs = EditorModules.all();
-        if (slot < 0 || slot >= specs.size()) {
-            return;
-        }
-        open(player, Panel.MODULE_FIELDS, new String[] { specs.get(slot).type() }, 0);
-    }
+    void handleModules(Player player, EditorHolder holder, EditorSession session, int slot) { new EditorGuiDelegate(this).handleModules(player, holder, session, slot); }
 
-    private void handleModuleFields(Player player, EditorHolder holder, EditorSession session, int slot) {
+    void handleModuleFields(Player player, EditorHolder holder, EditorSession session, int slot) {
         EditorModules.ModuleSpec spec = EditorModules.of(holder.path[0]);
         if (spec == null) {
             return;
@@ -1096,31 +725,10 @@ public final class EditorGui implements Listener {
         });
     }
 
-    private boolean handleCommonNav(Player player, EditorHolder holder, EditorSession session, int slot,
-            Panel backPanel) {
-        if (slot == SLOT_CLOSE) {
-            player.closeInventory();
-            return true;
-        }
-        if (slot == SLOT_BACK) {
-            String[] backPath = holder.panel == Panel.WAVE || holder.panel == Panel.CASE
-                    ? new String[] { holder.path[0] }
-                    : new String[0];
-            open(player, backPanel, backPath, 0);
-            return true;
-        }
-        if (slot == SLOT_PREV && holder.page > 0) {
-            open(player, holder.panel, holder.path, holder.page - 1);
-            return true;
-        }
-        if (slot == SLOT_NEXT) {
-            open(player, holder.panel, holder.path, holder.page + 1);
-            return true;
-        }
-        return false;
-    }
+    boolean handleCommonNav(Player player, EditorHolder holder, EditorSession session, int slot,
+            Panel backPanel) { return new EditorGuiDelegate(this).handleCommonNav(player, holder, session, slot, backPanel); }
 
-    private void prompt(Player player, EditorHolder holder, String fieldKey,
+    void prompt(Player player, EditorHolder holder, String fieldKey,
             Consumer<String> handler) {
         String label = messages.message(fieldKey(fieldKey), Map.of());
         messages.send(player, "editor.input_prompt", Map.of("field", label));
@@ -1133,12 +741,9 @@ public final class EditorGui implements Listener {
         }));
     }
 
-    private void invalid(Player player, EditorHolder holder, String value) {
-        messages.send(player, "editor.input_invalid", Map.of("value", value));
-        reopen(player, holder);
-    }
+    void invalid(Player player, EditorHolder holder, String value) { new EditorGuiDelegate(this).invalid(player, holder, value); }
 
-    private void applyEdit(Player player, EditorHolder holder, EditorSession session, boolean config,
+    void applyEdit(Player player, EditorHolder holder, EditorSession session, boolean config,
             Consumer<YamlTextDocument> mutation, String fieldKey, String value) {
         EditorDocument doc = config ? session.configDoc() : session.flowDoc();
         EditorDocument.SaveResult result;
@@ -1156,88 +761,18 @@ public final class EditorGui implements Listener {
         reopen(player, holder);
     }
 
-    private String[] wavePath(String[] base, String key) {
-        String[] result = new String[base.length + 1];
-        System.arraycopy(base, 0, result, 0, base.length);
-        result[base.length] = key;
-        return result;
-    }
+    private String[] wavePath(String[] base, String key) { return new EditorGuiDelegate(this).wavePath(base, key); }
 
-    private Map<String, Object> locationMap(Location location) {
-        Map<String, Object> map = new LinkedHashMap<>();
-        map.put("x", location.getX());
-        map.put("y", location.getY());
-        map.put("z", location.getZ());
-        map.put("yaw", location.getYaw());
-        map.put("pitch", location.getPitch());
-        return map;
-    }
+    private Map<String, Object> locationMap(Location location) { return new EditorGuiDelegate(this).locationMap(location); }
 
-    private Map<String, Object> flatRegion(EditorSession session) {
-        FlowPoint first = session.pos1();
-        FlowPoint second = session.pos2();
-        long ax = (long) Math.floor(first == null ? 0 : first.x());
-        long ay = (long) Math.floor(first == null ? 0 : first.y());
-        long az = (long) Math.floor(first == null ? 0 : first.z());
-        long bx = (long) Math.floor(second == null ? 0 : second.x());
-        long by = (long) Math.floor(second == null ? 0 : second.y());
-        long bz = (long) Math.floor(second == null ? 0 : second.z());
-        Map<String, Object> region = new LinkedHashMap<>();
-        region.put("min.x", Math.min(ax, bx));
-        region.put("min.y", Math.min(ay, by));
-        region.put("min.z", Math.min(az, bz));
-        region.put("max.x", Math.max(ax, bx));
-        region.put("max.y", Math.max(ay, by));
-        region.put("max.z", Math.max(az, bz));
-        return region;
-    }
+    Map<String, Object> flatRegion(EditorSession session) { return new EditorGuiDelegate(this).flatRegion(session); }
 
-    private String nextCaseKey(YamlTextDocument view, String optionId) {
-        int size = mapSize(view.value("options", optionId, "cases"));
-        for (int index = size + 1; index < size + 512; index++) {
-            String candidate = "case" + index;
-            if (view.value("options", optionId, "cases", candidate) == null) {
-                return candidate;
-            }
-        }
-        return "case" + System.currentTimeMillis();
-    }
+    private String nextCaseKey(YamlTextDocument view, String optionId) { return new EditorGuiDelegate(this).nextCaseKey(view, optionId); }
 
-    private List<Map<String, Object>> parseMobs(String text) {
-        List<Map<String, Object>> mobs = new ArrayList<>();
-        if (Texts.isBlank(text)) {
-            return mobs;
-        }
-        for (String token : text.split("[,;]")) {
-            String trimmed = Texts.trim(token);
-            if (trimmed.isEmpty()) {
-                continue;
-            }
-            String[] parts = trimmed.split(":");
-            String mobId = Texts.trim(parts[0]);
-            if (mobId.isEmpty()) {
-                return new ArrayList<>();
-            }
-            int count = parts.length > 1 ? parsePositive(parts[1], 1) : 1;
-            int weight = parts.length > 2 ? parsePositive(parts[2], 1) : 1;
-            Map<String, Object> mob = new LinkedHashMap<>();
-            mob.put("id", mobId);
-            mob.put("count", count);
-            mob.put("weight", weight);
-            mobs.add(mob);
-        }
-        return mobs;
-    }
+    private List<Map<String, Object>> parseMobs(String text) { return new EditorGuiDelegate(this).parseMobs(text); }
 
-    private int parsePositive(String raw, int fallback) {
-        Integer value = parseIntOrNull(raw);
-        return value == null || value < 1 ? fallback : value;
-    }
+    int parsePositive(String raw, int fallback) { return new EditorGuiDelegate(this).parsePositive(raw, fallback); }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onDrag(InventoryDragEvent event) {
-        if (event.getView().getTopInventory().getHolder() instanceof EditorHolder) {
-            event.setCancelled(true);
-        }
-    }
+    public void onDrag(InventoryDragEvent event) { new EditorGuiDelegate(this).onDrag(event); }
 }

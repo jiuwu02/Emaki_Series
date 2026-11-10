@@ -44,27 +44,27 @@ import org.bukkit.potion.PotionEffectType;
 
 public final class FlowRuntime {
 
-    private final DungeonInstance instance;
-    private final FlowDefinition definition;
-    private final Adjudicator adjudicator;
+    final DungeonInstance instance;
+    final FlowDefinition definition;
+    final Adjudicator adjudicator;
     private final MessageService messages;
     private final Consumer<UUID> teleportPermit;
-    private final Plugin plugin;
-    private final ExecutionDispatcher dispatcher;
-    private volatile FlowControllers controllers;
-    private volatile PlayerStateHook stateHook;
-    private volatile TriggerSink scriptSink;
-    private volatile boolean scriptTakeover;
-    private volatile DebugLogger debug;
+    final Plugin plugin;
+    final ExecutionDispatcher dispatcher;
+    volatile FlowControllers controllers;
+    volatile PlayerStateHook stateHook;
+    volatile TriggerSink scriptSink;
+    volatile boolean scriptTakeover;
+    volatile DebugLogger debug;
 
-    private final AtomicLong generation = new AtomicLong();
-    private final Set<TaskToken> scheduledTasks = ConcurrentHashMap.newKeySet();
-    private volatile boolean running = true;
-    private final Map<String, Object> facts = new ConcurrentHashMap<>();
-    private final Set<String> openedGates = ConcurrentHashMap.newKeySet();
-    private final Set<String> triggeredSpawns = ConcurrentHashMap.newKeySet();
-    private volatile int currentRoomOrder = Integer.MIN_VALUE;
-    private volatile String checkpointId = "";
+    final AtomicLong generation = new AtomicLong();
+    final Set<TaskToken> scheduledTasks = ConcurrentHashMap.newKeySet();
+    volatile boolean running = true;
+    final Map<String, Object> facts = new ConcurrentHashMap<>();
+    final Set<String> openedGates = ConcurrentHashMap.newKeySet();
+    final Set<String> triggeredSpawns = ConcurrentHashMap.newKeySet();
+    volatile int currentRoomOrder = Integer.MIN_VALUE;
+    volatile String checkpointId = "";
     private static final int MAX_TIMELINE = 50;
     private final long createdAt = System.currentTimeMillis();
     private final List<String> timeline = new ArrayList<>();
@@ -88,135 +88,45 @@ public final class FlowRuntime {
         }
     }
 
-    public void bindControllers(FlowControllers controllers) {
-        this.controllers = controllers;
-    }
+    public void bindControllers(FlowControllers controllers) { new FlowRuntimeDelegate(this).bindControllers(controllers); }
 
-    public void bindStateHook(PlayerStateHook stateHook) {
-        this.stateHook = stateHook;
-    }
+    public void bindStateHook(PlayerStateHook stateHook) { new FlowRuntimeDelegate(this).bindStateHook(stateHook); }
 
-    public void bindScript(TriggerSink scriptSink) {
-        this.scriptSink = scriptSink;
-    }
+    public void bindScript(TriggerSink scriptSink) { new FlowRuntimeDelegate(this).bindScript(scriptSink); }
 
-    public void setScriptTakeover(boolean scriptTakeover) {
-        this.scriptTakeover = scriptTakeover;
-    }
+    public void setScriptTakeover(boolean scriptTakeover) { new FlowRuntimeDelegate(this).setScriptTakeover(scriptTakeover); }
 
-    public void bindDebug(DebugLogger debug) {
-        this.debug = debug;
-    }
+    public void bindDebug(DebugLogger debug) { new FlowRuntimeDelegate(this).bindDebug(debug); }
 
-    private void anchor(String message) {
-        DebugLogger logger = debug;
-        if (logger != null) {
-            logger.logRaw("dungeon", (UUID) null, message);
-        }
-    }
+    void anchor(String message) { new FlowRuntimeDelegate(this).anchor(message); }
 
-    public long instanceGeneration() {
-        return generation.get();
-    }
+    public long instanceGeneration() { return new FlowRuntimeDelegate(this).instanceGeneration(); }
 
-    public boolean isCurrentGeneration(long expected) {
-        return running && generation.get() == expected;
-    }
+    public boolean isCurrentGeneration(long expected) { return new FlowRuntimeDelegate(this).isCurrentGeneration(expected); }
 
-    public void shutdown() {
-        running = false;
-        generation.incrementAndGet();
-        for (TaskToken token : scheduledTasks) {
-            if (!token.cancelled()) {
-                token.cancel();
-            }
-        }
-        scheduledTasks.clear();
-    }
+    public void shutdown() { new FlowRuntimeDelegate(this).shutdown(); }
 
-    private boolean schedule(Supplier<TaskToken> action, String description) {
-        if (!running) {
-            return false;
-        }
-        TaskToken token;
-        try {
-            token = action.get();
-        } catch (RuntimeException exception) {
-            DebugLogger logger = debug;
-            if (logger != null) {
-                logger.logRaw("dungeon", (UUID) null, "调度失败 | instance=" + instance.instanceId()
-                        + " | task=" + description + " | error=" + exception.getMessage());
-            }
-            return false;
-        }
-        if (token == null || token.cancelled()) {
-            return false;
-        }
-        scheduledTasks.add(token);
-        return true;
-    }
+    boolean schedule(Supplier<TaskToken> action, String description) { return new FlowRuntimeDelegate(this).schedule(action, description); }
 
-    public boolean scheduleGlobal(long delayTicks, String description, Runnable task) {
-        long expected = generation.get();
-        return schedule(() -> dispatcher.runGlobalLater(plugin, () -> {
-            if (!isCurrentGeneration(expected)) {
-                anchor("scheduled task discarded | instance=" + instance.instanceId()
-                        + " | task=" + description + " | reason=实例代际已失效");
-                return;
-            }
-            task.run();
-        }, delayTicks), description);
-    }
+    public boolean scheduleGlobal(long delayTicks, String description, Runnable task) { return new FlowRuntimeDelegate(this).scheduleGlobal(delayTicks, description, task); }
 
-    public boolean isScriptTakeover() {
-        return scriptTakeover;
-    }
+    public boolean isScriptTakeover() { return new FlowRuntimeDelegate(this).isScriptTakeover(); }
 
-    private void fireTrigger(TriggerType type, Map<String, String> context) {
-        TriggerSink sink = scriptSink;
-        if (sink != null) {
-            sink.fire(type, instance.instanceId(), instance.dungeonId(), context);
-        }
-    }
+    void fireTrigger(TriggerType type, Map<String, String> context) { new FlowRuntimeDelegate(this).fireTrigger(type, context); }
 
-    private Map<String, String> playerCtx(UUID playerId, String key, String value) {
-        Map<String, String> context = new LinkedHashMap<>();
-        if (playerId != null) {
-            context.put("player", playerId.toString());
-        }
-        if (key != null && value != null) {
-            context.put(key, value);
-        }
-        return context;
-    }
+    Map<String, String> playerCtx(UUID playerId, String key, String value) { return new FlowRuntimeDelegate(this).playerCtx(playerId, key, value); }
 
-    public FlowDefinition definition() {
-        return definition;
-    }
+    public FlowDefinition definition() { return new FlowRuntimeDelegate(this).definition(); }
 
-    public Adjudicator adjudicator() {
-        return adjudicator;
-    }
+    public Adjudicator adjudicator() { return new FlowRuntimeDelegate(this).adjudicator(); }
 
-    public DungeonInstance instance() {
-        return instance;
-    }
+    public DungeonInstance instance() { return new FlowRuntimeDelegate(this).instance(); }
 
-    public void setFact(String key, Object value) {
-        if (value == null) {
-            facts.remove(key);
-        } else {
-            facts.put(key, value);
-        }
-    }
+    public void setFact(String key, Object value) { new FlowRuntimeDelegate(this).setFact(key, value); }
 
-    public Object fact(String key) {
-        return facts.get(key);
-    }
+    public Object fact(String key) { return new FlowRuntimeDelegate(this).fact(key); }
 
-    public Map<String, Object> factsView() {
-        return Map.copyOf(facts);
-    }
+    public Map<String, Object> factsView() { return new FlowRuntimeDelegate(this).factsView(); }
 
     public void recordFlowEvent(String kind, String detail) {
         long elapsed = (System.currentTimeMillis() - createdAt) / 1000L;
@@ -236,45 +146,23 @@ public final class FlowRuntime {
         }
     }
 
-    public int openedGateCount() {
-        return openedGates.size();
-    }
+    public int openedGateCount() { return new FlowRuntimeDelegate(this).openedGateCount(); }
 
-    public int triggeredSpawnCount() {
-        return triggeredSpawns.size();
-    }
+    public int triggeredSpawnCount() { return new FlowRuntimeDelegate(this).triggeredSpawnCount(); }
 
-    public int factInt(String key, int fallback) {
-        Object value = facts.get(key);
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        return value == null ? fallback : Integer.parseInt(String.valueOf(value));
-    }
+    public int factInt(String key, int fallback) { return new FlowRuntimeDelegate(this).factInt(key, fallback); }
 
-    public boolean factFlag(String key) {
-        return Boolean.TRUE.equals(facts.get(key));
-    }
+    public boolean factFlag(String key) { return new FlowRuntimeDelegate(this).factFlag(key); }
 
-    public boolean isGateOpened(String gateId) {
-        return openedGates.contains(gateId);
-    }
+    public boolean isGateOpened(String gateId) { return new FlowRuntimeDelegate(this).isGateOpened(gateId); }
 
-    public boolean hasTriggeredSpawn(String spawnId) {
-        return triggeredSpawns.contains(spawnId);
-    }
+    public boolean hasTriggeredSpawn(String spawnId) { return new FlowRuntimeDelegate(this).hasTriggeredSpawn(spawnId); }
 
-    public void markSpawnTriggered(String spawnId) {
-        triggeredSpawns.add(spawnId);
-    }
+    public void markSpawnTriggered(String spawnId) { new FlowRuntimeDelegate(this).markSpawnTriggered(spawnId); }
 
-    public int currentRoomOrder() {
-        return currentRoomOrder;
-    }
+    public int currentRoomOrder() { return new FlowRuntimeDelegate(this).currentRoomOrder(); }
 
-    public String checkpointId() {
-        return checkpointId;
-    }
+    public String checkpointId() { return new FlowRuntimeDelegate(this).checkpointId(); }
 
     public void onEvent(IngressEvent event) {
         if (event == null) {
@@ -299,22 +187,7 @@ public final class FlowRuntime {
         }
     }
 
-    private void onChestOpen(IngressEvent event) {
-        FlowModules.RewardDef reward = definition.rewards().get(event.sourceId());
-        if (reward == null || !reward.head().enabled()) {
-            return;
-        }
-        UUID playerId = EventIngressKeys.player(event.payload());
-        EvalContext context = new EvalContext(playerId, event.payload());
-        if (!adjudicator.adjudicate(reward.head(), reward.conditions(), context, playerId).allowed()) {
-            return;
-        }
-        fireTrigger(TriggerType.onChestOpen,
-                playerCtx(playerId, "chestId", event.sourceId()));
-        if (controllers != null) {
-            controllers.handleRewardOpen(this, event.sourceId(), playerId);
-        }
-    }
+    void onChestOpen(IngressEvent event) { new FlowRuntimeDelegate(this).onChestOpen(event); }
 
     private void onZone(IngressEvent event) {
         String zoneId = event.sourceId();
@@ -425,99 +298,17 @@ public final class FlowRuntime {
         }
     }
 
-    private void handleRoomZone(String roomId, UUID playerId, Map<String, Object> payload) {
-        if (scriptTakeover) {
-            return;
-        }
-        for (FlowModules.RoomDef room : definition.rooms()) {
-            if (!room.id().equals(roomId)) {
-                return;
-            }
-            boolean entered = Boolean.TRUE.equals(payload.get(Facts.REGION_ENTERED));
-            if (!entered) {
-                return;
-            }
-            if (currentRoomOrder == Integer.MIN_VALUE) {
-                currentRoomOrder = room.order();
-                notifyRoomEntered(room.id(), playerId);
-                return;
-            }
-            if (room.order() == currentRoomOrder + 1) {
-                String previousRoomId = currentRoomId();
-                currentRoomOrder = room.order();
-                notifyRoomEntered(room.id(), playerId);
-                syncStragglers(previousRoomId, playerId);
-            }
-            return;
-        }
-    }
+    private void handleRoomZone(String roomId, UUID playerId, Map<String, Object> payload) { new FlowRuntimeDelegate(this).handleRoomZone(roomId, playerId, payload); }
 
-    public String currentRoomId() {
-        for (FlowModules.RoomDef room : definition.rooms()) {
-            if (room.order() == currentRoomOrder) {
-                return room.id();
-            }
-        }
-        return "";
-    }
+    public String currentRoomId() { return new FlowRuntimeDelegate(this).currentRoomId(); }
 
-    private void notifyRoomEntered(String roomId, UUID playerId) {
-        recordFlowEvent("room_enter", "room=" + roomId);
-        if (controllers != null) {
-            controllers.handleRoomEntered(this, roomId, playerId);
-        }
-        fireTrigger(TriggerType.onRoomEnter, playerCtx(playerId, "roomId", roomId));
-    }
+    void notifyRoomEntered(String roomId, UUID playerId) { new FlowRuntimeDelegate(this).notifyRoomEntered(roomId, playerId); }
 
-    public void scriptEnterRoom(String roomId) {
-        FlowModules.RoomDef target = null;
-        for (FlowModules.RoomDef room : definition.rooms()) {
-            if (room.id().equals(roomId)) {
-                target = room;
-                break;
-            }
-        }
-        if (target == null || target.region() == null) {
-            return;
-        }
-        String previousRoomId = currentRoomId();
-        currentRoomOrder = target.order();
-        notifyRoomEntered(target.id(), null);
-        if (previousRoomId.isEmpty()) {
-            return;
-        }
-        FlowModules.RoomDef previousRoom = null;
-        for (FlowModules.RoomDef room : definition.rooms()) {
-            if (room.id().equals(previousRoomId)) {
-                previousRoom = room;
-                break;
-            }
-        }
-        if (previousRoom == null || previousRoom.region() == null) {
-            return;
-        }
-        World world = Bukkit.getWorld(instance.instanceId());
-        if (world == null) {
-            return;
-        }
-        UUID anchor = null;
-        for (Player member : world.getPlayers()) {
-            Location location = member.getLocation();
-            if (target.region().contains(location.getX(), location.getY(), location.getZ())) {
-                anchor = member.getUniqueId();
-                break;
-            }
-        }
-        if (anchor != null) {
-            syncStragglers(previousRoomId, anchor);
-        }
-    }
+    public void scriptEnterRoom(String roomId) { new FlowRuntimeDelegate(this).scriptEnterRoom(roomId); }
 
-    public void scriptHint(String text, String channel) {
-        submitHint(null, text, channel == null || channel.isBlank() ? "chat" : channel);
-    }
+    public void scriptHint(String text, String channel) { new FlowRuntimeDelegate(this).scriptHint(text, channel); }
 
-    private void syncStragglers(String previousRoomId, UUID arrivingPlayer) {
+    void syncStragglers(String previousRoomId, UUID arrivingPlayer) {
         if (previousRoomId.isEmpty() || arrivingPlayer == null) {
             return;
         }
@@ -601,154 +392,21 @@ public final class FlowRuntime {
         });
     }
 
-    private void onRange(IngressEvent event) {
-        String spawnId = event.sourceId();
-        FlowModules.SpawnPointModuleDef spawnPoint = definition.spawnPoints().get(spawnId);
-        if (spawnPoint == null || !spawnPoint.head().enabled()) {
-            return;
-        }
-        if (spawnPoint.once() && hasTriggeredSpawn(spawnId)) {
-            return;
-        }
-        int playersInRange = event.payload().get(Facts.RANGE_PLAYERS) instanceof Number number
-                ? number.intValue() : 0;
-        if (playersInRange < spawnPoint.minPlayers()) {
-            return;
-        }
-        UUID playerId = EventIngressKeys.player(event.payload());
-        EvalContext context = new EvalContext(playerId, event.payload());
-        if (!adjudicator.adjudicate(spawnPoint.head(), List.of(), context, playerId).allowed()) {
-            return;
-        }
-        markSpawnTriggered(spawnId);
-        recordFlowEvent("spawn_wave", "spawn=" + spawnId);
-        if (controllers != null && !spawnPoint.waves().isEmpty()) {
-            controllers.spawnWave(this, spawnId, 0, playerId);
-        }
-    }
+    private void onRange(IngressEvent event) { new FlowRuntimeDelegate(this).onRange(event); }
 
-    private void onBlockClick(IngressEvent event) {
-        FlowModules.BlockInteractionDef interaction = definition.blockInteractions().get(event.sourceId());
-        if (interaction == null || !interaction.head().enabled()) {
-            return;
-        }
-        UUID playerId = EventIngressKeys.player(event.payload());
-        EvalContext context = new EvalContext(playerId, event.payload());
-        if (!adjudicator.adjudicate(interaction.head(), interaction.conditions(), context, playerId).allowed()) {
-            return;
-        }
-        fireTrigger(TriggerType.onBlockInteract,
-                playerCtx(playerId, "blockId", event.sourceId()));
-        executeActions(interaction.actions(), context, playerId);
-    }
+    private void onBlockClick(IngressEvent event) { new FlowRuntimeDelegate(this).onBlockClick(event); }
 
-    private void onItemInteract(IngressEvent event) {
-        FlowModules.ItemInteractionDef interaction = definition.itemInteractions().get(event.sourceId());
-        if (interaction == null || !interaction.head().enabled()) {
-            return;
-        }
-        UUID playerId = EventIngressKeys.player(event.payload());
-        EvalContext context = new EvalContext(playerId, event.payload());
-        if (!adjudicator.adjudicate(interaction.head(), interaction.conditions(), context, playerId).allowed()) {
-            return;
-        }
-        executeActions(interaction.actions(), context, playerId);
-    }
+    private void onItemInteract(IngressEvent event) { new FlowRuntimeDelegate(this).onItemInteract(event); }
 
-    private void onEntityDeath(IngressEvent event) {
-        String mobId = String.valueOf(event.payload().getOrDefault("mob", ""));
-        if (!mobId.isEmpty()) {
-            String key = Facts.killCount(mobId);
-            setFact(key, factInt(key, 0) + 1);
-        }
-        if (controllers != null) {
-            controllers.handleMobDeath(this, EventIngressKeys.entity(event.payload()));
-        }
-        evaluateKillTargets(mobId, EventIngressKeys.player(event.payload()));
-        evaluateGates(EventIngressKeys.player(event.payload()));
-    }
+    private void onEntityDeath(IngressEvent event) { new FlowRuntimeDelegate(this).onEntityDeath(event); }
 
-    private void evaluateKillTargets(String mobId, UUID playerId) {
-        if (mobId.isEmpty()) {
-            return;
-        }
-        EvalContext context = new EvalContext(playerId, facts);
-        for (Map.Entry<String, FlowModules.KillTargetDef> entry : definition.killTargets().entrySet()) {
-            FlowModules.KillTargetDef killTarget = entry.getValue();
-            if (!killTarget.head().enabled() || !mobId.equals(killTarget.target())) {
-                continue;
-            }
-            String countKey = Facts.killCount(killTarget.target());
-            if (factInt(countKey, 0) < killTarget.count()) {
-                continue;
-            }
-            if (!triggeredSpawns.add("kill_target:" + entry.getKey())) {
-                continue;
-            }
-            if (adjudicator.adjudicate(killTarget.head(), List.of(), context, playerId).allowed()) {
-                fireTrigger(TriggerType.onKillCount, playerCtx(playerId, "count",
-                        String.valueOf(factInt(countKey, 0))));
-                executeActions(killTarget.actions(), context, playerId);
-            }
-        }
-    }
+    void evaluateKillTargets(String mobId, UUID playerId) { new FlowRuntimeDelegate(this).evaluateKillTargets(mobId, playerId); }
 
-    private void onActivate(IngressEvent event) {
-        FlowModules.MechanismDef mechanism = definition.mechanisms().get(event.sourceId());
-        if (mechanism == null || !mechanism.head().enabled()) {
-            return;
-        }
-        UUID playerId = EventIngressKeys.player(event.payload());
-        EvalContext context = new EvalContext(playerId, event.payload());
-        if (!adjudicator.adjudicate(mechanism.head(), mechanism.conditions(), context, playerId).allowed()) {
-            return;
-        }
-        fireTrigger(TriggerType.onBlockActivate,
-                playerCtx(playerId, "mechanismId", event.sourceId()));
-        for (FlowModules.BlockStateTarget target : mechanism.targets()) {
-            submitSetBlock(playerId, target);
-        }
-    }
+    private void onActivate(IngressEvent event) { new FlowRuntimeDelegate(this).onActivate(event); }
 
-    private void onRedstone(IngressEvent event) {
-        FlowModules.MechanismDef mechanism = definition.mechanisms().get(event.sourceId());
-        if (mechanism == null || !mechanism.head().enabled()) {
-            return;
-        }
-        UUID playerId = EventIngressKeys.player(event.payload());
-        EvalContext context = new EvalContext(playerId, event.payload());
-        if (!adjudicator.adjudicate(mechanism.head(), mechanism.conditions(), context, playerId).allowed()) {
-            return;
-        }
-        fireTrigger(TriggerType.onRedstoneSignal,
-                playerCtx(playerId, "mechanismId", event.sourceId()));
-        for (FlowModules.BlockStateTarget target : mechanism.targets()) {
-            submitSetBlock(playerId, target);
-        }
-    }
+    private void onRedstone(IngressEvent event) { new FlowRuntimeDelegate(this).onRedstone(event); }
 
-    public void evaluateGates(UUID playerId) {
-        EvalContext context = new EvalContext(playerId, facts);
-        for (FlowModules.GateDef gate : definition.gates().values()) {
-            if (!gate.head().enabled() || isGateOpened(gate.gateId())) {
-                continue;
-            }
-            if (!adjudicator.evaluator().evaluateAll(gate.conditions(), gate.logic(), context)) {
-                continue;
-            }
-            if (adjudicator.counter().check(gate.head(), playerId) != TriggerCounter.ExhaustedTier.NONE) {
-                continue;
-            }
-            openedGates.add(gate.gateId());
-            recordFlowEvent("gate_open", "gate=" + gate.gateId());
-            if (controllers != null) {
-                controllers.openGate(this, gate.gateId(), playerId);
-            }
-        }
-        if (controllers != null) {
-            controllers.syncBossPoints(this);
-        }
-    }
+    public void evaluateGates(UUID playerId) { new FlowRuntimeDelegate(this).evaluateGates(playerId); }
 
     private void scheduleRoomTimer(FlowModules.RoomTimerDef roomTimer, UUID playerId) {
         String key = "room_timer:" + roomTimer.head().id();
@@ -793,13 +451,9 @@ public final class FlowRuntime {
                 new EvalContext(playerId, Map.of()), playerId);
     }
 
-    public void executeActions(List<FlowActionDef> actions, EvalContext context, UUID playerId) {
-        for (FlowActionDef action : actions) {
-            executeAction(action, context, playerId);
-        }
-    }
+    public void executeActions(List<FlowActionDef> actions, EvalContext context, UUID playerId) { new FlowRuntimeDelegate(this).executeActions(actions, context, playerId); }
 
-    private void executeAction(FlowActionDef action, EvalContext context, UUID playerId) {
+    void executeAction(FlowActionDef action, EvalContext context, UUID playerId) {
         switch (action.type()) {
             case "hint" -> submitHint(playerId, action.param("text", ""), action.param("channel", "chat"));
             case "message" -> submitMessage(playerId, action.param("key", ""), action.param("channel", "chat"));
@@ -887,35 +541,10 @@ public final class FlowRuntime {
         });
     }
 
-    private void applyEffectSpecs(Player player, List<String> effects) {
-        for (String raw : effects) {
-            String[] parts = raw.split(":");
-            if (parts.length == 0 || parts[0].isBlank()) {
-                continue;
-            }
-            try {
-                PotionEffectType type = Registry.MOB_EFFECT.get(
-                        NamespacedKey.fromString(parts[0].toLowerCase(Locale.ROOT)));
-                if (type == null) {
-                    continue;
-                }
-                int amplifier = parts.length > 1 ? FlowRuntimeSupport.parseSafe(parts[1], 0) : 0;
-                int duration = parts.length > 2 ? FlowRuntimeSupport.parseSafe(parts[2], 100) : 100;
-                boolean clear = "clear".equalsIgnoreCase(parts[0]);
-                if (clear) {
-                    player.removePotionEffect(type);
-                } else {
-                    player.addPotionEffect(new PotionEffect(
-                            type, duration, amplifier, true, true));
-                }
-            } catch (IllegalArgumentException ignored) {
-                FailureRecorder.recordIgnoredFailure("EmakiDungeon", "FlowRuntime.java#1", ignored);
-            }
-        }
-    }
+    private void applyEffectSpecs(Player player, List<String> effects) { new FlowRuntimeDelegate(this).applyEffectSpecs(player, effects); }
 
 
-    private void submitHint(UUID playerId, String text, String channel) {
+    void submitHint(UUID playerId, String text, String channel) {
         List<UUID> audience = audienceOf(playerId);
         if (audience.isEmpty()) {
             return;
@@ -950,20 +579,7 @@ public final class FlowRuntime {
         }
     }
 
-    private void showHint(Player player, Component component, String channel) {
-        if ("title".equals(channel)) {
-            player.showTitle(Title.title(
-                    component, Component.empty(),
-                    Title.Times.times(
-                    Duration.ofMillis(100),
-                    Duration.ofMillis(600),
-                    Duration.ofMillis(100))));
-        } else if ("actionbar".equals(channel)) {
-            player.sendActionBar(component);
-        } else {
-            player.sendMessage(component);
-        }
-    }
+    private void showHint(Player player, Component component, String channel) { new FlowRuntimeDelegate(this).showHint(player, component, channel); }
 
     private void submitMessage(UUID playerId, String key, String channel) {
         if (key.isEmpty()) {
@@ -1002,20 +618,7 @@ public final class FlowRuntime {
         }
     }
 
-    private List<UUID> audienceOf(UUID playerId) {
-        if (playerId != null) {
-            return List.of(playerId);
-        }
-        World world = Bukkit.getWorld(instance.instanceId());
-        if (world == null) {
-            return List.of();
-        }
-        List<UUID> audience = new ArrayList<>();
-        for (Player player : world.getPlayers()) {
-            audience.add(player.getUniqueId());
-        }
-        return audience;
-    }
+    private List<UUID> audienceOf(UUID playerId) { return new FlowRuntimeDelegate(this).audienceOf(playerId); }
 
     private void submitConsoleCommand(String commandLine) {
         if (commandLine.isBlank()) {
@@ -1130,7 +733,7 @@ public final class FlowRuntime {
         });
     }
 
-    private void submitSetBlock(UUID playerId, FlowModules.BlockStateTarget target) {
+    void submitSetBlock(UUID playerId, FlowModules.BlockStateTarget target) {
         if (target == null || target.blockData().isBlank()) {
             return;
         }
@@ -1170,12 +773,5 @@ public final class FlowRuntime {
         });
     }
 
-    private String replacePlayer(String commandLine, UUID playerId) {
-        if (playerId == null) {
-            return commandLine;
-        }
-        Player player = Bukkit.getPlayer(playerId);
-        String name = player == null ? "" : player.getName();
-        return commandLine.replace("%player%", name);
-    }
+    private String replacePlayer(String commandLine, UUID playerId) { return new FlowRuntimeDelegate(this).replacePlayer(commandLine, playerId); }
 }

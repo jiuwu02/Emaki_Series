@@ -253,26 +253,7 @@ public final class EmakiItemStateService implements ItemState {
             ItemStateKey<T> key,
             T old,
             T current,
-            ItemStateThresholdEvaluator.Outcome outcome) {
-        if (outcome == null || outcome.empty()) {
-            return;
-        }
-        Number before = old instanceof Number number ? number : null;
-        Number after = current instanceof Number number ? number : null;
-        for (ItemStateThresholdEvaluator.Crossing crossing : outcome.crossings()) {
-            Bukkit.getPluginManager().callEvent(new ItemStateThresholdEvent(
-                    item,
-                    holder,
-                    key,
-                    before,
-                    after,
-                    crossing.threshold().value(),
-                    crossing.threshold().id(),
-                    crossing.direction(),
-                    crossing.threshold().once(),
-                    crossing.rearmed()));
-        }
-    }
+            ItemStateThresholdEvaluator.Outcome outcome) { new EmakiItemStateServiceDelegate(this).dispatchThresholdEvents(item, holder, key, old, current, outcome); }
 
     private static Object clampToBounds(ItemStateType type, Object value, ItemStateConfig.Field field) {
         BigDecimal candidate = decimalOf(value);
@@ -795,7 +776,7 @@ public final class EmakiItemStateService implements ItemState {
         }
     }
 
-    private static final class ObjectsHolder {
+    static final class ObjectsHolder {
         private static NamespacedKey key(String value) {
             return NamespacedKey.fromString(value);
         }

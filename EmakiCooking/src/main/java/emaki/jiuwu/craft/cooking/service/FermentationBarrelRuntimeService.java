@@ -56,18 +56,18 @@ public final class FermentationBarrelRuntimeService implements Listener {
     private final MessageService messageService;
     private final CookingSettingsService settingsService;
     private final CookingBlockMatcher blockMatcher;
-    private final StationStateStore stateStore;
-    private final CookingRecipeService recipeService;
+    final StationStateStore stateStore;
+    final CookingRecipeService recipeService;
     private final CookingCompletionCoordinator completionCoordinator;
     private final EmakiScheduling taskScheduler;
-    private final ItemSourceService itemSourceService;
-    private final FermentationBarrelStateCodec codec = new FermentationBarrelStateCodec();
+    final ItemSourceService itemSourceService;
+    final FermentationBarrelStateCodec codec = new FermentationBarrelStateCodec();
     private final FermentationBarrelTickProcessor tickProcessor = new FermentationBarrelTickProcessor();
-    private final FermentationBarrelGuiController guiController;
-    private final CookingTextDisplayService textDisplayService;
-    private final Map<StationCoordinates, FermentationBarrelState> runtimeStates = new ConcurrentHashMap<>();
+    final FermentationBarrelGuiController guiController;
+    final CookingTextDisplayService textDisplayService;
+    final Map<StationCoordinates, FermentationBarrelState> runtimeStates = new ConcurrentHashMap<>();
     private final Set<StationCoordinates> activeStations = ConcurrentHashMap.newKeySet();
-    private final Set<StationCoordinates> tickingStations = ConcurrentHashMap.newKeySet();
+    final Set<StationCoordinates> tickingStations = ConcurrentHashMap.newKeySet();
     private TaskToken tickerTask;
 
     public FermentationBarrelRuntimeService(EmakiCookingPlugin plugin, MessageService messageService, CookingSettingsService settingsService,
@@ -364,56 +364,16 @@ public final class FermentationBarrelRuntimeService implements Listener {
         return null;
     }
 
-    private boolean matchesInputMatchers(RecipeDocument recipe, FermentationBarrelState state, Player player) {
-        for (Map<String, Object> input : recipeService.fermentationInputs(recipe)) {
-            ItemRequirement requirement = CookingMatchers.requirement(input, "item_sources", "matcher");
-            if (requirement.empty()) {
-                return false;
-            }
-            String expectedSlotId = inputSlotId(input);
-            if (!matchesSlotWithId(state, expectedSlotId, requirement, player)) {
-                return false;
-            }
-        }
-        return true;
-    }
+    private boolean matchesInputMatchers(RecipeDocument recipe, FermentationBarrelState state, Player player) { return new FermentationBarrelRuntimeServiceDelegate(this).matchesInputMatchers(recipe, state, player); }
 
-    private boolean matchesSlotWithId(FermentationBarrelState state,
+    boolean matchesSlotWithId(FermentationBarrelState state,
             String expectedSlotId,
             ItemRequirement requirement,
-            Player player) {
-        boolean matched = false;
-        for (Map.Entry<Integer, String> entry : state.slotIds().entrySet()) {
-            if (Texts.isNotBlank(expectedSlotId) && !expectedSlotId.equalsIgnoreCase(entry.getValue())) {
-                continue;
-            }
-            ItemStack stored = StoredItemCodec.deserialize(state.slotItemData(entry.getKey()));
-            if (stored == null || stored.getType().isAir()) {
-                continue;
-            }
-            if (!requirement.test(stored, ItemSourceUtil.parse(state.slotSources().get(entry.getKey())), player)) {
-                return false;
-            }
-            matched = true;
-        }
-        return matched;
-    }
+            Player player) { return new FermentationBarrelRuntimeServiceDelegate(this).matchesSlotWithId(state, expectedSlotId, requirement, player); }
 
-    private Map<String, Integer> aggregateActual(FermentationBarrelState state) {
-        return FermentationIdentityResolver.aggregate(state.slotCountKeys(), state.slotAmounts());
-    }
+    private Map<String, Integer> aggregateActual(FermentationBarrelState state) { return new FermentationBarrelRuntimeServiceDelegate(this).aggregateActual(state); }
 
-    private Map<String, Integer> aggregateExpected(RecipeDocument recipe) {
-        Map<String, Integer> result = new LinkedHashMap<>();
-        for (Map<String, Object> input : recipeService.fermentationInputs(recipe)) {
-            String countKey = inputCountKey(input);
-            int amount = Math.max(1, CookingRuntimeUtil.parseInteger(input.get("amount"), 1));
-            if (Texts.isNotBlank(countKey)) {
-                result.merge(countKey, amount, Integer::sum);
-            }
-        }
-        return result;
-    }
+    private Map<String, Integer> aggregateExpected(RecipeDocument recipe) { return new FermentationBarrelRuntimeServiceDelegate(this).aggregateExpected(recipe); }
 
     String resolveSlotId(ItemStack item, String source, Player player) {
         if (item == null || item.getType().isAir() || Texts.isBlank(source)) {
@@ -469,15 +429,9 @@ public final class FermentationBarrelRuntimeService implements Listener {
         return candidates.size() == 1 ? candidates.iterator().next() : "";
     }
 
-    private String inputSlotId(Map<String, Object> input) {
-        String declared = Texts.toStringSafe(input == null ? null : input.get("slot_id")).trim();
-        return Texts.isNotBlank(declared) ? declared.toLowerCase(Locale.ROOT) : "";
-    }
+    String inputSlotId(Map<String, Object> input) { return new FermentationBarrelRuntimeServiceDelegate(this).inputSlotId(input); }
 
-    private String inputCountKey(Map<String, Object> input) {
-        String declared = Texts.toStringSafe(input == null ? null : input.get("count_key")).trim();
-        return Texts.isNotBlank(declared) ? declared.toLowerCase(Locale.ROOT) : "";
-    }
+    String inputCountKey(Map<String, Object> input) { return new FermentationBarrelRuntimeServiceDelegate(this).inputCountKey(input); }
 
     private boolean migrateSlotIds(FermentationBarrelState state) {
         if (state == null || state.slotIdsResolved()) {
@@ -524,30 +478,9 @@ public final class FermentationBarrelRuntimeService implements Listener {
         return true;
     }
 
-    private CookingInputIngredient fermentationInputBySlotId(RecipeDocument recipe, String slotId) {
-        if (Texts.isBlank(slotId)) {
-            return null;
-        }
-        for (CookingInputIngredient input : recipeService.fermentationInputIngredients(recipe)) {
-            if (slotId.equalsIgnoreCase(input.slotId())) {
-                return input;
-            }
-        }
-        return null;
-    }
+    private CookingInputIngredient fermentationInputBySlotId(RecipeDocument recipe, String slotId) { return new FermentationBarrelRuntimeServiceDelegate(this).fermentationInputBySlotId(recipe, slotId); }
 
-    private boolean invalidFermentationIdentities(RecipeDocument recipe) {
-        List<FermentationIdentityResolver.Identity> identities = new ArrayList<>();
-        for (Map<String, Object> input : recipeService.fermentationInputs(recipe)) {
-            String slotId = inputSlotId(input);
-            String countKey = inputCountKey(input);
-            if (Texts.isBlank(slotId) || Texts.isBlank(countKey)) {
-                return true;
-            }
-            identities.add(new FermentationIdentityResolver.Identity(slotId, countKey));
-        }
-        return identities.isEmpty() || FermentationIdentityResolver.hasDuplicateSlotIds(identities);
-    }
+    private boolean invalidFermentationIdentities(RecipeDocument recipe) { return new FermentationBarrelRuntimeServiceDelegate(this).invalidFermentationIdentities(recipe); }
 
     private boolean showInfo(Player player, StationCoordinates coordinates) {
         FermentationBarrelState state = loadStateOrEmpty(coordinates);
@@ -574,55 +507,11 @@ public final class FermentationBarrelRuntimeService implements Listener {
                 : messageService.message("fermentation_barrel.status_fermenting");
     }
 
-    private FermentationStage currentFermentationStage(FermentationBarrelState state, long now) {
-        if (state == null) {
-            return FermentationStage.COMPLETE;
-        }
-        RecipeDocument recipe = recipeService.fermentationBarrelRecipeById(state.activeRecipeId());
-        if (recipe == null) {
-            return FermentationStage.COMPLETE;
-        }
-        if (state.completed()) {
-            int overSeconds = recipeService.fermentationOverTimeSeconds(recipe);
-            if (overSeconds > 0 && now >= state.finishAtMs() + overSeconds * 1000L) {
-                return FermentationStage.OVER;
-            }
-            return FermentationStage.COMPLETE;
-        }
-        if (state.fermenting()) {
-            double earlyRatio = recipeService.fermentationEarlyMinProgressRatio(recipe);
-            if (earlyRatio >= 0.0D) {
-                long total = Math.max(1L, state.finishAtMs() - state.startedAtMs());
-                long done = Math.max(0L, now - state.startedAtMs());
-                if ((double) done / (double) total >= earlyRatio) {
-                    return FermentationStage.EARLY;
-                }
-            }
-        }
-        return FermentationStage.COMPLETE;
-    }
+    private FermentationStage currentFermentationStage(FermentationBarrelState state, long now) { return new FermentationBarrelRuntimeServiceDelegate(this).currentFermentationStage(state, now); }
 
-    private String collectionMessage(FermentationStage stage) {
-        if (stage == FermentationStage.EARLY) {
-            return "fermentation_barrel.collected_early";
-        }
-        if (stage == FermentationStage.OVER) {
-            return "fermentation_barrel.collected_over";
-        }
-        return "fermentation_barrel.collected";
-    }
+    private String collectionMessage(FermentationStage stage) { return new FermentationBarrelRuntimeServiceDelegate(this).collectionMessage(stage); }
 
-    private String calculateProgress(FermentationBarrelState state, long now) {
-        if (!state.fermenting() && !state.completed()) {
-            return "0.00%";
-        }
-        if (state.completed()) {
-            return "100.00%";
-        }
-        long total = Math.max(1L, state.finishAtMs() - state.startedAtMs());
-        long done = Math.max(0L, now - state.startedAtMs());
-        return String.format(Locale.ROOT, "%.2f%%", Math.min(100D, (double) done * 100D / (double) total));
-    }
+    private String calculateProgress(FermentationBarrelState state, long now) { return new FermentationBarrelRuntimeServiceDelegate(this).calculateProgress(state, now); }
 
     private void tick() {
         long now = System.currentTimeMillis();
@@ -693,17 +582,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         }
     }
 
-    private void waitForInFlightTicks() {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
-        while (!tickingStations.isEmpty() && System.nanoTime() < deadline) {
-            try {
-                Thread.sleep(10L);
-            } catch (InterruptedException exception) {
-                Thread.currentThread().interrupt();
-                return;
-            }
-        }
-    }
+    private void waitForInFlightTicks() { new FermentationBarrelRuntimeServiceDelegate(this).waitForInFlightTicks(); }
 
     private boolean submitCompletion(Player player,
             Block block,
@@ -765,28 +644,9 @@ public final class FermentationBarrelRuntimeService implements Listener {
         return accepted;
     }
 
-    private void dropOriginalItems(Block block, FermentationBarrelState state) {
-        if (block.getWorld() == null) {
-            return;
-        }
-        Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
-        for (Map.Entry<Integer, String> entry : codec.sortedSlots(state.slotSources()).entrySet()) {
-            ItemStack item = codec.deserializeItem(state.slotItemData(entry.getKey()));
-            if (item == null || item.getType().isAir()) {
-                ItemSourceRef source = ItemSourceUtil.parse(entry.getValue());
-                item = source == null ? null : itemSourceService.createItem(source, state.slotAmounts().getOrDefault(entry.getKey(), 1));
-            }
-            if (item != null && !item.getType().isAir()) {
-                block.getWorld().dropItemNaturally(location, item);
-            }
-        }
-    }
+    private void dropOriginalItems(Block block, FermentationBarrelState state) { new FermentationBarrelRuntimeServiceDelegate(this).dropOriginalItems(block, state); }
 
-    FermentationBarrelState saveInventory(StationCoordinates coordinates, Inventory inventory, UUID playerUuid, String playerName) {
-        FermentationBarrelState state = guiController.snapshotInventoryState(coordinates, inventory, playerUuid, playerName);
-        saveState(coordinates, state);
-        return state;
-    }
+    FermentationBarrelState saveInventory(StationCoordinates coordinates, Inventory inventory, UUID playerUuid, String playerName) { return new FermentationBarrelRuntimeServiceDelegate(this).saveInventory(coordinates, inventory, playerUuid, playerName); }
 
     void saveState(StationCoordinates coordinates, FermentationBarrelState state) {
         if (coordinates == null || state == null || !state.valid() || !state.slotIdsResolved()) {
@@ -821,9 +681,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         return result;
     }
 
-    Optional<StationCoordinates> viewingStation(UUID viewerId) {
-        return Optional.ofNullable(guiController.viewingCoordinates(viewerId));
-    }
+    Optional<StationCoordinates> viewingStation(UUID viewerId) { return new FermentationBarrelRuntimeServiceDelegate(this).viewingStation(viewerId); }
 
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {
@@ -884,15 +742,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         ));
     }
 
-    void removeState(StationCoordinates coordinates, boolean deleteFile) {
-        runtimeStates.remove(coordinates);
-        if (coordinates != null) {
-            textDisplayService.removeStation(StationType.FERMENTATION_BARREL, coordinates);
-        }
-        if (deleteFile) {
-            stateStore.deleteAsync(coordinates);
-        }
-    }
+    void removeState(StationCoordinates coordinates, boolean deleteFile) { new FermentationBarrelRuntimeServiceDelegate(this).removeState(coordinates, deleteFile); }
 
     private void refreshText(StationCoordinates coordinates, FermentationBarrelState state) {
         if (!settingsService.textDisplayEnabled(StationType.FERMENTATION_BARREL) || coordinates == null
@@ -933,24 +783,9 @@ public final class FermentationBarrelRuntimeService implements Listener {
         ));
     }
 
-    private void appendLine(StringBuilder builder, String line) {
-        if (Texts.isBlank(line)) {
-            return;
-        }
-        if (builder.length() > 0) {
-            builder.append('\n');
-        }
-        builder.append(line);
-    }
+    private void appendLine(StringBuilder builder, String line) { new FermentationBarrelRuntimeServiceDelegate(this).appendLine(builder, line); }
 
-    private void flushAll() {
-        for (Map.Entry<StationCoordinates, FermentationBarrelState> entry : runtimeStates.entrySet()) {
-            FermentationBarrelState state = entry.getValue();
-            if (state.valid() && state.slotIdsResolved() && !state.isCompletelyEmpty()) {
-                stateStore.saveAsync(entry.getKey(), codec.serializeState(entry.getKey(), state));
-            }
-        }
-    }
+    private void flushAll() { new FermentationBarrelRuntimeServiceDelegate(this).flushAll(); }
 
     @EventHandler public void onInventoryClose(InventoryCloseEvent event) { guiController.onInventoryClose(event); }
     @EventHandler public void onInventoryClick(InventoryClickEvent event) { guiController.onInventoryClick(event); }

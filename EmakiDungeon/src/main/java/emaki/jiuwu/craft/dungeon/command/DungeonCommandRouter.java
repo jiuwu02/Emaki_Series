@@ -60,69 +60,49 @@ public final class DungeonCommandRouter {
     );
 
     private final Plugin plugin;
-    private final MessageService messages;
-    private final ChallengeService challenge;
-    private final PartyService parties;
+    final MessageService messages;
+    final ChallengeService challenge;
+    final PartyService parties;
     private final RecoveryService recovery;
-    private final SnapshotManager snapshots;
+    final SnapshotManager snapshots;
     private final ChatInputService chatInput;
-    private final TemplateRepository templates;
+    final TemplateRepository templates;
     private final InstanceCoordinator coordinator;
-    private final InstanceRegistry registry;
-    private final MessageIsolation isolation;
-    private volatile LimitService limitService;
-    private volatile LeaderboardStore leaderboard;
-    private volatile Function<String, DungeonConfig> configOf;
-    private volatile RewardBoxGui rewardBoxGui;
-    private volatile EditorService editor;
-    private volatile emaki.jiuwu.craft.dungeon.exit.InstanceExitService exitService;
+    final InstanceRegistry registry;
+    final MessageIsolation isolation;
+    volatile LimitService limitService;
+    volatile LeaderboardStore leaderboard;
+    volatile Function<String, DungeonConfig> configOf;
+    volatile RewardBoxGui rewardBoxGui;
+    volatile EditorService editor;
+    volatile emaki.jiuwu.craft.dungeon.exit.InstanceExitService exitService;
 
-    public void bindEditor(EditorService editor) {
-        this.editor = editor;
-    }
+    public void bindEditor(EditorService editor) { new DungeonCommandRouterDelegate(this).bindEditor(editor); }
 
-    public void bindExitService(emaki.jiuwu.craft.dungeon.exit.InstanceExitService exitService) {
-        this.exitService = exitService;
-    }
+    public void bindExitService(emaki.jiuwu.craft.dungeon.exit.InstanceExitService exitService) { new DungeonCommandRouterDelegate(this).bindExitService(exitService); }
 
-    public void bindRewardBox(RewardBoxGui rewardBoxGui) {
-        this.rewardBoxGui = rewardBoxGui;
-    }
+    public void bindRewardBox(RewardBoxGui rewardBoxGui) { new DungeonCommandRouterDelegate(this).bindRewardBox(rewardBoxGui); }
 
     public void bindOperations(LimitService limitService,
             LeaderboardStore leaderboard,
-            Function<String, DungeonConfig> configOf) {
-        this.limitService = limitService;
-        this.leaderboard = leaderboard;
-        this.configOf = configOf;
-    }
+            Function<String, DungeonConfig> configOf) { new DungeonCommandRouterDelegate(this).bindOperations(limitService, leaderboard, configOf); }
 
-    private volatile WorldPool adminPool;
-    private volatile InstanceSlotAllocator adminAllocator;
-    private volatile Runnable adminReload;
-    private volatile AuditService audit;
-    private volatile MatchmakingService matchmaking;
-    private volatile PlayerStateService stateService;
+    volatile WorldPool adminPool;
+    volatile InstanceSlotAllocator adminAllocator;
+    volatile Runnable adminReload;
+    volatile AuditService audit;
+    volatile MatchmakingService matchmaking;
+    volatile PlayerStateService stateService;
 
-    public void bindMatchmaking(MatchmakingService matchmaking) {
-        this.matchmaking = matchmaking;
-    }
+    public void bindMatchmaking(MatchmakingService matchmaking) { new DungeonCommandRouterDelegate(this).bindMatchmaking(matchmaking); }
 
-    public void bindStateService(PlayerStateService stateService) {
-        this.stateService = stateService;
-    }
+    public void bindStateService(PlayerStateService stateService) { new DungeonCommandRouterDelegate(this).bindStateService(stateService); }
 
     public void bindAdmin(WorldPool pool,
             InstanceSlotAllocator allocator,
-            Runnable reloadAction) {
-        this.adminPool = pool;
-        this.adminAllocator = allocator;
-        this.adminReload = reloadAction;
-    }
+            Runnable reloadAction) { new DungeonCommandRouterDelegate(this).bindAdmin(pool, allocator, reloadAction); }
 
-    public void bindAudit(AuditService audit) {
-        this.audit = audit;
-    }
+    public void bindAudit(AuditService audit) { new DungeonCommandRouterDelegate(this).bindAudit(audit); }
 
     private void routeAdmin(CommandSender sender, String[] args) {
         if (!sender.hasPermission("emakidungeon.admin")) {
@@ -146,21 +126,7 @@ public final class DungeonCommandRouter {
         }
     }
 
-    private void adminInstances(CommandSender sender) {
-        var instances = registry.all();
-        messages.send(sender, "command.admin.instances_header",
-                Map.of("count", String.valueOf(instances.size())));
-        for (DungeonInstance instance : instances) {
-            String queue = instance.commands() == null ? "0" : String.valueOf(instance.commands().pending());
-            messages.send(sender, "command.admin.instance_line", Map.of(
-                    "instance", instance.instanceId(),
-                    "dungeon", instance.dungeonId(),
-                    "state", instance.state().name(),
-                    "party", instance.partyId() == null
-                            ? "-" : instance.partyId().toString().substring(0, 8),
-                    "queue", queue));
-        }
-    }
+    private void adminInstances(CommandSender sender) { new DungeonCommandRouterDelegate(this).adminInstances(sender); }
 
     private void adminInspect(CommandSender sender, String[] args) {
         if (args.length < 3) {
@@ -282,7 +248,7 @@ public final class DungeonCommandRouter {
         }
     }
 
-    private void adminReload(CommandSender sender) {
+    void adminReload(CommandSender sender) {
         if (adminReload == null) {
             messages.send(sender, "command.admin.reload_failed", Map.of("error", "unbound"));
             return;
@@ -357,17 +323,7 @@ public final class DungeonCommandRouter {
         messages.send(sender, "command.admin.pool_reset", Map.of("dungeon", dungeonId));
     }
 
-    private void adminClearSlots(CommandSender sender) {
-        if (adminAllocator == null) {
-            messages.send(sender, "command.admin.reload_failed", Map.of("error", "unbound"));
-            return;
-        }
-        adminAllocator.reset();
-        if (audit != null) {
-            audit.write("admin", Map.of("action", "clearslots", "sender", sender.getName()));
-        }
-        messages.send(sender, "command.admin.slots_cleared", Map.of());
-    }
+    private void adminClearSlots(CommandSender sender) { new DungeonCommandRouterDelegate(this).adminClearSlots(sender); }
 
     public DungeonCommandRouter(Plugin plugin,
             MessageService messages,
@@ -437,25 +393,9 @@ public final class DungeonCommandRouter {
         }
     }
 
-    private void routeList(CommandSender sender) {
-        List<String> dungeons = templates.discoverDungeons();
-        if (dungeons.isEmpty()) {
-            messages.send(sender, "command.list.empty");
-            return;
-        }
-        messages.send(sender, "command.list.header");
-        for (String dungeonId : dungeons) {
-            messages.send(sender, "command.list.entry", Map.of("dungeon", dungeonId));
-        }
-    }
+    private void routeList(CommandSender sender) { new DungeonCommandRouterDelegate(this).routeList(sender); }
 
-    private void routeEnter(Player player, String[] args) {
-        if (args.length < 2 || Texts.isBlank(args[1])) {
-            messages.send(player, "command.enter.usage");
-            return;
-        }
-        challenge.startEnter(player, args[1]);
-    }
+    private void routeEnter(Player player, String[] args) { new DungeonCommandRouterDelegate(this).routeEnter(player, args); }
 
     private void routeRecruit(Player player, String[] args) {
         if (matchmaking == null) {
@@ -561,26 +501,7 @@ public final class DungeonCommandRouter {
         }
     }
 
-    private boolean noOnlineMemberInside(DungeonInstance instance) {
-        UUID partyId = instance.partyId();
-        if (partyId == null) {
-            return true;
-        }
-        Party party = parties.partyById(partyId);
-        if (party == null) {
-            return true;
-        }
-        for (UUID memberId : party.members()) {
-            if (Bukkit.getPlayer(memberId) == null) {
-                continue;
-            }
-            String pointer = snapshots.pointerOf(memberId);
-            if (instance.instanceId().equals(pointer)) {
-                return false;
-            }
-        }
-        return true;
-    }
+    private boolean noOnlineMemberInside(DungeonInstance instance) { return new DungeonCommandRouterDelegate(this).noOnlineMemberInside(instance); }
 
     private void routeStats(Player player, String[] args) {
         if (limitService == null || leaderboard == null || configOf == null) {
@@ -664,63 +585,10 @@ public final class DungeonCommandRouter {
         }
     }
 
-    private void routeRank(Player player, String[] args) {
-        if (leaderboard == null) {
-            messages.send(player, "general.invalid_args", Map.of());
-            return;
-        }
-        if (args.length < 2 || Texts.isBlank(args[1])) {
-            messages.send(player, "command.rank.usage");
-            return;
-        }
-        String dungeonId = args[1];
-        var entries = leaderboard.top(dungeonId, 10);
-        if (entries.isEmpty()) {
-            messages.send(player, "command.rank.empty", Map.of("dungeon", dungeonId));
-            return;
-        }
-        messages.send(player, "command.rank.header", Map.of("dungeon", dungeonId));
-        int place = 1;
-        for (var entry : entries) {
-            StringBuilder names = new StringBuilder();
-            for (int i = 0; i < entry.members().size(); i++) {
-                if (i > 0) {
-                    names.append(", ");
-                }
-                names.append(entry.members().get(i).name());
-            }
-            messages.send(player, "command.rank.entry", Map.of(
-                    "place", String.valueOf(place++),
-                    "score", String.valueOf(entry.score()),
-                    "duration", DungeonCommandRouterSupport.formatDuration(entry.durationMs()),
-                    "difficulty", entry.difficulty(),
-                    "members", names.toString()
-            ));
-        }
-    }
+    private void routeRank(Player player, String[] args) { new DungeonCommandRouterDelegate(this).routeRank(player, args); }
 
 
-    private void routeGlobalChat(Player player, String[] args) {
-        if (args.length < 2) {
-            messages.send(player, "command.globalchat.usage");
-            return;
-        }
-        String sub = Texts.lower(args[1]);
-        boolean current = isolation.globalListen(player.getUniqueId());
-        boolean target = switch (sub) {
-            case "on" -> true;
-            case "off" -> false;
-            default -> current;
-        };
-        if (!"on".equals(sub) && !"off".equals(sub)) {
-            messages.send(player, "command.globalchat.usage");
-            return;
-        }
-        if (current != target) {
-            isolation.toggleGlobal(player);
-        }
-        isolation.sendToggleFeedback(player, target);
-    }
+    private void routeGlobalChat(Player player, String[] args) { new DungeonCommandRouterDelegate(this).routeGlobalChat(player, args); }
 
     private void routeEditor(Player player, String[] args) {
         if (editor == null) {
@@ -816,54 +684,13 @@ public final class DungeonCommandRouter {
         }
     }
 
-    private void routePartyInvite(Player player, String[] args) {
-        if (args.length < 3 || Texts.isBlank(args[2])) {
-            messages.send(player, "command.party.usage");
-            return;
-        }
-        Player target = Bukkit.getPlayerExact(args[2]);
-        if (target == null) {
-            messages.send(player, "party.result.invalid_target", Map.of("player", args[2]));
-            return;
-        }
-        PartyService.InviteResult result = parties.invite(player, target.getUniqueId());
-        if (result == PartyService.InviteResult.OK) {
-            messages.send(player, "party.invite_sent", Map.of("player", target.getName()));
-            messages.send(target, "party.invite_received", Map.of("player", player.getName()));
-            return;
-        }
-        sendPartyResult(player, result);
-    }
+    private void routePartyInvite(Player player, String[] args) { new DungeonCommandRouterDelegate(this).routePartyInvite(player, args); }
 
-    private void routePartyKick(Player player, String[] args) {
-        if (args.length < 3 || Texts.isBlank(args[2])) {
-            messages.send(player, "command.party.usage");
-            return;
-        }
-        Player target = Bukkit.getPlayerExact(args[2]);
-        UUID targetId = target != null ? target.getUniqueId() : parseUuid(args[2]);
-        if (targetId == null) {
-            messages.send(player, "party.result.invalid_target", Map.of("player", args[2]));
-            return;
-        }
-        sendPartyResult(player, parties.kick(player, targetId));
-    }
+    private void routePartyKick(Player player, String[] args) { new DungeonCommandRouterDelegate(this).routePartyKick(player, args); }
 
-    private UUID parseUuid(String raw) {
-        try {
-            return UUID.fromString(raw);
-        } catch (IllegalArgumentException exception) {
-            return null;
-        }
-    }
+    UUID parseUuid(String raw) { return new DungeonCommandRouterDelegate(this).parseUuid(raw); }
 
-    private void sendPartyResult(Player player, PartyService.InviteResult result) {
-        if (result == PartyService.InviteResult.OK) {
-            return;
-        }
-        String key = "party.result." + Texts.lower(result.name());
-        messages.send(player, key, Map.of());
-    }
+    void sendPartyResult(Player player, PartyService.InviteResult result) { new DungeonCommandRouterDelegate(this).sendPartyResult(player, result); }
 
     private void routeSpectate(Player player, String[] args) {
         if (stateService == null || !stateService.isSpectator(player.getUniqueId())) {

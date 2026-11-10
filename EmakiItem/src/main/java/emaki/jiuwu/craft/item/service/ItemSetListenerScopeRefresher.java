@@ -55,17 +55,17 @@ final class ItemSetListenerScopeRefresher {
     private final EmakiItemLoader itemLoader;
     private final EmakiItemSetLoader setLoader;
     private final EmakiItemIdentifier identifier;
-    private final ItemOperationLedger itemOperationLedger;
+    final ItemOperationLedger itemOperationLedger;
     private final ItemSetPresentationCalculator calculator;
-    private final Supplier<AppConfig> configSupplier;
-    private final Supplier<DebugLogger> debugLoggerSupplier;
+    final Supplier<AppConfig> configSupplier;
+    final Supplier<DebugLogger> debugLoggerSupplier;
     private final Logger logger;
-    private final EmakiScheduling scheduling;
+    final EmakiScheduling scheduling;
     private final Set<String> warnedMissingSetDefinitions = ConcurrentHashMap.newKeySet();
     private final ItemSetRefreshPlanner refreshPlanner = new ItemSetRefreshPlanner();
 
-    private final Map<UUID, Map<String, Integer>> lastActiveCounts = new ConcurrentHashMap<>();
-    private final Map<UUID, ListenerSetCache> listenerCaches = new ConcurrentHashMap<>();
+    final Map<UUID, Map<String, Integer>> lastActiveCounts = new ConcurrentHashMap<>();
+    final Map<UUID, ListenerSetCache> listenerCaches = new ConcurrentHashMap<>();
 
     ItemSetListenerScopeRefresher(EmakiItemLoader itemLoader,
                                   EmakiItemSetLoader setLoader,
@@ -87,51 +87,22 @@ final class ItemSetListenerScopeRefresher {
         this.scheduling = scheduling;
     }
 
-    public ItemRefreshBatch createRefreshBatch(Player player) {
-        return new ItemRefreshBatch(player == null ? null : player.getInventory(), itemOperationLedger);
-    }
+    public ItemRefreshBatch createRefreshBatch(Player player) { return new ItemSetListenerScopeRefresherDelegate(this).createRefreshBatch(player); }
 
-    public int refreshEquippedSets(Player player, String trigger) {
-        return refreshListenerScopeDetailed(
-                player,
-                List.of(Texts.toStringSafe(trigger)),
-                Set.of(),
-                true,
-                true,
-                Set.of(RefreshFullReason.EXPLICIT_FULL)
-        ).changed();
-    }
+    public int refreshEquippedSets(Player player, String trigger) { return new ItemSetListenerScopeRefresherDelegate(this).refreshEquippedSets(player, trigger); }
 
     public int refreshListenerScope(Player player,
                                     String trigger,
                                     Set<Integer> dirtySlots,
                                     boolean forceFull,
-                                    boolean contributionDirty) {
-        return refreshListenerScopeDetailed(
-                player,
-                List.of(Texts.toStringSafe(trigger)),
-                dirtySlots,
-                forceFull,
-                contributionDirty,
-                Set.of()
-        ).changed();
-    }
+                                    boolean contributionDirty) { return new ItemSetListenerScopeRefresherDelegate(this).refreshListenerScope(player, trigger, dirtySlots, forceFull, contributionDirty); }
 
     public ItemRefreshResult refreshListenerScopeDetailed(Player player,
                                                            Iterable<String> triggers,
                                                            Set<Integer> dirtySlots,
                                                            boolean forceFull,
                                                            boolean contributionDirty,
-                                                           Set<RefreshFullReason> requestedFullReasons) {
-        return refreshListenerScopeDetailed(
-                player,
-                triggers,
-                dirtySlots,
-                forceFull,
-                contributionDirty,
-                requestedFullReasons,
-                null);
-    }
+                                                           Set<RefreshFullReason> requestedFullReasons) { return new ItemSetListenerScopeRefresherDelegate(this).refreshListenerScopeDetailed(player, triggers, dirtySlots, forceFull, contributionDirty, requestedFullReasons); }
 
     public ItemRefreshResult refreshListenerScopeDetailed(Player player,
                                                            Iterable<String> triggers,
@@ -331,92 +302,19 @@ final class ItemSetListenerScopeRefresher {
         );
     }
 
-    private String effectiveSetTrigger(Player player, Iterable<String> triggers) {
-        if (player == null) {
-            return null;
-        }
-        AppConfig config = configSupplier.get();
-        if (config == null) {
-            if (triggers != null) {
-                for (String trigger : triggers) {
-                    if (Texts.isNotBlank(trigger)) {
-                        return trigger;
-                    }
-                }
-            }
-            return null;
-        }
-        return config.setBonus().effectiveTrigger(triggers);
-    }
+    private String effectiveSetTrigger(Player player, Iterable<String> triggers) { return new ItemSetListenerScopeRefresherDelegate(this).effectiveSetTrigger(player, triggers); }
 
-    private Set<Integer> contributionSlots(int heldSlot, int inventorySize) {
-        LinkedHashSet<Integer> slots = new LinkedHashSet<>();
-        if (heldSlot >= 0 && heldSlot < inventorySize) {
-            slots.add(heldSlot);
-        }
-        for (int slot = 36; slot <= 40; slot++) {
-            if (slot < inventorySize) {
-                slots.add(slot);
-            }
-        }
-        return Collections.unmodifiableSet(slots);
-    }
+    private Set<Integer> contributionSlots(int heldSlot, int inventorySize) { return new ItemSetListenerScopeRefresherDelegate(this).contributionSlots(heldSlot, inventorySize); }
 
-    private Set<Integer> allSlots(int inventorySize) {
-        LinkedHashSet<Integer> slots = new LinkedHashSet<>();
-        for (int slot = 0; slot < inventorySize; slot++) {
-            slots.add(slot);
-        }
-        return slots;
-    }
+    private Set<Integer> allSlots(int inventorySize) { return new ItemSetListenerScopeRefresherDelegate(this).allSlots(inventorySize); }
 
-    private Set<Integer> unionSlots(Set<Integer> first, Set<Integer> second) {
-        LinkedHashSet<Integer> slots = new LinkedHashSet<>();
-        if (first != null) {
-            first.stream().filter(Objects::nonNull).forEach(slots::add);
-        }
-        if (second != null) {
-            second.stream().filter(Objects::nonNull).forEach(slots::add);
-        }
-        return slots;
-    }
+    private Set<Integer> unionSlots(Set<Integer> first, Set<Integer> second) { return new ItemSetListenerScopeRefresherDelegate(this).unionSlots(first, second); }
 
-    private Set<String> unionStrings(Set<String> first, Set<String> second) {
-        LinkedHashSet<String> values = new LinkedHashSet<>();
-        if (first != null) {
-            values.addAll(first);
-        }
-        if (second != null) {
-            values.addAll(second);
-        }
-        return values.isEmpty() ? Set.of() : Set.copyOf(values);
-    }
+    private Set<String> unionStrings(Set<String> first, Set<String> second) { return new ItemSetListenerScopeRefresherDelegate(this).unionStrings(first, second); }
 
-    private Set<Integer> validSlots(Set<Integer> slots, int inventorySize) {
-        TreeSet<Integer> valid = new TreeSet<>();
-        if (slots != null) {
-            for (Integer slot : slots) {
-                if (slot != null && slot >= 0 && slot < inventorySize) {
-                    valid.add(slot);
-                }
-            }
-        }
-        return valid;
-    }
+    private Set<Integer> validSlots(Set<Integer> slots, int inventorySize) { return new ItemSetListenerScopeRefresherDelegate(this).validSlots(slots, inventorySize); }
 
-    private ItemSetRefreshPlanner.Decision forceFullForCorruptLedger(ItemSetRefreshPlanner.Decision decision) {
-        LinkedHashSet<RefreshFullReason> reasons = new LinkedHashSet<>();
-        if (decision != null) {
-            reasons.addAll(decision.fullReasons());
-        }
-        reasons.add(RefreshFullReason.CACHE_INVALID);
-        return new ItemSetRefreshPlanner.Decision(
-                RefreshScope.FULL,
-                reasons,
-                decision != null && decision.cacheHit(),
-                false
-        );
-    }
+    private ItemSetRefreshPlanner.Decision forceFullForCorruptLedger(ItemSetRefreshPlanner.Decision decision) { return new ItemSetListenerScopeRefresherDelegate(this).forceFullForCorruptLedger(decision); }
 
     private void captureSlots(PlayerInventory inventory,
                                int heldSlot,
@@ -469,119 +367,23 @@ final class ItemSetListenerScopeRefresher {
         }
     }
 
-    private String contributionRole(int slot, int heldSlot) {
-        if (slot == heldSlot) {
-            return "main_hand";
-        }
-        return switch (slot) {
-            case 40 -> "off_hand";
-            case 39 -> "helmet";
-            case 38 -> "chestplate";
-            case 37 -> "leggings";
-            case 36 -> "boots";
-            default -> "";
-        };
-    }
+    String contributionRole(int slot, int heldSlot) { return new ItemSetListenerScopeRefresherDelegate(this).contributionRole(slot, heldSlot); }
 
-    private String managedPresentationDigest(ItemMeta itemMeta,
+    String managedPresentationDigest(ItemMeta itemMeta,
                                              EmakiItemIdentifier.Snapshot identity,
-                                             LedgerFacts ledgerFacts) {
-        boolean managed = Texts.isNotBlank(identity.setId())
-                || Texts.isNotBlank(identity.setSignature())
-                || identity.setLoreLines() != null
-                || ledgerFacts.hasSetDisplayOperations();
-        if (!managed || itemMeta == null) {
-            return "";
-        }
-        String name = ItemTextBridge.hasCustomName(itemMeta)
-                ? MiniMessages.serialize(ItemTextBridge.customName(itemMeta))
-                : "";
-        List<String> lore = ItemTextBridge.loreLines(itemMeta);
-        return SignatureUtil.stableSignature(List.of(name, lore == null ? List.of() : lore));
-    }
+                                             LedgerFacts ledgerFacts) { return new ItemSetListenerScopeRefresherDelegate(this).managedPresentationDigest(itemMeta, identity, ledgerFacts); }
 
-    private String contributionSignature(Map<Integer, SlotFacts> factsBySlot, Set<Integer> contributionSlots) {
-        List<Map<String, Object>> contributions = new ArrayList<>();
-        for (Integer slot : new TreeSet<>(contributionSlots == null ? Set.of() : contributionSlots)) {
-            SlotFacts facts = factsBySlot == null ? null : factsBySlot.get(slot);
-            Map<String, Object> contribution = new LinkedHashMap<>();
-            contribution.put("slot", slot);
-            contribution.put("role", facts == null ? "" : facts.contributionRole());
-            if (facts == null) {
-                contributions.add(contribution);
-                continue;
-            }
-            EmakiItemDefinition definition = facts.definition();
-            EmakiItemIdentifier.Snapshot identity = facts.identity();
-            ItemSetMembership membership = facts.membership();
-            contribution.put("item", identity.id());
-            contribution.put("stored_definition", identity.definitionSignature());
-            contribution.put("current_definition", definition == null ? "" : definition.definitionSignature());
-            contribution.put("stored_update_version", identity.updateVersion());
-            contribution.put("equip_slot", definition == null ? "" : definition.equipSlot());
-            contribution.put("set", membership.configured() ? membership.setId() : "");
-            contribution.put("piece", membership.configured() && definition != null
-                    ? membership.effectivePieceId(definition.id()) : "");
-            contribution.put("dynamic_set", identity.setId());
-            contribution.put("dynamic_piece", identity.setPiece());
-            contribution.put("dynamic_count", identity.setActiveCount());
-            contribution.put("dynamic_total", identity.setTotalCount());
-            contribution.put("dynamic_thresholds", identity.setActiveThresholds());
-            contribution.put("dynamic_signature", identity.setSignature());
-            contribution.put("legacy_marker", identity.setLoreLines());
-            contribution.put("ledger", facts.ledgerFacts().operationIdentity());
-            contribution.put("display", facts.managedPresentationDigest());
-            contributions.add(contribution);
-        }
-        return SignatureUtil.stableSignature(contributions);
-    }
+    String contributionSignature(Map<Integer, SlotFacts> factsBySlot, Set<Integer> contributionSlots) { return new ItemSetListenerScopeRefresherDelegate(this).contributionSignature(factsBySlot, contributionSlots); }
 
     private Map<String, Set<String>> collectEquippedPieces(Player player,
                                                            String trigger,
                                                            Set<Integer> contributionSlots,
                                                            Map<Integer, SlotFacts> factsBySlot,
-                                                           EmakiItemSetLoader.Snapshot setDefinitions) {
-        Map<String, Set<String>> result = new LinkedHashMap<>();
-        for (Integer slot : contributionSlots == null ? Set.<Integer>of() : contributionSlots) {
-            SlotFacts facts = factsBySlot.get(slot);
-            if (facts == null || facts.ledgerRead().corrupt()
-                    || facts.definition() == null || !facts.membership().configured()) {
-                continue;
-            }
-            EmakiItemDefinition definition = facts.definition();
-            ItemSetMembership membership = facts.membership();
-            ItemSetDefinition setDefinition = setDefinitions.get(membership.setId());
-            ItemSetPieceDefinition pieceDefinition = resolveSetPiece(setDefinition, membership, definition.id());
-            boolean definitionSlotMatch = EquipmentSlotMatcher.matches(facts.contributionRole(), definition.equipSlot());
-            boolean setSlotMatch = pieceDefinition != null
-                    && EquipmentSlotMatcher.matches(facts.contributionRole(), pieceDefinition.slot());
-            boolean accepted = definitionSlotMatch && setSlotMatch;
-            debugSetSlot(player, trigger, facts.contributionRole(), definition, membership, pieceDefinition,
-                    definitionSlotMatch, setSlotMatch, accepted);
-            if (accepted) {
-                result.computeIfAbsent(membership.setId(), ignored -> new LinkedHashSet<>())
-                        .add(pieceDefinition.pieceId());
-            }
-        }
-        LinkedHashMap<String, Set<String>> immutable = new LinkedHashMap<>();
-        result.forEach((setId, pieces) -> immutable.put(setId, Set.copyOf(pieces)));
-        return immutable.isEmpty() ? Map.of() : Map.copyOf(immutable);
-    }
+                                                           EmakiItemSetLoader.Snapshot setDefinitions) { return new ItemSetListenerScopeRefresherDelegate(this).collectEquippedPieces(player, trigger, contributionSlots, factsBySlot, setDefinitions); }
 
-    private LinkedHashSet<String> collectVisibleSetIds(Iterable<SlotFacts> facts) {
-        LinkedHashSet<String> result = new LinkedHashSet<>();
-        if (facts == null) {
-            return result;
-        }
-        for (SlotFacts slotFacts : facts) {
-            if (slotFacts != null && slotFacts.membership().configured()) {
-                result.add(slotFacts.membership().setId());
-            }
-        }
-        return result;
-    }
+    LinkedHashSet<String> collectVisibleSetIds(Iterable<SlotFacts> facts) { return new ItemSetListenerScopeRefresherDelegate(this).collectVisibleSetIds(facts); }
 
-    private List<SlotPlan> planSlots(Set<Integer> targetSlots,
+    List<SlotPlan> planSlots(Set<Integer> targetSlots,
                                      Map<Integer, SlotFacts> factsBySlot,
                                      Map<String, CompiledSetState> compiledStates) {
         List<SlotPlan> plans = new ArrayList<>();
@@ -610,7 +412,7 @@ final class ItemSetListenerScopeRefresher {
         return plans.isEmpty() ? List.of() : List.copyOf(plans);
     }
 
-    private ApplyResult applyPlans(Player player,
+    ApplyResult applyPlans(Player player,
                                    PlayerInventory inventory,
                                    String trigger,
                                    List<SlotPlan> plans,
@@ -706,18 +508,7 @@ final class ItemSetListenerScopeRefresher {
         return new ApplyResult(changed, conflicts, contributionChanged, missingDefinitions, missingSetIds);
     }
 
-    private String missingDefinitionKey(SlotFacts facts) {
-        if (facts == null) {
-            return "";
-        }
-        if (facts.definition() == null && Texts.isNotBlank(facts.identity().id())) {
-            return "item:" + facts.identity().id();
-        }
-        if (facts.membership().configured()) {
-            return "set:" + facts.membership().setId();
-        }
-        return Texts.isNotBlank(facts.identity().setId()) ? "set:" + facts.identity().setId() : "";
-    }
+    String missingDefinitionKey(SlotFacts facts) { return new ItemSetListenerScopeRefresherDelegate(this).missingDefinitionKey(facts); }
 
     private void warnMissingDefinitions(Player player, String trigger, Set<String> missingDefinitions) {
         if (missingDefinitions == null || missingDefinitions.isEmpty()) {
@@ -746,17 +537,7 @@ final class ItemSetListenerScopeRefresher {
         }
     }
 
-    private Map<String, EquippedSetState> equippedStates(Map<String, CompiledSetState> compiledStates) {
-        LinkedHashMap<String, EquippedSetState> states = new LinkedHashMap<>();
-        if (compiledStates != null) {
-            compiledStates.forEach((setId, compiled) -> {
-                if (compiled != null && compiled.state() != null) {
-                    states.put(setId, compiled.state());
-                }
-            });
-        }
-        return states.isEmpty() ? Map.of() : Map.copyOf(states);
-    }
+    private Map<String, EquippedSetState> equippedStates(Map<String, CompiledSetState> compiledStates) { return new ItemSetListenerScopeRefresherDelegate(this).equippedStates(compiledStates); }
 
     private void debugRefreshPlan(Player player,
                                   String trigger,
@@ -767,31 +548,7 @@ final class ItemSetListenerScopeRefresher {
                                   List<SlotPlan> plans,
                                   ApplyResult applyResult,
                                   int postCaptureScans,
-                                  int postCaptureLedgers) {
-        DebugLogger debugLogger = debugLoggerSupplier.get();
-        if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
-            return;
-        }
-        Map<ItemSetRefreshPlanner.SlotAction, Long> planCounts = plans.stream().collect(Collectors.groupingBy(
-                SlotPlan::action,
-                () -> new EnumMap<>(ItemSetRefreshPlanner.SlotAction.class),
-                Collectors.counting()
-        ));
-        debugLogger.log("set", player, "set.refresh_plan", Map.ofEntries(
-                Map.entry("trigger", Texts.toStringSafe(trigger)),
-                Map.entry("scope", decision.scope()),
-                Map.entry("reasons", decision.fullReasons()),
-                Map.entry("contribution_dirty", contributionDirty),
-                Map.entry("dirty", dirtySlots == null ? Set.of() : dirtySlots),
-                Map.entry("plans", planCounts),
-                Map.entry("scanned", capture.scannedSlots()),
-                Map.entry("ledger_decodes", capture.ledgerDecodes()),
-                Map.entry("post_scans", postCaptureScans),
-                Map.entry("post_ledgers", postCaptureLedgers),
-                Map.entry("changed", applyResult.changed()),
-                Map.entry("conflicts", applyResult.conflicts())
-        ));
-    }
+                                  int postCaptureLedgers) { new ItemSetListenerScopeRefresherDelegate(this).debugRefreshPlan(player, trigger, decision, contributionDirty, dirtySlots, capture, plans, applyResult, postCaptureScans, postCaptureLedgers); }
 
     private void fireSetBonusChangeEvents(Player player,
                                           Map<String, EquippedSetState> states,
@@ -842,18 +599,9 @@ final class ItemSetListenerScopeRefresher {
         }
     }
 
-    public void clearCachedState(UUID uuid) {
-        if (uuid != null) {
-            lastActiveCounts.remove(uuid);
-            listenerCaches.remove(uuid);
-        }
-    }
+    public void clearCachedState(UUID uuid) { new ItemSetListenerScopeRefresherDelegate(this).clearCachedState(uuid); }
 
-    public void invalidateCachedState(UUID uuid) {
-        if (uuid != null) {
-            listenerCaches.remove(uuid);
-        }
-    }
+    public void invalidateCachedState(UUID uuid) { new ItemSetListenerScopeRefresherDelegate(this).invalidateCachedState(uuid); }
 
     public void clearAllCachedState() {
         lastActiveCounts.clear();
@@ -861,7 +609,7 @@ final class ItemSetListenerScopeRefresher {
         warnedMissingSetDefinitions.clear();
     }
 
-    private void debugSetSlot(Player player,
+    void debugSetSlot(Player player,
                               String trigger,
                               String actualSlot,
                               EmakiItemDefinition definition,
@@ -869,24 +617,7 @@ final class ItemSetListenerScopeRefresher {
                               ItemSetPieceDefinition pieceDefinition,
                               boolean definitionSlotMatch,
                               boolean setSlotMatch,
-                              boolean accepted) {
-        DebugLogger debugLogger = debugLoggerSupplier.get();
-        if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
-            return;
-        }
-        debugLogger.log("set", player, "set.slot_gate", Map.of(
-                "trigger", Texts.toStringSafe(trigger),
-                "item", definition.id(),
-                "actual", Texts.toStringSafe(actualSlot),
-                "item_slot", Texts.toStringSafe(definition.equipSlot()),
-                "set", membership.setId(),
-                "piece", pieceDefinition == null ? "<unresolved>" : pieceDefinition.pieceId(),
-                "set_slot", pieceDefinition == null ? "<unresolved>" : pieceDefinition.slot(),
-                "item_match", definitionSlotMatch,
-                "set_match", setSlotMatch,
-                "accepted", accepted
-        ));
-    }
+                              boolean accepted) { new ItemSetListenerScopeRefresherDelegate(this).debugSetSlot(player, trigger, actualSlot, definition, membership, pieceDefinition, definitionSlotMatch, setSlotMatch, accepted); }
 
     private void debugSetLore(Player player,
                               String trigger,
@@ -928,58 +659,19 @@ final class ItemSetListenerScopeRefresher {
                                String slot,
                                String itemId,
                                String operation,
-                               boolean committed) {
-        DebugLogger debugLogger = debugLoggerSupplier.get();
-        if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
-            return;
-        }
-        debugLogger.log("set", player, "set.write", Map.of(
-                "trigger", Texts.toStringSafe(trigger),
-                "slot", Texts.toStringSafe(slot),
-                "item", Texts.toStringSafe(itemId),
-                "operation", Texts.toStringSafe(operation),
-                "committed", committed,
-                "owner", scheduling != null && scheduling.ownsEntity(player),
-                "thread", Thread.currentThread().getName()
-        ));
-    }
+                               boolean committed) { new ItemSetListenerScopeRefresherDelegate(this).debugSetWrite(player, trigger, slot, itemId, operation, committed); }
 
     static ItemSetPieceDefinition resolveSetPiece(ItemSetDefinition setDefinition,
                                                   ItemSetMembership membership,
-                                                  String itemId) {
-        if (setDefinition == null || membership == null || !membership.configured()) {
-            return null;
-        }
-        if (Texts.isNotBlank(membership.pieceId())) {
-            return setDefinition.pieces().get(membership.pieceId());
-        }
-        ItemSetPieceDefinition matched = null;
-        for (ItemSetPieceDefinition pieceDefinition : setDefinition.pieces().values()) {
-            if (pieceDefinition == null || !Texts.normalizeId(itemId).equals(Texts.normalizeId(pieceDefinition.itemId()))) {
-                continue;
-            }
-            if (matched != null) {
-                return null;
-            }
-            matched = pieceDefinition;
-        }
-        return matched;
-    }
+                                                  String itemId) { return ItemSetListenerScopeRefresherDelegate.resolveSetPiece(setDefinition, membership, itemId); }
 
     private boolean writeInventoryIfUnchanged(PlayerInventory inventory,
                                               int slot,
                                               ItemStack expected,
-                                              ItemStack updated) {
-        ItemStack current = inventory.getItem(slot);
-        if (!ItemSetListenerScopeRefresherSupport.sameItem(current, expected)) {
-            return false;
-        }
-        inventory.setItem(slot, updated);
-        return true;
-    }
+                                              ItemStack updated) { return new ItemSetListenerScopeRefresherDelegate(this).writeInventoryIfUnchanged(inventory, slot, expected, updated); }
 
 
-    private record ListenerSetCache(
+    record ListenerSetCache(
             boolean valid,
             long itemGeneration,
             long setGeneration,
@@ -987,7 +679,7 @@ final class ItemSetListenerScopeRefresher {
             Map<String, CompiledSetState> compiledStates,
             Map<String, Set<String>> equippedPiecesBySet) {
 
-        private ListenerSetCache {
+        ListenerSetCache {
             itemGeneration = Math.max(0L, itemGeneration);
             setGeneration = Math.max(0L, setGeneration);
             contributionSignature = Texts.toStringSafe(contributionSignature);
@@ -1003,21 +695,21 @@ final class ItemSetListenerScopeRefresher {
         }
     }
 
-    private static final class CaptureAccumulator {
+    static final class CaptureAccumulator {
 
-        private final Map<Integer, SlotFacts> facts = new LinkedHashMap<>();
-        private int scannedSlots;
-        private int ledgerDecodes;
+        final Map<Integer, SlotFacts> facts = new LinkedHashMap<>();
+        int scannedSlots;
+        int ledgerDecodes;
 
-        private Map<Integer, SlotFacts> facts() {
+        Map<Integer, SlotFacts> facts() {
             return facts;
         }
 
-        private int scannedSlots() {
+        int scannedSlots() {
             return scannedSlots;
         }
 
-        private int ledgerDecodes() {
+        int ledgerDecodes() {
             return ledgerDecodes;
         }
 
@@ -1026,7 +718,7 @@ final class ItemSetListenerScopeRefresher {
                     && slotFacts.ledgerRead().status() == ItemOperationLedger.ReadStatus.CORRUPT);
         }
 
-        private void put(SlotFacts slotFacts) {
+        void put(SlotFacts slotFacts) {
             facts.put(slotFacts.slot(), slotFacts);
         }
 
@@ -1039,7 +731,7 @@ final class ItemSetListenerScopeRefresher {
         }
     }
 
-    private record SlotFacts(
+    record SlotFacts(
             int slot,
             String contributionRole,
             ItemStack expected,
@@ -1050,7 +742,7 @@ final class ItemSetListenerScopeRefresher {
             LedgerFacts ledgerFacts,
             String managedPresentationDigest) {
 
-        private SlotFacts {
+        SlotFacts {
             contributionRole = Texts.toStringSafe(contributionRole);
             identity = identity == null ? EmakiItemIdentifier.Snapshot.empty() : identity;
             membership = membership == null ? ItemSetMembership.empty() : membership;
@@ -1067,21 +759,21 @@ final class ItemSetListenerScopeRefresher {
         }
     }
 
-    private record SlotPlan(
+    record SlotPlan(
             int slot,
             ItemSetRefreshPlanner.SlotAction action,
             SlotFacts facts,
             CompiledSetState compiledState) {
     }
 
-    private record ApplyResult(
+    record ApplyResult(
             int changed,
             int conflicts,
             boolean contributionChanged,
             Set<String> missingDefinitions,
             Set<String> missingSetIds) {
 
-        private ApplyResult {
+        ApplyResult {
             changed = Math.max(0, changed);
             conflicts = Math.max(0, conflicts);
             missingDefinitions = missingDefinitions == null || missingDefinitions.isEmpty()

@@ -37,7 +37,7 @@ final class AttributeSnapshotCollector {
 
     private final AttributeService service;
     private final ScalingCurveProcessor scalingCurveProcessor = new ScalingCurveProcessor();
-    private volatile FusionRuleCache fusionRuleCache = new FusionRuleCache("", List.of());
+    volatile FusionRuleCache fusionRuleCache = new FusionRuleCache("", List.of());
 
     AttributeSnapshotCollector(AttributeService service) {
         this.service = service;
@@ -295,26 +295,7 @@ final class AttributeSnapshotCollector {
             String itemSignature,
             PdcAttributeService.PdcAttributeViews views,
             boolean collectSignatures,
-            String rejectingGateId) {
-        if (!collectSignatures) {
-            return;
-        }
-        String gatePart = "condition_gate=" + Texts.toStringSafe(rejectingGateId);
-        if (views == null) {
-            signatureParts.add(slotName + ":" + SignatureUtil.combine(
-                    itemSignature,
-                    gatePart
-            ));
-            return;
-        }
-        signatureParts.add(slotName + ":" + SignatureUtil.combine(
-                itemSignature,
-                views.filtered().sourceSignature(),
-                "declared_slots=" + String.join(",", views.declaredSlots()),
-                "item_slot_matched=" + views.itemSlotMatched(),
-                gatePart
-        ));
-    }
+            String rejectingGateId) { new AttributeSnapshotCollectorDelegate(this).addEquipmentSignature(signatureParts, slotName, itemSignature, views, collectSignatures, rejectingGateId); }
 
     static void expandParentAttributeBonuses(Map<String, Double> values,
             Collection<AttributeDefinition> definitions) {
@@ -652,7 +633,7 @@ final class AttributeSnapshotCollector {
         ));
     }
 
-    private List<FusionRule> fusionRules() {
+    List<FusionRule> fusionRules() {
         String cacheKey = SignatureUtil.combine(
                 service.registryService().attributeDefinitionsSignature(),
                 service.damageTypeRegistry() == null ? "" : service.damageTypeRegistry().definitionSignature()
@@ -673,7 +654,7 @@ final class AttributeSnapshotCollector {
         return rules;
     }
 
-    private void collectDamageStageFusionRules(FusionRuleBuilder builder) {
+    void collectDamageStageFusionRules(FusionRuleBuilder builder) {
         if (builder == null) {
             return;
         }
@@ -697,7 +678,7 @@ final class AttributeSnapshotCollector {
         }
     }
 
-    private void addDefinitionFusionRule(FusionRuleBuilder builder,
+    void addDefinitionFusionRule(FusionRuleBuilder builder,
             Collection<AttributeDefinition> definitions,
             boolean clampPercentFactor) {
         if (builder == null || definitions == null || definitions.isEmpty()) {
@@ -750,17 +731,17 @@ final class AttributeSnapshotCollector {
         return total;
     }
 
-    private record FusionRule(List<String> flatIds, List<String> percentIds, boolean clampPercentFactor) {
+    record FusionRule(List<String> flatIds, List<String> percentIds, boolean clampPercentFactor) {
 
-        private FusionRule {
+        FusionRule {
             flatIds = flatIds == null ? List.of() : List.copyOf(flatIds);
             percentIds = percentIds == null ? List.of() : List.copyOf(percentIds);
         }
     }
 
-    private record FusionRuleCache(String key, List<FusionRule> rules) {
+    record FusionRuleCache(String key, List<FusionRule> rules) {
 
-        private FusionRuleCache {
+        FusionRuleCache {
             key = key == null ? "" : key;
             rules = rules == null ? List.of() : List.copyOf(rules);
         }
@@ -770,9 +751,9 @@ final class AttributeSnapshotCollector {
         }
     }
 
-    private final class FusionRuleBuilder {
+    final class FusionRuleBuilder {
 
-        private final Map<String, FusionRule> rules = new LinkedHashMap<>();
+        final Map<String, FusionRule> rules = new LinkedHashMap<>();
         private final Set<String> registeredFlatIds = new LinkedHashSet<>();
 
         private void add(Collection<String> flatIds, Collection<String> percentIds, boolean clampPercentFactor) {
@@ -798,7 +779,7 @@ final class AttributeSnapshotCollector {
             registeredFlatIds.addAll(normalizedFlatIds);
         }
 
-        private List<FusionRule> rules() {
+        List<FusionRule> rules() {
             return rules.isEmpty() ? List.of() : List.copyOf(rules.values());
         }
     }

@@ -62,17 +62,17 @@ public final class StationGuiService {
     private final GuiService guiService;
     private final ThreadOwnership threadOwnership;
     private final Supplier<GuiTemplateLoader> layoutLoader;
-    private final Supplier<StationRegistry> registrySupplier;
+    final Supplier<StationRegistry> registrySupplier;
     private final Supplier<GuiSettings> guiSettings;
     private final MergedMaterialChannel materialChannel;
     private final StorageChannel storageChannel;
     private final QueueService queueService;
-    private final QueueUnlockService unlockService;
+    final QueueUnlockService unlockService;
     private final StationQueueUnlockService purchaseService;
     private final StationCraftService craftService;
     private final EconomyManager economyManager;
     private final MessageService messageService;
-    private final BiFunction<Player, String, String> placeholders;
+    final BiFunction<Player, String, String> placeholders;
     private final StationCatalogRenderer catalogRenderer;
     private final StationPreviewRenderer previewRenderer;
     private final StationQueueRenderer queueRenderer;
@@ -230,7 +230,7 @@ public final class StationGuiService {
         return EmakiResult.ok();
     }
 
-    private interface SlotRenderer {
+    interface SlotRenderer {
 
         ItemStack render(GuiTemplate.ResolvedSlot slot);
     }
@@ -320,29 +320,9 @@ public final class StationGuiService {
         return playerId == null ? null : states.get(playerId);
     }
 
-    private List<StationCatalogEntry> catalogEntries(StationViewState state) {
-        List<StationCatalogEntry> entries = new ArrayList<>();
-        Player viewer = state.viewer();
-        for (RecipeDefinition recipe : registrySupplier.get().recipesOf(state.station().id())) {
-            if (!recipe.visible()) {
-                continue;
-            }
-            if (recipe.hasPermission() && !viewer.hasPermission(recipe.permission())) {
-                continue;
-            }
-            entries.add(new StationCatalogEntry(recipe, unlocked(viewer, recipe)));
-        }
-        return entries;
-    }
+    private List<StationCatalogEntry> catalogEntries(StationViewState state) { return new StationGuiServiceDelegate(this).catalogEntries(state); }
 
-    private boolean unlocked(Player viewer, RecipeDefinition recipe) {
-        if (!recipe.hasDisplayCondition()) {
-            return true;
-        }
-        return ConditionEvaluator.evaluate(recipe.displayCondition(),
-                text -> placeholders.apply(viewer, text),
-                ConditionContext.of(viewer));
-    }
+    boolean unlocked(Player viewer, RecipeDefinition recipe) { return new StationGuiServiceDelegate(this).unlocked(viewer, recipe); }
 
     private void refreshAvailability(StationViewState state, boolean force) {
         RecipeDefinition recipe = state.selectedRecipe();
@@ -413,11 +393,7 @@ public final class StationGuiService {
         return queues == null ? null : queues.existingQueue(state.station().id());
     }
 
-    private int purchasedOf(StationViewState state) {
-        return unlockService == null
-                ? 0
-                : unlockService.purchased(state.viewer().getUniqueId(), state.station().id());
-    }
+    private int purchasedOf(StationViewState state) { return new StationGuiServiceDelegate(this).purchasedOf(state); }
 
     private int capacityOf(StationViewState state) {
         return QueueCapacity.effectiveLength(state.viewer(), state.station(), purchasedOf(state));
@@ -467,11 +443,11 @@ public final class StationGuiService {
         }
     }
 
-    private final class StationSessionHandler implements GuiSessionHandler {
+    final class StationSessionHandler implements GuiSessionHandler {
 
         private final StationViewState state;
 
-        private StationSessionHandler(StationViewState state) {
+        StationSessionHandler(StationViewState state) {
             this.state = state;
         }
 
@@ -755,11 +731,11 @@ public final class StationGuiService {
         }
     }
 
-    private final class DismantleSessionHandler implements GuiSessionHandler {
+    final class DismantleSessionHandler implements GuiSessionHandler {
 
         private final DismantleViewState state;
 
-        private DismantleSessionHandler(DismantleViewState state) {
+        DismantleSessionHandler(DismantleViewState state) {
             this.state = state;
         }
 

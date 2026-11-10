@@ -53,13 +53,13 @@ import emaki.jiuwu.craft.corelib.gui.SoundParser;
 
 public final class PacketGuiBackend implements GuiBackend, Listener {
 
-    private static final int PLAYER_INVENTORY_SLOTS = 36;
+    static final int PLAYER_INVENTORY_SLOTS = 36;
 
-    private final JavaPlugin plugin;
+    final JavaPlugin plugin;
     private final ExecutionDispatcher executionDispatcher;
-    private final AtomicInteger windowIdCounter = new AtomicInteger(1);
-    private final Map<UUID, PacketWindow> windows = new ConcurrentHashMap<>();
-    private final ClickListener clickListener = new ClickListener();
+    final AtomicInteger windowIdCounter = new AtomicInteger(1);
+    final Map<UUID, PacketWindow> windows = new ConcurrentHashMap<>();
+    final ClickListener clickListener = new ClickListener();
     private final AtomicBoolean registered = new AtomicBoolean();
     private final AtomicReference<CompletableFuture<Void>> shutdownFuture = new AtomicReference<>();
 
@@ -75,14 +75,10 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     }
 
     @Override
-    public String name() {
-        return "packet";
-    }
+    public String name() { return new PacketGuiBackendDelegate(this).name(); }
 
     @Override
-    public boolean supportsInPlaceSwitch() {
-        return true;
-    }
+    public boolean supportsInPlaceSwitch() { return new PacketGuiBackendDelegate(this).supportsInPlaceSwitch(); }
 
     @Override
     public void open(GuiSession session, Map<Integer, ItemStack> renderedSlots) {
@@ -219,14 +215,10 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     }
 
     @Override
-    public void shutdown() {
-        shutdownAsync();
-    }
+    public void shutdown() { new PacketGuiBackendDelegate(this).shutdown(); }
 
     @Override
-    public boolean shutdownRequiresOwnerThread() {
-        return false;
-    }
+    public boolean shutdownRequiresOwnerThread() { return new PacketGuiBackendDelegate(this).shutdownRequiresOwnerThread(); }
 
     @Override
     public CompletionStage<Void> shutdownAsync() {
@@ -296,7 +288,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         }
     }
 
-    private CompletableFuture<Void> closeWindowDuringShutdown(UUID viewerId, PacketWindow window) {
+    CompletableFuture<Void> closeWindowDuringShutdown(UUID viewerId, PacketWindow window) {
         CompletableFuture<Void> completion = new CompletableFuture<>();
         if (window == null) {
             completion.complete(null);
@@ -333,115 +325,25 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             boolean touchPlayer,
             boolean notifyHandler,
             AtomicBoolean cleanupStarted,
-            CompletableFuture<Void> completion) {
-        if (!cleanupStarted.compareAndSet(false, true)) {
-            return;
-        }
-        try {
-            if (windows.remove(viewerId, window)) {
-                cleanupWindow(viewerId, window, viewer, touchPlayer, notifyHandler);
-            }
-            completion.complete(null);
-        } catch (Throwable throwable) {
-            debug(null, "common.gui.packet_shutdown_cleanup_failed", GuiDebugSupport.errorFields(
-                    throwable,
-                    windowFields(window)
-            ));
-            completion.completeExceptionally(throwable);
-        }
-    }
+            CompletableFuture<Void> completion) { new PacketGuiBackendDelegate(this).completeWindowCleanup(viewerId, window, viewer, touchPlayer, notifyHandler, cleanupStarted, completion); }
 
-    private void cleanupWindow(UUID viewerId,
+    void cleanupWindow(UUID viewerId,
             PacketWindow window,
             Player viewer,
             boolean touchPlayer,
-            boolean notifyHandler) {
-        GuiSession session = window.session;
-        try {
-            if (touchPlayer && viewer != null && viewer.isOnline()) {
-                returnCursor(viewer, window);
-                PacketEvents.getAPI().getPlayerManager().sendPacket(viewer,
-                        new WrapperPlayServerCloseWindow(window.windowId));
-            }
-            if (notifyHandler) {
-                try {
-                    session.handler().onClose(session, new PacketGuiCloseContext(viewer, window));
-                } catch (Throwable throwable) {
-                    debug(viewer, "common.gui.packet_shutdown_close_handler_failed", GuiDebugSupport.errorFields(
-                            throwable,
-                            windowFields(window)
-                    ));
-                }
-            }
-        } finally {
-            GuiSessionRegistry registry = session.registry();
-            if (registry != null && viewerId != null) {
-                registry.removeSession(viewerId, session);
-            }
-            windows.remove(viewerId, window);
-        }
-    }
+            boolean notifyHandler) { new PacketGuiBackendDelegate(this).cleanupWindow(viewerId, window, viewer, touchPlayer, notifyHandler); }
 
-    private int nextWindowId() {
-        return windowIdCounter.getAndUpdate(current -> current >= 100 ? 1 : current + 1);
-    }
+    private int nextWindowId() { return new PacketGuiBackendDelegate(this).nextWindowId(); }
 
-    private int topSize(GuiSession session) {
-        return Math.max(9, session.getInventory().getSize());
-    }
+    int topSize(GuiSession session) { return new PacketGuiBackendDelegate(this).topSize(session); }
 
-    private void sendOpenWindow(Player viewer, PacketWindow window) {
-        int rows = Math.max(1, Math.min(6, window.topSize / 9));
-        WrapperPlayServerOpenWindow open = new WrapperPlayServerOpenWindow(
-                window.windowId,
-                rows - 1,
-                window.session.titleComponent()
-        );
-        PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, open);
-        debug(viewer, "common.gui.packet_send_open", windowFields(window));
-    }
+    void sendOpenWindow(Player viewer, PacketWindow window) { new PacketGuiBackendDelegate(this).sendOpenWindow(viewer, window); }
 
-    private void applyTopItems(PacketWindow window, Map<Integer, ItemStack> renderedSlots) {
-        ItemStack[] top = new ItemStack[window.topSize];
-        if (renderedSlots != null) {
-            for (Map.Entry<Integer, ItemStack> entry : renderedSlots.entrySet()) {
-                int slot = entry.getKey();
-                if (slot >= 0 && slot < window.topSize) {
-                    top[slot] = entry.getValue();
-                }
-            }
-        }
-        window.topItems = top;
-    }
+    void applyTopItems(PacketWindow window, Map<Integer, ItemStack> renderedSlots) { new PacketGuiBackendDelegate(this).applyTopItems(window, renderedSlots); }
 
-    private void sendWindowItems(Player viewer, PacketWindow window) {
-        List<com.github.retrooper.packetevents.protocol.item.ItemStack> items =
-                new ArrayList<>(window.topSize + PLAYER_INVENTORY_SLOTS);
-        for (int slot = 0; slot < window.topSize; slot++) {
-            items.add(PacketItems.toPacket(window.topItems[slot]));
-        }
-        PlayerInventory inventory = viewer.getInventory();
-        for (int slot = 9; slot < 36; slot++) {
-            items.add(PacketItems.toPacket(inventory.getItem(slot)));
-        }
-        for (int slot = 0; slot < 9; slot++) {
-            items.add(PacketItems.toPacket(inventory.getItem(slot)));
-        }
-        int stateId = window.nextStateId();
-        WrapperPlayServerWindowItems packet = new WrapperPlayServerWindowItems(
-                window.windowId,
-                stateId,
-                items,
-                PacketItems.toPacket(window.cursor)
-        );
-        PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, packet);
-        debug(viewer, "common.gui.packet_send_items", windowFields(
-                window,
-                GuiDebugSupport.replacements("sent_state_id", stateId)
-        ));
-    }
+    void sendWindowItems(Player viewer, PacketWindow window) { new PacketGuiBackendDelegate(this).sendWindowItems(viewer, window); }
 
-    private void authoritativeResync(Player viewer, PacketWindow window, String reason) {
+    void authoritativeResync(Player viewer, PacketWindow window, String reason) {
         if (!isCurrentSession(viewer.getUniqueId(), window)) {
             retireWindow(viewer.getUniqueId(), window);
             debug(viewer, "common.gui.packet_resync_skipped_stale_window_or_session", windowFields(
@@ -470,27 +372,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         }
     }
 
-    private void returnCursor(Player viewer, PacketWindow window) {
-        if (viewer == null || window == null || window.cursor == null || window.cursor.getType().isAir()) {
-            return;
-        }
-        ItemStack returned = window.cursor.clone();
-        Map<Integer, ItemStack> overflow =
-                viewer.getInventory().addItem(returned);
-        for (ItemStack leftover : overflow.values()) {
-            if (leftover != null && !leftover.getType().isAir()) {
-                viewer.getWorld().dropItemNaturally(viewer.getLocation(), leftover);
-            }
-        }
-        window.cursor = null;
-        debug(viewer, "common.gui.packet_cursor_return", windowFields(
-                window,
-                GuiDebugSupport.replacements(
-                        "cursor_item_type", GuiDebugSupport.itemType(returned),
-                        "cursor_item_amount", GuiDebugSupport.itemAmount(returned)
-                )
-        ));
-    }
+    void returnCursor(Player viewer, PacketWindow window) { new PacketGuiBackendDelegate(this).returnCursor(viewer, window); }
 
     private void dispatchViewerEvent(Player viewer,
             PacketWindow expectedWindow,
@@ -549,70 +431,20 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         }
     }
 
-    private void retireWindow(UUID viewerId, PacketWindow window) {
-        if (windows.remove(viewerId, window)) {
-            Player viewer = window.session.viewer();
-            if (viewer != null && viewer.isOnline()) {
-                returnCursor(viewer, window);
-            }
-        }
-        GuiSessionRegistry registry = window.session.registry();
-        if (registry != null) {
-            registry.removeSession(viewerId, window.session);
-        }
-    }
+    void retireWindow(UUID viewerId, PacketWindow window) { new PacketGuiBackendDelegate(this).retireWindow(viewerId, window); }
 
-    private ItemStack toBukkitItem(com.github.retrooper.packetevents.protocol.item.ItemStack item) {
-        if (item == null) {
-            return null;
-        }
-        ItemStack converted = SpigotConversionUtil.toBukkitItemStack(item);
-        return converted == null || converted.getType().isAir() ? null : converted;
-    }
+    ItemStack toBukkitItem(com.github.retrooper.packetevents.protocol.item.ItemStack item) { return new PacketGuiBackendDelegate(this).toBukkitItem(item); }
 
     private Map<Integer, ItemStack> toBukkitItems(
-            Optional<Map<Integer, com.github.retrooper.packetevents.protocol.item.ItemStack>> items) {
-        if (items == null || items.isEmpty()) {
-            return Map.of();
-        }
-        Map<Integer, ItemStack> converted = new LinkedHashMap<>();
-        for (Map.Entry<Integer, com.github.retrooper.packetevents.protocol.item.ItemStack> entry
-                : items.get().entrySet()) {
-            if (entry.getKey() == null || entry.getKey() < 0) {
-                continue;
-            }
-            ItemStack item = toBukkitItem(entry.getValue());
-            converted.put(entry.getKey(), item == null ? new ItemStack(Material.AIR) : item);
-        }
-        return Map.copyOf(converted);
-    }
+            Optional<Map<Integer, com.github.retrooper.packetevents.protocol.item.ItemStack>> items) { return new PacketGuiBackendDelegate(this).toBukkitItems(items); }
 
     private void applyPlayerInventoryChanges(Player viewer,
             int containerTopSize,
-            Map<Integer, ItemStack> changedItems) {
-        if (viewer == null || changedItems == null || changedItems.isEmpty()) {
-            return;
-        }
-        for (Map.Entry<Integer, ItemStack> entry : changedItems.entrySet()) {
-            int playerSlot = toPlayerInventorySlot(entry.getKey(), containerTopSize);
-            if (playerSlot < 0) {
-                continue;
-            }
-            ItemStack item = entry.getValue();
-            viewer.getInventory().setItem(playerSlot,
-                    item == null || item.getType().isAir() ? null : item.clone());
-        }
-    }
+            Map<Integer, ItemStack> changedItems) { new PacketGuiBackendDelegate(this).applyPlayerInventoryChanges(viewer, containerTopSize, changedItems); }
 
-    private int toPlayerInventorySlot(int rawSlot, int containerTopSize) {
-        int offset = rawSlot - containerTopSize;
-        if (offset < 0 || offset >= PLAYER_INVENTORY_SLOTS) {
-            return -1;
-        }
-        return offset < 27 ? offset + 9 : offset - 27;
-    }
+    int toPlayerInventorySlot(int rawSlot, int containerTopSize) { return new PacketGuiBackendDelegate(this).toPlayerInventorySlot(rawSlot, containerTopSize); }
 
-    private void handleClick(Player viewer, PacketWindow expectedWindow, ClickSnapshot click) {
+    void handleClick(Player viewer, PacketWindow expectedWindow, ClickSnapshot click) {
         UUID viewerId = viewer.getUniqueId();
         if (!isCurrentSession(viewerId, expectedWindow)) {
             debug(viewer, "common.gui.packet_click_dropped_stale_window_or_session", windowFields(
@@ -729,22 +561,9 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         }
     }
 
-    private boolean isKnownClickRange(ClickSnapshot click, int containerTopSize) {
-        if (click == null || containerTopSize <= 0
-                || click.rawSlot() < 0
-                || click.rawSlot() >= containerTopSize + PLAYER_INVENTORY_SLOTS) {
-            return false;
-        }
-        return switch (click.clickType()) {
-            case PICKUP, QUICK_MOVE, THROW -> click.button() == 0 || click.button() == 1;
-            case SWAP -> (click.button() >= 0 && click.button() < 9) || click.button() == 40;
-            case CLONE -> click.button() == 2;
-            case PICKUP_ALL -> click.button() == 0;
-            case QUICK_CRAFT, UNKNOWN -> false;
-        };
-    }
+    boolean isKnownClickRange(ClickSnapshot click, int containerTopSize) { return new PacketGuiBackendDelegate(this).isKnownClickRange(click, containerTopSize); }
 
-    private void handleClose(Player viewer, PacketWindow expectedWindow, int windowId) {
+    void handleClose(Player viewer, PacketWindow expectedWindow, int windowId) {
         UUID viewerId = viewer.getUniqueId();
         if (expectedWindow.windowId != windowId || !isCurrentSession(viewerId, expectedWindow)) {
             debug(viewer, "common.gui.packet_close_receive_dropped_stale_window_or_session", windowFields(
@@ -782,62 +601,22 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         }
     }
 
-    private boolean isCurrentWindow(UUID viewerId, PacketWindow window) {
-        return viewerId != null && window != null && windows.get(viewerId) == window;
-    }
+    boolean isCurrentWindow(UUID viewerId, PacketWindow window) { return new PacketGuiBackendDelegate(this).isCurrentWindow(viewerId, window); }
 
-    private boolean isCurrentSession(UUID viewerId, PacketWindow window) {
-        if (!isCurrentWindow(viewerId, window)) {
-            return false;
-        }
-        GuiSessionRegistry registry = window.session.registry();
-        return registry != null && registry.activeSession(viewerId) == window.session;
-    }
+    boolean isCurrentSession(UUID viewerId, PacketWindow window) { return new PacketGuiBackendDelegate(this).isCurrentSession(viewerId, window); }
 
-    private void playClickSound(GuiSession session,
+    void playClickSound(GuiSession session,
             GuiTemplate.ResolvedSlot slot,
-            GuiClickType clickType) {
-        if (session == null || slot == null) {
-            return;
-        }
-        SoundParser.SoundDefinition sound = slot.definition().soundFor(clickType);
-        if (sound == null) {
-            return;
-        }
-        var resolved = SoundParser.resolve(sound);
-        if (resolved != null) {
-            session.viewer().playSound(session.viewer().getLocation(), resolved, sound.volume(), sound.pitch());
-        }
-    }
+            GuiClickType clickType) { new PacketGuiBackendDelegate(this).playClickSound(session, slot, clickType); }
 
     @EventHandler
-    public void onPlayerQuit(PlayerQuitEvent event) {
-        Player viewer = event.getPlayer();
-        PacketWindow window = windows.get(viewer.getUniqueId());
-        if (window != null) {
-            returnCursor(viewer, window);
-            windows.remove(viewer.getUniqueId(), window);
-            debug(viewer, "common.gui.packet_quit_cleanup", windowFields(window));
-        }
-    }
+    public void onPlayerQuit(PlayerQuitEvent event) { new PacketGuiBackendDelegate(this).onPlayerQuit(event); }
 
-    private void debug(Player viewer, String langKey, Map<String, ?> replacements) {
-        GuiDebugSupport.log(plugin, viewer, langKey, replacements);
-    }
+    void debug(Player viewer, String langKey, Map<String, ?> replacements) { new PacketGuiBackendDelegate(this).debug(viewer, langKey, replacements); }
 
-    private Map<String, Object> windowFields(PacketWindow window) {
-        return windowFields(window, Map.of());
-    }
+    Map<String, Object> windowFields(PacketWindow window) { return new PacketGuiBackendDelegate(this).windowFields(window); }
 
-    private Map<String, Object> windowFields(PacketWindow window, Map<String, ?> fields) {
-        return GuiDebugSupport.windowFields(
-                window.windowId,
-                window.lastSentStateId(),
-                window.topSize,
-                window.session,
-                fields
-        );
-    }
+    Map<String, Object> windowFields(PacketWindow window, Map<String, ?> fields) { return new PacketGuiBackendDelegate(this).windowFields(window, fields); }
 
     static record ClickSnapshot(
             int windowId,
@@ -864,12 +643,12 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
 
     static final class PacketWindow {
 
-        private final int windowId;
-        private GuiSession session;
+        final int windowId;
+        GuiSession session;
         private Component titleComponent;
-        private int topSize;
-        private ItemStack[] topItems;
-        private ItemStack cursor;
+        int topSize;
+        ItemStack[] topItems;
+        ItemStack cursor;
         private final AtomicInteger stateId = new AtomicInteger();
         private volatile int lastSentStateId;
         private boolean handlingClick;
@@ -929,9 +708,9 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         }
     }
 
-    private final class ClickListener extends PacketListenerAbstract {
+    final class ClickListener extends PacketListenerAbstract {
 
-        private ClickListener() {
+        ClickListener() {
             super(PacketListenerPriority.NORMAL);
         }
 

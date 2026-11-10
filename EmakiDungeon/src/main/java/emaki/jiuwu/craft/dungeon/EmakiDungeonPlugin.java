@@ -113,19 +113,19 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private static final Set<String> DEBUG_MODULES = Set.of(MODULE);
     private static final String API_VERSION = "1.0.0";
     private static final int BSTATS_PLUGIN_ID = 35153;
-    private static final String FOLIA_MARKER = "io.papermc.paper.threadedregions.RegionizedServer";
+    static final String FOLIA_MARKER = "io.papermc.paper.threadedregions.RegionizedServer";
 
     private final AtomicBoolean shutdownStarted = new AtomicBoolean(false);
 
-    private YamlConfigLoader<AppConfig> appConfigLoader;
-    private MessageService messageService;
-    private LanguageLoader languageLoader;
+    YamlConfigLoader<AppConfig> appConfigLoader;
+    MessageService messageService;
+    LanguageLoader languageLoader;
     private ServiceBackedDungeonBridge bridge;
-    private DebugCommand debugCommand;
-    private InstanceCoordinator coordinator;
-    private ChallengeService challenge;
-    private PartyService parties;
-    private RecoveryService recovery;
+    DebugCommand debugCommand;
+    InstanceCoordinator coordinator;
+    ChallengeService challenge;
+    PartyService parties;
+    RecoveryService recovery;
     private emaki.jiuwu.craft.dungeon.exit.InstanceExitService exitService;
     private SnapshotManager snapshots;
     private CommandGuard commandGuard;
@@ -156,7 +156,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private MatchmakingService matchmaking;
     private DungeonBetterHudBridge betterHudBridge;
     private BStatsRegistration metrics;
-    private boolean runtimeInitialized;
+    boolean runtimeInitialized;
     private final Set<String> registeredDungeonPermissions =
             ConcurrentHashMap.newKeySet();
 
@@ -336,48 +336,26 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
     }
 
-    private String describeShutdownFailure(Throwable failure) {
-        Throwable cause = failure.getCause() == null ? failure : failure.getCause();
-        return cause.getClass().getSimpleName()
-                + (cause.getMessage() == null ? "" : ": " + cause.getMessage());
-    }
+    private String describeShutdownFailure(Throwable failure) { return new EmakiDungeonPluginDelegate(this).describeShutdownFailure(failure); }
 
     @Override
-    public YamlConfigLoader<AppConfig> appConfigLoader() {
-        return appConfigLoader;
-    }
+    public YamlConfigLoader<AppConfig> appConfigLoader() { return new EmakiDungeonPluginDelegate(this).appConfigLoader(); }
 
-    public MessageService messageService() {
-        return messageService;
-    }
+    public MessageService messageService() { return new EmakiDungeonPluginDelegate(this).messageService(); }
 
-    public LanguageLoader languageLoader() {
-        return languageLoader;
-    }
+    public LanguageLoader languageLoader() { return new EmakiDungeonPluginDelegate(this).languageLoader(); }
 
-    public DebugCommand debugCommand() {
-        return debugCommand;
-    }
+    public DebugCommand debugCommand() { return new EmakiDungeonPluginDelegate(this).debugCommand(); }
 
-    public InstanceCoordinator instanceCoordinator() {
-        return coordinator;
-    }
+    public InstanceCoordinator instanceCoordinator() { return new EmakiDungeonPluginDelegate(this).instanceCoordinator(); }
 
-    public ChallengeService challengeService() {
-        return challenge;
-    }
+    public ChallengeService challengeService() { return new EmakiDungeonPluginDelegate(this).challengeService(); }
 
-    public PartyService partyService() {
-        return parties;
-    }
+    public PartyService partyService() { return new EmakiDungeonPluginDelegate(this).partyService(); }
 
-    public RecoveryService recoveryService() {
-        return recovery;
-    }
+    public RecoveryService recoveryService() { return new EmakiDungeonPluginDelegate(this).recoveryService(); }
 
-    public boolean runtimeInitialized() {
-        return runtimeInitialized;
-    }
+    public boolean runtimeInitialized() { return new EmakiDungeonPluginDelegate(this).runtimeInitialized(); }
 
     private void registerCommandHandler() {
         registerCommand(ROOT_COMMAND, "EmakiDungeon 命令", List.of("dungeon", "edungeon"),
@@ -802,28 +780,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     }
 
     private void dispatchTempItemGrant(DungeonInstance instance, String itemId, int amount,
-            TempItemManager tempItemManager) {
-        EmakiCoreLibApi.requireService(ExecutionDispatcher.class).runGlobal(this, () -> {
-            var world = Bukkit.getWorld(instance.instanceId());
-            if (world == null) {
-                return;
-            }
-            for (Player member : world.getPlayers()) {
-                tempItemManager.grant(instance.instanceId(), member, itemId, amount);
-            }
-        });
-    }
+            TempItemManager tempItemManager) { new EmakiDungeonPluginDelegate(this).dispatchTempItemGrant(instance, itemId, amount, tempItemManager); }
 
-    private File worldContainerOf() {
-        return Bukkit.getWorldContainer();
-    }
+    private File worldContainerOf() { return new EmakiDungeonPluginDelegate(this).worldContainerOf(); }
 
-    private static boolean foliaDetected() {
-        try {
-            Class.forName(FOLIA_MARKER, false, EmakiDungeonPlugin.class.getClassLoader());
-            return true;
-        } catch (ClassNotFoundException | LinkageError exception) {
-            return false;
-        }
-    }
+    private static boolean foliaDetected() { return EmakiDungeonPluginDelegate.foliaDetected(); }
 }

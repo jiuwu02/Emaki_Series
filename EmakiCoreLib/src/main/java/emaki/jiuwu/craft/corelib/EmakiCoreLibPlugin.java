@@ -139,19 +139,11 @@ import org.bukkit.Bukkit;
 public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry, DebugLoggerProvider {
 
     @Override
-    public Logger getLogger() {
-        return EmakiLog.of(this);
-    }
+    public Logger getLogger() { return new EmakiCoreLibPluginDelegate(this).getLogger(); }
 
-    private static final String PLUGIN_NAME = "EmakiCoreLib";
+    static final String PLUGIN_NAME = "EmakiCoreLib";
 
-    public static EmakiCoreLibPlugin lookup() {
-        Plugin plugin = Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
-        if (plugin instanceof EmakiCoreLibPlugin coreLib) {
-            return coreLib;
-        }
-        throw new IllegalStateException("插件 " + PLUGIN_NAME + " 未加载");
-    }
+    public static EmakiCoreLibPlugin lookup() { return EmakiCoreLibPluginDelegate.lookup(); }
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  ______  ______  __      __  ______
@@ -165,85 +157,83 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
     private static final int BSTATS_PLUGIN_ID = 31763;
 
     private BStatsRegistration metrics;
-    private BStatsService bStatsService;
+    BStatsService bStatsService;
 
-    private LanguageLoader languageLoader;
-    private MessageService messageService;
-    private CoreLibConfig configModel = CoreLibConfig.defaults();
-    private PerformanceMonitor performanceMonitor;
-    private AsyncTaskScheduler asyncTaskScheduler;
-    private GuiBackendRegistry guiBackendRegistry;
-    private GuiBackend guiBackend;
-    private AsyncFileService asyncFileService;
-    private AsyncYamlFiles asyncYamlFiles;
+    LanguageLoader languageLoader;
+    MessageService messageService;
+    CoreLibConfig configModel = CoreLibConfig.defaults();
+    PerformanceMonitor performanceMonitor;
+    AsyncTaskScheduler asyncTaskScheduler;
+    GuiBackendRegistry guiBackendRegistry;
+    GuiBackend guiBackend;
+    AsyncFileService asyncFileService;
+    AsyncYamlFiles asyncYamlFiles;
     CapabilityProbe platformCapabilities;
-    private ExecutionDispatcher executionDispatcher;
-    private ThreadOwnership threadOwnership;
-    private CorePluginLifecycle corePluginLifecycle;
-    private PlaceholderRegistry placeholderRegistry;
-    private EconomyManager economyManager;
-    private StageRegistry stageRegistry;
+    ExecutionDispatcher executionDispatcher;
+    ThreadOwnership threadOwnership;
+    CorePluginLifecycle corePluginLifecycle;
+    PlaceholderRegistry placeholderRegistry;
+    EconomyManager economyManager;
+    StageRegistry stageRegistry;
 
-    private final TriggerRegistry triggerRegistry = new TriggerRegistry();
+    final TriggerRegistry triggerRegistry = new TriggerRegistry();
 
-    private final AnimationRegistry animationRegistry = new AnimationRegistry();
-    private final AnimationPlaybackService animationPlaybackService =
+    final AnimationRegistry animationRegistry = new AnimationRegistry();
+    final AnimationPlaybackService animationPlaybackService =
             new AnimationPlaybackService(this, animationRegistry);
     private StageDispatcher stageDispatcher;
-    private ActionEngine actionEngine;
-    private final PipelineBatchRunner pipelineBatchRunner = new PipelineBatchRunner();
-    private PipelineTaskService pipelineTaskService;
-    private volatile ConfiguredSequenceRepository sequenceRepository = ConfiguredSequenceRepository.empty();
+    ActionEngine actionEngine;
+    final PipelineBatchRunner pipelineBatchRunner = new PipelineBatchRunner();
+    PipelineTaskService pipelineTaskService;
+    volatile ConfiguredSequenceRepository sequenceRepository = ConfiguredSequenceRepository.empty();
 
-    private final StageRebuildListeners stageRebuildListeners = new StageRebuildListeners();
+    final StageRebuildListeners stageRebuildListeners = new StageRebuildListeners();
 
-    private final CapabilityRegistry capabilityRegistry = new CapabilityRegistry();
+    final CapabilityRegistry capabilityRegistry = new CapabilityRegistry();
 
-    private final ModuleReadinessRegistry moduleReadinessRegistry = new ModuleReadinessRegistry();
+    final ModuleReadinessRegistry moduleReadinessRegistry = new ModuleReadinessRegistry();
 
-    private final TargetConditionRegistry targetConditionRegistry = new TargetConditionRegistry();
-    private final TargetIdentityRegistry targetIdentityRegistry =
+    final TargetConditionRegistry targetConditionRegistry = new TargetConditionRegistry();
+    final TargetIdentityRegistry targetIdentityRegistry =
             new TargetIdentityRegistry(this::reportTargetIdentityFailure);
 
-    private volatile boolean contentReady;
-    private ConfigPrecheckService configPrecheckService;
-    private final PdcService pdcService = new PdcService("emaki_corelib");
-    private final ItemSourceService itemSourceService = new ItemSourceService();
-    private final VanillaTranslationService vanillaTranslationService =
+    volatile boolean contentReady;
+    ConfigPrecheckService configPrecheckService;
+    final PdcService pdcService = new PdcService("emaki_corelib");
+    final ItemSourceService itemSourceService = new ItemSourceService();
+    final VanillaTranslationService vanillaTranslationService =
             new VanillaTranslationService();
-    private ConfiguredItemService configuredItemService;
-    private ItemSourceIntegrationCoordinator itemSourceIntegrationCoordinator;
-    private final EmakiNamespaceRegistry namespaceRegistry = new EmakiNamespaceRegistry();
+    ConfiguredItemService configuredItemService;
+    ItemSourceIntegrationCoordinator itemSourceIntegrationCoordinator;
+    final EmakiNamespaceRegistry namespaceRegistry = new EmakiNamespaceRegistry();
     final EmakiItemLayerCodecRegistry itemLayerCodecRegistry = new EmakiItemLayerCodecRegistry();
-    private final CraftEngineBlockBridge craftEngineBlockBridge = new CraftEngineBlockBridgeProvider(this);
-    private final CustomBlockBridge itemsAdderBlockBridge = new ItemsAdderBlockBridgeProvider(this);
-    private final CustomBlockBridge nexoBlockBridge = new NexoBlockBridgeProvider(this);
-    private final CustomBlockBridge oraxenBlockBridge = new OraxenBlockBridgeProvider(this);
-    private final MythicMobBridge mythicMobBridge = new MythicMobBridgeProvider(this);
-    private final FurnitureBridge craftEngineFurnitureBridge = new CraftEngineFurnitureBridgeProvider(this);
-    private final FurnitureBridge itemsAdderFurnitureBridge = new ItemsAdderFurnitureBridgeProvider(this);
-    private final FurnitureBridge nexoFurnitureBridge = new NexoFurnitureBridgeProvider(this);
-    private final FurnitureBridge oraxenFurnitureBridge = new OraxenFurnitureBridgeProvider(this);
-    private FurnitureEventRelay furnitureEventRelay;
-    private EmakiItemAssemblyService itemAssemblyService;
-    private final EmakiEventBus eventBus
+    final CraftEngineBlockBridge craftEngineBlockBridge = new CraftEngineBlockBridgeProvider(this);
+    final CustomBlockBridge itemsAdderBlockBridge = new ItemsAdderBlockBridgeProvider(this);
+    final CustomBlockBridge nexoBlockBridge = new NexoBlockBridgeProvider(this);
+    final CustomBlockBridge oraxenBlockBridge = new OraxenBlockBridgeProvider(this);
+    final MythicMobBridge mythicMobBridge = new MythicMobBridgeProvider(this);
+    final FurnitureBridge craftEngineFurnitureBridge = new CraftEngineFurnitureBridgeProvider(this);
+    final FurnitureBridge itemsAdderFurnitureBridge = new ItemsAdderFurnitureBridgeProvider(this);
+    final FurnitureBridge nexoFurnitureBridge = new NexoFurnitureBridgeProvider(this);
+    final FurnitureBridge oraxenFurnitureBridge = new OraxenFurnitureBridgeProvider(this);
+    FurnitureEventRelay furnitureEventRelay;
+    EmakiItemAssemblyService itemAssemblyService;
+     final EmakiEventBus eventBus
             = new EmakiEventBus();
-    private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
-    private DebugLogger debugLogger;
-    private CoreLibCommandRouter commandRouter;
-    private DefaultEmakiCoreLibApi coreLibApiBridge;
-    private CoreLibScriptsCoordinator scriptsCoordinator;
-    private DialogService dialogService;
-    private CoreLibDialogs dialogApiBridge;
-    private TextDisplayService textDisplayService;
-    private ItemDisplayService itemDisplayService;
-    private volatile CompletionStage<Void> guiShutdownStage;
+    final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
+    DebugLogger debugLogger;
+    CoreLibCommandRouter commandRouter;
+    DefaultEmakiCoreLibApi coreLibApiBridge;
+    CoreLibScriptsCoordinator scriptsCoordinator;
+    DialogService dialogService;
+    CoreLibDialogs dialogApiBridge;
+    TextDisplayService textDisplayService;
+    ItemDisplayService itemDisplayService;
+    volatile CompletionStage<Void> guiShutdownStage;
     private GameplayEventPublisher gameplayEventPublisher;
 
     @Override
-    public void onLoad() {
-
-    }
+    public void onLoad() { new EmakiCoreLibPluginDelegate(this).onLoad(); }
 
     @Override
     public void onEnable() {
@@ -344,49 +334,15 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         });
     }
 
-    private void shutdownBukkitComponents() {
-        runShutdownStep("物品来源集成", () -> {
-            if (itemSourceIntegrationCoordinator != null) {
-                itemSourceIntegrationCoordinator.closeAfterBukkitUnregister();
-                itemSourceIntegrationCoordinator = null;
-            }
-        });
-        runShutdownStep("文本展示", () -> {
-            if (textDisplayService != null) {
-                textDisplayService.shutdown();
-                textDisplayService = null;
-            }
-        });
-        runShutdownStep("物品展示", () -> {
-            if (itemDisplayService != null) {
-                itemDisplayService.shutdown();
-                itemDisplayService = null;
-            }
-        });
-        runShutdownStep("菜单后端", () -> {
-            if (guiBackendRegistry != null) {
-                guiShutdownStage = guiBackendRegistry.shutdownAllAsync();
-            }
-        });
-    }
+    private void shutdownBukkitComponents() { new EmakiCoreLibPluginDelegate(this).shutdownBukkitComponents(); }
 
     @Override
-    public MessageService messageService() {
-        return messageService;
-    }
+    public MessageService messageService() { return new EmakiCoreLibPluginDelegate(this).messageService(); }
 
     @Override
-    public <T> T getService(Class<T> type) {
-        if (type == null) {
-            return null;
-        }
-        Object service = serviceRegistry.get(type);
-        return type.isInstance(service) ? type.cast(service) : null;
-    }
+    public <T> T getService(Class<T> type) { return new EmakiCoreLibPluginDelegate(this).getService(type); }
 
-    public LanguageLoader languageLoader() {
-        return languageLoader;
-    }
+    public LanguageLoader languageLoader() { return new EmakiCoreLibPluginDelegate(this).languageLoader(); }
 
     public boolean reloadActionSystem() {
         CoreLibConfig candidateConfig = loadConfigModel();
@@ -550,131 +506,29 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         replayStageRegistrations();
     }
 
-    private Map<String, String> validatedAliases(Map<String, String> declared) {
-        if (declared == null || declared.isEmpty()) {
-            return Map.of();
-        }
-        Map<String, String> accepted = new LinkedHashMap<>();
-        for (Map.Entry<String, String> entry : declared.entrySet()) {
-            String name = entry.getKey();
-            CoreStageKind kind = stageRegistry == null ? null : stageRegistry.kindOf(name);
-            if (kind != null) {
-                getLogger().warning("[pipeline] 动作别名 '" + name
-                        + "' 与已注册段 id 同名，已忽略该别名以免静默遮蔽原段");
-                continue;
-            }
-            accepted.put(name, entry.getValue());
-        }
-        return accepted.isEmpty() ? Map.of() : Map.copyOf(accepted);
-    }
+    private Map<String, String> validatedAliases(Map<String, String> declared) { return new EmakiCoreLibPluginDelegate(this).validatedAliases(declared); }
 
-    private void replayStageRegistrations() {
-        if (stageRebuildListeners.size() == 0) {
-            return;
-        }
-        int replayed = stageRebuildListeners.notifyRebuilt(failure -> getLogger().warning(
-                "[pipeline] 段重新注册失败，插件 " + failure.owner() + ": " + failure.error()));
-        getLogger().info("[pipeline] 已重放管道段注册，共 " + replayed + " 个插件");
-    }
+    private void replayStageRegistrations() { new EmakiCoreLibPluginDelegate(this).replayStageRegistrations(); }
 
-    private void loadScriptsSafely() {
-        try {
-            if (scriptsCoordinator == null) {
-                scriptsCoordinator = new CoreLibScriptsCoordinator(this);
-            }
-            scriptsCoordinator.loadFromConfig();
-        } catch (Throwable throwable) {
-            scriptsCoordinator = null;
-            warnScriptsUnavailable(throwable);
-        }
-    }
+    private void loadScriptsSafely() { new EmakiCoreLibPluginDelegate(this).loadScriptsSafely(); }
 
-    private void closeScriptsSafely() {
-        CoreLibScriptsCoordinator coordinator = scriptsCoordinator;
-        scriptsCoordinator = null;
-        if (coordinator == null) {
-            return;
-        }
-        try {
-            coordinator.close();
-        } catch (Throwable throwable) {
-            warnScriptsUnavailable(throwable);
-        }
-    }
+    private void closeScriptsSafely() { new EmakiCoreLibPluginDelegate(this).closeScriptsSafely(); }
 
-    private void warnScriptsUnavailable(Throwable throwable) {
-        String reason = throwable.getMessage();
-        String detail = throwable.getClass().getSimpleName()
-                + (reason == null || reason.isBlank() ? "" : (": " + reason));
-        if (messageService != null) {
-            messageService.warning("console.scripts.engine_unavailable", Map.of("reason", detail));
-            return;
-        }
-        getLogger().warning("[script] 脚本扩展不可用: " + throwable);
-    }
+    void warnScriptsUnavailable(Throwable throwable) { new EmakiCoreLibPluginDelegate(this).warnScriptsUnavailable(throwable); }
 
-    private void logPrecheckReport(ConfigPrecheckReport report) {
-        ConfigPrecheckMessages.logReport(messageService, "corelib", report);
-    }
+    private void logPrecheckReport(ConfigPrecheckReport report) { new EmakiCoreLibPluginDelegate(this).logPrecheckReport(report); }
 
-    private void registerPublicApiService() {
-        if (coreLibApiBridge == null) {
-            coreLibApiBridge = new DefaultEmakiCoreLibApi(this);
-        }
-        if (dialogService != null) {
-            if (dialogApiBridge == null) {
-                dialogApiBridge = new DialogApiBridge(dialogService);
-            }
-            coreLibApiBridge.installDialogs(dialogApiBridge);
-        }
-        EmakiCoreLibApi.install(coreLibApiBridge);
-    }
+    private void registerPublicApiService() { new EmakiCoreLibPluginDelegate(this).registerPublicApiService(); }
 
-    private void publishOwnCapabilities() {
-        CapabilityRegistration registration = capabilityRegistry.publish(
-                this,
-                Set.of(ApiCapability.of("emakicorelib:itemsource_registry"))
-        );
-        if (!registration.successful()) {
-            getLogger().warning("[startup] 发布自身能力失败: " + registration.reasonKey());
-        }
-    }
+    private void publishOwnCapabilities() { new EmakiCoreLibPluginDelegate(this).publishOwnCapabilities(); }
 
-    public BStatsRegistration registerBStats(JavaPlugin plugin, int pluginId) {
-        if (bStatsService == null) {
-            return BStatsRegistration.noop(plugin, pluginId);
-        }
-        return bStatsService.register(plugin, pluginId);
-    }
+    public BStatsRegistration registerBStats(JavaPlugin plugin, int pluginId) { return new EmakiCoreLibPluginDelegate(this).registerBStats(plugin, pluginId); }
 
-    private void logStartupAudit() {
-        if (economyManager == null) {
-            return;
-        }
-        for (String providerId : economyManager.availableProviderIds()) {
-            messageService.info("console.economy_bridge_ready", Map.of("provider", providerId));
-        }
-        for (String blockProvider : new String[]{"CraftEngine", "ItemsAdder", "Nexo", "Oraxen"}) {
-            if (getServer().getPluginManager().isPluginEnabled(blockProvider)) {
-                messageService.info("console.block_source_bridge_ready", Map.of("provider", blockProvider));
-            }
-        }
-    }
+    private void logStartupAudit() { new EmakiCoreLibPluginDelegate(this).logStartupAudit(); }
 
-    public Path dataPath(String first, String... more) {
-        return getDataFolder().toPath().resolve(Path.of(first, more));
-    }
+    public Path dataPath(String first, String... more) { return new EmakiCoreLibPluginDelegate(this).dataPath(first, more); }
 
-    private void registerCommandHandler() {
-        commandRouter = new CoreLibCommandRouter(this, executionDispatcher);
-
-        registerCommand(
-                "emakicorelib",
-                "EmakiCoreLib 命令",
-                List.of("corelib", "emakicore"),
-                new CoreLibBasicCommand(commandRouter)
-        );
-    }
+    private void registerCommandHandler() { new EmakiCoreLibPluginDelegate(this).registerCommandHandler(); }
 
     CompletionStage<Void> finalizeCoreRuntimeAsync() {
         CompletionStage<Void> guiShutdown = guiShutdownStage;
@@ -716,13 +570,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         });
     }
 
-    private void runShutdownStep(String name, Runnable step) {
-        try {
-            step.run();
-        } catch (Throwable throwable) {
-            getLogger().warning("[shutdown] " + name + " 关闭失败: " + AsyncFailures.describe(throwable));
-        }
-    }
+    void runShutdownStep(String name, Runnable step) { new EmakiCoreLibPluginDelegate(this).runShutdownStep(name, step); }
 
     private void initializeServices() {
         CoreLibRuntimeComponents components = new CoreLibLifecycleCoordinator().initialize(this);
@@ -749,144 +597,47 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         refreshServiceRegistry();
     }
 
-    private void ensureBundledFile(String relativePath) {
-        File target = new File(getDataFolder(), relativePath);
-        try {
-            boolean copied = YamlFiles.copyResourceIfMissing(this, relativePath, target);
-            if (!copied && !target.exists()) {
-                if (messageService != null) {
-                    messageService.warning("loader.bundled_resource_missing", Map.of(
-                            "type", "资源",
-                            "path", target.getPath(),
-                            "resource", relativePath
-                    ));
-                } else {
-                    getLogger().warning("[loader] 内置资源缺失: " + relativePath);
-                }
-            }
-        } catch (Exception exception) {
-            if (messageService != null) {
-                messageService.warning("loader.bundled_resource_write_failed", Map.of(
-                        "path", target.getPath(),
-                        "error", String.valueOf(exception.getMessage())
-                ));
-            } else {
-                getLogger().warning("[loader] 写入内置资源失败 " + relativePath + ": " + exception.getMessage());
-            }
-        }
-    }
+    private void ensureBundledFile(String relativePath) { new EmakiCoreLibPluginDelegate(this).ensureBundledFile(relativePath); }
 
-    private CoreLibConfig loadConfigModel() {
-        try {
-            File file = new File(getDataFolder(), "config.yml");
-            VersionedYamlFile versionedFile = YamlFiles.pollStartupCache(file);
-            if (versionedFile == null) {
-                versionedFile = YamlFiles.syncVersionedResource(
-                        this,
-                        file,
-                        "config.yml",
-                        "version"
-                );
-            }
-            logVersionUpdate("config.yml", versionedFile);
-            return CoreLibConfig.fromConfig(versionedFile == null ? YamlFiles.load(file) : versionedFile.root());
-        } catch (Exception exception) {
-            if (messageService != null) {
-                messageService.warning("console.action_config_load_failed", Map.of(
-                        "error", String.valueOf(exception.getMessage())
-                ));
-            } else {
-                getLogger().warning("[config] 加载 CoreLib 配置失败: " + exception.getMessage());
-            }
-            return CoreLibConfig.defaults();
-        }
-    }
+    private CoreLibConfig loadConfigModel() { return new EmakiCoreLibPluginDelegate(this).loadConfigModel(); }
 
-    private void logVersionUpdate(String relativePath, VersionedYamlFile versionedFile) {
-        if (versionedFile == null || !versionedFile.versionUpdated()) {
-            return;
-        }
-        if (messageService != null) {
-            messageService.info("console.versioned_file_updated", Map.of(
-                    "path", relativePath,
-                    "old_version", versionedFile.previousVersion().isBlank() ? "未知" : versionedFile.previousVersion(),
-                    "new_version", versionedFile.updatedVersion()
-            ));
-        } else {
-            getLogger().info("[config] 已更新内置文件版本: " + relativePath + " ("
-                    + (versionedFile.previousVersion().isBlank() ? "未知" : versionedFile.previousVersion())
-                    + " -> " + versionedFile.updatedVersion() + ")");
-        }
-    }
+    void logVersionUpdate(String relativePath, VersionedYamlFile versionedFile) { new EmakiCoreLibPluginDelegate(this).logVersionUpdate(relativePath, versionedFile); }
 
-    public DialogService dialogService() {
-        return dialogService;
-    }
+    public DialogService dialogService() { return new EmakiCoreLibPluginDelegate(this).dialogService(); }
 
-    public TextDisplayService textDisplayService() {
-        return textDisplayService;
-    }
+    public TextDisplayService textDisplayService() { return new EmakiCoreLibPluginDelegate(this).textDisplayService(); }
 
-    public CoreLibConfig configModel() {
-        return configModel;
-    }
+    public CoreLibConfig configModel() { return new EmakiCoreLibPluginDelegate(this).configModel(); }
 
-    public EmakiEventBus eventBus() {
-        return eventBus;
-    }
+    public EmakiEventBus eventBus() { return new EmakiCoreLibPluginDelegate(this).eventBus(); }
 
-    public PlaceholderRegistry placeholderRegistry() {
-        return placeholderRegistry;
-    }
+    public PlaceholderRegistry placeholderRegistry() { return new EmakiCoreLibPluginDelegate(this).placeholderRegistry(); }
 
-    public EconomyManager economyManager() {
-        return economyManager;
-    }
+    public EconomyManager economyManager() { return new EmakiCoreLibPluginDelegate(this).economyManager(); }
 
-    public StageRegistry stageRegistry() {
-        return stageRegistry;
-    }
+    public StageRegistry stageRegistry() { return new EmakiCoreLibPluginDelegate(this).stageRegistry(); }
 
-    public TriggerRegistry triggerRegistry() {
-        return triggerRegistry;
-    }
+    public TriggerRegistry triggerRegistry() { return new EmakiCoreLibPluginDelegate(this).triggerRegistry(); }
 
-    public StageRebuildListeners stageRebuildListeners() {
-        return stageRebuildListeners;
-    }
+    public StageRebuildListeners stageRebuildListeners() { return new EmakiCoreLibPluginDelegate(this).stageRebuildListeners(); }
 
-    public CapabilityRegistry capabilityRegistry() {
-        return capabilityRegistry;
-    }
+    public CapabilityRegistry capabilityRegistry() { return new EmakiCoreLibPluginDelegate(this).capabilityRegistry(); }
 
-    public ModuleReadinessRegistry moduleReadinessRegistry() {
-        return moduleReadinessRegistry;
-    }
+    public ModuleReadinessRegistry moduleReadinessRegistry() { return new EmakiCoreLibPluginDelegate(this).moduleReadinessRegistry(); }
 
-    public TargetConditionRegistry targetConditionRegistry() {
-        return targetConditionRegistry;
-    }
+    public TargetConditionRegistry targetConditionRegistry() { return new EmakiCoreLibPluginDelegate(this).targetConditionRegistry(); }
 
-    public TargetIdentityRegistry targetIdentityRegistry() {
-        return targetIdentityRegistry;
-    }
+    public TargetIdentityRegistry targetIdentityRegistry() { return new EmakiCoreLibPluginDelegate(this).targetIdentityRegistry(); }
 
-    private void reportTargetIdentityFailure(String message) {
-        getLogger().warning("[integration] " + message);
-    }
+    private void reportTargetIdentityFailure(String message) { new EmakiCoreLibPluginDelegate(this).reportTargetIdentityFailure(message); }
 
-    public boolean contentReady() {
-        return contentReady;
-    }
+    public boolean contentReady() { return new EmakiCoreLibPluginDelegate(this).contentReady(); }
 
     public void markModuleReady(String moduleName) {
         moduleReadinessRegistry.markReady(moduleName, this::logReadinessFailure);
     }
 
-    private void logReadinessFailure(ModuleReadinessRegistry.Failure failure) {
-        getLogger().warning("[startup] 就绪回调失败，插件 " + failure.owner()
-                + " 正在等待 " + failure.moduleName() + ": " + failure.error());
-    }
+    private void logReadinessFailure(ModuleReadinessRegistry.Failure failure) { new EmakiCoreLibPluginDelegate(this).logReadinessFailure(failure); }
 
     public void markModuleLoading(String moduleName) {
         moduleReadinessRegistry.markLoading(moduleName, this::logReadinessFailure);
@@ -896,9 +647,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         moduleReadinessRegistry.markAbsent(moduleName, this::logReadinessFailure);
     }
 
-    public ActionEngine actionEngine() {
-        return actionEngine;
-    }
+    public ActionEngine actionEngine() { return new EmakiCoreLibPluginDelegate(this).actionEngine(); }
 
     public ActionLineRunner actionLineRunner(Plugin moduleOwner) {
         Plugin resolved = moduleOwner == null ? this : moduleOwner;
@@ -907,69 +656,21 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                 diagnostic -> messageService().renderDiagnostic(diagnostic));
     }
 
-    public PipelineTaskService pipelineTaskService() {
-        return pipelineTaskService;
-    }
+    public PipelineTaskService pipelineTaskService() { return new EmakiCoreLibPluginDelegate(this).pipelineTaskService(); }
 
-    public AnimationRegistry animationRegistry() {
-        return animationRegistry;
-    }
+    public AnimationRegistry animationRegistry() { return new EmakiCoreLibPluginDelegate(this).animationRegistry(); }
 
-    public AnimationPlaybackService animationPlaybackService() {
-        return animationPlaybackService;
-    }
+    public AnimationPlaybackService animationPlaybackService() { return new EmakiCoreLibPluginDelegate(this).animationPlaybackService(); }
 
-    private void buildSequenceRepository() {
-        pipelineBatchRunner.invalidate();
-        ActionEngine engine = actionEngine;
-        if (engine == null) {
-            sequenceRepository = ConfiguredSequenceRepository.empty();
-            return;
-        }
-        sequenceRepository = ConfiguredSequenceRepository.build(configModel.actionTemplates(),
-                (sequence, line, catalog) -> {
-                    ActionEngine.Result result = engine.compile(line, null);
-                    if (result.successful()) {
-                        return result.pipeline();
-                    }
-                    String reason = result.diagnostics().isEmpty()
-                            ? "未通过编译"
-                            : messageService().renderFirstDiagnostic(result.diagnostics());
-                    getLogger().warning("[pipeline] 序列 '" + sequence + "' 的行被拒绝: " + reason
-                            + " <- " + line);
-                    return null;
-                });
-        List<String> failed = sequenceRepository.failed();
-        if (!failed.isEmpty()) {
-            getLogger().warning("[pipeline] 序列不可用，因为某行未通过编译: " + failed);
-        }
-        if (pipelineTaskService != null) {
-            CoreLibConfig.LoopConfig loop = configModel.loopConfig();
-            pipelineTaskService.configure(new PipelineTaskService.Limits(
-                    configModel.pipelineConfig().maxRepeatTimes(),
-                    loop == null ? 1L : Math.max(1L, loop.minSyncIntervalTicks()),
-                    loop == null ? 200 : loop.maxActiveLoopsTotal(),
-                    loop == null ? 10 : loop.maxActiveLoopsPerPlayer(),
-                    loop == null ? 100 : loop.maxActiveLoopsPerPlugin(),
-                    loop == null || loop.cancelPlayerLoopsOnQuit()));
-        }
-    }
+    private void buildSequenceRepository() { new EmakiCoreLibPluginDelegate(this).buildSequenceRepository(); }
 
-    public ConfigPrecheckService configPrecheckService() {
-        return configPrecheckService;
-    }
+    public ConfigPrecheckService configPrecheckService() { return new EmakiCoreLibPluginDelegate(this).configPrecheckService(); }
 
-    public AsyncTaskScheduler asyncTaskScheduler() {
-        return asyncTaskScheduler;
-    }
+    public AsyncTaskScheduler asyncTaskScheduler() { return new EmakiCoreLibPluginDelegate(this).asyncTaskScheduler(); }
 
-    public PerformanceMonitor performanceMonitor() {
-        return performanceMonitor;
-    }
+    public PerformanceMonitor performanceMonitor() { return new EmakiCoreLibPluginDelegate(this).performanceMonitor(); }
 
-    public GuiBackend guiBackend() {
-        return guiBackend;
-    }
+    public GuiBackend guiBackend() { return new EmakiCoreLibPluginDelegate(this).guiBackend(); }
 
     private void installPacketBackend() {
         if (guiBackendRegistry == null) {
@@ -992,144 +693,58 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         getLogger().info("[gui] PacketEvents 尚未启用；在其启用后会自动注册 packet GUI 后端");
     }
 
-    private void registerPacketBackend() {
-        try {
-            PacketBackendInstaller.install(this, guiBackendRegistry, executionDispatcher);
-        } catch (LinkageError | RuntimeException exception) {
-            getLogger().warning("[gui] 注册 packet GUI 后端失败: " + exception.getMessage()
-                    + "，EmakiCoreLib 将使用 Bukkit(实体)后端");
-        }
-    }
+    private void registerPacketBackend() { new EmakiCoreLibPluginDelegate(this).registerPacketBackend(); }
 
-    public AsyncYamlFiles asyncYamlFiles() {
-        return asyncYamlFiles;
-    }
+    public AsyncYamlFiles asyncYamlFiles() { return new EmakiCoreLibPluginDelegate(this).asyncYamlFiles(); }
 
-    public AsyncYamlFiles asyncYamlFiles(Plugin owner) {
-        if (asyncFileService == null) {
-            throw new IllegalStateException("异步文件服务不可用");
-        }
-        String ownerName = owner == null ? "anonymous" : owner.getName();
-        return new AsyncYamlFiles(asyncFileService.openScope(ownerName));
-    }
+    public AsyncYamlFiles asyncYamlFiles(Plugin owner) { return new EmakiCoreLibPluginDelegate(this).asyncYamlFiles(owner); }
 
-    public AsyncFileService.FileScope asyncFileScope(Plugin owner) {
-        if (asyncFileService == null) {
-            throw new IllegalStateException("异步文件服务不可用");
-        }
-        String ownerName = owner == null ? "anonymous" : owner.getName();
-        return asyncFileService.openScope(ownerName);
-    }
+    public AsyncFileService.FileScope asyncFileScope(Plugin owner) { return new EmakiCoreLibPluginDelegate(this).asyncFileScope(owner); }
 
-    public ExecutionDispatcher executionDispatcher() {
-        return executionDispatcher;
-    }
+    public ExecutionDispatcher executionDispatcher() { return new EmakiCoreLibPluginDelegate(this).executionDispatcher(); }
 
-    public ThreadOwnership threadOwnership() {
-        return threadOwnership;
-    }
+    public ThreadOwnership threadOwnership() { return new EmakiCoreLibPluginDelegate(this).threadOwnership(); }
 
-    public boolean registerDependentShutdown(String ownerKey, CompletionStage<?> shutdown) {
-        CorePluginLifecycle lifecycle = corePluginLifecycle;
-        return lifecycle != null && lifecycle.registerDependentShutdown(ownerKey, shutdown);
-    }
+    public boolean registerDependentShutdown(String ownerKey, CompletionStage<?> shutdown) { return new EmakiCoreLibPluginDelegate(this).registerDependentShutdown(ownerKey, shutdown); }
 
-    public boolean registerDependentShutdownFuture(String ownerKey, Future<?> shutdown) {
-        CorePluginLifecycle lifecycle = corePluginLifecycle;
-        return lifecycle != null && lifecycle.registerDependentShutdownFuture(ownerKey, shutdown);
-    }
+    public boolean registerDependentShutdownFuture(String ownerKey, Future<?> shutdown) { return new EmakiCoreLibPluginDelegate(this).registerDependentShutdownFuture(ownerKey, shutdown); }
 
-    public PdcService pdcService() {
-        return pdcService;
-    }
+    public PdcService pdcService() { return new EmakiCoreLibPluginDelegate(this).pdcService(); }
 
-    public VanillaTranslationService vanillaTranslationService() {
-        return vanillaTranslationService;
-    }
+    public VanillaTranslationService vanillaTranslationService() { return new EmakiCoreLibPluginDelegate(this).vanillaTranslationService(); }
 
-    void loadVanillaLanguageTableAsync(AsyncTaskScheduler scheduler) {
-        CoreLibConfig currentConfig = configModel == null ? CoreLibConfig.defaults() : configModel;
-        CoreLibConfig.VanillaLanguageConfig languageConfig = currentConfig.vanillaLanguageConfig();
-        if (languageConfig == null || !languageConfig.enabled()) {
-            return;
-        }
-        String locale = languageConfig.locale();
-        String minecraftVersion = MinecraftServerVersions.currentServerVersion().trim();
-        Path cacheDirectory = getDataFolder().toPath().resolve("lang-cache");
-        scheduler.runAsync("corelib-vanilla-language", () -> {
-            VanillaLanguageDownloader downloader =
-                    new VanillaLanguageDownloader(getLogger(), cacheDirectory);
-            Map<String, String> table = downloader.load(minecraftVersion, locale);
-            if (table.isEmpty()) {
-                getLogger().info("[text] 原版语言表('" + locale
-                        + "')不可用；需要本地化原版名称的功能将保持禁用");
-                return;
-            }
-            vanillaTranslationService.install(table);
-            getLogger().info("[text] 已加载 " + table.size() + " 条原版翻译，语言 '" + locale + "'");
-        });
-    }
+    void loadVanillaLanguageTableAsync(AsyncTaskScheduler scheduler) { new EmakiCoreLibPluginDelegate(this).loadVanillaLanguageTableAsync(scheduler); }
 
-    public ItemSourceService itemSourceService() {
-        return itemSourceService;
-    }
+    public ItemSourceService itemSourceService() { return new EmakiCoreLibPluginDelegate(this).itemSourceService(); }
 
-    public ConfiguredItemService configuredItemService() {
-        return configuredItemService;
-    }
+    public ConfiguredItemService configuredItemService() { return new EmakiCoreLibPluginDelegate(this).configuredItemService(); }
 
-    public EmakiNamespaceRegistry namespaceRegistry() {
-        return namespaceRegistry;
-    }
+    public EmakiNamespaceRegistry namespaceRegistry() { return new EmakiCoreLibPluginDelegate(this).namespaceRegistry(); }
 
-    public EmakiItemAssemblyService itemAssemblyService() {
-        return itemAssemblyService;
-    }
+    public EmakiItemAssemblyService itemAssemblyService() { return new EmakiCoreLibPluginDelegate(this).itemAssemblyService(); }
 
-    public CraftEngineBlockBridge craftEngineBlockBridge() {
-        return craftEngineBlockBridge;
-    }
+    public CraftEngineBlockBridge craftEngineBlockBridge() { return new EmakiCoreLibPluginDelegate(this).craftEngineBlockBridge(); }
 
-    public CustomBlockBridge itemsAdderBlockBridge() {
-        return itemsAdderBlockBridge;
-    }
+    public CustomBlockBridge itemsAdderBlockBridge() { return new EmakiCoreLibPluginDelegate(this).itemsAdderBlockBridge(); }
 
-    public CustomBlockBridge nexoBlockBridge() {
-        return nexoBlockBridge;
-    }
+    public CustomBlockBridge nexoBlockBridge() { return new EmakiCoreLibPluginDelegate(this).nexoBlockBridge(); }
 
-    public MythicMobBridge mythicMobBridge() {
-        return mythicMobBridge;
-    }
+    public MythicMobBridge mythicMobBridge() { return new EmakiCoreLibPluginDelegate(this).mythicMobBridge(); }
 
-    public CustomBlockBridge oraxenBlockBridge() {
-        return oraxenBlockBridge;
-    }
+    public CustomBlockBridge oraxenBlockBridge() { return new EmakiCoreLibPluginDelegate(this).oraxenBlockBridge(); }
 
-    public FurnitureBridge craftEngineFurnitureBridge() {
-        return craftEngineFurnitureBridge;
-    }
+    public FurnitureBridge craftEngineFurnitureBridge() { return new EmakiCoreLibPluginDelegate(this).craftEngineFurnitureBridge(); }
 
-    public FurnitureBridge itemsAdderFurnitureBridge() {
-        return itemsAdderFurnitureBridge;
-    }
+    public FurnitureBridge itemsAdderFurnitureBridge() { return new EmakiCoreLibPluginDelegate(this).itemsAdderFurnitureBridge(); }
 
-    public FurnitureBridge nexoFurnitureBridge() {
-        return nexoFurnitureBridge;
-    }
+    public FurnitureBridge nexoFurnitureBridge() { return new EmakiCoreLibPluginDelegate(this).nexoFurnitureBridge(); }
 
-    public FurnitureBridge oraxenFurnitureBridge() {
-        return oraxenFurnitureBridge;
-    }
+    public FurnitureBridge oraxenFurnitureBridge() { return new EmakiCoreLibPluginDelegate(this).oraxenFurnitureBridge(); }
 
-    public FurnitureEventRelay furnitureEventRelay() {
-        return furnitureEventRelay;
-    }
+    public FurnitureEventRelay furnitureEventRelay() { return new EmakiCoreLibPluginDelegate(this).furnitureEventRelay(); }
 
     @Override
-    public DebugLogger debugLogger() {
-        return debugLogger;
-    }
+    public DebugLogger debugLogger() { return new EmakiCoreLibPluginDelegate(this).debugLogger(); }
 
     private void refreshServiceRegistry() {
         serviceRegistry.clear();
@@ -1171,9 +786,5 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         registerService(EmakiCoreLibPlugin.class, this);
     }
 
-    private <T> void registerService(Class<T> type, T service) {
-        if (service != null) {
-            serviceRegistry.put(type, service);
-        }
-    }
+    private <T> void registerService(Class<T> type, T service) { new EmakiCoreLibPluginDelegate(this).registerService(type, service); }
 }

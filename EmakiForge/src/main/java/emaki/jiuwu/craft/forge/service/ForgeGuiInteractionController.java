@@ -31,12 +31,12 @@ import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 final class ForgeGuiInteractionController {
 
-    private final EmakiForgePlugin plugin;
-    private final GuiStateManager stateManager;
-    private final ForgeGuiStateSupport stateSupport;
+    final EmakiForgePlugin plugin;
+    final GuiStateManager stateManager;
+    final ForgeGuiStateSupport stateSupport;
     private final ForgeGuiRenderer renderer;
     private final ExecutionDispatcher executionDispatcher;
-    private final ThreadOwnership threadOwnership;
+    final ThreadOwnership threadOwnership;
 
     ForgeGuiInteractionController(EmakiForgePlugin plugin,
             GuiStateManager stateManager,
@@ -109,19 +109,7 @@ final class ForgeGuiInteractionController {
                 "item", describe(itemStack)));
     }
 
-    private void handleBlueprintClick(GuiClickContext click, ForgeGuiSession state, int slot) {
-        handleMappedSlotClick(
-                click,
-                state,
-                slot,
-                "blueprint_inputs",
-                state.blueprintItems(),
-                itemStack -> stateSupport.acceptsBlueprint(
-                        state,
-                        itemStack,
-                        state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack))
-        );
-    }
+    private void handleBlueprintClick(GuiClickContext click, ForgeGuiSession state, int slot) { new ForgeGuiInteractionControllerDelegate(this).handleBlueprintClick(click, state, slot); }
 
     private void handleMaterialClick(GuiClickContext click, ForgeGuiSession state, int slot, boolean required) {
         ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
@@ -146,7 +134,7 @@ final class ForgeGuiInteractionController {
         );
     }
 
-    private void handleMappedSlotClick(GuiClickContext click,
+    void handleMappedSlotClick(GuiClickContext click,
             ForgeGuiSession state,
             int slot,
             String slotType,
@@ -490,18 +478,7 @@ final class ForgeGuiInteractionController {
         fireForgeCompleted(state.player(), activeRecipe, result, true);
     }
 
-    private void fireForgeCompleted(Player player, Recipe recipe, ForgeResult result, boolean success) {
-        if (player == null || recipe == null || threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
-            return;
-        }
-        Bukkit.getPluginManager().callEvent(new ForgeCompletedEvent(
-                player,
-                recipe.id(),
-                success,
-                result == null ? null : result.resultItem(),
-                result == null ? null : result.quality(),
-                result == null ? 1D : result.multiplier()));
-    }
+    private void fireForgeCompleted(Player player, Recipe recipe, ForgeResult result, boolean success) { new ForgeGuiInteractionControllerDelegate(this).fireForgeCompleted(player, recipe, result, success); }
 
     private void handleSingleSlotDrag(GuiDragContext drag, ForgeGuiSession state) {
         if (drag == null || state == null || state.guiSession() == null) {
@@ -650,75 +627,17 @@ final class ForgeGuiInteractionController {
                 "关闭时输入结算失败");
     }
 
-    void handleShutdownClosureFailure(ForgeGuiSession state, String reason) {
-        if (state == null) {
-            return;
-        }
-        if (state.processing()) {
-            recordSettlementFailure(state, reason + "；被跟踪的处理完成仍保留结算所有权");
-            return;
-        }
-        abandonRetiredSession(state, reason);
-    }
+    void handleShutdownClosureFailure(ForgeGuiSession state, String reason) { new ForgeGuiInteractionControllerDelegate(this).handleShutdownClosureFailure(state, reason); }
 
-    void abandonRetiredSession(ForgeGuiSession state, String reason) {
-        if (state == null || state.settlementCommitted()) {
-            return;
-        }
-        recordSettlementFailure(state, state.processing()
-                ? reason + "；处理完成仍持有未解决结算"
-                : reason + "；未解决物品仍为所有者线程重试保留");
-    }
+    void abandonRetiredSession(ForgeGuiSession state, String reason) { new ForgeGuiInteractionControllerDelegate(this).abandonRetiredSession(state, reason); }
 
-    private void runTerminalSettlement(ForgeGuiSession state, Runnable settlement, String failureReason) {
-        boolean committed = false;
-        try {
-            if (settlement != null) {
-                settlement.run();
-            }
-            if (state == null || !state.commitSettlement()) {
-                throw new IllegalStateException("无法提交锻造结算预留。");
-            }
-            committed = true;
-        } catch (Throwable throwable) {
-            if (state != null) {
-                state.releaseSettlement();
-            }
-            try {
-                recordSettlementFailure(state, failureReason + ": " + Texts.toStringSafe(throwable.getMessage()));
-            } catch (Throwable ignored) {
-                FailureRecorder.recordIgnoredFailure("EmakiForge", "ForgeGuiInteractionController.java#1", ignored);
-            }
-        } finally {
-            if (state != null) {
-                state.setProcessing(false);
-                if (committed) {
-                    stateManager.remove(state);
-                }
-            }
-        }
-    }
+    private void runTerminalSettlement(ForgeGuiSession state, Runnable settlement, String failureReason) { new ForgeGuiInteractionControllerDelegate(this).runTerminalSettlement(state, settlement, failureReason); }
 
-    private void settleCommittedDelivery(ForgeGuiSession state, Recipe activeRecipe) {
-        if (state == null) {
-            return;
-        }
-        if (activeRecipe != null) {
-            stateSupport.returnUnusedInputs(state, activeRecipe);
-        }
-        state.clearStoredItems();
-    }
+    private void settleCommittedDelivery(ForgeGuiSession state, Recipe activeRecipe) { new ForgeGuiInteractionControllerDelegate(this).settleCommittedDelivery(state, activeRecipe); }
 
-    private void settleInputs(ForgeGuiSession state, Recipe activeRecipe, ForgeResult result) {
-        if (result != null && result.success() && activeRecipe != null) {
-            stateSupport.returnUnusedInputs(state, activeRecipe);
-            state.clearStoredItems();
-            return;
-        }
-        stateSupport.returnItems(state);
-    }
+    private void settleInputs(ForgeGuiSession state, Recipe activeRecipe, ForgeResult result) { new ForgeGuiInteractionControllerDelegate(this).settleInputs(state, activeRecipe, result); }
 
-    private void recordSettlementFailure(ForgeGuiSession state, String reason) {
+    void recordSettlementFailure(ForgeGuiSession state, String reason) {
         plugin.runtimeMetrics().recordGuiSettlementFailure();
         String playerId = state == null || state.playerId() == null
                 ? "unknown"
@@ -727,65 +646,23 @@ final class ForgeGuiInteractionController {
                 + playerId + " reason=" + Texts.toStringSafe(reason));
     }
 
-    private void returnFailedAttempt(ForgeGuiSession state, String errorKey, Map<String, ?> replacements) {
-        try {
-            state.runtimeSnapshot().messageService().send(
-                    state.player(),
-                    errorKey,
-                    replacements == null ? Map.of() : replacements);
-        } catch (Throwable throwable) {
-            plugin.getLogger().warning("[gui] 锻造失败消息派发失败: "
-                    + Texts.toStringSafe(throwable.getMessage()));
-        }
-        stateSupport.returnItems(state);
-    }
+    void returnFailedAttempt(ForgeGuiSession state, String errorKey, Map<String, ?> replacements) { new ForgeGuiInteractionControllerDelegate(this).returnFailedAttempt(state, errorKey, replacements); }
 
-    private String materialKey(ForgeGuiSession state, ItemStack itemStack, ItemSourceRef source) {
-        if (state == null) {
-            return "";
-        }
-        return stateSupport.resolveMaterialKey(state, itemStack, source);
-    }
+    private String materialKey(ForgeGuiSession state, ItemStack itemStack, ItemSourceRef source) { return new ForgeGuiInteractionControllerDelegate(this).materialKey(state, itemStack, source); }
 
-    private boolean ensureCurrentGeneration(ForgeGuiSession state) {
-        if (state != null && state.shutdownRetiring()) {
-            return false;
-        }
-        if (state != null && plugin.isGenerationActive(state.runtimeGeneration())) {
-            return true;
-        }
-        plugin.runtimeMetrics().recordGuiStale();
-        if (state != null && state.player() != null) {
-            state.runtimeSnapshot().messageService().send(state.player(), "forge.error.runtime.stale_session");
-            state.player().closeInventory();
-        }
-        return false;
-    }
+    private boolean ensureCurrentGeneration(ForgeGuiSession state) { return new ForgeGuiInteractionControllerDelegate(this).ensureCurrentGeneration(state); }
 
-    private void debug(Player player, String langKey, Map<String, ?> replacements) {
-        try {
-            GuiDebugSupport.log(plugin, player, langKey, replacements == null ? Map.of() : replacements);
-        } catch (Throwable ignored) {
-            FailureRecorder.recordIgnoredFailure("EmakiForge", "ForgeGuiInteractionController.java#2", ignored);
-        }
-    }
+    void debug(Player player, String langKey, Map<String, ?> replacements) { new ForgeGuiInteractionControllerDelegate(this).debug(player, langKey, replacements); }
 
-    private Map<String, Object> replacements(Object... entries) {
-        return GuiDebugSupport.replacements(entries);
-    }
+    Map<String, Object> replacements(Object... entries) { return new ForgeGuiInteractionControllerDelegate(this).replacements(entries); }
 
-    private String describe(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir()) {
-            return "air";
-        }
-        return itemStack.getType().getKey() + "x" + itemStack.getAmount();
-    }
+    private String describe(ItemStack itemStack) { return new ForgeGuiInteractionControllerDelegate(this).describe(itemStack); }
 
-    private final class ForgeSessionHandler implements GuiSessionHandler {
+    final class ForgeSessionHandler implements GuiSessionHandler {
 
         private final ForgeGuiSession state;
 
-        private ForgeSessionHandler(ForgeGuiSession state) {
+        ForgeSessionHandler(ForgeGuiSession state) {
             this.state = state;
         }
 

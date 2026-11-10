@@ -53,29 +53,27 @@ public final class EditorService implements Listener {
     public static final String EDIT_WORLD_PREFIX = "emd_edit_";
 
     private static final long MAX_FILL_BLOCKS = 1_000_000L;
-    private static final List<String> REGION_SUBDIRS = List.of("region", "entities");
+    static final List<String> REGION_SUBDIRS = List.of("region", "entities");
 
-    public static List<String> markTypes() {
-        return EditorModules.types();
-    }
+    public static List<String> markTypes() { return EditorServiceDelegate.markTypes(); }
 
-    private final JavaPlugin plugin;
-    private final ExecutionDispatcher dispatcher;
-    private final MessageService messages;
+    final JavaPlugin plugin;
+    final ExecutionDispatcher dispatcher;
+    final MessageService messages;
     private final ChatInputService chatInput;
     private final WorldCloner cloner;
-    private final WorldDisposer disposer;
-    private final TemplateRepository templates;
-    private final EditorStateStore states;
-    private final File worldContainer;
-    private final File dataFolder;
-    private final Map<UUID, EditorSession> sessions = new ConcurrentHashMap<>();
-    private volatile WorldPool pool;
-    private volatile Map<String, DungeonConfig> configCache;
-    private volatile DungeonTypeRegistry typeRegistry;
-    private volatile ChallengeService challenge;
-    private volatile EditorGui gui;
-    private volatile EditorModuleMarkers markers;
+    final WorldDisposer disposer;
+    final TemplateRepository templates;
+    final EditorStateStore states;
+    final File worldContainer;
+    final File dataFolder;
+    final Map<UUID, EditorSession> sessions = new ConcurrentHashMap<>();
+    volatile WorldPool pool;
+    volatile Map<String, DungeonConfig> configCache;
+    volatile DungeonTypeRegistry typeRegistry;
+    volatile ChallengeService challenge;
+    volatile EditorGui gui;
+    volatile EditorModuleMarkers markers;
 
     public EditorService(JavaPlugin plugin,
             ExecutionDispatcher dispatcher,
@@ -99,49 +97,26 @@ public final class EditorService implements Listener {
         this.dataFolder = dataFolder;
     }
 
-    public void bindPool(WorldPool pool) {
-        this.pool = pool;
-    }
+    public void bindPool(WorldPool pool) { new EditorServiceDelegate(this).bindPool(pool); }
 
-    public void bindConfigCache(Map<String, DungeonConfig> configCache) {
-        this.configCache = configCache;
-    }
+    public void bindConfigCache(Map<String, DungeonConfig> configCache) { new EditorServiceDelegate(this).bindConfigCache(configCache); }
 
-    public void bindTypeRegistry(DungeonTypeRegistry typeRegistry) {
-        this.typeRegistry = typeRegistry;
-    }
+    public void bindTypeRegistry(DungeonTypeRegistry typeRegistry) { new EditorServiceDelegate(this).bindTypeRegistry(typeRegistry); }
 
-    public void bindChallenge(ChallengeService challenge) {
-        this.challenge = challenge;
-    }
+    public void bindChallenge(ChallengeService challenge) { new EditorServiceDelegate(this).bindChallenge(challenge); }
 
-    public void bindGui(EditorGui gui) {
-        this.gui = gui;
-    }
+    public void bindGui(EditorGui gui) { new EditorServiceDelegate(this).bindGui(gui); }
 
-    public void bindMarkers(EditorModuleMarkers markers) {
-        this.markers = markers;
-    }
+    public void bindMarkers(EditorModuleMarkers markers) { new EditorServiceDelegate(this).bindMarkers(markers); }
 
     /** 重建该会话的功能模块边框与居中文本（编辑态可视化）。 */
-    public void refreshMarkers(EditorSession session) {
-        EditorModuleMarkers bound = markers;
-        if (bound != null && session != null) {
-            bound.refresh(session);
-        }
-    }
+    public void refreshMarkers(EditorSession session) { new EditorServiceDelegate(this).refreshMarkers(session); }
 
-    public boolean hasSession(UUID playerId) {
-        return playerId != null && sessions.containsKey(playerId);
-    }
+    public boolean hasSession(UUID playerId) { return new EditorServiceDelegate(this).hasSession(playerId); }
 
-    public EditorSession sessionOf(UUID playerId) {
-        return playerId == null ? null : sessions.get(playerId);
-    }
+    public EditorSession sessionOf(UUID playerId) { return new EditorServiceDelegate(this).sessionOf(playerId); }
 
-    public List<EditorSession> allSessions() {
-        return new ArrayList<>(sessions.values());
-    }
+    public List<EditorSession> allSessions() { return new EditorServiceDelegate(this).allSessions(); }
 
     public void open(Player player, String dungeonId) {
         UUID playerId = player.getUniqueId();
@@ -256,26 +231,7 @@ public final class EditorService implements Listener {
         }, () -> discardSession(session));
     }
 
-    public void markPos(Player player, int which) {
-        EditorSession session = requireReady(player);
-        if (session == null) {
-            return;
-        }
-        FlowPoint point = lookPoint(player);
-        if (point == null) {
-            messages.send(player, "editor.no_target", Map.of());
-            return;
-        }
-        if (which == 1) {
-            session.pos1(point);
-        } else {
-            session.pos2(point);
-        }
-        messages.send(player, "editor.pos_set", Map.of(
-                "which", String.valueOf(which),
-                "coord", formatPoint(point)
-        ));
-    }
+    public void markPos(Player player, int which) { new EditorServiceDelegate(this).markPos(player, which); }
 
     public void mark(Player player, String rawType, String rawId) {
         EditorSession session = requireReady(player);
@@ -428,30 +384,9 @@ public final class EditorService implements Listener {
         });
     }
 
-    private void finishSave(EditorSession session, boolean terrainChanged) {
-        int generation = states.bump(session.dungeonId());
-        reloadConfigCache(session.dungeonId());
-        invalidateReserves(session.dungeonId());
-        session.dirty(false);
-        session.stagedMarks().clear();
-        Player player = Bukkit.getPlayer(session.playerId());
-        if (player != null) {
-            messages.send(player, "editor.saved", Map.of(
-                    "dungeon", session.dungeonId(),
-                    "generation", String.valueOf(generation),
-                    "terrain", String.valueOf(terrainChanged)
-            ));
-        }
-    }
+    private void finishSave(EditorSession session, boolean terrainChanged) { new EditorServiceDelegate(this).finishSave(session, terrainChanged); }
 
-    public void discardChanges(Player player) {
-        EditorSession session = sessions.get(player.getUniqueId());
-        if (session == null) {
-            messages.send(player, "editor.no_session", Map.of());
-            return;
-        }
-        discardSession(session, "editor.discarded");
-    }
+    public void discardChanges(Player player) { new EditorServiceDelegate(this).discardChanges(player); }
 
     public void fill(Player player, String rawBlock) {
         EditorSession session = requireReady(player);
@@ -544,69 +479,11 @@ public final class EditorService implements Listener {
         }, 1L, 1L));
     }
 
-    private File editDataDir(EditorSession session) {
-        World world = session.editWorld();
-        if (world != null) {
-            return world.getWorldFolder();
-        }
-        Path fallback = WorldFolders
-                .dataDir(worldContainer, session.editWorldName());
-        for (Path candidate : WorldFolders
-                .allDirs(worldContainer, session.editWorldName())) {
-            if (Files.isDirectory(candidate)) {
-                return candidate.toFile();
-            }
-        }
-        return fallback.toFile();
-    }
+    File editDataDir(EditorSession session) { return new EditorServiceDelegate(this).editDataDir(session); }
 
-    private void captureRegionSnapshot(EditorSession session) {
-        File editDir = editDataDir(session);
-        for (String sub : REGION_SUBDIRS) {
-            File dir = new File(editDir, sub);
-            File[] files = dir.listFiles((folder, name) -> name.endsWith(".mca"));
-            if (files == null) {
-                continue;
-            }
-            for (File file : files) {
-                session.regionSnapshot().put(sub + "/" + file.getName(), file.lastModified());
-            }
-        }
-    }
+    private void captureRegionSnapshot(EditorSession session) { new EditorServiceDelegate(this).captureRegionSnapshot(session); }
 
-    private boolean copyChangedRegions(EditorSession session) {
-        File editDir = editDataDir(session);
-        File templateDir = templates.templateDir(session.dungeonId()).orElse(null);
-        if (templateDir == null) {
-            return false;
-        }
-        boolean changed = false;
-        for (String sub : REGION_SUBDIRS) {
-            File dir = new File(editDir, sub);
-            File[] files = dir.listFiles((folder, name) -> name.endsWith(".mca"));
-            if (files == null) {
-                continue;
-            }
-            for (File file : files) {
-                long previous = session.regionSnapshot().getOrDefault(sub + "/" + file.getName(), -1L);
-                if (file.lastModified() == previous) {
-                    continue;
-                }
-                File targetDir = new File(templateDir, sub);
-                try {
-                    Files.createDirectories(targetDir.toPath());
-                    Files.copy(file.toPath(), new File(targetDir, file.getName()).toPath(),
-                            StandardCopyOption.REPLACE_EXISTING);
-                    session.regionSnapshot().put(sub + "/" + file.getName(), file.lastModified());
-                    changed = true;
-                } catch (IOException exception) {
-                    plugin.getLogger().warning("[editor] region write-back failed | file=" + sub + "/"
-                            + file.getName() + " | error=" + exception.getMessage());
-                }
-            }
-        }
-        return changed;
-    }
+    private boolean copyChangedRegions(EditorSession session) { return new EditorServiceDelegate(this).copyChangedRegions(session); }
 
     public void listMarks(Player player) {
         EditorSession session = sessions.get(player.getUniqueId());
@@ -625,31 +502,9 @@ public final class EditorService implements Listener {
         }
     }
 
-    private EditorSession requireReady(Player player) {
-        EditorSession session = sessions.get(player.getUniqueId());
-        if (session == null) {
-            messages.send(player, "editor.no_session", Map.of());
-            return null;
-        }
-        if (!session.ready() || session.editWorld() == null) {
-            messages.send(player, "editor.not_ready", Map.of());
-            return null;
-        }
-        if (!player.getWorld().getName().equals(session.editWorldName())) {
-            messages.send(player, "editor.not_in_edit_world", Map.of());
-            return null;
-        }
-        return session;
-    }
+    EditorSession requireReady(Player player) { return new EditorServiceDelegate(this).requireReady(player); }
 
-    private FlowPoint lookPoint(Player player) {
-        Block block = player.getTargetBlockExact(16);
-        if (block == null) {
-            return null;
-        }
-        return new FlowPoint(block.getX() + 0.5D, block.getY(), block.getZ() + 0.5D,
-                player.getLocation().getYaw(), player.getLocation().getPitch());
-    }
+    FlowPoint lookPoint(Player player) { return new EditorServiceDelegate(this).lookPoint(player); }
 
     private Map<String, Object> markNode(EditorModules.ModuleSpec spec, String id, FlowPoint point,
             FlowPoint first, FlowPoint second, YamlTextDocument view) {
@@ -786,27 +641,9 @@ public final class EditorService implements Listener {
         return node;
     }
 
-    private String nextId(YamlTextDocument view, String section, String prefix) {
-        Object existing = view.value(section);
-        int size = existing instanceof Map<?, ?> map ? map.size() : 0;
-        for (int index = size + 1; index < size + 512; index++) {
-            String candidate = prefix + index;
-            if (view.value(section, candidate) == null) {
-                return candidate;
-            }
-        }
-        return prefix + System.currentTimeMillis();
-    }
+    private String nextId(YamlTextDocument view, String section, String prefix) { return new EditorServiceDelegate(this).nextId(view, section, prefix); }
 
-    private Map<String, Object> locationMap(FlowPoint point) {
-        Map<String, Object> location = new LinkedHashMap<>();
-        location.put("x", point.x());
-        location.put("y", point.y());
-        location.put("z", point.z());
-        location.put("yaw", point.yaw());
-        location.put("pitch", point.pitch());
-        return location;
-    }
+    private Map<String, Object> locationMap(FlowPoint point) { return new EditorServiceDelegate(this).locationMap(point); }
 
     private Map<String, Object> nestedRegion(FlowPoint first, FlowPoint second) {
         long[] bounds = bounds(first, second);
@@ -836,22 +673,9 @@ public final class EditorService implements Listener {
         return region;
     }
 
-    private long[] bounds(FlowPoint first, FlowPoint second) {
-        long ax = (long) Math.floor(first.x());
-        long ay = (long) Math.floor(first.y());
-        long az = (long) Math.floor(first.z());
-        long bx = (long) Math.floor(second.x());
-        long by = (long) Math.floor(second.y());
-        long bz = (long) Math.floor(second.z());
-        return new long[] {
-                Math.min(ax, bx), Math.min(ay, by), Math.min(az, bz),
-                Math.max(ax, bx), Math.max(ay, by), Math.max(az, bz)
-        };
-    }
+    private long[] bounds(FlowPoint first, FlowPoint second) { return new EditorServiceDelegate(this).bounds(first, second); }
 
-    private String formatPoint(FlowPoint point) {
-        return point.x() + "," + point.y() + "," + point.z();
-    }
+    String formatPoint(FlowPoint point) { return new EditorServiceDelegate(this).formatPoint(point); }
 
     private String formatRegion(FlowPoint first, FlowPoint second) {
         long[] bounds = bounds(first, second);
@@ -859,24 +683,13 @@ public final class EditorService implements Listener {
                 + bounds[3] + "," + bounds[4] + "," + bounds[5];
     }
 
-    public void exit(Player player) {
-        EditorSession session = sessions.get(player.getUniqueId());
-        if (session == null) {
-            messages.send(player, "editor.no_session", Map.of());
-            return;
-        }
-        if (session.dirty()) {
-            messages.send(player, "editor.exit_dirty", Map.of());
-            return;
-        }
-        discardSession(session);
-    }
+    public void exit(Player player) { new EditorServiceDelegate(this).exit(player); }
 
     public void discardSession(EditorSession session) {
         discardSession(session, "editor.exit_done");
     }
 
-    private void discardSession(EditorSession session, String messageKey) {
+    void discardSession(EditorSession session, String messageKey) {
         if (session == null || !sessions.remove(session.playerId(), session)) {
             return;
         }
@@ -920,99 +733,11 @@ public final class EditorService implements Listener {
         }, unload);
     }
 
-    public void closeAll() {
-        for (EditorSession session : allSessions()) {
-            sessions.remove(session.playerId(), session);
-            TaskToken pump = session.pump();
-            if (pump != null) {
-                pump.cancel();
-            }
-            EditorModuleMarkers bound = markers;
-            if (bound != null) {
-                bound.clear(session);
-            }
-            Player player = Bukkit.getPlayer(session.playerId());
-            Location origin = session.origin();
-            if (player != null && origin != null && player.getWorld() == session.editWorld()) {
-                try {
-                    player.teleport(origin);
-                } catch (Throwable ignored) {
-                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#3", ignored);
-                }
-            }
-            if (player != null) {
-                try {
-                    player.closeInventory();
-                } catch (Throwable ignored) {
-                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#4", ignored);
-                }
-            }
-            World world = Bukkit.getWorld(session.editWorldName());
-            if (world != null) {
-                try {
-                    Bukkit.unloadWorld(world, false);
-                } catch (Throwable ignored) {
-                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#5", ignored);
-                }
-            }
-            // 停服同样要删掉编辑世界目录，否则 emd_edit_* 会在 world 目录里残留。
-            try {
-                disposer.deleteResidual(session.editWorldName());
-            } catch (Throwable ignored) {
-                FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#6", ignored);
-            }
-            states.release(session.dungeonId());
-        }
-    }
+    public void closeAll() { new EditorServiceDelegate(this).closeAll(); }
 
-    public void sweepLeftoverWorlds() {
-        dispatcher.runAsync(plugin, () -> {
-            int removed = 0;
-            for (Path root : WorldFolders
-                    .sweepRoots(worldContainer)) {
-                File[] children = root.toFile().listFiles(File::isDirectory);
-                if (children == null) {
-                    continue;
-                }
-                for (File child : children) {
-                    if (!child.getName().startsWith(EDIT_WORLD_PREFIX)) {
-                        continue;
-                    }
-                    if (Bukkit.getWorld(child.getName()) != null) {
-                        continue;
-                    }
-                    WorldCloner.deleteTree(child.toPath());
-                    removed++;
-                }
-            }
-            if (removed > 0) {
-                messages.info("console.editor_worlds_swept", Map.of("count", String.valueOf(removed)));
-            }
-        });
-    }
+    public void sweepLeftoverWorlds() { new EditorServiceDelegate(this).sweepLeftoverWorlds(); }
 
-    private void preservePlayerDataWhenOffline(EditorSession session) {
-        Player player = Bukkit.getPlayer(session.playerId());
-        if (player != null) {
-            return;
-        }
-        File editData = new File(editDataDir(session), "playerdata");
-        File source = new File(editData, session.playerId() + ".dat");
-        if (!source.isFile() || session.origin() == null || session.origin().getWorld() == null) {
-            return;
-        }
-        File originDir = WorldFolders
-                .dataDir(worldContainer, session.origin().getWorld().getName())
-                .resolve("playerdata").toFile();
-        try {
-            Files.createDirectories(originDir.toPath());
-            Files.move(source.toPath(), new File(originDir, source.getName()).toPath(),
-                    StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException exception) {
-            plugin.getLogger().warning("[editor] playerdata handoff failed | player=" + session.playerId()
-                    + " | error=" + exception.getMessage());
-        }
-    }
+    private void preservePlayerDataWhenOffline(EditorSession session) { new EditorServiceDelegate(this).preservePlayerDataWhenOffline(session); }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
@@ -1058,18 +783,9 @@ public final class EditorService implements Listener {
         ));
     }
 
-    public EditorStateStore states() {
-        return states;
-    }
+    public EditorStateStore states() { return new EditorServiceDelegate(this).states(); }
 
-    public void invalidateReserves(String dungeonId) {
-        WorldPool bound = pool;
-        if (bound != null) {
-            bound.invalidateAllReserves(dungeonId);
-        }
-    }
+    public void invalidateReserves(String dungeonId) { new EditorServiceDelegate(this).invalidateReserves(dungeonId); }
 
-    public File backupRoot() {
-        return new File(dataFolder, "edit-backups");
-    }
+    public File backupRoot() { return new EditorServiceDelegate(this).backupRoot(); }
 }

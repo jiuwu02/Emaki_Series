@@ -66,42 +66,40 @@ public final class ChallengeService {
 
     private static final long TICK_PERIOD = 10L;
     private static final List<String> SCOREBOARD_CHANNELS = List.of("scoreboard");
-    private static final Set<String> PLAYER_SIDE_REASONS = Set.of(
+    static final Set<String> PLAYER_SIDE_REASONS = Set.of(
             "member_cancel", "member_left", "window_timeout", "invalid_difficulty",
             "invalid_mode", "challenge_start_cancelled", "permission",
             "ticket_insufficient", "ticket_invalid", "unlock_denied");
 
-    private final Plugin plugin;
-    private final ExecutionDispatcher dispatcher;
-    private final MessageService messages;
-    private final LanguageLoader lang;
-    private final DebugLogger debug;
-    private final PartyService parties;
-    private final InstanceSlotAllocator allocator;
+    final Plugin plugin;
+    final ExecutionDispatcher dispatcher;
+    final MessageService messages;
+    final LanguageLoader lang;
+    final DebugLogger debug;
+    final PartyService parties;
+    final InstanceSlotAllocator allocator;
     private final WorldPool pool;
     private final InstanceRegistry registry;
     private final SnapshotManager snapshots;
-    private final ChallengeGuiService gui;
-    private final Function<String, DungeonConfig> configOf;
+    final ChallengeGuiService gui;
+    final Function<String, DungeonConfig> configOf;
     private final Consumer<UUID> teleportPermit;
 
-    private final Map<UUID, ChallengeSession> sessions = new ConcurrentHashMap<>();
-    private final Map<UUID, String> scoreboardObjective = new ConcurrentHashMap<>();
-    private TaskToken tickTask = TaskToken.UNAVAILABLE;
-    private volatile ActionBridge actionBridge;
-    private volatile Function<DungeonInstance,
+    final Map<UUID, ChallengeSession> sessions = new ConcurrentHashMap<>();
+    final Map<UUID, String> scoreboardObjective = new ConcurrentHashMap<>();
+    TaskToken tickTask = TaskToken.UNAVAILABLE;
+    volatile ActionBridge actionBridge;
+    volatile Function<DungeonInstance,
             FlowRuntime> runtimeFactory;
-    private volatile PlayerStateService stateService;
-    private volatile TempItemManager tempItems;
-    private volatile LimitService limitService;
-    private volatile ScriptRuntimeManager scriptManager;
-    private volatile AuditService audit;
-    private volatile PerformanceMonitor monitor;
-    private volatile TicketService tickets;
+    volatile PlayerStateService stateService;
+    volatile TempItemManager tempItems;
+    volatile LimitService limitService;
+    volatile ScriptRuntimeManager scriptManager;
+    volatile AuditService audit;
+    volatile PerformanceMonitor monitor;
+    volatile TicketService tickets;
 
-    public void bindAudit(AuditService audit) {
-        this.audit = audit;
-    }
+    public void bindAudit(AuditService audit) { new ChallengeServiceDelegate(this).bindAudit(audit); }
 
     public ChallengeService(Plugin plugin,
             ExecutionDispatcher dispatcher,
@@ -135,49 +133,26 @@ public final class ChallengeService {
         tickTask = dispatcher.runGlobalTimer(plugin, this::tick, TICK_PERIOD, TICK_PERIOD);
     }
 
-    public void bindActionBridge(ActionBridge actionBridge) {
-        this.actionBridge = actionBridge;
-    }
+    public void bindActionBridge(ActionBridge actionBridge) { new ChallengeServiceDelegate(this).bindActionBridge(actionBridge); }
 
     public void bindInstanceHooks(
             Function<DungeonInstance,
                     FlowRuntime> runtimeFactory,
             PlayerStateService stateService,
-            TempItemManager tempItems) {
-        this.runtimeFactory = runtimeFactory;
-        this.stateService = stateService;
-        this.tempItems = tempItems;
-    }
+            TempItemManager tempItems) { new ChallengeServiceDelegate(this).bindInstanceHooks(runtimeFactory, stateService, tempItems); }
 
-    public void bindLimitService(LimitService limitService) {
-        this.limitService = limitService;
-    }
+    public void bindLimitService(LimitService limitService) { new ChallengeServiceDelegate(this).bindLimitService(limitService); }
 
-    public void bindScriptManager(ScriptRuntimeManager scriptManager) {
-        this.scriptManager = scriptManager;
-    }
+    public void bindScriptManager(ScriptRuntimeManager scriptManager) { new ChallengeServiceDelegate(this).bindScriptManager(scriptManager); }
 
-    public void bindMonitor(PerformanceMonitor monitor) {
-        this.monitor = monitor;
-    }
+    public void bindMonitor(PerformanceMonitor monitor) { new ChallengeServiceDelegate(this).bindMonitor(monitor); }
 
-    public void bindTicketService(TicketService tickets) {
-        this.tickets = tickets;
-    }
+    public void bindTicketService(TicketService tickets) { new ChallengeServiceDelegate(this).bindTicketService(tickets); }
 
-    private void fireTrigger(TriggerType type,
-            String dungeonId, Map<String, String> context) {
-        if (scriptManager != null) {
-            scriptManager.fireTrigger(type, null, dungeonId, context);
-        }
-    }
+    void fireTrigger(TriggerType type,
+            String dungeonId, Map<String, String> context) { new ChallengeServiceDelegate(this).fireTrigger(type, dungeonId, context); }
 
-    public void shutdown() {
-        tickTask.cancel();
-        for (ChallengeSession session : List.copyOf(sessions.values())) {
-            cleanup(session, "shutdown");
-        }
-    }
+    public void shutdown() { new ChallengeServiceDelegate(this).shutdown(); }
 
     public void startEnter(Player leader, String dungeonId) {
         DungeonConfig config = configOf.apply(dungeonId);
@@ -234,23 +209,9 @@ public final class ChallengeService {
         ));
     }
 
-    private void onDifficultyPicked(ChallengeSession session, Player leader, String option) {
-        if (sessions.get(session.partyId()) != session) {
-            return;
-        }
-        DungeonConfig config = configOf.apply(session.dungeonId());
-        if (config == null || !config.supportsDifficulty(option)) {
-            messages.send(leader, "challenge.enter.invalid_difficulty", Map.of("difficulty", option));
-            abort(session, "invalid_difficulty");
-            return;
-        }
-        session.setDifficulty(option);
-        session.setPhase(ChallengePhase.SELECT_MODE);
-        gui.openOptionSelect(leader, "edg_mode", "gui.mode.title", "gui.mode",
-                config.dropModeAllowed(), mode -> onModePicked(session, leader, mode));
-    }
+    private void onDifficultyPicked(ChallengeSession session, Player leader, String option) { new ChallengeServiceDelegate(this).onDifficultyPicked(session, leader, option); }
 
-    private void onModePicked(ChallengeSession session, Player leader, String mode) {
+    void onModePicked(ChallengeSession session, Player leader, String mode) {
         if (sessions.get(session.partyId()) != session) {
             return;
         }
@@ -332,51 +293,7 @@ public final class ChallengeService {
         return true;
     }
 
-    public void onReadyRequested(ChallengeSession session, Player player) {
-        if (sessions.get(session.partyId()) != session) {
-            return;
-        }
-        if (session.phase() != ChallengePhase.PREPARING) {
-            return;
-        }
-        Party party = parties.partyById(session.partyId());
-        if (party == null || !party.contains(player.getUniqueId())) {
-            return;
-        }
-        if (System.currentTimeMillis() > session.windowDeadline()) {
-            messages.send(player, "challenge.preparing_expired", Map.of());
-            abort(session, "window_timeout");
-            return;
-        }
-        if (!session.ready().add(player.getUniqueId())) {
-            return;
-        }
-        int onlineMembers = 0;
-        for (UUID memberId : party.members()) {
-            if (Bukkit.getPlayer(memberId) != null) {
-                onlineMembers++;
-            }
-        }
-        if (session.ready().size() < onlineMembers) {
-            Map<String, Object> replacements = Map.of(
-                    "player", player.getName(),
-                    "ready", String.valueOf(session.ready().size()),
-                    "total", String.valueOf(onlineMembers)
-            );
-            for (UUID memberId : party.members()) {
-                Player member = Bukkit.getPlayer(memberId);
-                if (member != null) {
-                    messages.send(member, "challenge.member_ready", replacements);
-                }
-            }
-            return;
-        }
-        String abortReason = finalizeReady(session, party);
-        if (abortReason != null) {
-            debug.logRaw("dungeon", (UUID) null,
-                    "ready finalize rejected | party=" + party.id() + " | reason=" + abortReason);
-        }
-    }
+    public void onReadyRequested(ChallengeSession session, Player player) { new ChallengeServiceDelegate(this).onReadyRequested(session, player); }
 
     public Result<Object> apiEnter(Player player, String dungeonId) {
         return apiEnter(player, dungeonId, false);
@@ -476,58 +393,15 @@ public final class ChallengeService {
                 new emaki.jiuwu.craft.dungeon.api.ChallengeId(String.valueOf(party.id())));
     }
 
-    private static String mapAbortReason(String reason) {
-        if (reason == null) {
-            return ErrorCodes.DENY_PARTY_INVALID;
-        }
-        if (reason.startsWith("limit_")) {
-            return limitErrorCodeByName(reason.substring("limit_".length()));
-        }
-        return switch (reason) {
-            case "config_missing" -> ErrorCodes.DUNGEON_NOT_FOUND;
-            case "permission" -> ErrorCodes.DENY_PERMISSION;
-            case "deny_DENY_GLOBAL_FULL" -> ErrorCodes.DENY_GLOBAL_FULL;
-            case "deny_DENY_DUNGEON_FULL" -> ErrorCodes.DENY_DUNGEON_FULL;
-            default -> ErrorCodes.DENY_PARTY_INVALID;
-        };
-    }
+    private static String mapAbortReason(String reason) { return ChallengeServiceDelegate.mapAbortReason(reason); }
 
-    private static String limitErrorCode(LimitService.Verdict verdict) {
-        return switch (verdict) {
-            case DENY_COOLDOWN -> ErrorCodes.DENY_COOLDOWN;
-            case DENY_DAILY_LIMIT -> ErrorCodes.DENY_DAILY_LIMIT;
-            case DENY_WEEKLY_LIMIT -> ErrorCodes.DENY_WEEKLY_LIMIT;
-            case DENY_MONTHLY_LIMIT -> ErrorCodes.DENY_MONTHLY_LIMIT;
-            default -> ErrorCodes.DENY_WINDOW;
-        };
-    }
+    private static String limitErrorCode(LimitService.Verdict verdict) { return ChallengeServiceDelegate.limitErrorCode(verdict); }
 
-    private static String limitErrorCodeByName(String verdictName) {
-        return switch (verdictName) {
-            case "DENY_COOLDOWN" -> ErrorCodes.DENY_COOLDOWN;
-            case "DENY_DAILY_LIMIT" -> ErrorCodes.DENY_DAILY_LIMIT;
-            case "DENY_WEEKLY_LIMIT" -> ErrorCodes.DENY_WEEKLY_LIMIT;
-            case "DENY_MONTHLY_LIMIT" -> ErrorCodes.DENY_MONTHLY_LIMIT;
-            case "DENY_DAILY_WINDOW", "DENY_WEEKLY_DAY", "DENY_MONTHLY_WEEK" ->
-                    ErrorCodes.DENY_WINDOW;
-            default -> verdictName;
-        };
-    }
+    static String limitErrorCodeByName(String verdictName) { return ChallengeServiceDelegate.limitErrorCodeByName(verdictName); }
 
-    private static String limitMessageKey(LimitService.Verdict verdict) {
-        return switch (verdict) {
-            case DENY_COOLDOWN -> "challenge.enter.cooldown";
-            case DENY_DAILY_LIMIT -> "challenge.enter.daily_limit";
-            case DENY_WEEKLY_LIMIT -> "challenge.enter.weekly_limit";
-            case DENY_MONTHLY_LIMIT -> "challenge.enter.monthly_limit";
-            case DENY_DAILY_WINDOW -> "challenge.enter.daily_window";
-            case DENY_WEEKLY_DAY -> "challenge.enter.weekly_day";
-            case DENY_MONTHLY_WEEK -> "challenge.enter.monthly_week";
-            default -> "challenge.enter.daily_limit";
-        };
-    }
+    private static String limitMessageKey(LimitService.Verdict verdict) { return ChallengeServiceDelegate.limitMessageKey(verdict); }
 
-    private String finalizeReady(ChallengeSession session, Party party) {
+    String finalizeReady(ChallengeSession session, Party party) {
         Player leader = Bukkit.getPlayer(session.leaderId());
         DungeonConfig config = configOf.apply(session.dungeonId());
         if (config == null || leader == null) {
@@ -647,16 +521,7 @@ public final class ChallengeService {
         return null;
     }
 
-    private void handleDeny(Player leader, String dungeonId, DenyReason deny) {
-        if (deny == DenyReason.DENY_DUNGEON_FULL || deny == DenyReason.DENY_GLOBAL_FULL) {
-            messages.send(leader, "challenge.enter.full", Map.of("dungeon", dungeonId));
-            debug.log("dungeon", leader, "instance_full", Map.of("dungeon", dungeonId));
-            fireTrigger(TriggerType.onInstanceFull,
-                    dungeonId, Map.of("dungeon", dungeonId));
-            return;
-        }
-        messages.send(leader, "challenge.enter.party_busy", Map.of());
-    }
+    private void handleDeny(Player leader, String dungeonId, DenyReason deny) { new ChallengeServiceDelegate(this).handleDeny(leader, dungeonId, deny); }
 
     private void enterWait(ChallengeSession session, Party party) {
         DungeonConfig config = configOf.apply(session.dungeonId());
@@ -692,31 +557,9 @@ public final class ChallengeService {
         }
     }
 
-    private void showScoreboard(ChallengeSession session, List<Player> online) {
-        if (online.isEmpty()) {
-            return;
-        }
-        Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
-        String name = "emd_wait_" + session.partyId().toString().substring(0, 8);
-        Objective objective = board.registerNewObjective(name, Criteria.DUMMY,
-                MiniMessages.parse(render("challenge.wait.sidebar", Map.of("dungeon", session.dungeonId()))));
-        objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-        objective.getScore("waiting").setScore(1);
-        for (Player member : online) {
-            member.setScoreboard(board);
-            scoreboardObjective.put(member.getUniqueId(), name);
-        }
-    }
+    private void showScoreboard(ChallengeSession session, List<Player> online) { new ChallengeServiceDelegate(this).showScoreboard(session, online); }
 
-    private void clearScoreboard(ChallengeSession session) {
-        for (UUID memberId : sessionMembers(session)) {
-            scoreboardObjective.remove(memberId);
-            Player member = Bukkit.getPlayer(memberId);
-            if (member != null) {
-                member.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
-            }
-        }
-    }
+    void clearScoreboard(ChallengeSession session) { new ChallengeServiceDelegate(this).clearScoreboard(session); }
 
     private void beginEnter(ChallengeSession session, Party party, String worldName) {
         DungeonInstance instance = registry.get(worldName);
@@ -865,208 +708,37 @@ public final class ChallengeService {
     }
 
     private void finishIfSettled(ChallengeSession session, String instanceId,
-            AtomicInteger remaining, AtomicBoolean settled) {
-        if (!settled.compareAndSet(false, true)) {
-            return;
-        }
-        if (remaining.decrementAndGet() > 0) {
-            return;
-        }
-        dispatcher.runGlobal(plugin, () -> finishEnter(session, instanceId));
-    }
+            AtomicInteger remaining, AtomicBoolean settled) { new ChallengeServiceDelegate(this).finishIfSettled(session, instanceId, remaining, settled); }
 
-    private void finishEnter(ChallengeSession session, String instanceId) {
-        debug.log("dungeon", Bukkit.getPlayer(session.leaderId()), "instance_assigned", Map.of(
-                "instance", instanceId,
-                "dungeon", session.dungeonId()
-        ));
-        if (monitor != null) {
-            monitor.markEnterPhase();
-        }
-        closeSessionUi(session);
-        sessions.remove(session.partyId());
-    }
+    void finishEnter(ChallengeSession session, String instanceId) { new ChallengeServiceDelegate(this).finishEnter(session, instanceId); }
 
-    private List<FlowModules.TempItemDef> entryItemsOf(DungeonInstance instance) {
-        if (tempItems == null) {
-            return List.of();
-        }
-        FlowRuntime runtime = instance.flowRuntime();
-        if (runtime == null) {
-            return List.of();
-        }
-        List<FlowModules.TempItemDef> entryItems = new ArrayList<>();
-        for (FlowModules.TempItemDef tempItem : runtime.definition().tempItems().values()) {
-            if (tempItem.head().enabled() && "entry".equals(tempItem.timing())) {
-                entryItems.add(tempItem);
-            }
-        }
-        return entryItems;
-    }
+    private List<FlowModules.TempItemDef> entryItemsOf(DungeonInstance instance) { return new ChallengeServiceDelegate(this).entryItemsOf(instance); }
 
-    private void warnEnter(String instanceId, UUID memberId, String reason) {
-        plugin.getLogger().warning("[EmakiDungeon] challenge enter skipped | instance=" + instanceId
-                + " | player=" + memberId + " | reason=" + reason);
-    }
+    private void warnEnter(String instanceId, UUID memberId, String reason) { new ChallengeServiceDelegate(this).warnEnter(instanceId, memberId, reason); }
 
-    private CompletableFuture<Void> preloadEntryChunks(World world, Location entry) {
-        int radius = 8;
-        int chunkX = entry.getBlockX() >> 4;
-        int chunkZ = entry.getBlockZ() >> 4;
-        List<CompletableFuture<Chunk>> futures = new ArrayList<>();
-        for (int dx = -radius; dx <= radius; dx++) {
-            for (int dz = -radius; dz <= radius; dz++) {
-                futures.add(world.getChunkAtAsync(chunkX + dx, chunkZ + dz));
-            }
-        }
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                .exceptionally(error -> null);
-    }
+    private CompletableFuture<Void> preloadEntryChunks(World world, Location entry) { return new ChallengeServiceDelegate(this).preloadEntryChunks(world, entry); }
 
-    public void readyBy(Player player) {
-        ChallengeSession session = sessions.get(partyIdOf(player));
-        if (session == null) {
-            messages.send(player, "challenge.ready.no_session", Map.of());
-            return;
-        }
-        onReadyRequested(session, player);
-    }
+    public void readyBy(Player player) { new ChallengeServiceDelegate(this).readyBy(player); }
 
-    public void cancelBy(Player player, String reason) {
-        ChallengeSession session = sessions.get(partyIdOf(player));
-        if (session == null) {
-            messages.send(player, "challenge.cancel.no_session", Map.of());
-            return;
-        }
-        Party party = parties.partyById(session.partyId());
-        if (party == null || !party.contains(player.getUniqueId())) {
-            return;
-        }
-        abort(session, reason);
-    }
+    public void cancelBy(Player player, String reason) { new ChallengeServiceDelegate(this).cancelBy(player, reason); }
 
-    public void onPartyChanged(UUID partyId) {
-        ChallengeSession session = sessions.get(partyId);
-        if (session != null
-                && (session.phase() == ChallengePhase.PREPARING
-                || session.phase() == ChallengePhase.ENTERING_WAIT)) {
-            abort(session, "member_left");
-        }
-    }
+    public void onPartyChanged(UUID partyId) { new ChallengeServiceDelegate(this).onPartyChanged(partyId); }
 
-    public boolean hasActiveSession(UUID partyId) {
-        return partyId != null && sessions.containsKey(partyId);
-    }
+    public boolean hasActiveSession(UUID partyId) { return new ChallengeServiceDelegate(this).hasActiveSession(partyId); }
 
-    public boolean sessionContains(UUID playerId) {
-        if (playerId == null) {
-            return false;
-        }
-        for (ChallengeSession session : sessions.values()) {
-            Party party = parties.partyById(session.partyId());
-            if (party != null && party.contains(playerId)) {
-                return true;
-            }
-        }
-        return false;
-    }
+    public boolean sessionContains(UUID playerId) { return new ChallengeServiceDelegate(this).sessionContains(playerId); }
 
-    public void abort(ChallengeSession session, String reason) {
-        if (sessions.remove(session.partyId(), session)) {
-            Bukkit.getPluginManager().callEvent(
-                    new emaki.jiuwu.craft.dungeon.api.event.DungeonChallengeCancelEvent(
-                            session.dungeonId(), reason));
-            cleanup(session, reason);
-        }
-    }
+    public void abort(ChallengeSession session, String reason) { new ChallengeServiceDelegate(this).abort(session, reason); }
 
-    private void cleanup(ChallengeSession session, String reason) {
-        Party party = parties.partyById(session.partyId());
-        if (party != null && session.phase() == ChallengePhase.ENTERING_WAIT) {
-            allocator.releaseParty(party.id());
-        } else if (party != null && session.phase() == ChallengePhase.PREPARING) {
-            allocator.releaseParty(party.id());
-        }
-        closeSessionUi(session);
-        debug.logRaw("dungeon", (UUID) null, "challenge cancelled | party=" + session.partyId()
-                + " | dungeon=" + session.dungeonId() + " | reason=" + reason);
-        if (party != null) {
-            for (UUID memberId : party.members()) {
-                Player member = Bukkit.getPlayer(memberId);
-                if (member != null) {
-                    messages.send(member, "challenge.cancelled", Map.of("reason", reason));
-                }
-            }
-        }
-        settleTicketOnAbort(session, reason);
-    }
+    void cleanup(ChallengeSession session, String reason) { new ChallengeServiceDelegate(this).cleanup(session, reason); }
 
-    private void closeSessionUi(ChallengeSession session) {
-        BossBar bar = session.waitBar();
-        if (bar != null) {
-            bar.removeAll();
-            session.setWaitBar(null);
-        }
-        clearScoreboard(session);
-        for (UUID memberId : sessionMembers(session)) {
-            Player member = Bukkit.getPlayer(memberId);
-            if (member != null) {
-                gui.close(member);
-            }
-        }
-    }
+    void closeSessionUi(ChallengeSession session) { new ChallengeServiceDelegate(this).closeSessionUi(session); }
 
-    private void settleTicketOnAbort(ChallengeSession session, String reason) {
-        if (session.isTicketCommitted() || session.ticketItems().isEmpty()) {
-            return;
-        }
-        boolean playerSide = isPlayerSide(reason);
-        String segment = playerSide
-                && !"member_cancel".equals(reason) && !"member_left".equals(reason)
-                ? "dungeon_fail" : "dungeon_exit";
-        if (!playerSide && tickets != null) {
-            for (var entry : session.ticketItems().entrySet()) {
-                try {
-                    tickets.refund(entry.getKey(), entry.getValue());
-                } catch (RuntimeException ignored) {
-                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "ChallengeService.java#1", ignored);
-                }
-            }
-        }
-        String safeReason = reason == null ? "" : reason;
-        for (UUID memberId : sessionMembers(session)) {
-            Player member = Bukkit.getPlayer(memberId);
-            if (member != null) {
-                messages.send(member, playerSide
-                        ? "challenge.ticket.consumed" : "challenge.ticket.refunded",
-                        Map.of("dungeon", session.dungeonId(), "reason", safeReason));
-            }
-            if (actionBridge != null) {
-                actionBridge.dispatch(segment, memberId, Map.of(
-                        "reason", safeReason,
-                        "ticket_refunded", Boolean.toString(!playerSide),
-                        "dungeon", session.dungeonId()));
-            }
-        }
-        session.ticketItems().clear();
-    }
+    void settleTicketOnAbort(ChallengeSession session, String reason) { new ChallengeServiceDelegate(this).settleTicketOnAbort(session, reason); }
 
-    private static boolean isPlayerSide(String reason) {
-        return reason != null && (PLAYER_SIDE_REASONS.contains(reason)
-                || reason.startsWith("limit_"));
-    }
+    static boolean isPlayerSide(String reason) { return ChallengeServiceDelegate.isPlayerSide(reason); }
 
-    private String resolvePapi(Player player, String text) {
-        if (player == null || text == null
-                || !Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            return text;
-        }
-        try {
-            return me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text);
-        } catch (RuntimeException ignored) {
-            return text;
-        }
-    }
+    private String resolvePapi(Player player, String text) { return new ChallengeServiceDelegate(this).resolvePapi(player, text); }
 
     private void tick() {
         long now = System.currentTimeMillis();
@@ -1107,34 +779,11 @@ public final class ChallengeService {
         }
     }
 
-    private UUID partyIdOf(Player player) {
-        Party party = parties.partyOf(player.getUniqueId());
-        return party == null ? null : party.id();
-    }
+    UUID partyIdOf(Player player) { return new ChallengeServiceDelegate(this).partyIdOf(player); }
 
-    private List<UUID> sessionMembers(ChallengeSession session) {
-        Party party = parties.partyById(session.partyId());
-        return party == null ? List.of() : party.members();
-    }
+    List<UUID> sessionMembers(ChallengeSession session) { return new ChallengeServiceDelegate(this).sessionMembers(session); }
 
-    private List<Player> onlineMembers(Party party) {
-        List<Player> online = new ArrayList<>(party.size());
-        for (UUID memberId : party.members()) {
-            Player member = Bukkit.getPlayer(memberId);
-            if (member != null) {
-                online.add(member);
-            }
-        }
-        return online;
-    }
+    private List<Player> onlineMembers(Party party) { return new ChallengeServiceDelegate(this).onlineMembers(party); }
 
-    private String render(String key, Map<String, ?> replacements) {
-        String template = lang.getMessage(key);
-        if (template == null || template.equals(key)) {
-            return key;
-        }
-        return replacements == null || replacements.isEmpty()
-                ? template
-                : Texts.formatTemplate(template, replacements);
-    }
+    String render(String key, Map<String, ?> replacements) { return new ChallengeServiceDelegate(this).render(key, replacements); }
 }
