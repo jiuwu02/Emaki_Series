@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.attribute.service;
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -139,6 +140,8 @@ public interface AttributeServiceFacade {
 
     boolean applyDamage(DamageContext damageContext);
 
+    CompletableFuture<Boolean> applyDamageAsync(DamageContext damageContext);
+
     boolean applyProjectileDamage(DamageContext damageContext);
 
     void clearPlayerDamageTypeOverride(Player player);
@@ -213,6 +216,29 @@ public interface AttributeServiceFacade {
             double baseDamage,
             Map<String, ?> context) {
         return applyDamage(attacker, target, damageTypeId, baseDamage, DamageContextVariables.from(context));
+    }
+
+    default CompletableFuture<Boolean> applyDamageAsync(LivingEntity attacker,
+            LivingEntity target,
+            String damageTypeId,
+            double baseDamage,
+            DamageContextVariables context) {
+        double sourceDamage = context == null ? baseDamage : context.doubleValue("source_damage", baseDamage);
+        EntityDamageEvent.DamageCause cause = enumValue(
+                context,
+                "cause",
+                EntityDamageEvent.DamageCause.class,
+                enumValue(context, "damage_cause", EntityDamageEvent.DamageCause.class, null)
+        );
+        return applyDamageAsync(createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, context));
+    }
+
+    default CompletableFuture<Boolean> applyDamageAsync(LivingEntity attacker,
+            LivingEntity target,
+            String damageTypeId,
+            double baseDamage,
+            Map<String, ?> context) {
+        return applyDamageAsync(attacker, target, damageTypeId, baseDamage, DamageContextVariables.from(context));
     }
 
     default boolean applyProjectileDamage(Projectile projectile,

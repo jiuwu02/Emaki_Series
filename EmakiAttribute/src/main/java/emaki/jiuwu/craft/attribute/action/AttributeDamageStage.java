@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -92,12 +93,19 @@ public final class AttributeDamageStage implements CoreActionStage {
         damageContext.put("cause", cause.name());
         damageContext.put("action_id", id());
         damageContext.put("damage_type_id", damageTypeId);
-        boolean applied = attributeService.applyDamage(caster(context), target, damageTypeId,
-                arguments.getDouble("amount", 0D), damageContext);
-        return applied
-                ? CoreActionOutcome.success(Map.of("damage_type", damageTypeId))
-                : CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
-                        "action.stage.attribute.damage_refused");
+        attributeService.applyDamageAsync(caster(context), target, damageTypeId,
+                arguments.getDouble("amount", 0D), damageContext)
+                .whenComplete((applied, throwable) -> {
+                    if (throwable == null || attributeService.plugin() == null) {
+                        return;
+                    }
+                    attributeService.plugin().getLogger().log(
+                            Level.WARNING,
+                            "[action] 属性伤害结算失败: stage=" + id() + " target=" + target.getUniqueId(),
+                            throwable
+                    );
+                });
+        return CoreActionOutcome.success(Map.of("damage_type", damageTypeId));
     }
 
     private static EntityDamageEvent.DamageCause parseCause(String raw) {

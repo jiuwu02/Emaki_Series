@@ -120,6 +120,16 @@ final class DamageCalculationService {
 
     public boolean applyDamage(DamageContext damageContext) { return new DamageCalculationServiceDelegate(this).applyDamage(damageContext); }
 
+    public CompletableFuture<Boolean> applyDamageAsync(DamageContext damageContext) {
+        if (damageContext == null || damageContext.target() == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+        if (scheduling().ownsEntity(damageContext.target())) {
+            return CompletableFuture.completedFuture(applyDamage(damageContext));
+        }
+        return callEntityOwner(damageContext.target().getUniqueId(), target -> applyDamage(damageContext));
+    }
+
     public boolean applyDamage(LivingEntity attacker,
             LivingEntity target,
             String damageTypeId,

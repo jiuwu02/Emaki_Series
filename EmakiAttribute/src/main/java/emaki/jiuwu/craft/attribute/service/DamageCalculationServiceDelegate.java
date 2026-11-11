@@ -258,18 +258,43 @@ final class DamageCalculationServiceDelegate {
     }
 
     boolean applyDamage(DamageContext damageContext) {
+        if (damageContext == null || damageContext.target() == null) {
+            return false;
+        }
+        if (!ownerRef.scheduling().ownsEntity(damageContext.target())) {
+            logWrongThread(damageContext);
+            return false;
+        }
         if (damageContext.projectile() != null) {
             return ownerRef.applyProjectileDamage(damageContext);
         }
-        return ownerRef.applyResolvedDamage(ownerRef.resolveDamageApplication(damageContext), damageContext == null ? null : damageContext.attacker(), 0D);
+        return ownerRef.applyResolvedDamage(ownerRef.resolveDamageApplication(damageContext), damageContext.attacker(), 0D);
     }
 
-    boolean applyDamage(LivingEntity attacker, LivingEntity target, String damageTypeId, double baseDamage, DamageContextVariables context) {
+    private void logWrongThread(DamageContext damageContext) {
+        if (ownerRef.service.plugin() == null) {
+            return;
+        }
+        ownerRef.service.plugin().getLogger().log(
+                Level.WARNING,
+                "[战斗] 同步伤害入口被非实体所有者线程调用; 已拒绝, 请改用 applyDamageAsync; target="
+                        + ownerRef.service.combatDebug().entityDebugLabel(damageContext.target())
+        );
+    }
+
+    DamageContext buildDamageContext(LivingEntity attacker,
+            LivingEntity target,
+            String damageTypeId,
+            double baseDamage,
+            DamageContextVariables context) {
         DamageContextVariables effectiveContext = context == null ? DamageContextVariables.empty() : context;
         double sourceDamage = effectiveContext.getDouble("source_damage", baseDamage);
         EntityDamageEvent.DamageCause cause = effectiveContext.extractDamageCause();
-        DamageContext damageContext = ownerRef.createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, null, null, effectiveContext);
-        return ownerRef.applyDamage(damageContext);
+        return ownerRef.createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, null, null, effectiveContext);
+    }
+
+    boolean applyDamage(LivingEntity attacker, LivingEntity target, String damageTypeId, double baseDamage, DamageContextVariables context) {
+        return ownerRef.applyDamage(buildDamageContext(attacker, target, damageTypeId, baseDamage, context));
     }
 
     boolean applyDamage(LivingEntity attacker, LivingEntity target, String damageTypeId, double baseDamage, Map<String, ?> context) {

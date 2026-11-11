@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
@@ -273,8 +274,19 @@ public final class MythicBridge implements Listener {
             context.put("allow_target_dodge", allowTargetDodge);
             context.put("calculate_target_defense", calculateTargetDefense);
             context.put("trigger_mythic_on_damaged", triggerMythicOnDamaged);
-            boolean applied = attributeService.applyDamage(attacker, livingTarget, damageTypeId, baseDamage, context.build());
-            return applied ? SkillResult.SUCCESS : SkillResult.CONDITION_FAILED;
+            attributeService.applyDamageAsync(attacker, livingTarget, damageTypeId, baseDamage, context.build())
+                    .whenComplete((applied, throwable) -> {
+                        if (throwable == null || attributeService.plugin() == null) {
+                            return;
+                        }
+                        attributeService.plugin().getLogger().log(
+                                Level.WARNING,
+                                "[integration] Mythic 伤害结算失败: mechanic=" + getTypeName()
+                                        + " target=" + livingTarget.getUniqueId(),
+                                throwable
+                        );
+                    });
+            return SkillResult.SUCCESS;
         }
 
         private String resolveDamageTypeId(SkillMetadata metadata, LivingEntity attacker) {

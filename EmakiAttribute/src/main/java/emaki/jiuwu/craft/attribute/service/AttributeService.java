@@ -577,6 +577,11 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         return damageCalculationService.applyDamage(damageContext);
     }
 
+    @Override
+    public CompletableFuture<Boolean> applyDamageAsync(DamageContext damageContext) {
+        return damageCalculationService.applyDamageAsync(damageContext);
+    }
+
     public boolean applyResolvedDamage(ResolvedDamage resolvedDamage, Entity visualSource, double alreadyAppliedDamage) {
         return damageCalculationService.applyResolvedDamage(resolvedDamage, visualSource, alreadyAppliedDamage);
     }
