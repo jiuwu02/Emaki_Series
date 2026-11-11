@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.3"
+version: "5.0.4"
 
 general:
   prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
@@ -671,4 +671,4 @@ debug:
     bukkit_before: "写入 Bukkit 前 | 玩家=%player% | 原因=%reason% | 资源当前值=%resource_value% | 资源上限=%resource_max% | Bukkit生命=%bukkit_health% | Bukkit最大生命基础=%bukkit_max_health_base% | Bukkit最大生命实际=%bukkit_max_health_value%"
     bukkit_after: "写入 Bukkit 后 | 玩家=%player% | 原因=%reason% | 资源当前值=%resource_value% | 资源上限=%resource_max% | Bukkit生命=%bukkit_health% | Bukkit最大生命基础=%bukkit_max_health_base% | Bukkit最大生命实际=%bukkit_max_health_value%"
     bukkit_skipped_dead: "跳过写入 Bukkit (玩家已死亡) | 玩家=%player% | 原因=%reason% | 资源当前值=%resource_value% | 资源上限=%resource_max% | Bukkit生命=%bukkit_health%"
-    regen: "生命自然回复 | 玩家=%player% | 资源=%resource% | 旧当前值=%old_value% | 引擎基线值=%baseline_value% | 每秒回复=%regen_per_second% | 间隔秒数=%interval_seconds% | 候选值=%candidate_value% | 同步状态存在=%synced_present% | 同步资源=%synced_resource_id% | 同步默认上限=%synced_default_max% | 同步加成上限=%synced_bonus_max% | 同步当前上限=%synced_current_max% | 同步当前值=%synced_current_value% | 同步来源签名=%synced_source_signature% | 同步模式版本=%synced_schema_version%"
+    regen: "生命自然回复 | 玩家=%player% | 资源=%resource% | 旧当前值=%old_value% | 引擎基线值=%baseline_value% | 单次回复量=%regen_amount% | 结算间隔tick=%interval_ticks% | 候选值=%candidate_value% | 同步状态存在=%synced_present% | 同步资源=%synced_resource_id% | 同步默认上限=%synced_default_max% | 同步加成上限=%synced_bonus_max% | 同步当前上限=%synced_current_max% | 同步当前值=%synced_current_value% | 同步来源签名=%synced_source_signature% | 同步模式版本=%synced_schema_version%"

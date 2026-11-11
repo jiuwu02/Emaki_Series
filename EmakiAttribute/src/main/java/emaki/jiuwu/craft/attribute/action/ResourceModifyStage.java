@@ -115,7 +115,7 @@ public final class ResourceModifyStage implements CoreActionStage {
         double requested = switch (operation) {
             case ADD -> oldValue + amount;
             case SET -> amount;
-            case REMOVE, CONSUME -> Math.max(0D, oldValue - amount);
+            case REMOVE, CONSUME -> oldValue - amount;
         };
         ResourceState result = attributeService.syncResource(
                 target, definition, snapshot, ResourceSyncReason.MANUAL, requested);

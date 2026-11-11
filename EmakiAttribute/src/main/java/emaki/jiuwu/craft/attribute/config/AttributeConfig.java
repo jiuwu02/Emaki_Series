@@ -208,7 +208,8 @@ public record AttributeConfig(String language,
                                 "min_max", 1.0,
                                 "max_max", 2048.0,
                                 "sync_to_bukkit", true,
-                                "full_on_init", true
+                                "full_on_init", true,
+                                "is_health", true
                         ),
                         "mana", Map.of(
                                 "display_name", "法力值",

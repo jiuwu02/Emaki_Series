@@ -12,4 +12,4 @@ allow_negative: true
 priority: 90
 lore_format_id: default_regen
 attribute_power: 1.0
-description: "Adds health regeneration per second."
+description: "Adds health regeneration per regen interval; a negative value reverses the deduction."

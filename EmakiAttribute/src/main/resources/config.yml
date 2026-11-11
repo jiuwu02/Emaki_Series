@@ -1,6 +1,6 @@
 # EmakiAttribute 主配置
 
-version: "5.0.3"
+version: "5.0.4"
 
 # 对应 lang/<language>.yml。
 language: "zh_CN"
@@ -40,7 +40,8 @@ same_signature_ignores_invulnerability:
 attack_speed:
   scope: global
 
-# 资源自然回复间隔，单位：tick。
+# 资源回复结算间隔，单位：tick。每经过该间隔结算一次回复量，间隔越长回复越慢。
+# 回复量为资源定义 regen_per_second + 回复类属性之和；回复量为负时按间隔反向扣除，资源当前值允许为负。
 regen_interval_ticks: 20
 
 # 属性同步到 Bukkit 的延迟，单位：tick。
@@ -61,6 +62,8 @@ default_profile:
       max_max: 2048.0
       sync_to_bukkit: true
       full_on_init: true
+      # 标记为生命资源, 当前值与 Bukkit 生命值互相同步
+      is_health: true
     mana:
       display_name: "法力值"
       default_max: 100.0

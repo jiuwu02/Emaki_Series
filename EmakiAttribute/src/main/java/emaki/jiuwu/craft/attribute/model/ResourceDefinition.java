@@ -23,8 +23,12 @@ public record ResourceDefinition(String id,
         if (raw == null) {
             return null;
         }
+        String id = Texts.normalizeId(ConfigNodes.string(raw, "id", null));
+        boolean isHealth = ConfigNodes.contains(raw, "is_health")
+                ? ConfigNodes.bool(raw, "is_health", false)
+                : "health".equals(id);
         return new ResourceDefinition(
-                ConfigNodes.string(raw, "id", null),
+                id,
                 ConfigNodes.string(raw, "display_name", null),
                 Numbers.tryParseDouble(ConfigNodes.get(raw, "default_max"), 0D),
                 Numbers.tryParseDouble(ConfigNodes.get(raw, "min_max"), 0D),
@@ -32,7 +36,7 @@ public record ResourceDefinition(String id,
                 ConfigNodes.bool(raw, "sync_to_bukkit", false),
                 ConfigNodes.bool(raw, "full_on_init", true),
                 Numbers.tryParseDouble(ConfigNodes.get(raw, "regen_per_second"), 0D),
-                ConfigNodes.bool(raw, "is_health", false)
+                isHealth
         );
     }
 

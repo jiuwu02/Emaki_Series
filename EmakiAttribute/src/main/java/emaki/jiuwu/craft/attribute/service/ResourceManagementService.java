@@ -58,12 +58,11 @@ final class ResourceManagementService {
             return;
         }
         int intervalTicks = Math.max(1, service.config().regenIntervalTicks());
-        double intervalSeconds = intervalTicks / 20D;
         Map<String, ResourceDefinition> resources = service.resourceDefinitions();
         for (Player player : Bukkit.getOnlinePlayers()) {
             sched.runForEntity(service.plugin(), player, () -> {
                 if (isPlayerUsable(player)) {
-                    regeneratePlayer(player, intervalSeconds, resources);
+                    regeneratePlayer(player, intervalTicks, resources);
                 }
             }, null);
         }
@@ -71,7 +70,7 @@ final class ResourceManagementService {
 
     private void regeneratePlayer(
             Player player,
-            double intervalSeconds,
+            int intervalTicks,
             Map<String, ResourceDefinition> resources) {
         AttributeSnapshot snapshot = service.collectCombatSnapshot(player);
         for (ResourceDefinition resourceDefinition : resources.values()) {
@@ -79,20 +78,20 @@ final class ResourceManagementService {
             if (existing == null) {
                 continue;
             }
-            double regenPerSecond = resourceDefinition.regenPerSecond();
+            double regenAmount = resourceDefinition.regenPerSecond();
             for (AttributeDefinition definition : service.registryService().resourceRegenDefinitions().getOrDefault(resourceDefinition.id(), List.of())) {
                 Double value = snapshot == null ? null : snapshot.values().get(definition.id());
                 if (value == null) {
                     continue;
                 }
-                regenPerSecond += value;
+                regenAmount += value;
             }
-            if (regenPerSecond == 0D) {
+            if (regenAmount == 0D) {
                 continue;
             }
 
             double baselineValue = resolveCurrentValueBaseline(player, resourceDefinition, existing);
-            double nextValue = baselineValue + (regenPerSecond * intervalSeconds);
+            double nextValue = baselineValue + regenAmount;
             boolean traceHealthRegen = resourceDefinition.isHealth() && shouldDebugResource(player);
             ResourceState refreshed = syncResource(player, resourceDefinition, snapshot, ResourceSyncReason.REGEN, nextValue);
             if (traceHealthRegen) {
@@ -101,8 +100,8 @@ final class ResourceManagementService {
                         "resource", resourceDefinition.id(),
                         "old_value", describeNumber(existing.currentValue()),
                         "baseline_value", describeNumber(baselineValue),
-                        "regen_per_second", describeNumber(regenPerSecond),
-                        "interval_seconds", describeNumber(intervalSeconds),
+                        "regen_amount", describeNumber(regenAmount),
+                        "interval_ticks", String.valueOf(intervalTicks),
                         "candidate_value", describeNumber(nextValue)
                 );
                 putResourceState(replacements, "synced", refreshed);
@@ -272,7 +271,7 @@ final class ResourceManagementService {
         } else {
             currentValue = resolveCurrentValueBaseline(player, resourceDefinition, existing);
         }
-        currentValue = Math.max(0D, Math.min(currentValue, currentMax));
+        currentValue = Math.min(currentValue, currentMax);
         String sourceSignature = SignatureUtil.combine(
                 service.defaultProfileSignature(),
                 snapshot == null ? "" : snapshot.sourceSignature(),

@@ -17,11 +17,11 @@ attributes:
   health_regen:
     group: resource.health
     role: regen
-    summary: "每秒恢复生命值"
+    summary: "按回复间隔恢复生命值"
   mana_regen:
     group: resource.mana
     role: regen
-    summary: "每秒恢复法力值"
+    summary: "按回复间隔恢复法力值"
 
   # 物理攻防属性。
   physical_attack:
