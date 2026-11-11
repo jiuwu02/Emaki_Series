@@ -151,7 +151,7 @@ public final class DummyManager {
             logger.log(LogLevel.ACTION, session.name(), "leave -> disconnect");
             link.disconnect("left");
         } else {
-            logger.log(LogLevel.ACTION, session.name(), "leave -> already closed");
+            logger.log(LogLevel.ACTION, session.name(), "离开 -> 已关闭");
             sessions.remove(session.name().toLowerCase(Locale.ROOT));
         }
         return LeaveOutcome.LEFT;

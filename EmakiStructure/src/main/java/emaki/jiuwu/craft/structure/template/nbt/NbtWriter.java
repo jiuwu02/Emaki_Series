@@ -25,7 +25,7 @@ public final class NbtWriter {
             writeString(output, rootName);
             writeValuePayload(output, root);
         } catch (IOException exception) {
-            throw new NbtFormatException(NbtFormatException.Issue.IO_FAILURE, "nbt write failed", exception);
+            throw new NbtFormatException(NbtFormatException.Issue.IO_FAILURE, "NBT 写入失败", exception);
         }
         return buffer.toByteArray();
     }
@@ -65,12 +65,12 @@ public final class NbtWriter {
         int elementTag = 0;
         for (NbtValue element : list.values()) {
             if (element instanceof NbtValue.EndTag) {
-                throw new NbtFormatException(NbtFormatException.Issue.PARSE_BROKEN, "end tag inside list");
+                throw new NbtFormatException(NbtFormatException.Issue.PARSE_BROKEN, "列表内出现结束标签");
             }
             if (elementTag == 0) {
                 elementTag = element.tagId();
             } else if (element.tagId() != elementTag) {
-                throw new NbtFormatException(NbtFormatException.Issue.PARSE_BROKEN, "mixed list element types");
+                throw new NbtFormatException(NbtFormatException.Issue.PARSE_BROKEN, "列表元素类型混合");
             }
         }
         output.writeByte(elementTag);

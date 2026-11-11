@@ -380,7 +380,7 @@ final class EmakiCoreLibPluginDelegate {
                         "error", String.valueOf(exception.getMessage())
                 ));
             } else {
-                ownerRef.getLogger().warning("[config] 加载 CoreLib 配置失败: " + exception.getMessage());
+                ownerRef.getLogger().warning("[配置] 加载 CoreLib 配置失败: " + exception.getMessage());
             }
             return CoreLibConfig.defaults();
         }
@@ -397,7 +397,7 @@ final class EmakiCoreLibPluginDelegate {
                     "new_version", versionedFile.updatedVersion()
             ));
         } else {
-            ownerRef.getLogger().info("[config] 已更新内置文件版本: " + relativePath + " ("
+            ownerRef.getLogger().info("[配置] 已更新内置文件版本: " + relativePath + " ("
                     + (versionedFile.previousVersion().isBlank() ? "未知" : versionedFile.previousVersion())
                     + " -> " + versionedFile.updatedVersion() + ")");
         }

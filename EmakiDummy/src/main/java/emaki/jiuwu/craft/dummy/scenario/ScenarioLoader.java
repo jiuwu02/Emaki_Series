@@ -30,17 +30,17 @@ public final class ScenarioLoader {
 
     public static ScenarioDefinition load(File file) throws ScenarioLoadException {
         if (!file.isFile()) {
-            throw new ScenarioLoadException("file not found: " + file.getName());
+            throw new ScenarioLoadException("文件不存在: " + file.getName());
         }
         String id = file.getName().replaceFirst("\\.ya?ml$", "");
         YamlConfiguration configuration = YamlConfiguration.loadConfiguration(file);
         List<String> players = configuration.getStringList("players");
         if (players.isEmpty()) {
-            throw new ScenarioLoadException("players must not be empty");
+            throw new ScenarioLoadException("玩家列表不能为空");
         }
         List<Map<?, ?>> rawSteps = configuration.getMapList("steps");
         if (rawSteps.isEmpty()) {
-            throw new ScenarioLoadException("steps must not be empty");
+            throw new ScenarioLoadException("步骤列表不能为空");
         }
         List<ScenarioStep> steps = new ArrayList<>(rawSteps.size());
         Set<String> declaredPlayers = new LinkedHashSet<>(players);
@@ -57,11 +57,11 @@ public final class ScenarioLoader {
                 new StringReader(yamlText));
         List<String> players = configuration.getStringList("players");
         if (players.isEmpty()) {
-            throw new ScenarioLoadException("players must not be empty");
+            throw new ScenarioLoadException("玩家列表不能为空");
         }
         List<Map<?, ?>> rawSteps = configuration.getMapList("steps");
         if (rawSteps.isEmpty()) {
-            throw new ScenarioLoadException("steps must not be empty");
+            throw new ScenarioLoadException("步骤列表不能为空");
         }
         List<ScenarioStep> steps = new ArrayList<>(rawSteps.size());
         Set<String> declaredPlayers = new LinkedHashSet<>(players);
@@ -77,11 +77,11 @@ public final class ScenarioLoader {
             throws ScenarioLoadException {
         Object actionValue = raw.get("action");
         if (!(actionValue instanceof String action) || action.isBlank()) {
-            throw new ScenarioLoadException("step " + index + ": action is required");
+            throw new ScenarioLoadException("step " + index + ": 必须指定动作");
         }
         String normalized = action.trim().toLowerCase(Locale.ROOT);
         if (!KNOWN_ACTIONS.contains(normalized)) {
-            throw new ScenarioLoadException("step " + index + ": unknown action " + normalized);
+            throw new ScenarioLoadException("step " + index + ": 未知动作 " + normalized);
         }
         Map<String, Object> params = new LinkedHashMap<>();
         for (Map.Entry<?, ?> entry : raw.entrySet()) {
@@ -90,7 +90,7 @@ public final class ScenarioLoader {
                 continue;
             }
             if (!OPTIONAL_PARAMS.contains(key)) {
-                throw new ScenarioLoadException("step " + index + ": unknown param " + key);
+                throw new ScenarioLoadException("step " + index + ": 未知参数 " + key);
             }
             params.put(key, entry.getValue());
         }
@@ -108,7 +108,7 @@ public final class ScenarioLoader {
             String player = String.valueOf(params.get("player"));
             if (!declaredPlayers.contains(player)) {
                 throw new ScenarioLoadException("step " + index + ": player " + player
-                        + " is not declared in players");
+                        + " 未在玩家列表中声明");
             }
         }
         switch (action) {

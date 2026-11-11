@@ -230,7 +230,7 @@ public final class MmoItemsBridge implements Listener {
     }
 
     private CompletableFuture<Boolean> applyFallbackDamage(LivingEntity target, double damage) {
-        return CombatSupport.applyFallbackDamage(plugin, scheduling, target, damage, "MMOItems fallback");
+        return CombatSupport.applyFallbackDamage(plugin, scheduling, target, damage, "MMOItems 兜底");
     }
 
     private void warnBridgeUnavailable(String error) {

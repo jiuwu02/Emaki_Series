@@ -184,7 +184,7 @@ public final class ScenarioRunner {
         boolean anyCoord = x != null || y != null || z != null;
         boolean allCoords = x != null && y != null && z != null;
         if (anyCoord && !allCoords) {
-            failStep(step, "invalid_param", "x/y/z must be given together");
+            failStep(step, "invalid_param", "x/y/z 必须同时给出");
             return;
         }
         DummyManager.InteractOutcome outcome = manager.interact(step.param("player"),

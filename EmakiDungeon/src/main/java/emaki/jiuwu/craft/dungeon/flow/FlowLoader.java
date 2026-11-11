@@ -45,7 +45,7 @@ public final class FlowLoader {
     public FlowDefinition load(File flowFile) {
         YamlSection root = YamlFiles.load(flowFile);
         if (root == null || root.isEmpty()) {
-            throw new IllegalArgumentException("flow file missing or empty");
+            throw new IllegalArgumentException("流程文件缺失或为空");
         }
         FlowDefinition definition = new FlowDefinition();
         parseSpawnPoint(root, definition);
@@ -550,7 +550,7 @@ public final class FlowLoader {
 
     private FlowPoint point(YamlSection section) {
         if (section == null) {
-            throw new IllegalArgumentException("location missing");
+            throw new IllegalArgumentException("位置缺失");
         }
         double x = section.getDouble("x", 0.0D);
         double y = section.getDouble("y", 64.0D);
@@ -563,7 +563,7 @@ public final class FlowLoader {
 
     private FlowRegion region(YamlSection section) {
         if (section == null) {
-            throw new IllegalArgumentException("region missing");
+            throw new IllegalArgumentException("区域缺失");
         }
         double minX = section.getDouble("min.x", 0.0D);
         double minY = section.getDouble("min.y", -64.0D);

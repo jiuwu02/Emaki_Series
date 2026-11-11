@@ -32,7 +32,7 @@ slots:
     item:
       source: "experience_bottle"
       components:
-        custom_name: "<gold>%display_name%</gold> <gray>Lv.%points%</gray>"
+        custom_name: "<gold>%display_name%</gold> <gray>%points% 级</gray>"
         lore:
           - "<gray>ID: <white>%attribute%</white></gray>"
           - "<gray>当前点数: <yellow>%points%</yellow></gray>"

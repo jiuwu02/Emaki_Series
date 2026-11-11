@@ -10,11 +10,11 @@ console:
   plugin_starting: "[startup] <gray>正在启动...</gray>"
   plugin_started: "[startup] <green>启动完成</green>"
   plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
-  config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -39,7 +39,7 @@ console:
   mythic_drops_registered: "[integration] <gray>MythicMobs Drops 已注册</gray>"
   bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
   bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
-  versioned_file_updated: "[config] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  versioned_file_updated: "[配置] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
   legacy_file_migrated: "[migrate] <green>已自动迁移旧格式配置: <yellow>%path%</yellow> <gray> (%detail%)</gray></green>"
   legacy_migration_failed: "[migrate] <red>自动迁移失败, 原文件保持不变: <yellow>%path%</yellow> <gray> (%error%)</gray></red>"
   legacy_migration_summary: "[migrate] <green>%scope% 自动迁移完成, 共改写 <yellow>%count%</yellow> 份文件</green>"
@@ -100,7 +100,7 @@ command:
   # 命令: 排行榜标题; 占位符: %type%
   top_header: "<gold>===== EmakiLevel 排行榜: %type% =====</gold>"
   # 命令: 排行榜条目; 占位符: %rank%, %player%, %level%, %total_exp%
-  top_entry: "<yellow>#%rank%</yellow> <white>%player%</white> <gray>Lv.%level% / %total_exp% 总计</gray>"
+  top_entry: "<yellow>#%rank%</yellow> <white>%player%</white> <gray>%level% 级 / %total_exp% 总计</gray>"
   # 命令: 经验操作用法提示; 占位符: %mode%
   usage_exp: "<red>/elv %mode%exp <player> <type> <amount></red>"
   # 命令: 等级操作用法提示; 占位符: %mode%
@@ -114,7 +114,7 @@ command:
   # 命令: PDC 同步完成提示; 占位符: %player%
   debug_pdc_synced: "<green>已为 %player% 同步 PDC</green>"
   # 命令: 操作成功反馈; 占位符: %type%, %old_level%, %new_level%, %old_exp%, %new_exp%
-  operation_success: "<green>操作成功: %type% Lv.%old_level% → Lv.%new_level%, exp %old_exp% → %new_exp%</green>"
+  operation_success: "<green>操作成功: %type% %old_level% 级 → %new_level% 级, 经验 %old_exp% → %new_exp%</green>"
   # 命令: 操作失败反馈; 占位符: %reason%
   operation_failed: "<red>操作失败: %reason%</red>"
   convert_legacy:
@@ -137,7 +137,7 @@ command:
       unconvertible: "无等价写法, 已保留原样"
       failed: "转换失败, 已保留原样"
 level:
-  info_line: "%prefix%%type_display_name% <gray>Lv.%level% %exp%/%required_exp%  (%progress_percent%%)</gray>"
+  info_line: "%prefix%%type_display_name% <gray>%level% 级 %exp%/%required_exp%  (%progress_percent%%)</gray>"
   exp_gain: "%prefix%<green>%type_display_name% 经验 +%amount%</green>"
   levelup_success: "%prefix%<green>%type_display_name% 提升到了 <yellow>%new_level%</yellow> 级</green>"
   levelup_failure: "%prefix%<red>升级失败: %failure_reason%</red>"
@@ -148,7 +148,7 @@ gui:
     unknown_type: "%prefix%<red>等级类型不存在: <white>%type%</white></red>"
     page_info_name: "<aqua>第 %current_page%/%total_pages% 页</aqua>"
     page_info_lore: "<gray>等级类型数量: <white>%type_count%</white></gray>"
-    entry_name: "%type_display_name% <gray>Lv.%level%</gray>"
+    entry_name: "%type_display_name% <gray>%level% 级</gray>"
     top_button_name: "<gold>%type_display_name% 排行榜</gold>"
     top_button_lore: "<gray>点击查看当前选中等级类型的排行榜</gray>"
     levelup_once_success: "%prefix%<green>%type_display_name% 提升到了 <yellow>%new_level%</yellow> 级</green>"
@@ -171,7 +171,7 @@ gui:
   top:
     unknown_type: "%prefix%<red>等级类型不存在: <white>%type%</white></red>"
     entry_name: "<gold>#%rank%</gold> <white>%player%</white>"
-    entry_lore: "<gray>Lv.%level% / 累计 %total_exp%</gray>"
+    entry_lore: "<gray>%level% 级 / 累计 %total_exp%</gray>"
     page_info_name: "<aqua>第 %current_page%/%total_pages% 页</aqua>"
     page_info_lore: "<gray>排行榜条目: <white>%entry_count%</white></gray>"
     type_info_name: "<gold>%type_display_name%</gold>"
@@ -325,7 +325,7 @@ editor:
     rule_states_desc: "<dark_gray>匹配的方块状态</dark_gray>"
     rule_potion_types: "药水类型"
     rule_potion_types_desc: "<dark_gray>匹配的药水类型</dark_gray>"
-    rule_mob_ids: "Mob ID"
+    rule_mob_ids: "怪物 ID"
     rule_mob_ids_desc: "<dark_gray>匹配的 MythicMobs ID 列表</dark_gray>"
     global_formula: "全局公式"
     global_formula_desc: "<dark_gray>所有分组的默认升级公式</dark_gray>"

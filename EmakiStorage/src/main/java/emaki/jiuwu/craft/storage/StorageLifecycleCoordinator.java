@@ -189,7 +189,7 @@ final class StorageLifecycleCoordinator
             return AppConfig.defaults();
         }
         Consumer<String> issues =
-                issue -> plugin.getLogger().warning("[config] " + issue);
+                issue -> plugin.getLogger().warning("[配置] " + issue);
         return new AppConfig(
                 configuration.getString("language", "zh_CN"),
                 configuration.getString("version", AppConfig.CURRENT_VERSION),
@@ -515,7 +515,7 @@ final class StorageLifecycleCoordinator
         }
         if (section.contains(legacyPath)) {
             long legacyValue = longValue(section, legacyPath, fallback);
-            JavaPlugin.getPlugin(EmakiStoragePlugin.class).getLogger().warning("[config] 配置键 " + legacyPath
+            JavaPlugin.getPlugin(EmakiStoragePlugin.class).getLogger().warning("[配置] 配置键 " + legacyPath
                     + " 已更名为 " + path
                     + ", 当前按旧键值 " + legacyValue
                     + " 生效, 启动时会自动迁移到新键");

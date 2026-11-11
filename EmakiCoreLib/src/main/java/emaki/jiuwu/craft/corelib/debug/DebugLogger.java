@@ -214,7 +214,7 @@ public final class DebugLogger {
     private void logConsole(String langKey, Map<String, ?> replacements) {
         String template = resolveTemplate(langKey);
         if (Texts.isBlank(template) || langKey.equals(template)) {
-            template = "<gray>[DEBUG][<aqua>%module%</aqua>]</gray> %message%";
+            template = "<gray>[调试][<aqua>%module%</aqua>]</gray> %message%";
         }
         String message = replacements == null || replacements.isEmpty()
                 ? template

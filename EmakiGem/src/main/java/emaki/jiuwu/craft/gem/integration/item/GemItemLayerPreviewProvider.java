@@ -259,7 +259,7 @@ public final class GemItemLayerPreviewProvider implements ItemLayerPreviewProvid
                 continue;
             }
             String target = Texts.isNotBlank(entry.id()) ? entry.id() : Texts.isNotBlank(entry.type()) ? entry.type() : "任意宝石";
-            parts.add(entry.minLevel() > 0 ? target + "≥Lv." + entry.minLevel() : target);
+            parts.add(entry.minLevel() > 0 ? target + "≥等级" + entry.minLevel() : target);
         }
         return String.join(" + ", parts);
     }

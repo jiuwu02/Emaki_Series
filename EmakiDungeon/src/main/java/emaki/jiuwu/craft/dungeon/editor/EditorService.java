@@ -109,7 +109,6 @@ public final class EditorService implements Listener {
 
     public void bindMarkers(EditorModuleMarkers markers) { new EditorServiceDelegate(this).bindMarkers(markers); }
 
-    /** 重建该会话的功能模块边框与居中文本 (编辑态可视化). */
     public void refreshMarkers(EditorSession session) { new EditorServiceDelegate(this).refreshMarkers(session); }
 
     public boolean hasSession(UUID playerId) { return new EditorServiceDelegate(this).hasSession(playerId); }

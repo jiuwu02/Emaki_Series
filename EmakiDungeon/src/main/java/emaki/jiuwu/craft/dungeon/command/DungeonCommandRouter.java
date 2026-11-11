@@ -277,7 +277,7 @@ public final class DungeonCommandRouter {
                         templates.findConfig(dungeonId);
                 if (config == null) {
                     messages.send(sender, "command.admin.validate_error",
-                            Map.of("dungeon", dungeonId, "error", "config invalid"));
+                            Map.of("dungeon", dungeonId, "error", "配置无效"));
                     continue;
                 }
                 var templateDir = templates.templateDir(dungeonId);

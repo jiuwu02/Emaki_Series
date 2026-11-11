@@ -149,7 +149,6 @@ public final class EditorSession {
         inFlight += delta;
     }
 
-    /** 编辑态功能模块边框与文本展示实体缓存. */
     public List<org.bukkit.entity.Entity> markers() {
         return markers;
     }

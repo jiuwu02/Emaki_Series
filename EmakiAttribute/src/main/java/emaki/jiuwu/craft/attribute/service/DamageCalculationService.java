@@ -752,7 +752,7 @@ final class DamageCalculationService {
             if (service.plugin() != null) {
                 service.plugin().getLogger().log(
                         Level.WARNING,
-                        "[combat] 伤害调试锚点输出失败; 伤害计算不受影响",
+                        "[战斗] 伤害调试锚点输出失败; 伤害计算不受影响",
                         exception
                 );
             }

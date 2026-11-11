@@ -58,7 +58,7 @@ public final class TemplateRepository {
         File configFile = new File(dir, "config.yml");
         YamlSection section = YamlFiles.load(configFile);
         if (section == null) {
-            throw new IllegalArgumentException("config.yml missing: " + dungeonId);
+            throw new IllegalArgumentException("config.yml 缺失: " + dungeonId);
         }
         return DungeonConfig.parse(section);
     }

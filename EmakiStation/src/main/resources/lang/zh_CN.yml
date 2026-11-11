@@ -19,12 +19,12 @@ console:
   bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
   directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
-  loader_config_load_error: "[config] <yellow>读取 config.yml 失败, 已回退到默认配置</yellow>"
-  config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  loader_config_load_error: "[配置] <yellow>读取 config.yml 失败, 已回退到默认配置</yellow>"
+  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -156,7 +156,7 @@ precheck:
 
 debug:
   station:
-    submit: "<gray>[DEBUG][Station] 玩家 <player> 在工作站 <station> 提交配方 <recipe>, 批量 <batch>, 队列位置 <queue_index></gray>"
+    submit: "<gray>[调试][Station] 玩家 <player> 在工作站 <station> 提交配方 <recipe>, 批量 <batch>, 队列位置 <queue_index></gray>"
 
 # 编辑器: 游戏内定义编辑器 (菜单/字段/浏览器/反馈)
 editor:

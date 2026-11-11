@@ -22,7 +22,7 @@ public final class BossBarHideStage extends BaseStage {
     public BossBarHideStage() {
         super("boss_bar_hide", "feedback", "按 id 隐藏玩家的 boss bar.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.required("id", CoreStageParameterType.STRING, "boss bar id, 或 all"));
+                CoreStageParameter.required("id", CoreStageParameterType.STRING, "首领栏 ID, 或 all"));
     }
 
     @Override

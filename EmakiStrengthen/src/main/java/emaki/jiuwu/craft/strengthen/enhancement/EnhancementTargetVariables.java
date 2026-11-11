@@ -312,7 +312,6 @@ public final class EnhancementTargetVariables {
                 && component.getStrings().isEmpty() && component.getColors().isEmpty()) {
             return null;
         }
-        // 旧的整数 custom model data 等价于只有一个 float 的组件, 这里还原成整数以保持变量与签名兼容
         if (floats.size() == 1 && component.getFlags().isEmpty()
                 && component.getStrings().isEmpty() && component.getColors().isEmpty()) {
             float value = floats.getFirst();

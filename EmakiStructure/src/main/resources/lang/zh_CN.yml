@@ -27,7 +27,7 @@ console:
   # 占位符: %count%
   templates_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个结构模板</gray>"
   # 占位符: %path%, %value%, %expected%
-  config_issue: "[config] <yellow>配置项 <white>%path%</white> 取值 <white>%value%</white> 非法 (期望 <white>%expected%</white>), 已按合法值处理</yellow>"
+  config_issue: "[配置] <yellow>配置项 <white>%path%</white> 取值 <white>%value%</white> 非法 (期望 <white>%expected%</white>), 已按合法值处理</yellow>"
   # 占位符: %template%
   cache_rejected: "[cache] <yellow>模板 <white>%template%</white> 估算体积超出缓存上限, 本次用完即弃</yellow>"
   # 占位符: %count%

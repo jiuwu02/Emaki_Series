@@ -37,7 +37,7 @@ public final class AdvancementPageLoader extends YamlDirectoryLoader<Advancement
 
     @Override
     protected String typeName() {
-        return "advancement page";
+        return "进度页";
     }
 
     @Override

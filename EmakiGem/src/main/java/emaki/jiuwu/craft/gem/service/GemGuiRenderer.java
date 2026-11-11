@@ -119,15 +119,15 @@ final class GemGuiRenderer {
             lore.add(text("upgrade_no_target_line_2", "<gray>请将已配置 stages 的宝石放入目标槽</gray>"));
         } else {
             lore.add(text("upgrade_current_level", Map.of("level", view.instance().level()),
-                    "<gray>当前等级: <yellow>Lv.%level%</yellow></gray>"));
+                    "<gray>当前等级: <yellow>%level%</yellow></gray>"));
             lore.add(text("upgrade_max_level", Map.of("max_level", view.definition().stages().maxLevel()),
-                    "<gray>最高等级: <gold>Lv.%max_level%</gold></gray>"));
+                    "<gray>最高等级: <gold>%max_level%</gold></gray>"));
             lore.add(view.nextStage() == null
                     ? text("upgrade_already_max", "<green>该宝石已达到配置的最高阶段</green>")
                     : text("upgrade_next_stage", Map.of(
                             "level", view.nextLevel(),
                             "stage", nextStageName(view)),
-                            "<gray>下一阶段: <light_purple>Lv.%level% %stage%</light_purple></gray>"));
+                            "<gray>下一阶段: <light_purple>%level% %stage%</light_purple></gray>"));
         }
         lore.add(plugin.strengthenIntegration() != null && plugin.strengthenIntegration().available()
                 ? text("upgrade_framework_ready", "<green>Strengthen 框架已就绪</green>")
@@ -281,7 +281,7 @@ final class GemGuiRenderer {
 
     private String nextStageName(GemUpgradeView view) {
         return view == null || view.nextStage() == null || Texts.isBlank(view.nextStage().displayName())
-                ? "Lv." + (view == null ? "?" : view.nextLevel())
+                ? "等级" + (view == null ? "?" : view.nextLevel())
                 : view.nextStage().displayName();
     }
 
@@ -497,7 +497,7 @@ final class GemGuiRenderer {
                     extraLore.add(text("gem_type", Map.of("type", pendingDefinition.gemType()), "<gray>宝石类型: <yellow>%type%</yellow></gray>"));
                 }
                 if (pendingInstance != null) {
-                    extraLore.add(text("gem_level", Map.of("level", pendingInstance.level()), "<gray>宝石等级: <yellow>Lv.%level%</yellow></gray>"));
+                    extraLore.add(text("gem_level", Map.of("level", pendingInstance.level()), "<gray>宝石等级: <yellow>%level%</yellow></gray>"));
                 }
                 extraLore.add(text("pending_inlay", "<green>待确认镶嵌</green>"));
                 if (pendingGemDisplay != null) {
@@ -526,7 +526,7 @@ final class GemGuiRenderer {
         List<String> extraLore = new ArrayList<>();
         extraLore.add(text("slot_position", Map.of("slot", socketIndex), "<gray>插槽位置: <gold>#%slot%</gold></gray>"));
         extraLore.add(socketType(socketSlot.displayName()));
-        extraLore.add(text("gem_level", Map.of("level", assigned.level()), "<gray>宝石等级: <yellow>Lv.%level%</yellow></gray>"));
+        extraLore.add(text("gem_level", Map.of("level", assigned.level()), "<gray>宝石等级: <yellow>%level%</yellow></gray>"));
         if (definition != null) {
             extraLore.add(text("gem_type", Map.of("type", definition.gemType()), "<gray>宝石类型: <yellow>%type%</yellow></gray>"));
         }
@@ -583,7 +583,7 @@ final class GemGuiRenderer {
                 lore.add(text("preview_gem", Map.of("gem", previewGem), "<gray>宝石: <yellow>%gem%</yellow></gray>"));
                 if (instance != null) {
                     previewLevel = instance.level();
-                    lore.add(text("preview_level", Map.of("level", previewLevel), "<gray>等级: <gold>Lv.%level%</gold></gray>"));
+                    lore.add(text("preview_level", Map.of("level", previewLevel), "<gray>等级: <gold>%level%</gold></gray>"));
                 }
             }
             case EXTRACT -> {

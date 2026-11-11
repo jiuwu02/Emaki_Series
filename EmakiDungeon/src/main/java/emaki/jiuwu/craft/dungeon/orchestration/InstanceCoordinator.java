@@ -142,10 +142,6 @@ public final class InstanceCoordinator {
         }
     }
 
-    /**
-     * 扫描副本世界目录作为兜底: instances.yml 可能已被上一轮清空,
-     * 但克隆目录仍留在磁盘上 (例如 emd_dungeon_test_dungeon_164)
-     */
     private List<String> scanInstanceWorlds() {
         List<String> found = new ArrayList<>();
         for (Path root : WorldFolders.sweepRoots(plugin.getServer().getWorldContainer())) {
@@ -334,8 +330,6 @@ public final class InstanceCoordinator {
                 }
             }
         }
-        // 停服时必须把克隆实例地图目录从 world 目录删除, 否则下一轮启动会残留
-        // emd_dungeon_<dungeon>_<n> 目录; 先卸载再删, 避免文件被世界占用
         int removed = 0;
         for (String worldName : scanInstanceWorlds()) {
             World world = Bukkit.getWorld(worldName);

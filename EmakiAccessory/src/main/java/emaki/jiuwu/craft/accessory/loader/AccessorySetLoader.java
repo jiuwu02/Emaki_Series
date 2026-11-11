@@ -26,7 +26,7 @@ public final class AccessorySetLoader extends YamlDirectoryLoader<AccessorySetDe
 
     @Override
     protected String typeName() {
-        return "accessory set";
+        return "饰品套装";
     }
 
     @Override

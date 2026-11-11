@@ -258,7 +258,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
         if (section.contains(legacyPath)) {
             boolean legacyValue = bool(section, legacyPath, fallback);
-            JavaPlugin.getPlugin(EmakiCodexPlugin.class).getLogger().warning("[config] 配置键 advancement." + legacyPath
+            JavaPlugin.getPlugin(EmakiCodexPlugin.class).getLogger().warning("[配置] 配置键 advancement." + legacyPath
                     + " 已更名为 advancement." + path
                     + ", 当前按旧键值 " + legacyValue
                     + " 生效, 启动时会自动迁移到新键");

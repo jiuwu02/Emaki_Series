@@ -19,11 +19,11 @@ console:
   gui_backend_shutdown_failed: "[shutdown] <yellow>菜单后端 <aqua>%backend%</aqua> 关闭失败: <red>%error%</red></yellow>"
   gui_backend_shutdown_deferred: "[shutdown] <yellow>菜单后端 <aqua>%backend%</aqua> 未能回到所属线程关闭, 已跳过: <red>%reason%</red></yellow>"
   item_source_bridge_close_failed: "[item-source] <yellow>来源注册关闭失败, 已跳过该来源: <white>%detail%</white></yellow>"
-  config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -82,9 +82,9 @@ console:
   bstats_register_failed: "[metrics] <yellow>bStats 统计注册失败, 已跳过: <aqua>%plugin%</aqua> <dark_gray> (pluginId=%plugin_id%, %error%)</dark_gray></yellow>"
   bstats_closed: "[metrics] <gray>bStats 统计已关闭: <aqua>%plugin%</aqua></gray>"
   bstats_close_failed: "[metrics] <yellow>bStats 统计关闭失败: <aqua>%plugin%</aqua> <dark_gray> (%error%)</dark_gray></yellow>"
-  bstats_config_directory_create_failed: "[config] <yellow>无法创建 bStats 配置目录: %path%</yellow>"
-  bstats_config_write_failed: "[config] <yellow>无法写入 bStats 配置: %path%  (%error%)</yellow>"
-  action_config_load_failed: "[config] <red>加载动作配置失败: %error%</red>"
+  bstats_config_directory_create_failed: "[配置] <yellow>无法创建 bStats 配置目录: %path%</yellow>"
+  bstats_config_write_failed: "[配置] <yellow>无法写入 bStats 配置: %path%  (%error%)</yellow>"
+  action_config_load_failed: "[配置] <red>加载动作配置失败: %error%</red>"
   item_source_bridge_ready: "[integration] <gray>已接入物品源: <aqua>%library%</aqua></gray>"
   item_source_bridge_waiting: "[integration] <gray>已检测到 <aqua>%library%</aqua>, 等待物品注册完成: %detail%</gray>"
   item_source_bridge_incompatible: "[integration] <yellow><aqua>%library%</aqua> 物品源未接入: %detail%</yellow>"
@@ -116,8 +116,8 @@ loader:
   load_failed: "[loader] <red>读取 %type% 文件 %file% 失败: %error%</red>"
 
 action:
-  debug_execution: "<gray>[Action]</gray> <white>phase=%phase%</white> <white>id=%id%</white> <gray>args=%args%</gray>"
-  execute_failed: "<red>[Action] 执行 %action% 失败: %error%</red>"
+  debug_execution: "<gray>[动作]</gray> <white>phase=%phase%</white> <white>id=%id%</white> <gray>args=%args%</gray>"
+  execute_failed: "<red>[动作] 执行 %action% 失败: %error%</red>"
   register:
     blank_id: "<red>[管道] 段 id 为空, 注册被拒绝</red>"
     duplicate_id: "<red>[管道] 段 id 重复, 注册被拒绝</red>"
@@ -692,7 +692,7 @@ debug:
       callback_dispatch_unavailable: "聊天输入回调无法分派到所有者线程, 改为就地执行 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords%"
       callback_failed: "聊天输入回调执行失败 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords% | 状态=%status% | 错误类型=%error_type% | 错误=%error_message%"
   console:
-    line: "<gray>[DEBUG][<aqua>%module%</aqua>]</gray> %message%"
+    line: "<gray>[调试][<aqua>%module%</aqua>]</gray> %message%"
   command:
     status_header: "<gold>========== %plugin% Debug 状态 ==========</gold>"
     status_enabled: "<green>Debug 已开启</green>"

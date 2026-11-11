@@ -26,10 +26,6 @@ import emaki.jiuwu.craft.corelib.editor.YamlTextDocument;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 
-/**
- * 地牢编辑态的功能模块可视化: 为每个已放置的功能模块画出点位边框,
- * 并在边框正中心放置文本展示实体标注该模块的类型 (文本走语言文件)
- */
 public final class EditorModuleMarkers {
 
     private static final float VIEW_RANGE = 128.0f;
@@ -38,7 +34,6 @@ public final class EditorModuleMarkers {
     private static final Quaternionf ROT_Z = new Quaternionf().rotationZ((float) (Math.PI / 2.0D));
     private static final Quaternionf ROT_Y = new Quaternionf().rotationY((float) (-Math.PI / 2.0D));
 
-    /** 模块类型 -> flow.yml 段名, 顺序即渲染顺序; 与 EditorModules 的 22 节单一描述表同源. */
     private static final Map<String, String> MODULE_SECTIONS = new LinkedHashMap<>();
 
     static {
@@ -87,7 +82,6 @@ public final class EditorModuleMarkers {
         this.messages = messages;
     }
 
-    /** 重建该会话的全部边框与文本; 返回创建的实体数量. */
     public int refresh(EditorSession session) {
         clear(session);
         World world = Bukkit.getWorld(session.editWorldName());
@@ -98,7 +92,6 @@ public final class EditorModuleMarkers {
         }
         YamlTextDocument view = session.flowDoc().view();
         List<Entity> spawned = new ArrayList<>();
-        // 边框与文本必须在该世界的 region 线程上生成, 否则跨区域 spawn 会被拒绝
         Location anchor = world.getSpawnLocation();
         dispatcher.runAtLocation(plugin, anchor, () -> {
             for (Map.Entry<String, String> entry : MODULE_SECTIONS.entrySet()) {
@@ -200,7 +193,6 @@ public final class EditorModuleMarkers {
         return null;
     }
 
-    /** 兼容两种 region 写法: 扁平键 {@code min.x} 与嵌套 {@code min: {x,y,z}}. */
     private Box regionBox(Map<?, ?> map) {
         Double minX = number(map, "min.x");
         Double minY = number(map, "min.y");

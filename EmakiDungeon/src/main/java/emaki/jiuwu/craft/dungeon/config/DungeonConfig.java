@@ -118,7 +118,7 @@ public record DungeonConfig(
 
     public static DungeonConfig parse(YamlSection section) {
         if (section == null || section.isEmpty()) {
-            throw new IllegalArgumentException("config empty");
+            throw new IllegalArgumentException("配置为空");
         }
         int poolMaxWorlds = requirePositive(section.getInt("pool.max-worlds"),
                 "pool.max-worlds must be >= 1");
@@ -182,7 +182,7 @@ public record DungeonConfig(
         String waitChannel = section.getString("enter.wait-channel", "bossbar");
         if (!"bossbar".equals(waitChannel) && !"scoreboard".equals(waitChannel)
                 && !"chat".equals(waitChannel)) {
-            throw new IllegalArgumentException("enter.wait-channel must be bossbar/scoreboard/chat");
+            throw new IllegalArgumentException("enter.wait-channel 必须为 bossbar/scoreboard/chat");
         }
         return waitChannel;
     }
@@ -359,14 +359,14 @@ public record DungeonConfig(
         Matcher matcher = Pattern
                 .compile("^(\\d{1,2}):(\\d{2})-(\\d{1,2}):(\\d{2})$").matcher(text);
         if (!matcher.matches()) {
-            throw new IllegalArgumentException("invalid limits.daily.time-window: " + raw);
+            throw new IllegalArgumentException("无效的 limits.daily.time-window: " + raw);
         }
         int startHour = Integer.parseInt(matcher.group(1));
         int startMinute = Integer.parseInt(matcher.group(2));
         int endHour = Integer.parseInt(matcher.group(3));
         int endMinute = Integer.parseInt(matcher.group(4));
         if (startHour > 23 || endHour > 23 || startMinute > 59 || endMinute > 59) {
-            throw new IllegalArgumentException("invalid limits.daily.time-window: " + raw);
+            throw new IllegalArgumentException("无效的 limits.daily.time-window: " + raw);
         }
         return new DailyWindow(startHour * 60 + startMinute, endHour * 60 + endMinute);
     }

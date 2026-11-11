@@ -108,10 +108,10 @@ final class DamageCalculationServiceDelegate2 {
                     ? null
                     : Numbers.tryParseDouble(variables.get(attributeId), null);
             if (contextValue != null) {
-                builder.append(ownerRef.debugNumber(contextValue)).append(" from context_variable");
+                builder.append(ownerRef.debugNumber(contextValue)).append(" 来自 context_variable");
                 continue;
             }
-            builder.append(ownerRef.debugNumber(0D)).append(" from absent(no_snapshot_no_context)");
+            builder.append(ownerRef.debugNumber(0D)).append(" 来自 absent(no_snapshot_no_context)");
         }
         return builder.isEmpty() ? DamageCalculationService.DEBUG_NONE : builder.toString();
     }

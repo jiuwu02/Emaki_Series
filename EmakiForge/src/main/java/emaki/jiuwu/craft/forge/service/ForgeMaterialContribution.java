@@ -71,7 +71,7 @@ record ForgeMaterialContribution(ForgeMaterial material,
                 map.remove("audit_id");
             }
             map.put("legacy_identity", material.legacySourceKey());
-            map.put("identity_diagnostic", "missing canonical identity field");
+            map.put("identity_diagnostic", "缺少规范身份字段");
         }
         return map;
     }

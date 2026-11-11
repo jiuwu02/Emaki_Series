@@ -41,7 +41,7 @@ public final class StructureTemplateLoader {
         }
         if (fileBytes == null) {
             return EmakiResult.failure(FailureKind.INVALID_INPUT, "error.template.parse_failed",
-                    Map.<String, Object>of("file", templateId, "detail", "missing file payload"));
+                    Map.<String, Object>of("file", templateId, "detail", "缺少文件内容"));
         }
         if (fileBytes.length > limits.maxFileBytes()) {
             return EmakiResult.failure(FailureKind.REJECTED, "error.template.file_too_large",
@@ -93,7 +93,7 @@ public final class StructureTemplateLoader {
         for (NbtValue rawEntry : blockEntries) {
             if (!(rawEntry instanceof NbtValue.CompoundTag entry)) {
                 return EmakiResult.failure(FailureKind.INVALID_INPUT, "error.template.parse_failed",
-                        Map.<String, Object>of("file", templateId, "detail", "blocks entry is not a compound"));
+                        Map.<String, Object>of("file", templateId, "detail", "blocks 条目不是复合标签"));
             }
             OptionalInt state = intValue(entry, "state");
             if (state.isEmpty() || state.getAsInt() < 0 || state.getAsInt() >= paletteEntries.size()) {
@@ -151,7 +151,7 @@ public final class StructureTemplateLoader {
                 if (limits.legacyPolicy() == LegacyPolicy.REJECT) {
                     return EmakiResult.failure(FailureKind.REJECTED, "error.template.legacy_block_rejected",
                             Map.<String, Object>of("file", templateId,
-                                    "block", blockString == null ? "missing name" : blockString,
+                                    "block", blockString == null ? "缺少名称" : blockString,
                                     "palette_index", index));
                 }
                 palette[index] = Material.AIR.createBlockData();

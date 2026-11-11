@@ -30,7 +30,7 @@ public final class BossBarShowStage extends BaseStage {
     public BossBarShowStage() {
         super("boss_bar_show", "feedback", "按 id 显示或替换玩家的 boss bar.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.required("id", CoreStageParameterType.STRING, "boss bar id"),
+                CoreStageParameter.required("id", CoreStageParameterType.STRING, "首领栏 ID"),
                 CoreStageParameter.required("title", CoreStageParameterType.STRING, "boss bar 标题"),
                 CoreStageParameter.optional("progress", CoreStageParameterType.DOUBLE, "1",
                         "进度, 0 到 1"),

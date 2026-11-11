@@ -303,7 +303,7 @@ public final class CookingCompletionJournalStore {
                     + rootCauseMessage(throwable));
         } catch (IOException moveFailure) {
             logger.warning("[journal] 加载烹饪完成日志失败 '" + fileName + "': "
-                    + rootCauseMessage(throwable) + "; quarantine move failed: " + rootCauseMessage(moveFailure));
+                    + rootCauseMessage(throwable) + "; 隔离移动失败: " + rootCauseMessage(moveFailure));
         }
     }
 

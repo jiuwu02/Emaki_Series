@@ -187,7 +187,7 @@ public final class InMemoryPityStateStore implements PityStateStore {
                     encodeKey(key), state.getCounter() + "," + state.getLastTriggerTime() + "," + state.isTriggered()));
             try (OutputStream output = Files.newOutputStream(persistenceFile,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
-                properties.store(output, "EmakiStrengthen pity state");
+                properties.store(output, "EmakiStrengthen 保底状态");
             }
             return true;
         } catch (IOException ignored) {

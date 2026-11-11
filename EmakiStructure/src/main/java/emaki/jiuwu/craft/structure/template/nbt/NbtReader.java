@@ -58,7 +58,7 @@ public final class NbtReader {
         while ((read = source.read(chunk)) != -1) {
             total += read;
             if (total > maxBytes) {
-                throw new NbtFormatException(OUTPUT_LIMIT, "stream exceeds " + maxBytes + " bytes");
+                throw new NbtFormatException(OUTPUT_LIMIT, "流长度超出 " + maxBytes + " 字节");
             }
             buffer.write(chunk, 0, read);
         }
@@ -68,7 +68,7 @@ public final class NbtReader {
     private NbtReadResult parseRoot() {
         int rootTag = readUnsignedByte();
         if (rootTag != TAG_COMPOUND) {
-            throw new NbtFormatException(BAD_ROOT_TYPE, "root tag type " + rootTag);
+            throw new NbtFormatException(BAD_ROOT_TYPE, "根标签类型 " + rootTag);
         }
         readString();
         return new NbtReadResult(readCompound(1), skippedTagCount);
@@ -76,12 +76,12 @@ public final class NbtReader {
 
     private NbtValue.CompoundTag readCompound(int depth) {
         if (depth > maxDepth) {
-            throw new NbtFormatException(DEPTH_EXCEEDED, "depth " + depth + " exceeds " + maxDepth);
+            throw new NbtFormatException(DEPTH_EXCEEDED, "深度 " + depth + " 超出上限 " + maxDepth);
         }
         Map<String, NbtValue> entries = new LinkedHashMap<>();
         while (true) {
             if (remaining() < 1) {
-                throw new NbtFormatException(PARSE_BROKEN, "compound truncated at " + cursor);
+                throw new NbtFormatException(PARSE_BROKEN, "复合标签在 " + cursor + " 处被截断");
             }
             int tag = readUnsignedByte();
             if (tag == TAG_END) {
@@ -99,18 +99,18 @@ public final class NbtReader {
 
     private NbtValue.ListTag readList(int depth) {
         if (depth > maxDepth) {
-            throw new NbtFormatException(DEPTH_EXCEEDED, "depth " + depth + " exceeds " + maxDepth);
+            throw new NbtFormatException(DEPTH_EXCEEDED, "深度 " + depth + " 超出上限 " + maxDepth);
         }
         int elementTag = readUnsignedByte();
         int count = readInt();
         if (count < 0 || count > remaining()) {
-            throw new NbtFormatException(PARSE_BROKEN, "list count " + count + " exceeds remaining " + remaining());
+            throw new NbtFormatException(PARSE_BROKEN, "列表数量 " + count + " 超出剩余 " + remaining());
         }
         if (count == 0) {
             return new NbtValue.ListTag(List.of());
         }
         if (elementTag == TAG_END) {
-            throw new NbtFormatException(PARSE_BROKEN, "non empty list of end tags");
+            throw new NbtFormatException(PARSE_BROKEN, "非空的结束标签列表");
         }
         if (elementTag < FIRST_TAG || elementTag > LAST_TAG) {
             skippedTagCount++;
@@ -137,7 +137,7 @@ public final class NbtReader {
             case TAG_COMPOUND -> readCompound(parentDepth + 1);
             case 11 -> readInts();
             case 12 -> readLongs();
-            default -> throw new NbtFormatException(PARSE_BROKEN, "unexpected tag type " + tag);
+            default -> throw new NbtFormatException(PARSE_BROKEN, "意外的标签类型 " + tag);
         };
     }
 
@@ -170,7 +170,7 @@ public final class NbtReader {
     private int readLength(int bytesPerElement) {
         int length = readInt();
         if (length < 0 || length > remaining() / bytesPerElement) {
-            throw new NbtFormatException(PARSE_BROKEN, "array length " + length + " exceeds remaining " + remaining());
+            throw new NbtFormatException(PARSE_BROKEN, "数组长度 " + length + " 超出剩余 " + remaining());
         }
         return length;
     }
@@ -178,7 +178,7 @@ public final class NbtReader {
     private String readString() {
         int length = readUnsignedShort();
         if (length > remaining()) {
-            throw new NbtFormatException(PARSE_BROKEN, "string length " + length + " exceeds remaining " + remaining());
+            throw new NbtFormatException(PARSE_BROKEN, "字符串长度 " + length + " 超出剩余 " + remaining());
         }
         String value = new String(payload, cursor, length, StandardCharsets.UTF_8);
         cursor += length;
@@ -219,7 +219,7 @@ public final class NbtReader {
 
     private void require(int bytes) {
         if (bytes > remaining()) {
-            throw new NbtFormatException(PARSE_BROKEN, "need " + bytes + " bytes at " + cursor);
+            throw new NbtFormatException(PARSE_BROKEN, "在 " + cursor + " 处需要 " + bytes + " 字节");
         }
     }
 

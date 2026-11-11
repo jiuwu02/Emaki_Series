@@ -181,7 +181,7 @@ final class StructureCommandRouterDelegate {
         World world = anchor.getWorld();
         if (world == null) {
             ownerRef.plugin.messageService().send(sender, "error.generate.out_of_bounds",
-                    Map.of("detail", "world unavailable"));
+                    Map.of("detail", "世界不可用"));
             return;
         }
         GenerationService.Request request = new GenerationService.Request(world, template,

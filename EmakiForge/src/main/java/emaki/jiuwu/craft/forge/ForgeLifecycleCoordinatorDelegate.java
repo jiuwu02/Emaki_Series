@@ -355,7 +355,7 @@ final class ForgeLifecycleCoordinatorDelegate {
         }
         if (permission != null && permission.contains("op_bypass")) {
             boolean legacyValue = permission.getBoolean("op_bypass", false);
-            JavaPlugin.getPlugin(EmakiForgePlugin.class).getLogger().warning("[config] 配置键 permission.op_bypass"
+            JavaPlugin.getPlugin(EmakiForgePlugin.class).getLogger().warning("[配置] 配置键 permission.op_bypass"
                     + " 已移到顶层 op_bypass, 当前按旧键值 " + legacyValue
                     + " 生效, 启动时会自动迁移到新键");
             return legacyValue;

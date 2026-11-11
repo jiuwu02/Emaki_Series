@@ -26,11 +26,11 @@ console:
   plugin_started: "[startup] <green>启动完成</green>"
   plugin_stopping: "[shutdown] 正在关闭..."
   plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
-  config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -62,7 +62,7 @@ console:
   directory_create_failed: "[loader] 创建目录失败: %path%"
   papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
   mythic_drops_registered: "[integration] <gray>MythicMobs Drops 已注册</gray>"
-  item_state_unknown_sound: "[config] <yellow>item_state 阈值音效无法解析: <white>%sound%</white></yellow>"
+  item_state_unknown_sound: "[配置] <yellow>item_state 阈值音效无法解析: <white>%sound%</white></yellow>"
   # 控制台: 物品 ID alias 加载数量; 占位符: %count%
   aliases_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个 alias</gray>"
   # 控制台: 重载阶段失败; 占位符: %stage%, %error%

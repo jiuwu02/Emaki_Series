@@ -28,13 +28,13 @@ public final class NbtIo {
     public static NbtReadResult readGzip(byte[] data, long maxOutputBytes, int maxDepth) {
         Objects.requireNonNull(data, "data");
         if (data.length < 2 || (data[0] & 0xFF) != GZIP_MAGIC_FIRST || (data[1] & 0xFF) != GZIP_MAGIC_SECOND) {
-            throw new NbtFormatException(GZIP_HEADER, "missing gzip magic header");
+            throw new NbtFormatException(GZIP_HEADER, "缺少 gzip 魔数头");
         }
         byte[] inflated;
         try (GZIPInputStream gzip = new GZIPInputStream(new ByteArrayInputStream(data))) {
             inflated = inflate(gzip, maxOutputBytes);
         } catch (IOException exception) {
-            throw new NbtFormatException(IO_FAILURE, "gzip decompression failed", exception);
+            throw new NbtFormatException(IO_FAILURE, "gzip 解压失败", exception);
         }
         return NbtReader.readRoot(inflated, maxDepth);
     }
@@ -45,7 +45,7 @@ public final class NbtIo {
         try (GZIPOutputStream gzip = new GZIPOutputStream(buffer)) {
             gzip.write(raw);
         } catch (IOException exception) {
-            throw new NbtFormatException(IO_FAILURE, "gzip compression failed", exception);
+            throw new NbtFormatException(IO_FAILURE, "gzip 压缩失败", exception);
         }
         return buffer.toByteArray();
     }

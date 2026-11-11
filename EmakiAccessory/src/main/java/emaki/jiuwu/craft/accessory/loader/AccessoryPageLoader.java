@@ -23,7 +23,7 @@ public final class AccessoryPageLoader extends YamlDirectoryLoader<AccessoryPage
 
     @Override
     protected String typeName() {
-        return "accessory page";
+        return "饰品页";
     }
 
     @Override

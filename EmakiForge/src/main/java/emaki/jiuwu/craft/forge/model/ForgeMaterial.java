@@ -311,7 +311,7 @@ public final class ForgeMaterial {
         }
         if (!materialIdDeclared || !countKeyDeclared || !auditIdDeclared) {
             result.put("legacy_identity", legacySourceKey());
-            result.put("identity_diagnostic", "missing canonical identity field");
+            result.put("identity_diagnostic", "缺少规范身份字段");
         }
         result.put("item_sources", sources);
         result.put("item", item);

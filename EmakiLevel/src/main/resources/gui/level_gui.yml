@@ -31,7 +31,7 @@ slots:
       - 34
     item:
       components:
-        custom_name: "<gold>%type_display_name%</gold> <gray>Lv.%level%</gray>"
+        custom_name: "<gold>%type_display_name%</gold> <gray>%level% 级</gray>"
         lore:
           - "<gray>等级: <yellow>%level%</yellow><dark_gray>/</dark_gray><gold>%max_level%</gold></gray>"
           - "<gray>经验: <aqua>%exp%</aqua><dark_gray>/</dark_gray><blue>%required_exp%</blue></gray>"

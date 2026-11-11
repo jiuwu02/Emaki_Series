@@ -142,7 +142,7 @@ public final class ExpressionEngine {
             if ("!".equals(unaryExpr.op())) {
                 return Value.ofBoolean(!operand.isTruthy());
             }
-            throw new ExpressionException("unsupported unary operator " + unaryExpr.op(), 0);
+            throw new ExpressionException("不支持的一元运算符 " + unaryExpr.op(), 0);
         }
         BinaryExpr binary = (BinaryExpr) expression;
         if ("&&".equals(binary.op())) {
@@ -170,7 +170,7 @@ public final class ExpressionEngine {
             case "online_count" -> Value.ofNumber(context.onlineCount());
             case "true" -> Value.ofBoolean(true);
             case "false" -> Value.ofBoolean(false);
-            default -> throw new ExpressionException("unknown variable: " + variable.name(), 0);
+            default -> throw new ExpressionException("未知变量: " + variable.name(), 0);
         };
     }
 
@@ -201,7 +201,7 @@ public final class ExpressionEngine {
                 requireArgs(call, 1);
                 return Value.ofNumber(context.inventoryCount(textArg(call, context, 0)));
             }
-            default -> throw new ExpressionException("unknown function: " + call.name(), 0);
+            default -> throw new ExpressionException("未知函数: " + call.name(), 0);
         }
     }
 
@@ -217,7 +217,7 @@ public final class ExpressionEngine {
         Value value = eval(call.args().get(index), context);
         if (value.kind() != Kind.STRING) {
             throw new ExpressionException("function " + call.name() + " argument " + (index + 1)
-                    + " must be a string", 0);
+                    + " 必须是字符串", 0);
         }
         return value.text();
     }
@@ -230,7 +230,7 @@ public final class ExpressionEngine {
             throws ExpressionException {
         if ("+".equals(op) || "-".equals(op) || "*".equals(op) || "/".equals(op)) {
             if (left.kind() != Kind.NUMBER || right.kind() != Kind.NUMBER) {
-                throw new ExpressionException("operator " + op + " requires numbers", position);
+                throw new ExpressionException("运算符 " + op + " 需要数字", position);
             }
             double result = switch (op) {
                 case "+" -> left.number() + right.number();
@@ -244,7 +244,7 @@ public final class ExpressionEngine {
             case "==" -> Value.ofBoolean(looseEquals(left, right));
             case "!=" -> Value.ofBoolean(!looseEquals(left, right));
             case "<", "<=", ">", ">=" -> Value.ofBoolean(compare(op, left, right, position));
-            default -> throw new ExpressionException("unsupported operator " + op, position);
+            default -> throw new ExpressionException("不支持的运算符 " + op, position);
         };
     }
 
@@ -263,7 +263,7 @@ public final class ExpressionEngine {
     private static boolean compare(String op, Value left, Value right, int position)
             throws ExpressionException {
         if (left.kind() != Kind.NUMBER || right.kind() != Kind.NUMBER) {
-            throw new ExpressionException("operator " + op + " requires numbers", position);
+            throw new ExpressionException("运算符 " + op + " 需要数字", position);
         }
         double first = left.number();
         double second = right.number();
@@ -295,7 +295,7 @@ public final class ExpressionEngine {
 
         void expectEnd() throws ExpressionException {
             if (current.type() != TokenType.END) {
-                throw new ExpressionException("unexpected token " + current.text(), current.position());
+                throw new ExpressionException("意外的标记 " + current.text(), current.position());
             }
         }
 
@@ -395,7 +395,7 @@ public final class ExpressionEngine {
                 advance();
                 return inner;
             }
-            throw new ExpressionException("unexpected token " + token.text(), token.position());
+            throw new ExpressionException("意外的标记 " + token.text(), token.position());
         }
 
         private boolean isOperator(String op) {
@@ -471,7 +471,7 @@ public final class ExpressionEngine {
                 index++;
                 return new Token(TokenType.OPERATOR, String.valueOf(ch), start);
             }
-            throw new ExpressionException("invalid character " + ch, start);
+            throw new ExpressionException("无效字符 " + ch, start);
         }
     }
 }

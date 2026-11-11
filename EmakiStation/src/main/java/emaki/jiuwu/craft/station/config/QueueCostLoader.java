@@ -21,7 +21,7 @@ public final class QueueCostLoader {
         YamlSection section = file == null ? null : YamlFiles.load(file);
         if (section == null || section.isEmpty()) {
             if (reportMissingFile && logger != null) {
-                logger.warning("[config] " + (file == null ? "queue_costs.yml" : file.getName())
+                logger.warning("[配置] " + (file == null ? "queue_costs.yml" : file.getName())
                         + " 缺失或为空; 在提供之前付费队列槽位将被禁用");
             }
             return QueueCostConfig.empty();
@@ -152,7 +152,7 @@ public final class QueueCostLoader {
 
     private static void warn(Logger logger, String message) {
         if (logger != null) {
-            logger.warning("[config] " + message);
+            logger.warning("[配置] " + message);
         }
     }
 }

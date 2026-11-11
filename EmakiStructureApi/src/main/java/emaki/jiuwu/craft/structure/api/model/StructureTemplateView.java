@@ -38,10 +38,10 @@ public record StructureTemplateView(@NotNull String id,
             throw new NullPointerException("id");
         }
         if (sizeX <= 0 || sizeY <= 0 || sizeZ <= 0) {
-            throw new IllegalArgumentException("size must be positive: " + sizeX + "x" + sizeY + "x" + sizeZ);
+            throw new IllegalArgumentException("尺寸必须为正: " + sizeX + "x" + sizeY + "x" + sizeZ);
         }
         if (blockCount < 0) {
-            throw new IllegalArgumentException("blockCount must not be negative: " + blockCount);
+            throw new IllegalArgumentException("blockCount 不能为负: " + blockCount);
         }
     }
 }

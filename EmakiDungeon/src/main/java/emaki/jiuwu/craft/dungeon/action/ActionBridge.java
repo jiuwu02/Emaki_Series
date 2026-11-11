@@ -156,7 +156,7 @@ public final class ActionBridge {
 
             @Override
             public String description() {
-                return "EmakiDungeon lifecycle segment: " + segment;
+                return "EmakiDungeon 生命周期段: " + segment;
             }
         };
     }

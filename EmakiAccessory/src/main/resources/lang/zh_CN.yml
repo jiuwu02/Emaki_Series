@@ -16,11 +16,11 @@ console:
   bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
   directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
-  config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -141,8 +141,8 @@ accessory:
 
 debug:
   accessory:
-    recompute: "<gray>[DEBUG][Accessory] 玩家 <player> 饰品贡献重算完成: 属性 <attributes> 项, 技能 <skills> 项, 套装 <sets> 组</gray>"
-    inactive_slot: "<gray>[DEBUG][Accessory] 玩家 <player> 的槽位 <slot> 不参与贡献: 条件满足 <condition>, 耐久完好 <durability_intact></gray>"
+    recompute: "<gray>[调试][Accessory] 玩家 <player> 饰品贡献重算完成: 属性 <attributes> 项, 技能 <skills> 项, 套装 <sets> 组</gray>"
+    inactive_slot: "<gray>[调试][Accessory] 玩家 <player> 的槽位 <slot> 不参与贡献: 条件满足 <condition>, 耐久完好 <durability_intact></gray>"
 
 editor:
   menu:

@@ -55,13 +55,13 @@ public final class StorageLayoutResolver {
 
     public int clampRows(int configuredRows) {
         if (configuredRows > MAX_ROWS) {
-            logger.warning("[config] gui.storage_rows=" + configuredRows
+            logger.warning("[配置] gui.storage_rows=" + configuredRows
                     + " 超过最大值 " + MAX_ROWS
                     + " (功能行始终占用最后一行); 已限制为 " + MAX_ROWS);
             return MAX_ROWS;
         }
         if (configuredRows < MIN_ROWS) {
-            logger.warning("[config] gui.storage_rows=" + configuredRows
+            logger.warning("[配置] gui.storage_rows=" + configuredRows
                     + " 低于最小值 " + MIN_ROWS + "; 已限制为 " + MIN_ROWS);
             return MIN_ROWS;
         }

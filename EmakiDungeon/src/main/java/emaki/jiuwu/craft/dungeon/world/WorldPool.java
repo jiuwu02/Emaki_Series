@@ -133,14 +133,14 @@ public final class WorldPool {
             }
             File template = templates.templateDir(dungeonId).orElse(null);
             if (template == null) {
-                rollbackCreate(worldName, instance, reservation, false, "template missing");
+                rollbackCreate(worldName, instance, reservation, false, "模板缺失");
                 return;
             }
             int generation = generation(dungeonId);
             cloner.cloneAsync(template, worldName).whenComplete((ignored, error) -> {
                 if (error != null) {
                     rollbackCreate(worldName, instance, reservation, true,
-                            "clone failed: " + String.valueOf(error.getMessage()));
+                            "克隆失败: " + String.valueOf(error.getMessage()));
                     return;
                 }
                 dispatcher.runGlobal(plugin, () -> mount(worldName, dungeonId, instance, reservation, generation));
@@ -155,7 +155,7 @@ public final class WorldPool {
             return;
         }
         if (stopping || !instance.transition(InstanceState.CREATING, InstanceState.MOUNTING)) {
-            rollbackCreate(worldName, instance, reservation, false, "state transition failed");
+            rollbackCreate(worldName, instance, reservation, false, "状态转换失败");
             return;
         }
         try {
@@ -165,11 +165,11 @@ public final class WorldPool {
             }
         } catch (Throwable throwable) {
             rollbackCreate(worldName, instance, reservation, true,
-                    "createWorld failed: " + String.valueOf(throwable.getMessage()));
+                    "createWorld 失败: " + String.valueOf(throwable.getMessage()));
             return;
         }
         if (!instance.transition(InstanceState.MOUNTING, InstanceState.IDLE)) {
-            rollbackCreate(worldName, instance, reservation, false, "state transition failed");
+            rollbackCreate(worldName, instance, reservation, false, "状态转换失败");
             return;
         }
         allocator.confirmPool(reservation);
