@@ -62,7 +62,7 @@ public final class StorageOperationLog {
             return;
         }
         if (sealed.get()) {
-            warn("存储日志停服落盘后仍收到新条目，已丢弃该条目", null);
+            warn("存储日志停服落盘后仍收到新条目, 已丢弃该条目", null);
             return;
         }
         List<StorageLogEntry> queue = pending.computeIfAbsent(entry.playerId(), id -> new ArrayList<>());
@@ -129,7 +129,7 @@ public final class StorageOperationLog {
             entriesWritten.addAndGet(batch.size());
         } catch (IOException failure) {
             requeue(playerId, batch);
-            warn("为玩家 " + playerId + " 写入存储日志失败，已将 " + batch.size()
+            warn("为玩家 " + playerId + " 写入存储日志失败, 已将 " + batch.size()
                     + " 条日志放回待写队列", failure);
         }
     }

@@ -325,7 +325,7 @@ public final class CraftOperationJournal<R> {
         }
         files.save(activePath(entry.operationId()).toFile(), encodeEntry(entry))
                 .exceptionally(error -> {
-                    warn("写入操作日志失败，操作 " + entry.operationId()
+                    warn("写入操作日志失败, 操作 " + entry.operationId()
                             + ": " + rootCauseMessage(error));
                     return null;
                 });
@@ -418,7 +418,7 @@ public final class CraftOperationJournal<R> {
         } catch (RuntimeException | LinkageError failure) {
             if (!asyncSchedulerUnavailableLogged) {
                 asyncSchedulerUnavailableLogged = true;
-                warn("无法访问异步任务调度器，回退到公共线程池: "
+                warn("无法访问异步任务调度器, 回退到公共线程池: "
                         + rootCauseMessage(failure));
             }
             return null;

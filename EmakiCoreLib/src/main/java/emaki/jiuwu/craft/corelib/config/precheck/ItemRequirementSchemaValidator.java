@@ -92,7 +92,7 @@ public final class ItemRequirementSchemaValidator {
                     Integer previous = seen.putIfAbsent(normalized, index);
                     if (previous != null) {
                         issues.add(issue(module, nodePath + "." + key, ConfigPrecheckSeverity.ERROR,
-                                "重复的 " + key + " 身份 '" + normalized + "'，首次声明于 "
+                                "重复的 " + key + " 身份 '" + normalized + "', 首次声明于 "
                                         + indexed(path, previous)));
                     }
                 }
@@ -240,10 +240,10 @@ public final class ItemRequirementSchemaValidator {
         for (String key : declared) {
             if ("matchers".equals(key) && "matcher".equals(aliases.getFirst())) {
                 issues.add(issue(module, field(path, key), ConfigPrecheckSeverity.ERROR,
-                        "顶层 'matchers' 不是物品需求匹配器；请使用 'matcher'"));
+                        "顶层 'matchers' 不是物品需求匹配器; 请使用 'matcher'"));
             } else if (!key.equals(aliases.getFirst())) {
                 issues.add(issue(module, field(path, key), ConfigPrecheckSeverity.WARN,
-                        "旧版 " + label + " 字段 '" + key + "'；请使用 '" + aliases.getFirst() + "'"));
+                        "旧版 " + label + " 字段 '" + key + "'; 请使用 '" + aliases.getFirst() + "'"));
             }
         }
         if (declared.size() > 1) {

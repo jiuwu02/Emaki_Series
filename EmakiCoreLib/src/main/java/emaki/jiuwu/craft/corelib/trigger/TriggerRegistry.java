@@ -35,7 +35,7 @@ public final class TriggerRegistry {
         if (def != null) {
             return def.displayName();
         }
-        LOGGER.warning("[trigger] 触发器 '" + id + "' 未注册；回退为 [" + id + "]");
+        LOGGER.warning("[trigger] 触发器 '" + id + "' 未注册; 回退为 [" + id + "]");
         return "[" + id + "]";
     }
 

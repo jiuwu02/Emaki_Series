@@ -109,7 +109,7 @@ final class EmakiCoreLibApiDelegate {
     static @NotNull ItemBuildResult createConfiguredItem(@Nullable ConfiguredItemDefinition definition, @Nullable Map<String, ?> replacements) {
         EmakiCoreLibApi.Bridge resolved = EmakiCoreLibApi.bridge.get();
         return resolved == null
-                ? ItemBuildResult.unavailable("EmakiCoreLib 不可用。")
+                ? ItemBuildResult.unavailable("EmakiCoreLib 不可用")
                 : resolved.createConfiguredItem(definition, replacements == null ? Map.of() : replacements);
     }
 
@@ -120,7 +120,7 @@ final class EmakiCoreLibApiDelegate {
     static @NotNull ItemBuildResult applyConfiguredItem(@Nullable ItemStack itemStack, @Nullable ConfiguredItemDefinition definition, @Nullable Map<String, ?> replacements) {
         EmakiCoreLibApi.Bridge resolved = EmakiCoreLibApi.bridge.get();
         return resolved == null
-                ? ItemBuildResult.unavailable("EmakiCoreLib 不可用。")
+                ? ItemBuildResult.unavailable("EmakiCoreLib 不可用")
                 : resolved.applyConfiguredItem(itemStack, definition, replacements == null ? Map.of() : replacements);
     }
 

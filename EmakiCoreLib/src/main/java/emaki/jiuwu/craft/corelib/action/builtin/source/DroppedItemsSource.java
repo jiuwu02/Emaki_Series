@@ -21,11 +21,11 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class DroppedItemsSource extends BaseSource {
 
     public DroppedItemsSource() {
-        super("dropped_items", "管道原点周围的掉落物。",
+        super("dropped_items", "管道原点周围的掉落物.",
                 CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.optional("radius", CoreStageParameterType.DOUBLE, "8", "搜索半径"),
                 CoreStageParameter.optional("limit", CoreStageParameterType.INTEGER, "0",
-                        "最大掉落物数，0 表示不限制"));
+                        "最大掉落物数, 0 表示不限制"));
     }
 
     @Override

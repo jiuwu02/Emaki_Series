@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 public final class SendActionBarStage extends BaseStage {
 
     public SendActionBarStage() {
-        super("send_action_bar", "message", "发送一条动作栏消息。",
+        super("send_action_bar", "message", "发送一条动作栏消息.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("text", CoreStageParameterType.STRING, "动作栏文本"));
     }

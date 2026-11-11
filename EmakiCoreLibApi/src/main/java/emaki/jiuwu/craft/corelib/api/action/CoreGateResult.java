@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * What a gate stage decided.
+ * What a gate stage decided
  *
  * <p>{@link Halted} and {@link Invalid} are separate for the same reason as in
  * {@link CoreSourceResult}: {@code chance 50%} losing its roll is a normal result, while
@@ -16,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
 public sealed interface CoreGateResult {
 
     /**
-     * The gate passed this flow on, possibly filtering it or deriving a new immutable context.
+     * The gate passed this flow on, possibly filtering it or deriving a new immutable context
      *
      * @param outbound resulting target flow
      * @param variables pipeline variable updates, used by {@code set}
@@ -34,7 +34,7 @@ public sealed interface CoreGateResult {
                 CoreActionKey<?> key = entry.getKey();
                 Object value = entry.getValue();
                 if (key == null || value == null || !key.type().isInstance(value)) {
-                    throw new IllegalArgumentException("Gate 上下文更新与其类型化 key 不匹配。");
+                    throw new IllegalArgumentException("Gate 上下文更新与其类型化 key 不匹配.");
                 }
             }
         }
@@ -68,7 +68,7 @@ public sealed interface CoreGateResult {
     }
 
     /**
-     * Creates a passing result that also derives immutable context values.
+     * Creates a passing result that also derives immutable context values
      *
      * @param outbound resulting flow
      * @param variables variable updates

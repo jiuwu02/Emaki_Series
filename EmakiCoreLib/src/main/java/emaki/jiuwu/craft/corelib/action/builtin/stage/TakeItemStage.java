@@ -27,7 +27,7 @@ public final class TakeItemStage extends BaseStage {
     private final ActionAuditLogger auditLogger;
 
     public TakeItemStage(ItemSourceService itemSourceService, ActionAuditLogger auditLogger) {
-        super("take_item", "item", "从目标背包中移除匹配的物品。",
+        super("take_item", "item", "从目标背包中移除匹配的物品.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "",
                         "期望的物品来源"),

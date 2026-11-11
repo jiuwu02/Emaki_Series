@@ -28,11 +28,11 @@ public final class FilterGate extends BaseGate {
     private final TargetConditionEvaluator evaluator;
 
     public FilterGate(TargetFactsReader factsReader, TargetConditionEvaluator evaluator) {
-        super("filter", "只保留匹配内联谓词的目标。",
+        super("filter", "只保留匹配内联谓词的目标.",
                 CoreGateThread.NEEDS_ENTITY_READ,
 
                 CoreStageParameter.positional("condition", CoreStageParameterType.STRING,
-                        "内联谓词，例如 'entity_type=ZOMBIE health_percent<=50'"));
+                        "内联谓词, 例如 'entity_type=ZOMBIE health_percent<=50'"));
         this.factsReader = factsReader;
         this.evaluator = evaluator;
     }

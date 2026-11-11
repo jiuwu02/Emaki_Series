@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetBedSpawnStage extends BaseStage {
 
     public SetBedSpawnStage() {
-        super("set_bed_spawn", "player", "把玩家重生点设置为管道原点。",
+        super("set_bed_spawn", "player", "把玩家重生点设置为管道原点.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY);
     }
 

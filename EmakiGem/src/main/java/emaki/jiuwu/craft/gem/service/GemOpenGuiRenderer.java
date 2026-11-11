@@ -59,7 +59,7 @@ final class GemOpenGuiRenderer {
             String title = text("target_empty_name", "<aqua>放入装备</aqua>");
             List<String> lore = List.of(
                     text("target_empty_lore_1", "<gray>将需要开孔的装备放入此槽</gray>"),
-                    common("click_take_back", "<gray>支持从光标放入，也可点击取回</gray>")
+                    common("click_take_back", "<gray>支持从光标放入, 也可点击取回</gray>")
             );
             return buildConfiguredItem(guiSlot, Material.LIGHT_BLUE_STAINED_GLASS_PANE, title, lore,
                     linesReplacements("target_title", title, "target_lines", lore));
@@ -91,7 +91,7 @@ final class GemOpenGuiRenderer {
         lore.add(text("equipment_definition", Map.of("item", itemDefinition.id()), "<gray>装备定义: <gold>%item%</gold></gray>"));
         lore.add(text("opened_count", Map.of("opened", opened, "total", total), "<gray>已开孔: <green>%opened%</green>/<yellow>%total%</yellow></gray>"));
         lore.add(text("locked_count", Map.of("locked", locked), "<gray>未开孔: <yellow>%locked%</yellow></gray>"));
-        lore.add(text("info_hint", "<gray>先放入开孔器，再点击下方锁定槽位</gray>"));
+        lore.add(text("info_hint", "<gray>先放入开孔器, 再点击下方锁定槽位</gray>"));
         Map<String, Object> replacements = infoReplacements(title, lore);
         replacements.put("item", itemDefinition.id());
         replacements.put("opened", opened);
@@ -117,7 +117,7 @@ final class GemOpenGuiRenderer {
             String title = text("opener_empty_name", "<light_purple>放入开孔器</light_purple>");
             List<String> lore = List.of(
                     text("opener_empty_lore_1", "<gray>将开孔器放入此槽</gray>"),
-                    common("click_take_back", "<gray>支持从光标放入，也可点击取回</gray>")
+                    common("click_take_back", "<gray>支持从光标放入, 也可点击取回</gray>")
             );
             return buildConfiguredItem(guiSlot, Material.AMETHYST_SHARD, title, lore,
                     linesReplacements("opener_title", title, "opener_lines", lore));
@@ -234,7 +234,7 @@ final class GemOpenGuiRenderer {
         if (state.mutableTargetItem() == null || state.mutableOpenerItem() == null || state.selectedSlotIndex() < 0) {
             String inactiveTitle = text("confirm_name_inactive", "<gray>确认开孔</gray>");
             List<String> inactiveLore = List.of(
-                    text("confirm_inactive_lore", "<dark_gray>请先放入装备、开孔器，并选择一个锁定槽位</dark_gray>")
+                    text("confirm_inactive_lore", "<dark_gray>请先放入装备, 开孔器, 并选择一个锁定槽位</dark_gray>")
             );
             return buildConfiguredItem(guiSlot, Material.GRAY_STAINED_GLASS_PANE, inactiveTitle, inactiveLore,
                     linesReplacements("confirm_title", inactiveTitle, "confirm_lines", inactiveLore));
@@ -285,7 +285,7 @@ final class GemOpenGuiRenderer {
         if (state.mutableOpenerItem() == null) {
             return text("opener_not_placed", "未放入");
         }
-        return opener == null ? text("opener_placed_pending", "已放入，待选择槽位") : opener.id();
+        return opener == null ? text("opener_placed_pending", "已放入, 待选择槽位") : opener.id();
     }
 
     private String text(String key, String fallback) {

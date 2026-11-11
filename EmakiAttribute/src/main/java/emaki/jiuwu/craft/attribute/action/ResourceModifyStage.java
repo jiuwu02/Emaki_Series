@@ -30,13 +30,13 @@ public final class ResourceModifyStage implements CoreActionStage {
 
     public enum Operation {
 
-        ADD("attribute_resource_add", "为目标的一项资源增加数值。"),
+        ADD("attribute_resource_add", "为目标的一项资源增加数值."),
 
-        SET("attribute_resource_set", "设置目标的一项资源数值。"),
+        SET("attribute_resource_set", "设置目标的一项资源数值."),
 
-        REMOVE("attribute_resource_remove", "从目标的一项资源中扣除数值。"),
+        REMOVE("attribute_resource_remove", "从目标的一项资源中扣除数值."),
 
-        CONSUME("attribute_resource_consume", "消耗目标的一项资源。");
+        CONSUME("attribute_resource_consume", "消耗目标的一项资源.");
 
         private final String id;
         private final String description;

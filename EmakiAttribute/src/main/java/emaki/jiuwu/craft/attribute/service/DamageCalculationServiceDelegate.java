@@ -363,7 +363,7 @@ final class DamageCalculationServiceDelegate {
             if (ownerRef.service.plugin() != null) {
                 ownerRef.service.plugin().getLogger().log(
                         Level.WARNING,
-                        "[combat] 伤害后置效果 '" + phase + "' 执行失败；其余终结效果将继续处理",
+                        "[combat] 伤害后置效果 '" + phase + "' 执行失败; 其余终结效果将继续处理",
                         exception
                 );
             }
@@ -524,11 +524,11 @@ final class DamageCalculationServiceDelegate {
 
     <T> CompletableFuture<T> callEntityOwner(UUID entityId, Function<LivingEntity, T> operation) {
         if (entityId == null || operation == null || ownerRef.service.plugin() == null) {
-            return CompletableFuture.failedFuture(new IllegalStateException("实体所有者分派不可用。"));
+            return CompletableFuture.failedFuture(new IllegalStateException("实体所有者分派不可用."));
         }
         EmakiScheduling sched = ownerRef.scheduling();
         if (sched == null) {
-            return CompletableFuture.failedFuture(new IllegalStateException("实体所有者分派器不可用。"));
+            return CompletableFuture.failedFuture(new IllegalStateException("实体所有者分派器不可用."));
         }
         CompletableFuture<T> result = new CompletableFuture<>();
         try {
@@ -663,7 +663,7 @@ final class DamageCalculationServiceDelegate {
             if (ownerRef.service.plugin() != null) {
                 ownerRef.service.plugin().getLogger().log(
                         Level.WARNING,
-                        "[combat] 伤害调试锚点输出失败；伤害计算不受影响",
+                        "[combat] 伤害调试锚点输出失败; 伤害计算不受影响",
                         exception
                 );
             }

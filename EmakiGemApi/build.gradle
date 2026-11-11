@@ -1,4 +1,4 @@
-// EmakiGemApi（原 EmakiGemApi/pom.xml）。
+// EmakiGemApi (原 EmakiGemApi/pom.xml)
 version = '3.0.1'
 
 dependencies {

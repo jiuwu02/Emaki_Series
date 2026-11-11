@@ -29,17 +29,17 @@ public final class ItemHeldItemStage implements CoreActionStage {
 
     public enum Operation {
 
-        UPDATE("item_update", "将物品定义重新应用到目标的主手物品。"),
+        UPDATE("item_update", "将物品定义重新应用到目标的主手物品."),
 
-        RERENDER("item_rerender", "重新渲染目标的主手物品。"),
+        RERENDER("item_rerender", "重新渲染目标的主手物品."),
 
-        REPAIR_AMOUNT("item_repair_amount", "按数量修复目标的主手物品。"),
+        REPAIR_AMOUNT("item_repair_amount", "按数量修复目标的主手物品."),
 
-        DAMAGE("item_damage", "按数量损伤目标的主手物品。"),
+        DAMAGE("item_damage", "按数量损伤目标的主手物品."),
 
-        SET_DAMAGE("item_set_damage", "设置目标主手物品的损伤值。"),
+        SET_DAMAGE("item_set_damage", "设置目标主手物品的损伤值."),
 
-        SET_DURABILITY("item_set_durability", "设置目标主手物品的剩余耐久。");
+        SET_DURABILITY("item_set_durability", "设置目标主手物品的剩余耐久.");
 
         private final String id;
         private final String description;

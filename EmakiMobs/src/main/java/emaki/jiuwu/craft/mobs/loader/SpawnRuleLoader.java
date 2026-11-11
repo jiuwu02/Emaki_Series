@@ -79,14 +79,14 @@ public final class SpawnRuleLoader {
         Object mobIdObj = map.get("mob_id");
         Object typeObj = map.get("type");
         if (!(mobIdObj instanceof String mobId) || !(typeObj instanceof String type)) {
-            issue("[loader] 生成规则文件 '" + fileName + "' 缺少 mob_id 或 type，已跳过");
+            issue("[loader] 生成规则文件 '" + fileName + "' 缺少 mob_id 或 type, 已跳过");
             return null;
         }
         return switch (type) {
             case "natural"    -> parseNatural(mobId, map, fileName);
             case "autonomous" -> parseAutonomous(mobId, map, fileName);
             default -> {
-                issue("[loader] 生成类型 '" + type + "' 未知 (文件 '" + fileName + "')，已跳过");
+                issue("[loader] 生成类型 '" + type + "' 未知 (文件 '" + fileName + "'), 已跳过");
                 yield null;
             }
         };
@@ -110,12 +110,12 @@ public final class SpawnRuleLoader {
     private AutonomousSpawnRule parseAutonomous(String mobId, Map<?, ?> map, String fileName) {
         Object triggerObj = map.get("trigger");
         if (!(triggerObj instanceof String triggerStr)) {
-            issue("[loader] 自主生成规则 '" + mobId + "'(文件 '" + fileName + "')缺少 trigger，已跳过");
+            issue("[loader] 自主生成规则 '" + mobId + "'(文件 '" + fileName + "')缺少 trigger, 已跳过");
             return null;
         }
         SpawnTrigger trigger = SpawnTrigger.fromString(triggerStr);
         if (trigger == null) {
-            issue("[loader] 触发器 '" + triggerStr + "' 未知 (生物 '" + mobId + "'，文件 '" + fileName + "')，已跳过");
+            issue("[loader] 触发器 '" + triggerStr + "' 未知 (生物 '" + mobId + "', 文件 '" + fileName + "'), 已跳过");
             return null;
         }
         long intervalTicks = toLong(map.get("interval_ticks"), 600L);
@@ -150,7 +150,7 @@ public final class SpawnRuleLoader {
                     ? RegistryAccess.registryAccess().getRegistry(RegistryKey.STRUCTURE).get(nsk)
                     : null;
             if (s == null) {
-                issue("[loader] 结构 '" + key + "' 未知 (文件 '" + fileName + "')，已跳过");
+                issue("[loader] 结构 '" + key + "' 未知 (文件 '" + fileName + "'), 已跳过");
             } else {
                 result.add(s);
             }
@@ -168,7 +168,7 @@ public final class SpawnRuleLoader {
                     : null;
             if (biome == null) {
                 issue("[loader] 生物群系 '" + name + "' 未知 (文件 '" + fileName
-                        + "')，已跳过 (该规则将不受其限制)");
+                        + "'), 已跳过 (该规则将不受其限制)");
             } else {
                 result.add(biome);
             }

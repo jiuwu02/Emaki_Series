@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.TriggerContract;
 
 /**
- * A declared pipeline trigger: what context a business moment promises to supply.
+ * A declared pipeline trigger: what context a business moment promises to supply
  *
  * <p>A trigger is deliberately <em>not</em> a fourth stage kind. {@link CoreActionSource},
  * {@link CoreActionGate} and {@link CoreActionStage} are invoked by the pipeline; a trigger is the
@@ -31,7 +31,7 @@ import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.TriggerContract;
 public interface CoreActionTrigger {
 
     /**
-     * The namespaced trigger id used in configuration and at the dispatch entry point.
+     * The namespaced trigger id used in configuration and at the dispatch entry point
      *
      * <p>Must be {@code namespace:name}. Registration fails when the prefix is missing.</p>
      *
@@ -41,7 +41,7 @@ public interface CoreActionTrigger {
     String id();
 
     /**
-     * What this trigger provides, per phase.
+     * What this trigger provides, per phase
      *
      * <p>Returning {@link TriggerContract#permissive(String)} keeps the load-time check off for this
      * trigger, which is what an existing untyped call site behaves like today. Returning a declared

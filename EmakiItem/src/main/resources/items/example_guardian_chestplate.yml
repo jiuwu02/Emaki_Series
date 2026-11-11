@@ -1,12 +1,12 @@
 # ============================================================
-# EmakiItem 示例：守护者胸甲
+# EmakiItem 示例: 守护者胸甲
 # ============================================================
-# 演示功能：
-#   - equip_slot 限定为胸甲槽，set 归属 example_set 的 chestplate 部件
+# 演示功能:
+#   - equip_slot 限定为胸甲槽, set 归属 example_set 的 chestplate 部件
 #   - ea_attribute 同时写入防御与生命上限属性
-#   - update 版本号机制：修改定义后递增 version 可刷新已有物品
-# 获得方式：/ei give <玩家> example_guardian_chestplate
-# 依赖：EmakiAttribute（属性生效）；套装阈值技能由 EmakiSkills 提供
+#   - update 版本号机制: 修改定义后递增 version 可刷新已有物品
+# 获得方式: /ei give <玩家> example_guardian_chestplate
+# 依赖: EmakiAttribute (属性生效); 套装阈值技能由 EmakiSkills 提供
 # ============================================================
 
 id: "example_guardian_chestplate"
@@ -55,7 +55,7 @@ set:
 # ============================================================
 # 物品更新策略
 # ============================================================
-# 修改本文件后递增 version，已发放的旧物品会在更新触发时机重建。
+# 修改本文件后递增 version, 已发放的旧物品会在更新触发时机重建
 update:
   enabled: true
   version: 1

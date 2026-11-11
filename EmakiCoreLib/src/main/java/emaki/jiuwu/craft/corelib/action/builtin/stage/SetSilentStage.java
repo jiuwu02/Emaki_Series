@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetSilentStage extends BaseStage {
 
     public SetSilentStage() {
-        super("set_silent", "meta", "控制实体是否静音。",
+        super("set_silent", "meta", "控制实体是否静音.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("silent", CoreStageParameterType.BOOLEAN, "是否静音"));
     }

@@ -1,18 +1,18 @@
 # ============================================================
-# EmakiStation 界面布局：配方目录页（第一页）
+# EmakiStation 界面布局: 配方目录页 (第一页)
 # ============================================================
-# 目录页左键提交配方、右键预览材料；预览页显示材料与货币成本，队列页管理取消、领取和队列位。
-# 工作站通过 layout / preview_layout / queue_layout 指定三页，缺省使用对应的默认 ID。
-# 重要：EmakiStation 的槽位必须显式写 type。CoreLib 的模板解析器只会为少数
-# Forge 专用键名自动推断类型，自定义键名不写 type 就只是纯装饰格。
-# 本页可用的 type：
-#   recipe_list       - 列出配方（必需，否则布局校验不通过）
+# 目录页左键提交配方, 右键预览材料; 预览页显示材料与货币成本, 队列页管理取消, 领取和队列位
+# 工作站通过 layout / preview_layout / queue_layout 指定三页, 缺省使用对应的默认 ID
+# 重要: EmakiStation 的槽位必须显式写 type.CoreLib 的模板解析器只会为少数
+# Forge 专用键名自动推断类型, 自定义键名不写 type 就只是纯装饰格
+# 本页可用的 type:
+#   recipe_list       - 列出配方 (必需, 否则布局校验不通过)
 #   queue_open        - 打开合成队列页
-#   batch_multiplier  - 循环切换倍率（左键递增、右键递减）
+#   batch_multiplier  - 循环切换倍率 (左键递增, 右键递减)
 #   output_toggle     - 切换产物去向
 #   prev_page/next_page/page_info - 翻页
 #   close             - 关闭界面
-# 目录页没有 input 槽；提交时直接合并扣除背包与仓库材料。
+# 目录页没有 input 槽; 提交时直接合并扣除背包与仓库材料
 # ============================================================
 id: "station_catalog"
 gui_type: CHEST
@@ -29,10 +29,10 @@ slots:
         tooltip_display:
           hide_tooltip: true
 
-  # 配方列表。lore 里 %conditions% / %costs% / %materials% 三个占位符各自独占一行，
-  # CoreLib 会把这样的整行展开成多行 —— 有几个条件/成本/材料就有几行。
-  # 注意：只有 lore 支持这种整行展开，且该行必须只有一个占位符。
-  # 写成 "材料: %materials%" 不会展开，所以标题要单独成行。
+  # 配方列表.lore 里 %conditions% / %costs% / %materials% 三个占位符各自独占一行,
+  # CoreLib 会把这样的整行展开成多行 -- 有几个条件/成本/材料就有几行
+  # 注意: 只有 lore 支持这种整行展开, 且该行必须只有一个占位符
+  # 写成 "材料: %materials%" 不会展开, 所以标题要单独成行
   recipe_list:
     slots: "9-17,18-26,27-35"
     type: "recipe_list"
@@ -128,9 +128,9 @@ slots:
       components:
         custom_name: "<red>关闭</red>"
 
-# 以下两块由 EmakiStation 自己读取，CoreLib 的模板解析器不会处理它们。
+# 以下两块由 EmakiStation 自己读取, CoreLib 的模板解析器不会处理它们
 virtual_items:
-  # 正常配方条目。图标取配方第一个产物，这里只覆盖名称与 lore。
+  # 正常配方条目.图标取配方第一个产物, 这里只覆盖名称与 lore
   recipe_entry:
     item:
       components:
@@ -151,7 +151,7 @@ virtual_items:
           - "<green>左键</green> <gray>按当前倍率直接合成</gray>"
           - "<green>右键</green> <gray>查看材料明细</gray>"
 
-  # 未解锁配方。仍然占位显示，让玩家知道后面还有内容。
+  # 未解锁配方.仍然占位显示, 让玩家知道后面还有内容
   recipe_locked:
     item:
       source: "gray_dye"
@@ -175,7 +175,7 @@ texts:
     cost_keep: "<gray>需持有 <white>%material%</white> x<yellow>%amount%</yellow> <dark_gray>(不消耗)</dark_gray></gray>"
     material_line: "<gray>- <white>%material%</white> x<yellow>%amount%</yellow></gray>"
     material_none: "<dark_gray>无</dark_gray>"
-    # 材料只写了 matcher、没有 item_sources 时代替物品名显示的文案。
+    # 材料只写了 matcher, 没有 item_sources 时代替物品名显示的文案
     material_matcher: "<light_purple>自定义条件</light_purple>"
   output_state:
     storage_first: "<aqua>仓库优先</aqua>"

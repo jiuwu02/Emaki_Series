@@ -226,7 +226,7 @@ public final class SkillsGuiService {
                         close.completeExceptionally(throwable);
                     }
                 }, () -> close.completeExceptionally(new RejectedExecutionException(
-                        "技能 GUI 关闭操作在执行前已退役。")));
+                        "技能 GUI 关闭操作在执行前已退役.")));
             } catch (Throwable throwable) {
                 close.completeExceptionally(throwable);
             }

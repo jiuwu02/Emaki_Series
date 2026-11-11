@@ -23,7 +23,7 @@ import java.util.Map;
 public final class SpawnParticleAtStage extends BaseStage {
 
     public SpawnParticleAtStage() {
-        super("spawn_particle_at", "visual", "在指定坐标生成粒子效果。",
+        super("spawn_particle_at", "visual", "在指定坐标生成粒子效果.",
                 CoreTargetRequirement.NONE, CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.required("particle", CoreStageParameterType.STRING, "粒子类型"),
                 CoreStageParameter.optional("x", CoreStageParameterType.DOUBLE, "0", "X 偏移"),

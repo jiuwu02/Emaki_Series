@@ -33,7 +33,7 @@ commands:
     aliases: [dungeon, edungeon]
 permissions:
   emakidungeon.play:
-    description: 进入、组队、查询、全局收听等玩家侧能力
+    description: 进入, 组队, 查询, 全局收听等玩家侧能力
     default: true
   emakidungeon.dungeon.*:
     description: 全部副本的进入许可 (运行时按 emakidungeon.dungeon.<副本ID> 逐副本校验)
@@ -51,7 +51,7 @@ permissions:
     description: 地图内编辑器会话
     default: op
   emakidungeon.admin:
-    description: 实例管理、强制结束、重载、池维护
+    description: 实例管理, 强制结束, 重载, 池维护
     default: op
   emakidungeon.*:
     description: EmakiDungeon 全部权限通配

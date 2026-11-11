@@ -63,17 +63,17 @@ public final class EmakiItemSourceResolver implements ItemSourceProvider {
         String providerId = KIND.key();
         if (!supports(ref) || Texts.isBlank(ref.identifier())) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INVALID_SOURCE, ref, providerId,
-                    "EmakiItem 来源类型与标识符为必填项。");
+                    "EmakiItem 来源类型与标识符为必填项.");
         }
         try {
             if (!api.status().usable()) {
                 return ItemSourceProbeResult.of(ItemSourceProbeState.PROVIDER_NOT_READY, ref, providerId,
-                        "EmakiItem 已安装但运行时尚未就绪。");
+                        "EmakiItem 已安装但运行时尚未就绪.");
             }
             return api.catalog().exists(ref.identifier())
                     ? ItemSourceProbeResult.ready(ref, providerId)
                     : ItemSourceProbeResult.of(ItemSourceProbeState.SOURCE_NOT_FOUND, ref, providerId,
-                            "EmakiItem 不包含所请求的物品定义。");
+                            "EmakiItem 不包含所请求的物品定义.");
         } catch (LinkageError exception) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INCOMPATIBLE, ref, providerId, detail(exception));
         } catch (RuntimeException exception) {

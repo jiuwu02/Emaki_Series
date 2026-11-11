@@ -290,7 +290,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                     plugin.messageService().info("console.gems_loaded", Map.of(
                             "count", String.valueOf(plugin.gemLoader().all().size())
                     ));
-                    notifyProgress(progressListener, "重载完成。");
+                    notifyProgress(progressListener, "重载完成.");
                 });
             });
         });
@@ -396,8 +396,8 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         if (permission != null && permission.contains("op_bypass")) {
             boolean legacyValue = permission.getBoolean("op_bypass", fallback);
             JavaPlugin.getPlugin(EmakiGemPlugin.class).getLogger().warning("[config] 配置键 permission.op_bypass"
-                    + " 已移到顶层 op_bypass，当前按旧键值 " + legacyValue
-                    + " 生效，启动时会自动迁移到新键");
+                    + " 已移到顶层 op_bypass, 当前按旧键值 " + legacyValue
+                    + " 生效, 启动时会自动迁移到新键");
             return legacyValue;
         }
         return fallback;

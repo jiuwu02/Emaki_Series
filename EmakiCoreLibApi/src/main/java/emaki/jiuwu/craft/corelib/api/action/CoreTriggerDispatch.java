@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * One dispatch of a registered trigger: which business moment fired, for whom, with what values.
+ * One dispatch of a registered trigger: which business moment fired, for whom, with what values
  *
  * <h2>No live entity references</h2>
  * <p>This carrier holds a caster {@link UUID} and a trigger <em>name</em>, never an
@@ -47,7 +47,7 @@ public record CoreTriggerDispatch(@NotNull String phase,
     }
 
     /**
-     * Creates a dispatch for one player-driven moment.
+     * Creates a dispatch for one player-driven moment
      *
      * @param phase phase name within the trigger
      * @param casterId the acting player's unique id
@@ -61,7 +61,7 @@ public record CoreTriggerDispatch(@NotNull String phase,
     }
 
     /**
-     * Creates a dispatch for a server-side moment with no acting player.
+     * Creates a dispatch for a server-side moment with no acting player
      *
      * @param phase phase name within the trigger
      * @param lines the configured pipeline lines to run
@@ -73,7 +73,7 @@ public record CoreTriggerDispatch(@NotNull String phase,
     }
 
     /**
-     * Returns a copy carrying the given variables.
+     * Returns a copy carrying the given variables
      *
      * @param values values readable as {@code %var.name%}
      * @return a new dispatch
@@ -83,7 +83,7 @@ public record CoreTriggerDispatch(@NotNull String phase,
     }
 
     /**
-     * Returns a copy carrying the given trigger name.
+     * Returns a copy carrying the given trigger name
      *
      * @param name name the {@code trigger} source segment resolves
      * @return a new dispatch
@@ -93,7 +93,7 @@ public record CoreTriggerDispatch(@NotNull String phase,
     }
 
     /**
-     * Returns a copy with player-facing feedback suppressed or restored.
+     * Returns a copy with player-facing feedback suppressed or restored
      *
      * @param suppressed whether feedback is suppressed
      * @return a new dispatch

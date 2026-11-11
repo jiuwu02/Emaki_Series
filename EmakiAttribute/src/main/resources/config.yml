@@ -2,14 +2,14 @@
 
 version: "5.0.4"
 
-# 对应 lang/<language>.yml。
+# 对应 lang/<language>.yml
 language: "zh_CN"
 
-# 关闭后不释放缺失的内置数据文件。
+# 关闭后不释放缺失的内置数据文件
 release_default_data: true
 
-# Lore 与 PDC 默认分别读取，同属性值相加。
-# require_lore_pdc_match 启用后要求同一属性两侧均存在且数值一致，仅计一次；否则该属性失效。
+# Lore 与 PDC 默认分别读取, 同属性值相加
+# require_lore_pdc_match 启用后要求同一属性两侧均存在且数值一致, 仅计一次; 否则该属性失效
 attribute_sources:
   read_lore_attributes: true
   read_pdc_attributes: true
@@ -17,37 +17,37 @@ attribute_sources:
 
 hard_lock_damage: true
 
-# 未指定时使用的伤害类型 ID。
+# 未指定时使用的伤害类型 ID
 default_damage_type: physical
 
-# 投射时缓存攻击者属性快照，命中时使用此伤害类型。
+# 投射时缓存攻击者属性快照, 命中时使用此伤害类型
 projectile_damage_type: projectile
 
-# enabled 时保留原版事件并替换伤害值；关闭时取消事件并由 EA 重施伤害。
-# 关闭后仅 allowed_damage_causes 白名单进入 EA；damage_type 处理未单独映射的原版伤害。
+# enabled 时保留原版事件并替换伤害值; 关闭时取消事件并由 EA 重施伤害
+# 关闭后仅 allowed_damage_causes 白名单进入 EA; damage_type 处理未单独映射的原版伤害
 vanilla_event_damage:
   enabled: true
   damage_type: physical
 
-# 同一攻击者、属性快照签名和伤害类型的多段命中在窗口内共享批次。
-# window_ms 单位：毫秒。
+# 同一攻击者, 属性快照签名和伤害类型的多段命中在窗口内共享批次
+# window_ms 单位: 毫秒
 same_signature_ignores_invulnerability:
   enabled: true
   window_ms: 500
 
-# global 接管所有攻击；缺少 EA 攻速时按 Bukkit ATTACK_SPEED 换算冷却。
-# attribute_only 仅接管 Lore/PDC 明确含 EA 攻速的物品；切换物品不会清除上次已写入的冷却。
+# global 接管所有攻击; 缺少 EA 攻速时按 Bukkit ATTACK_SPEED 换算冷却
+# attribute_only 仅接管 Lore/PDC 明确含 EA 攻速的物品; 切换物品不会清除上次已写入的冷却
 attack_speed:
   scope: global
 
-# 资源回复结算间隔，单位：tick。每经过该间隔结算一次回复量，间隔越长回复越慢。
-# 回复量为资源定义 regen_per_second + 回复类属性之和；回复量为负时按间隔反向扣除，资源当前值允许为负。
+# 资源回复结算间隔, 单位: tick.每经过该间隔结算一次回复量, 间隔越长回复越慢
+# 回复量为资源定义 regen_per_second + 回复类属性之和; 回复量为负时按间隔反向扣除, 资源当前值允许为负
 regen_interval_ticks: 20
 
-# 属性同步到 Bukkit 的延迟，单位：tick。
+# 属性同步到 Bukkit 的延迟, 单位: tick
 sync_delay_ticks: 1
 
-# 仅压缩客户端血条显示，不改变真实生命值或伤害结算；target 20 为一排红心。
+# 仅压缩客户端血条显示, 不改变真实生命值或伤害结算; target 20 为一排红心
 health_display_scaling:
   enabled: false
   target: 20.0
@@ -89,39 +89,39 @@ default_profile:
     spell_defense: 0.0
     health_regen: 0.1
     mana_regen: 0.1
-    # 仅 shield.mode = attribute 时生效；100/100 表示必定格挡并完全免伤。
-    # 盾牌物品的 EA 属性在此基线上叠加。
+    # 仅 shield.mode = attribute 时生效; 100/100 表示必定格挡并完全免伤
+    # 盾牌物品的 EA 属性在此基线上叠加
     block_rate: 100.0
     block_reduction: 100.0
 
-# vanilla 保留原版 BLOCKING；attribute 清零原版结果，改由伤害类型的 block 阶段结算。
-# attribute 模式需保留 block 阶段及 block_rate、block_reduction 属性。
-# require_facing 仅对 attribute 生效；环境伤害无来源方向，不能构成正面格挡。
-# facing_angle_degrees 单位：度；180 为以视线为中心的半平面。
+# vanilla 保留原版 BLOCKING; attribute 清零原版结果, 改由伤害类型的 block 阶段结算
+# attribute 模式需保留 block 阶段及 block_rate, block_reduction 属性
+# require_facing 仅对 attribute 生效; 环境伤害无来源方向, 不能构成正面格挡
+# facing_angle_degrees 单位: 度; 180 为以视线为中心的半平面
 shield:
   mode: vanilla
   require_facing: true
   facing_angle_degrees: 180
 
 synthetic_hit_feedback:
-  # 已废弃: 合成伤害改走原版伤害入口后, 击退、受伤音效与受伤动画都由原版统一产生,
-  # 这里再补发一次会造成双重反馈, 因此下面三项不再生效。
-  # 保留该段落仅为了旧配置文件不报错, 后续大版本会移除。
+  # 已废弃: 合成伤害改走原版伤害入口后, 击退, 受伤音效与受伤动画都由原版统一产生,
+  # 这里再补发一次会造成双重反馈, 因此下面三项不再生效
+  # 保留该段落仅为了旧配置文件不报错, 后续大版本会移除
   knockback: false
   knockback_strength: 0.4
   hurt_sound: false
 
-# 伤害飘字覆盖普通攻击、暴击、恢复与闪避。
-# EmakiCoreLib packet 后端遵循 visible_to；bukkit 后端为附近玩家可见的真实实体。
+# 伤害飘字覆盖普通攻击, 暴击, 恢复与闪避
+# EmakiCoreLib packet 后端遵循 visible_to; bukkit 后端为附近玩家可见的真实实体
 damage_indicator:
   enabled: true
-  # 窗口内同一目标的伤害合并为一个飘字；0 表示不合并，重命中会重置起点。
+  # 窗口内同一目标的伤害合并为一个飘字; 0 表示不合并, 重命中会重置起点
   merge_window_ms: 500
-  # 每目标每秒最多生成的飘字数；0 表示不限制。
+  # 每目标每秒最多生成的飘字数; 0 表示不限制
   max_per_target_per_second: 4
-  # 仅 packet 后端生效：involved 仅双方可见，all 为附近玩家可见。
+  # 仅 packet 后端生效: involved 仅双方可见, all 为附近玩家可见
   visible_to: "involved"
-  # 不显示飘字的伤害原因；持续伤害通常每 tick 结算。
+  # 不显示飘字的伤害原因; 持续伤害通常每 tick 结算
   ignored_causes:
     - FIRE_TICK
     - POISON
@@ -131,66 +131,66 @@ damage_indicator:
     - SUFFOCATION
     - STARVATION
 
-  # triggers.<名称> 仅覆盖已写键，其余继承下列默认值。
+  # triggers.<名称> 仅覆盖已写键, 其余继承下列默认值
 
-  # 存活与抛物运动总时长，单位：tick；到期由 CoreLib 回收。
+  # 存活与抛物运动总时长, 单位: tick; 到期由 CoreLib 回收
   lifetime_ticks: 24
   spawn:
-    # 相对目标脚部的固定偏移，单位：格。
+    # 相对目标脚部的固定偏移, 单位: 格
     offset:
       x: 0.0
       y: 2.0
       z: 0.0
-    # 各轴随机散布为 ±该值，单位：格；0 表示该轴不散布。
+    # 各轴随机散布为 ±该值, 单位: 格; 0 表示该轴不散布
     random_offset:
       x: 0.4
       y: 0.15
       z: 0.4
-  # 抛物运动参数；轨迹由展示实体的关键帧插值呈现。
+  # 抛物运动参数; 轨迹由展示实体的关键帧插值呈现
   motion:
     enabled: true
-    # 关键帧间隔(tick)，同时是客户端插值时长。1 最平滑，值越大包越少、折线感越强。
+    # 关键帧间隔(tick), 同时是客户端插值时长.1 最平滑, 值越大包越少, 折线感越强
     step_ticks: 2
-    # 抛出初速度(格/tick)。
+    # 抛出初速度(格/tick)
     speed: 0.30
-    # 竖直加速度(格/tick²)，负值下坠。这一项决定抛物线的弯曲程度。
+    # 竖直加速度(格/tick²), 负值下坠.这一项决定抛物线的弯曲程度
     gravity: -0.030
     direction:
-      # 抛出方向模式：
+      # 抛出方向模式:
       #   random             - 按下面的 pitch/yaw 区间随机
       #   fixed              - 使用 fixed 指定的向量
-      #   away_from_attacker - 沿攻击者到目标的水平方向抛出并叠加 pitch 仰角；
+      #   away_from_attacker - 沿攻击者到目标的水平方向抛出并叠加 pitch 仰角;
       #                        无攻击者时退化为 random
       mode: "random"
       fixed:
         x: 0.0
         y: 1.0
         z: 0.0
-      # 仰角区间(度)，90 为正上方。
+      # 仰角区间(度), 90 为正上方
       pitch:
         min: 55.0
         max: 85.0
-      # 水平角区间(度)。
+      # 水平角区间(度)
       yaw:
         min: -180.0
         max: 180.0
-    # 出场放大与退场缩小，与位移共用同一条插值通道。
+    # 出场放大与退场缩小, 与位移共用同一条插值通道
     scale:
-      # 出场起始缩放，前 pop_ticks 内线性放大到 1.0。
+      # 出场起始缩放, 前 pop_ticks 内线性放大到 1.0.
       pop_from: 0.6
       pop_ticks: 3
-      # 退场目标缩放，最后 shrink_ticks 内从 1.0 线性缩到该值。0 表示缩到不可见。
+      # 退场目标缩放, 最后 shrink_ticks 内从 1.0 线性缩到该值.0 表示缩到不可见
       shrink_to: 0.0
       shrink_ticks: 6
 
-  # 四个触发器。每个触发器可只写需要改的键，未写的键继承上面的默认值。
-  # 注意 dodge 还需要闪避判定本身被启用；原版战斗默认不进行闪避判定。
+  # 四个触发器.每个触发器可只写需要改的键, 未写的键继承上面的默认值
+  # 注意 dodge 还需要闪避判定本身被启用; 原版战斗默认不进行闪避判定
   triggers:
     normal:
       enabled: true
     critical:
       enabled: true
-      # 暴击抛得更高更快，并从更小的尺寸弹出以强调打击感。
+      # 暴击抛得更高更快, 并从更小的尺寸弹出以强调打击感
       motion:
         speed: 0.42
         gravity: -0.036
@@ -199,7 +199,7 @@ damage_indicator:
           pop_ticks: 4
     heal:
       enabled: true
-      # 治疗数字垂直缓慢上浮。
+      # 治疗数字垂直缓慢上浮
       motion:
         speed: 0.16
         gravity: -0.004
@@ -215,11 +215,11 @@ damage_indicator:
         speed: 0.20
         gravity: -0.016
 
-# 属性超过 threshold 后按 logarithmic、sqrt 或 piecewise_linear 折算；未知类型回退 logarithmic。
-# logarithmic/sqrt 的 factor <=0 按 1；piecewise_linear 的 factor=0 合法，表示超出部分作废。
-# 空映射不启用衰减。
+# 属性超过 threshold 后按 logarithmic, sqrt 或 piecewise_linear 折算; 未知类型回退 logarithmic
+# logarithmic/sqrt 的 factor <=0 按 1; piecewise_linear 的 factor=0 合法, 表示超出部分作废
+# 空映射不启用衰减
 
-# EA 结算的 DamageCause 白名单；damage_type 引用伤害类型，damage 省略时使用原版事件伤害。
+# EA 结算的 DamageCause 白名单; damage_type 引用伤害类型, damage 省略时使用原版事件伤害
 allowed_damage_causes:
   - cause: ENTITY_ATTACK
     damage_type: physical
@@ -321,9 +321,9 @@ allowed_damage_causes:
     damage_type: physical
     enabled: true
 
-# JS 脚本扩展：扫描 plugins/EmakiAttribute/scripts/ 下的脚本，经 attributes 绑定声明式注册属性定义。
-# enabled 关闭时不扫描不加载；timeout_ms 为单次脚本求值超时（毫秒，非正数回退 5000）。
-# 首次启动时释放示例脚本到 scripts/attributes/；目录已存在时不覆盖任何文件。
+# JS 脚本扩展: 扫描 plugins/EmakiAttribute/scripts/ 下的脚本, 经 attributes 绑定声明式注册属性定义
+# enabled 关闭时不扫描不加载; timeout_ms 为单次脚本求值超时 (毫秒, 非正数回退 5000)
+# 首次启动时释放示例脚本到 scripts/attributes/; 目录已存在时不覆盖任何文件
 scripts:
   enabled: true
   timeout_ms: 5000

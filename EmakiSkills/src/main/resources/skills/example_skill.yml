@@ -1,16 +1,16 @@
 # ============================================================
 # EmakiSkills 技能定义示例
 # ============================================================
-# 完整主动技能示例，包含表达式、动作管道与升级配置。
+# 完整主动技能示例, 包含表达式, 动作管道与升级配置
 # ============================================================
 
-# 技能唯一标识符（必填）
+# 技能唯一标识符 (必填)
 id: "example_skill"
 
-# 技能显示名称（支持 MiniMessage 格式）
+# 技能显示名称 (支持 MiniMessage 格式)
 display_name: "<gradient:#FF6B35:#FF4500>火球术</gradient>"
 
-# 技能描述（显示在 GUI 中）
+# 技能描述 (显示在 GUI 中)
 description:
   - "<gray>向前方发射一颗炽热的火球</gray>"
   - "<gray>命中目标后造成火焰法术伤害</gray>"
@@ -21,21 +21,21 @@ icon_material: "fire_charge"
 # ============================================================
 # 触发配置
 # ============================================================
-# trigger_type 为 active 或 passive；passive 使用 passive_triggers 声明事件。
+# trigger_type 为 active 或 passive; passive 使用 passive_triggers 声明事件
 trigger_type: "active"
 
 # ============================================================
 # 冷却配置
 # ============================================================
-# cooldown_ticks: 技能冷却时间（tick，20 tick = 1 秒）
-# global_cooldown_ticks: 全局冷却（释放此技能后，所有技能共享的冷却）
+# cooldown_ticks: 技能冷却时间 (tick, 20 tick = 1 秒)
+# global_cooldown_ticks: 全局冷却 (释放此技能后, 所有技能共享的冷却)
 cooldown_ticks: 100
 global_cooldown_ticks: 20
 
 # ============================================================
 # GUI 显示配置
 # ============================================================
-# Lore 别名、标签、装备依赖/冲突与 GUI 分类；sort_order 越小越靠前。
+# Lore 别名, 标签, 装备依赖/冲突与 GUI 分类; sort_order 越小越靠前
 lore_aliases:
   - "火球术"
   - "烈焰弹"
@@ -55,8 +55,8 @@ enabled: true
 # ============================================================
 # 释放条件
 # ============================================================
-# 技能释放前检查的条件表达式。
-# type: 条件组合方式（all_of / any_of）
+# 技能释放前检查的条件表达式
+# type: 条件组合方式 (all_of / any_of)
 condition:
   type: "all_of"
   entries:
@@ -65,18 +65,18 @@ condition:
 # ============================================================
 # 资源消耗
 # ============================================================
-# 资源类型支持本地/EA 消耗、EA 属性只读检查及外部 mana；failure_message 为失败提示。
+# 资源类型支持本地/EA 消耗, EA 属性只读检查及外部 mana; failure_message 为失败提示
 resource_costs:
   - type: "local-resource"
     target_id: "example_resource"
     amount: 30.0
     operation: "consume"
-    failure_message: "魔力不足，需要 30 点魔力"
+    failure_message: "魔力不足, 需要 30 点魔力"
 
 # ============================================================
 # 技能变量
 # ============================================================
-# 技能变量以 %var.<名称>% 读取；可简写表达式，或配置 type、decimals、min/max。
+# 技能变量以 %var.<名称>% 读取; 可简写表达式, 或配置 type, decimals, min/max
 variables:
   damage:
     type: "expression"
@@ -92,14 +92,14 @@ variables:
 
   ignite_ticks: "40 + (%level% - 1) * 6"
   empowered: "%level% >= 5 && %has_target% == 1"
-  impact_message: "<gold>火球术命中 %target_name%，造成 %damage% 点火焰伤害。</gold>"
+  impact_message: "<gold>火球术命中 %target_name%, 造成 %damage% 点火焰伤害.</gold>"
 
 # ============================================================
 # 技能脚本
 # ============================================================
-# 管道语法为“源 | 闸门 | 动作”；省略源时使用 self，每行最多一个源。
-# keep 是跨阶段传递目标的唯一方式；hit/miss 按传递目标流是否为空选择。
-# stop_on_failure 控制当前阶段失败后是否继续；actions 分 cast、hit、miss。
+# 管道语法为"源 | 闸门 | 动作"; 省略源时使用 self, 每行最多一个源
+# keep 是跨阶段传递目标的唯一方式; hit/miss 按传递目标流是否为空选择
+# stop_on_failure 控制当前阶段失败后是否继续; actions 分 cast, hit, miss
 script:
   enabled: true
   mode: "native"
@@ -109,29 +109,29 @@ script:
     cast:
       - "self | play_sound sound=entity.blaze.shoot volume=1 pitch=1.05"
       - "self | spawn_particle particle=flame count=24 extra=0.02"
-      # looking_at 选目标，keep 传给后续阶段。
+      # looking_at 选目标, keep 传给后续阶段
       - "looking_at range=18 width=%var.radius% | keep"
 
     hit:
       # inherited 读取 cast 阶段 keep 记录的目标
       - "inherited | damage amount=%var.damage%"
-      # if 的方括号内为条件成立时执行的管道。
+      # if 的方括号内为条件成立时执行的管道
       - "if %var.level%>=3 [ inherited | ignite duration=%var.ignite_ticks%t ]"
       - "if %var.empowered%==true [ inherited | spawn_particle particle=explosion count=1 ]"
       - 'send_message text="%var.impact_message%"'
 
     miss:
       - "looking_at width=1.5 | spawn_particle particle=smoke count=8 extra=0.01"
-      - 'send_message text="<gray>火球术没有命中目标。</gray>"'
+      - 'send_message text="<gray>火球术没有命中目标.</gray>"'
 
 # ============================================================
 # 技能升级配置
 # ============================================================
-# 技能可以通过消耗材料和金币来升级，提升参数数值。
+# 技能可以通过消耗材料和金币来升级, 提升参数数值
 upgrade:
   enabled: true
   max_level: 10
-  # GUI 模板 id；缺省或不存在时回退 upgrade_gui，并记录警告。
+  # GUI 模板 id; 缺省或不存在时回退 upgrade_gui, 并记录警告
   gui_template: "upgrade_gui"
 
   economy:
@@ -143,7 +143,7 @@ upgrade:
         cost_formula: "%base_cost% * %target_level%"
         display_name: "<gold>金币</gold>"
 
-  # 目标等级对应的成功率百分比。
+  # 目标等级对应的成功率百分比
   success_rates:
     2: 100.0
     3: 100.0
@@ -155,7 +155,7 @@ upgrade:
     9: 50.0
     10: 40.0
 
-  # 升级失败惩罚: "none"（无）/ "downgrade"（降级）/ "reset"（重置）
+  # 升级失败惩罚: "none"(无)/ "downgrade"(降级)/ "reset"(重置)
   failure_penalty: "none"
 
   levels:
@@ -172,7 +172,7 @@ upgrade:
           amount: 1
       actions:
         success:
-          - 'send_message text="<yellow>火球术达到 V，爆炸范围进一步扩大。</yellow>"'
+          - 'send_message text="<yellow>火球术达到 V, 爆炸范围进一步扩大.</yellow>"'
 
     10:
       # 单独覆盖此等级的经济配置
@@ -188,11 +188,11 @@ upgrade:
         - item_sources:
             - "minecraft-nether_star"
           amount: 1
-        # 判定由同级 item_sources 与 matcher 取 AND，两者都成立才算命中。
-        # ⚠ matcher 内禁止写物品源条件，物品源一律写在同级 item_sources。
-        # item_sources 同类项合并累计；带 matcher 的条目彼此独立，同一物品不重复计入。
-        # 组件命名空间缺省为 minecraft；组合支持 all_of/any_of/none_of/at_least/exactly。
-        # 下例要求物品源与组件条件同时满足。
+        # 判定由同级 item_sources 与 matcher 取 AND, 两者都成立才算命中
+        # ⚠ matcher 内禁止写物品源条件, 物品源一律写在同级 item_sources
+        # item_sources 同类项合并累计; 带 matcher 的条目彼此独立, 同一物品不重复计入
+        # 组件命名空间缺省为 minecraft; 组合支持 all_of/any_of/none_of/at_least/exactly
+        # 下例要求物品源与组件条件同时满足
         - item_sources:
             - minecraft-diamond
           matcher:
@@ -204,4 +204,4 @@ upgrade:
       success_rate: 40.0
       actions:
         success:
-          - 'broadcast_message text="<gold>%caster.name%</gold> <yellow>将火球术提升至满级！</yellow>"'
+          - 'broadcast_message text="<gold>%caster.name%</gold> <yellow>将火球术提升至满级!</yellow>"'

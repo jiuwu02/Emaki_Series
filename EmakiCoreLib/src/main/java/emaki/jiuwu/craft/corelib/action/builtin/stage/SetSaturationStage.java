@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetSaturationStage extends BaseStage {
 
     public SetSaturationStage() {
-        super("set_saturation", "player", "设置玩家饱和度。",
+        super("set_saturation", "player", "设置玩家饱和度.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("value", CoreStageParameterType.DOUBLE, "饱和度值"));
     }

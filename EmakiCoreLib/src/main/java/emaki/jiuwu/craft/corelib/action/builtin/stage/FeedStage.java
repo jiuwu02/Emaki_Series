@@ -23,7 +23,7 @@ public final class FeedStage extends BaseStage {
     private final ActionAuditLogger auditLogger;
 
     public FeedStage(ActionAuditLogger auditLogger) {
-        super("feed", "entity", "恢复目标的食物值，并可恢复饱和度。",
+        super("feed", "entity", "恢复目标的食物值, 并可恢复饱和度.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "20",
                         "要恢复的食物点数"),

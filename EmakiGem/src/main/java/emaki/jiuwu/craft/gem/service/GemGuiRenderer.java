@@ -93,7 +93,7 @@ final class GemGuiRenderer {
                     text(loreKey, state.mode() == GemGuiMode.UPGRADE
                             ? "<gray>将可升级的宝石放入此槽</gray>"
                             : "<gray>将可镶嵌宝石的装备放入此槽</gray>"),
-                    common("click_take_back", "<gray>支持从光标放入，也可点击取回</gray>")
+                    common("click_take_back", "<gray>支持从光标放入, 也可点击取回</gray>")
             );
             return buildConfiguredItem(slot, Material.LIGHT_BLUE_STAINED_GLASS_PANE, title, lore,
                     targetReplacements(title, lore, state));
@@ -193,7 +193,7 @@ final class GemGuiRenderer {
                 "<light_purple>升级材料 #%slot%</light_purple>");
         List<String> lore = List.of(
                 text("upgrade_material_slot_lore", "<gray>将材料堆放入此槽位</gray>"),
-                common("click_take_back", "<gray>支持从光标放入，也可点击取回</gray>")
+                common("click_take_back", "<gray>支持从光标放入, 也可点击取回</gray>")
         );
         Map<String, Object> replacements = slotReplacements(title, lore);
         replacements.put("slot", displayIndex + 1);

@@ -221,7 +221,7 @@ public final class MythicBridge implements Listener {
             name = "emaki_damage",
             aliases = {"emakiattribute_damage", "attribute_damage"},
             author = "Emaki",
-            description = "通过 Emaki_Attribute 造成基于属性的伤害。",
+            description = "通过 Emaki_Attribute 造成基于属性的伤害.",
             version = "1.0.0",
             premium = false
     )
@@ -395,7 +395,7 @@ public final class MythicBridge implements Listener {
             name = "emaki_attribute_add",
             aliases = {"emakiattribute_add"},
             author = "Emaki",
-            description = "通过 Emaki_Attribute 为目标添加限时属性。",
+            description = "通过 Emaki_Attribute 为目标添加限时属性.",
             version = "1.0.0",
             premium = false
     )
@@ -452,7 +452,7 @@ public final class MythicBridge implements Listener {
             name = "emaki_attribute_remove",
             aliases = {"emakiattribute_remove"},
             author = "Emaki",
-            description = "通过 Emaki_Attribute 从目标移除限时属性。",
+            description = "通过 Emaki_Attribute 从目标移除限时属性.",
             version = "1.0.0",
             premium = false
     )
@@ -486,7 +486,7 @@ public final class MythicBridge implements Listener {
             name = "emaki_attribute_add_tag",
             aliases = {"emakiattribute_add_tag"},
             author = "Emaki",
-            description = "通过 Emaki_Attribute 为目标添加所有带标签的限时属性。",
+            description = "通过 Emaki_Attribute 为目标添加所有带标签的限时属性.",
             version = "1.0.0",
             premium = false
     )
@@ -531,7 +531,7 @@ public final class MythicBridge implements Listener {
             name = "emaki_attribute_clear_tag",
             aliases = {"emakiattribute_clear_tag"},
             author = "Emaki",
-            description = "通过 Emaki_Attribute 清除目标上所有带标签的限时属性。",
+            description = "通过 Emaki_Attribute 清除目标上所有带标签的限时属性.",
             version = "1.0.0",
             premium = false
     )
@@ -611,7 +611,7 @@ public final class MythicBridge implements Listener {
             name = "emaki_attribute",
             aliases = {"emakiattribute_attribute", "attribute_value", "attribute_resource"},
             author = "Emaki",
-            description = "检查 Emaki_Attribute 的快照或资源数值。",
+            description = "检查 Emaki_Attribute 的快照或资源数值.",
             version = "1.0.0",
             premium = false
     )

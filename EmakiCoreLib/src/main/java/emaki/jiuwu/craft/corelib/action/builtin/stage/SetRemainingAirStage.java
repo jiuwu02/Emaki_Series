@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetRemainingAirStage extends BaseStage {
 
     public SetRemainingAirStage() {
-        super("set_remaining_air", "entity", "设置实体剩余呼吸值。",
+        super("set_remaining_air", "entity", "设置实体剩余呼吸值.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("ticks", CoreStageParameterType.INTEGER, "剩余呼吸 tick 数"));
     }

@@ -296,7 +296,7 @@ final class ExpressionEngineDelegate {
         while (matcher.find()) {
             String name = matcher.group(1);
             if (!scope.variables().containsKey(name)) {
-                issues.add("数值表达式变量 '{" + name + "}' 缺失。");
+                issues.add("数值表达式变量 '{" + name + "}' 缺失.");
                 matcher.appendReplacement(buffer, "0");
                 continue;
             }
@@ -323,7 +323,7 @@ final class ExpressionEngineDelegate {
         }
         if (scope.resolvingVariables().contains(name)) {
             return ExpressionEngine.NumericEvaluationResult.failure("数值表达式变量 '{" + name
-                    + "}' 引用了自身。");
+                    + "}' 引用了自身.");
         }
         scope.resolvingVariables().add(name);
         try {
@@ -339,13 +339,13 @@ final class ExpressionEngineDelegate {
 
     static ExpressionEngine.NumericEvaluationResult resolveNumericVariableValue(String name, Object rawValue, ExpressionEngine.NumericEvaluationScope scope, int depth) {
         if (rawValue == null) {
-            return ExpressionEngine.NumericEvaluationResult.failure("数值表达式变量 '{" + name + "}' 为 null。");
+            return ExpressionEngine.NumericEvaluationResult.failure("数值表达式变量 '{" + name + "}' 为 null.");
         }
         if (rawValue instanceof Number number) {
             return ExpressionEngine.NumericEvaluationResult.success(number.doubleValue());
         }
         if (rawValue instanceof Boolean) {
-            return ExpressionEngine.NumericEvaluationResult.failure("数值表达式变量 '{" + name + "}' 是布尔值，不能用于数值表达式。");
+            return ExpressionEngine.NumericEvaluationResult.failure("数值表达式变量 '{" + name + "}' 是布尔值, 不能用于数值表达式.");
         }
         if (rawValue instanceof String text) {
             ExpressionEngine.NumericEvaluationResult result = RandomExpressionEvaluator.evaluateNumericTextDetailed(text, scope, depth + 1, ExpressionRules.MAX_NESTED_DEPTH);
@@ -353,7 +353,7 @@ final class ExpressionEngineDelegate {
                 return result;
             }
             List<String> issues = new ArrayList<>();
-            issues.add("数值表达式变量 '{" + name + "}' 必须解析为数字，但得到字符串: "
+            issues.add("数值表达式变量 '{" + name + "}' 必须解析为数字, 但得到字符串: "
                     + ExpressionEngine.abbreviate(text));
             issues.addAll(result.issues());
             return ExpressionEngine.NumericEvaluationResult.failure(issues);
@@ -361,14 +361,14 @@ final class ExpressionEngineDelegate {
         String type = ExpressionEngine.normalizedConfigType(rawValue);
         if (ExpressionEngine.isStringConfigType(type) || ExpressionEngine.isBooleanConfigType(type)) {
             return ExpressionEngine.NumericEvaluationResult.failure("数值表达式变量 '{" + name + "}' 使用了 "
-                    + type + " 配置，不能用于数值表达式。");
+                    + type + " 配置, 不能用于数值表达式.");
         }
         ExpressionEngine.NumericEvaluationResult result = ExpressionEngine.evaluateRandomConfigDetailed(rawValue, scope, depth + 1);
         if (result.success()) {
             return result;
         }
         List<String> issues = new ArrayList<>();
-        issues.add("数值表达式变量 '{" + name + "}' 必须解析为数值配置。");
+        issues.add("数值表达式变量 '{" + name + "}' 必须解析为数值配置.");
         issues.addAll(result.issues());
         return ExpressionEngine.NumericEvaluationResult.failure(issues);
     }
@@ -381,7 +381,7 @@ final class ExpressionEngineDelegate {
         ExpressionEngine.TextEvaluationScope scoped = ExpressionEngine.textScopeWithConfigVariables(config, scope);
         List<Object> candidates = ExpressionEngine.randomTextLineCandidates(config);
         if (candidates.isEmpty()) {
-            return ExpressionEngine.TextEvaluationResult.failure("随机文本配置缺少 'lines' 或 'values'。");
+            return ExpressionEngine.TextEvaluationResult.failure("随机文本配置缺少 'lines' 或 'values'.");
         }
 
         ExpressionEngine.TextIntegerResult count = ExpressionEngine.evaluateTextRollCount(config, scoped, depth + 1);
@@ -489,7 +489,7 @@ final class ExpressionEngineDelegate {
         while (matcher.find()) {
             String name = matcher.group(1);
             if (!scope.variables().containsKey(name)) {
-                issues.add("文本表达式变量 '{" + name + "}' 缺失。");
+                issues.add("文本表达式变量 '{" + name + "}' 缺失.");
                 matcher.appendReplacement(buffer, "");
                 continue;
             }
@@ -506,7 +506,7 @@ final class ExpressionEngineDelegate {
             return ExpressionEngine.TextEvaluationResult.failure("文本表达式变量 '{" + name + "}' 超过最大嵌套深度 " + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         if (scope.resolvingVariables().contains(name)) {
-            return ExpressionEngine.TextEvaluationResult.failure("文本表达式变量 '{" + name + "}' 引用了自身。");
+            return ExpressionEngine.TextEvaluationResult.failure("文本表达式变量 '{" + name + "}' 引用了自身.");
         }
         scope.resolvingVariables().add(name);
         try {
@@ -528,7 +528,7 @@ final class ExpressionEngineDelegate {
             return new ExpressionEngine.TextIntegerResult(Math.max(0, (int) Math.round(result.value())), List.of());
         }
         List<String> issues = new ArrayList<>();
-        issues.add("随机文本掷取次数必须解析为数字。");
+        issues.add("随机文本掷取次数必须解析为数字.");
         issues.addAll(result.issues());
         return new ExpressionEngine.TextIntegerResult(0, issues);
     }
@@ -556,7 +556,7 @@ final class ExpressionEngineDelegate {
             ExpressionEngine.TextEvaluationScope scoped = ExpressionEngine.textScopeWithConfigVariables(value, scope);
             expression = ConfigNodes.get(value, "value");
             if (expression == null) {
-                return new ExpressionEngine.TextBooleanResult(fallback, List.of("布尔文本配置缺少 value 或 expression。"));
+                return new ExpressionEngine.TextBooleanResult(fallback, List.of("布尔文本配置缺少 value 或 expression."));
             }
             scope = scoped;
         }

@@ -310,8 +310,8 @@ public final class ParentAttributeDataStore {
     private CompletableFuture<ParentAttributeData> startLoad(UUID uuid, String name, SessionEntry entry) {
         AsyncYamlFiles files = asyncYamlFiles();
         if (files == null) {
-            plugin.getLogger().warning("[persistence] CoreLib 异步 YAML 服务不可用；"
-                    + "无法为 " + uuid + " 加载父级属性数据，"
+            plugin.getLogger().warning("[persistence] CoreLib 异步 YAML 服务不可用; "
+                    + "无法为 " + uuid + " 加载父级属性数据, "
                     + "本次会话保持只读以保护现有文件");
             synchronized (entry) {
                 entry.lifecycle = Lifecycle.LOAD_FAILED;
@@ -322,7 +322,7 @@ public final class ParentAttributeDataStore {
                 .handle((section, throwable) -> {
                     if (throwable != null) {
                         plugin.getLogger().warning("[persistence] 加载父级属性数据失败: "
-                                + uuid + "；本次会话保持只读以保护现有文件: "
+                                + uuid + "; 本次会话保持只读以保护现有文件: "
                                 + throwable.getMessage());
                         synchronized (entry) {
                             entry.lifecycle = Lifecycle.LOAD_FAILED;
@@ -341,7 +341,7 @@ public final class ParentAttributeDataStore {
             }
             if (data.revision() > entry.loadBaselineRevision) {
                 plugin.getLogger().warning("[persistence] 父级属性数据 " + uuid
-                        + " 在文件仍加载时被修改；"
+                        + " 在文件仍加载时被修改; "
                         + "保留内存中的编辑并丢弃文件内容");
                 entry.lifecycle = Lifecycle.ACTIVE;
                 return data;
@@ -447,7 +447,7 @@ public final class ParentAttributeDataStore {
     private CompletableFuture<Boolean> writeTicket(SaveTicket ticket) {
         AsyncYamlFiles files = asyncYamlFiles();
         if (files == null) {
-            plugin.getLogger().warning("[persistence] CoreLib 异步 YAML 服务不可用；"
+            plugin.getLogger().warning("[persistence] CoreLib 异步 YAML 服务不可用; "
                     + "已丢弃 " + ticket.uuid() + " 的保存");
             return CompletableFuture.completedFuture(false);
         }

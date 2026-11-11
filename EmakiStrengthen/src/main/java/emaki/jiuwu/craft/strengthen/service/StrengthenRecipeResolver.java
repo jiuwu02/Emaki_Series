@@ -211,7 +211,7 @@ public final class StrengthenRecipeResolver {
         try {
             return matcher.test(matchContext);
         } catch (RuntimeException | LinkageError exception) {
-            LOGGER.warning("[matcher] 配方 Matcher 判定抛出异常，视为不匹配: " + String.valueOf(exception.getMessage()));
+            LOGGER.warning("[matcher] 配方 Matcher 判定抛出异常, 视为不匹配: " + String.valueOf(exception.getMessage()));
             return false;
         }
     }

@@ -28,13 +28,13 @@ final class RandomExpressionEvaluator {
                     + maxNestedDepth + ".");
         }
         if (config == null) {
-            return NumericEvaluationResult.failure("数值配置缺失。");
+            return NumericEvaluationResult.failure("数值配置缺失.");
         }
         if (config instanceof Number number) {
             return NumericEvaluationResult.success(number.doubleValue());
         }
         if (config instanceof Boolean) {
-            return NumericEvaluationResult.failure("布尔值不能用作数值配置。");
+            return NumericEvaluationResult.failure("布尔值不能用作数值配置.");
         }
         if (config instanceof String text) {
             return evaluateNumericTextDetailed(text, scope, depth + 1, maxNestedDepth);
@@ -50,7 +50,7 @@ final class RandomExpressionEvaluator {
             if (ConfigNodes.get(config, "min") != null && ConfigNodes.get(config, "max") != null) {
                 return evaluateUniformDetailed(config, scoped, depth + 1, maxNestedDepth);
             }
-            return NumericEvaluationResult.failure("数值配置未声明受支持的类型或数值字段。");
+            return NumericEvaluationResult.failure("数值配置未声明受支持的类型或数值字段.");
         }
         return switch (type) {
             case "constant" ->
@@ -69,10 +69,10 @@ final class RandomExpressionEvaluator {
                 evaluateRequiredChildConfig(config, "value", scoped, depth + 1, "expression", maxNestedDepth);
             case "string", "boolean" ->
                 NumericEvaluationResult.failure("配置类型 '" + type
-                        + "' 不能用于需要数值配置之处。");
+                        + "' 不能用于需要数值配置之处.");
             default ->
                 NumericEvaluationResult.failure("不支持的数值配置类型 '" + type
-                        + "'.支持的类型: constant、range、uniform、gaussian、skew_normal、triangle、expression。");
+                        + "'.支持的类型: constant, range, uniform, gaussian, skew_normal, triangle, expression.");
         };
     }
 
@@ -82,7 +82,7 @@ final class RandomExpressionEvaluator {
             int maxNestedDepth) {
         String prepared = Texts.trim(text);
         if (Texts.isBlank(prepared)) {
-            return NumericEvaluationResult.failure("数值文本为空。");
+            return NumericEvaluationResult.failure("数值文本为空.");
         }
         Matcher matcher = RANGE_PATTERN.matcher(prepared);
         if (matcher.matches()) {
@@ -207,7 +207,7 @@ final class RandomExpressionEvaluator {
             return result;
         }
         List<String> issues = new ArrayList<>();
-        issues.add("数值配置字段 '" + key + "'（类型 '" + type + "'）无效。");
+        issues.add("数值配置字段 '" + key + "'(类型 '" + type + "') 无效.");
         issues.addAll(result.issues());
         return NumericEvaluationResult.failure(issues);
     }

@@ -245,7 +245,7 @@ public final class FoliaExecutionBackend implements ExecutionBackend {
 
     private static RejectedExecutionException rejected(Plugin owner) {
         String name = owner == null ? "<unknown>" : owner.getName();
-        return new RejectedExecutionException("插件已停用或不可用；全局执行被拒绝: " + name);
+        return new RejectedExecutionException("插件已停用或不可用; 全局执行被拒绝: " + name);
     }
 
     private static IllegalStateException scheduleFailure(String operation, Throwable throwable) {

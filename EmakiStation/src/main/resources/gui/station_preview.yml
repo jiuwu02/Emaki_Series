@@ -1,23 +1,23 @@
 # ============================================================
-# EmakiStation 界面布局：材料预览页（第二页）
+# EmakiStation 界面布局: 材料预览页 (第二页)
 # ============================================================
-# 在目录页右键某个配方进入本页。本页只读，不接受放入物品。
-# 本页可用的 type：
-#   material_list     - 列出所选配方的材料需求（必需，否则布局校验不通过）
+# 在目录页右键某个配方进入本页.本页只读, 不接受放入物品
+# 本页可用的 type:
+#   material_list     - 列出所选配方的材料需求 (必需, 否则布局校验不通过)
 #   recipe_display    - 显示当前预览的配方
 #   cost_display      - 显示货币成本与玩家余额
-#   max_craftable     - 显示按材料与余额最多能做几次，点击直接拉满
+#   max_craftable     - 显示按材料与余额最多能做几次, 点击直接拉满
 #   batch_multiplier  - 循环切换倍率
 #   confirm           - 提交
-#   back              - 返回目录页（会停在原来那一页）
+#   back              - 返回目录页 (会停在原来那一页)
 #   prev_page/next_page/page_info - 材料列表翻页
 #   close             - 关闭界面
-# 材料数量的显示规则（重要）：
-#   需求 <= 99  图标上带真实数字，客户端直接画出来
-#   需求 >= 100 图标数量固定为 1，不画数字，真实数量只出现在 lore 的 %required_exact%
-# 因此 lore 里务必保留 %required_exact%，否则大额需求玩家将无从得知。
-# 65~99 超过多数物品的自然堆叠上限，插件会临时抬高被渲染图标的 max_stack_size 组件，
-# 这个改动只作用于界面里的展示图标，永远不会交给玩家。
+# 材料数量的显示规则 (重要):
+#   需求 <= 99  图标上带真实数字, 客户端直接画出来
+#   需求 >= 100 图标数量固定为 1, 不画数字, 真实数量只出现在 lore 的 %required_exact%
+# 因此 lore 里务必保留 %required_exact%, 否则大额需求玩家将无从得知
+# 65~99 超过多数物品的自然堆叠上限, 插件会临时抬高被渲染图标的 max_stack_size 组件,
+# 这个改动只作用于界面里的展示图标, 永远不会交给玩家
 # ============================================================
 id: "station_preview"
 gui_type: CHEST
@@ -153,9 +153,9 @@ slots:
       components:
         custom_name: "<red>关闭</red>"
 
-# 以下两块由 EmakiStation 自己读取，CoreLib 的模板解析器不会处理它们。
+# 以下两块由 EmakiStation 自己读取, CoreLib 的模板解析器不会处理它们
 virtual_items:
-  # 材料充足。图标是材料本身，数量按上面的规则由插件设置。
+  # 材料充足.图标是材料本身, 数量按上面的规则由插件设置
   material_satisfied:
     item:
       components:
@@ -183,7 +183,7 @@ virtual_items:
           - "<gray>%block_text%</gray>"
 
 texts:
-  # confirm 被拦下时的原因文案，键名对应插件内部的 block_reason。
+  # confirm 被拦下时的原因文案, 键名对应插件内部的 block_reason
   block_reason:
     no_recipe: "没有选中配方"
     insufficient_materials: "材料不足"
@@ -195,7 +195,7 @@ texts:
     station.queue_not_loaded: "数据尚未加载完成"
     station.pending_claim_limit: "待领取的产物太多了"
   recipe:
-    # 材料只写了 matcher、没有 item_sources 时代替物品名显示的文案。
+    # 材料只写了 matcher, 没有 item_sources 时代替物品名显示的文案
     material_matcher: "<light_purple>自定义条件</light_purple>"
   output_state:
     storage_first: "<aqua>仓库优先</aqua>"

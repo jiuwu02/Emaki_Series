@@ -27,13 +27,13 @@ public final class GemHeldItemStage implements CoreActionStage {
 
     public enum Operation {
 
-        OPEN_SOCKET("gem_open_socket", "在目标手持装备上开启一个插槽。"),
+        OPEN_SOCKET("gem_open_socket", "在目标手持装备上开启一个插槽."),
 
-        INLAY("gem_inlay", "将副手宝石镶嵌到目标手持装备的插槽中。"),
+        INLAY("gem_inlay", "将副手宝石镶嵌到目标手持装备的插槽中."),
 
-        EXTRACT("gem_extract", "从目标手持装备的插槽中取出宝石。"),
+        EXTRACT("gem_extract", "从目标手持装备的插槽中取出宝石."),
 
-        CLEAR_LAYER("gem_clear_layer", "移除目标手持装备上的宝石层。");
+        CLEAR_LAYER("gem_clear_layer", "移除目标手持装备上的宝石层.");
 
         private final String id;
         private final String description;

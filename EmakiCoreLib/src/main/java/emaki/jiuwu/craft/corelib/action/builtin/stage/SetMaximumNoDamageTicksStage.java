@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetMaximumNoDamageTicksStage extends BaseStage {
 
     public SetMaximumNoDamageTicksStage() {
-        super("set_max_no_damage_ticks", "entity", "设置实体无敌帧上限。",
+        super("set_max_no_damage_ticks", "entity", "设置实体无敌帧上限.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("ticks", CoreStageParameterType.INTEGER, "无敌帧上限"));
     }

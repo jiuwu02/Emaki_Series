@@ -38,7 +38,7 @@ public final class AttributeDamageStage implements CoreActionStage {
 
     @Override
     public @NotNull String description() {
-        return "对目标施加属性类型的自定义伤害。";
+        return "对目标施加属性类型的自定义伤害.";
     }
 
     @Override

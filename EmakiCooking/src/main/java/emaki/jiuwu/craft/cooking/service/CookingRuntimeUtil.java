@@ -104,7 +104,7 @@ public final class CookingRuntimeUtil {
             warnOutputSchema(plugin, path + ".item_sources[0]", "旧版 item_sources 条目无效");
             return null;
         }
-        warnOutputSchema(plugin, path + ".item_sources", "接受旧版 item_sources；请迁移到 item_source");
+        warnOutputSchema(plugin, path + ".item_sources", "接受旧版 item_sources; 请迁移到 item_source");
         return source;
     }
 

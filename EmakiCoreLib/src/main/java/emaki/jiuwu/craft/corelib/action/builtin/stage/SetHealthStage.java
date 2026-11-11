@@ -25,7 +25,7 @@ public final class SetHealthStage extends BaseStage {
     private final ActionAuditLogger auditLogger;
 
     public SetHealthStage(ActionAuditLogger auditLogger) {
-        super("set_health", "entity", "把目标生命值设置为绝对值。",
+        super("set_health", "entity", "把目标生命值设置为绝对值.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "生命值"));
         this.auditLogger = auditLogger;

@@ -28,17 +28,17 @@ public final class StrengthenHeldItemStage implements CoreActionStage {
 
     public enum Operation {
 
-        RERENDER("strengthen_rerender", "重新渲染目标手持物品上的强化层。"),
+        RERENDER("strengthen_rerender", "重新渲染目标手持物品上的强化层."),
 
-        SET_STAR("strengthen_set_star", "设置目标手持物品的星级。"),
+        SET_STAR("strengthen_set_star", "设置目标手持物品的星级."),
 
-        ADD_STAR("strengthen_add_star", "为目标手持物品增加星级。"),
+        ADD_STAR("strengthen_add_star", "为目标手持物品增加星级."),
 
-        REMOVE_STAR("strengthen_remove_star", "移除目标手持物品的星级。"),
+        REMOVE_STAR("strengthen_remove_star", "移除目标手持物品的星级."),
 
-        RESET_STAR("strengthen_reset_star", "将目标手持物品的星级重置为零。"),
+        RESET_STAR("strengthen_reset_star", "将目标手持物品的星级重置为零."),
 
-        CLEAR_LAYER("strengthen_clear_layer", "移除目标手持物品上的强化层。");
+        CLEAR_LAYER("strengthen_clear_layer", "移除目标手持物品上的强化层.");
 
         private final String id;
         private final String description;

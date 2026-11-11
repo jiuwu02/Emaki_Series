@@ -200,7 +200,7 @@ public record AttributeConfig(String language,
         return DefaultProfile.fromMap(Map.of(
                 "id", "default",
                 "priority", 1_000_000,
-                "description", "所有玩家共享的默认基础属性与资源上限。",
+                "description", "所有玩家共享的默认基础属性与资源上限.",
                 "resources", Map.of(
                         "health", Map.of(
                                 "display_name", "生命值",

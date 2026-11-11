@@ -1,4 +1,4 @@
-// EmakiItemApi（原 EmakiItemApi/pom.xml）。
+// EmakiItemApi (原 EmakiItemApi/pom.xml)
 version = '3.0.4'
 
 dependencies {

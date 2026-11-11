@@ -1,7 +1,7 @@
 # ============================================================
 # EmakiCooking 研磨机配方示例
 # ============================================================
-# 研磨机是时间型加工设备，将原料研磨成粉末或碎片。
+# 研磨机是时间型加工设备, 将原料研磨成粉末或碎片
 # ============================================================
 
 id: "example_recipe"
@@ -11,8 +11,8 @@ display_name: "骨粉研磨"
 # ============================================================
 # 输入食材
 # ============================================================
-# 放入研磨机的原料物品。判定由同级 item_sources 与 matcher 取 AND，
-# 两者都省略则这条配方永不命中。⚠ matcher 内禁止写物品源条件。
+# 放入研磨机的原料物品.判定由同级 item_sources 与 matcher 取 AND,
+# 两者都省略则这条配方永不命中.⚠ matcher 内禁止写物品源条件
 input:
   item_sources:
     - minecraft-bone
@@ -20,33 +20,33 @@ input:
 # ============================================================
 # 研磨参数
 # ============================================================
-# grind_time_seconds: 研磨所需时间（秒）
+# grind_time_seconds: 研磨所需时间 (秒)
 grind_time_seconds: 6
 
 permission: "emakicooking.recipe.bone_meal"
 
 # ============================================================
-# 完成条件（true/false 动作分支）
+# 完成条件 (true/false 动作分支)
 # ============================================================
 # type: all_of / any_of / none_of / at_least / exactly
-# on_fail.block_output: 条件不成立是否阻止产出（默认 false）
+# on_fail.block_output: 条件不成立是否阻止产出 (默认 false)
 condition:
   type: all_of
   entries:
     - "%player_level% >= 1"
   on_pass:
     actions:
-      - 'send_message text="<gray>研磨条件满足。</gray>"'
+      - 'send_message text="<gray>研磨条件满足.</gray>"'
   on_fail:
     actions:
-      - 'send_message text="<red>研磨条件不满足。</red>"'
+      - 'send_message text="<red>研磨条件不满足.</red>"'
     block_output: false
 
 # ============================================================
 # 研磨结果
 # ============================================================
 # success: 研磨完成后的结果分支
-#   outputs: 产出物品列表（支持多种产出）
+#   outputs: 产出物品列表 (支持多种产出)
 #   actions: 完成时执行的动作
 result:
   success:
@@ -54,4 +54,4 @@ result:
       - item_source: "minecraft-bone_meal"
         amount: 3
     actions:
-      - 'send_message text="<gray>研磨结束。</gray>"'
+      - 'send_message text="<gray>研磨结束.</gray>"'

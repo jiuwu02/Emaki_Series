@@ -21,10 +21,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class GivePotionEffectStage extends BaseStage {
 
     public GivePotionEffectStage() {
-        super("give_potion_effect", "entity", "为目标施加一个药水效果。",
+        super("give_potion_effect", "entity", "为目标施加一个药水效果.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("type", CoreStageParameterType.STRING, "效果类型"),
-                CoreStageParameter.required("level", CoreStageParameterType.INTEGER, "效果等级，从 1 开始"),
+                CoreStageParameter.required("level", CoreStageParameterType.INTEGER, "效果等级, 从 1 开始"),
                 CoreStageParameter.required("duration", CoreStageParameterType.DURATION, "效果持续时间"),
                 CoreStageParameter.optional("ambient", CoreStageParameterType.BOOLEAN, "false", "环境效果"),
                 CoreStageParameter.optional("particles", CoreStageParameterType.BOOLEAN, "true", "粒子效果"),

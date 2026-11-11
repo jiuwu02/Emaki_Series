@@ -15,7 +15,7 @@ public final class TargetSource extends BaseSource {
 
     public TargetSource() {
         super("target", 
-              "目标实体（来自 on_target 或 on_damage_give 触发器）。",
+              "目标实体 (来自 on_target 或 on_damage_give 触发器).",
               CoreActionExecutionDomain.SERVER_GLOBAL);
     }
 

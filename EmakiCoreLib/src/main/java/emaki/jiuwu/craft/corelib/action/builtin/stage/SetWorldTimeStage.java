@@ -21,10 +21,10 @@ import java.util.Map;
 public final class SetWorldTimeStage extends BaseStage {
 
     public SetWorldTimeStage() {
-        super("set_world_time", "world", "设置世界时间。",
+        super("set_world_time", "world", "设置世界时间.",
                 CoreTargetRequirement.NONE, CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.required("time", CoreStageParameterType.STRING,
-                        "时间，支持 tick 数或 day/night"));
+                        "时间, 支持 tick 数或 day/night"));
     }
 
     @Override

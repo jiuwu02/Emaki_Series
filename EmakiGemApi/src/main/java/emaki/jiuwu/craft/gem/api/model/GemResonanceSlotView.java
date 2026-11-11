@@ -3,10 +3,10 @@ package emaki.jiuwu.craft.gem.api.model;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * One position in a gem resonance chain.
+ * One position in a gem resonance chain
  *
  * <p>A position may be matched by gem id, by gem type, or by neither — an entry with both fields empty
- * is a wildcard that any gem satisfies.
+ * is a wildcard that any gem satisfies
  *
  * @param gemId    the gem id this position requires; empty when matched by type or wildcard
  * @param gemType  the gem type this position requires; empty when matched by id or wildcard
@@ -17,7 +17,7 @@ public record GemResonanceSlotView(@NotNull String gemId,
                                    int minLevel) {
 
     /**
-     * Normalises every reference component so no accessor can return {@code null}.
+     * Normalises every reference component so no accessor can return {@code null}
      *
      * @param gemId    required gem id
      * @param gemType  required gem type

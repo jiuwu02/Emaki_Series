@@ -1,7 +1,7 @@
 # ============================================================
 # EmakiCooking 发酵桶配方示例
 # ============================================================
-# 发酵桶是长时间型加工设备，支持提前收取（半成品）和过度发酵（变质品）。
+# 发酵桶是长时间型加工设备, 支持提前收取 (半成品) 和过度发酵 (变质品)
 # ============================================================
 
 id: "example_recipe"
@@ -11,11 +11,11 @@ display_name: "苹果酒"
 # ============================================================
 # 输入食材
 # ============================================================
-# 放入发酵桶的原料物品列表（支持多种原料）。
-# 判定由同级 item_sources 与 matcher 取 AND，两者都省略则该条原料永不命中。
-# ⚠ matcher 内禁止写物品源条件，物品源一律写在同级 item_sources。
-# slot_id 是持久化槽位身份，count_key 是聚合与消费身份，两者都必须显式且稳定。
-# item_sources 限定来源，matcher 只追加组件等非物品源条件。
+# 放入发酵桶的原料物品列表 (支持多种原料)
+# 判定由同级 item_sources 与 matcher 取 AND, 两者都省略则该条原料永不命中
+# ⚠ matcher 内禁止写物品源条件, 物品源一律写在同级 item_sources
+# slot_id 是持久化槽位身份, count_key 是聚合与消费身份, 两者都必须显式且稳定
+# item_sources 限定来源, matcher 只追加组件等非物品源条件
 inputs:
   - slot_id: "fruit_slot"
     count_key: "fruit"
@@ -31,12 +31,12 @@ inputs:
 # ============================================================
 # 发酵参数
 # ============================================================
-# fermentation_time_seconds: 正常发酵完成时间（秒）
+# fermentation_time_seconds: 正常发酵完成时间 (秒)
 # fermentation: 发酵过程控制
 #   early_collect: 提前收取配置
-#     min_progress_ratio: 最早可收取的进度比例（0.0-1.0）
+#     min_progress_ratio: 最早可收取的进度比例 (0.0-1.0)
 #   over_time_seconds: 超时多少秒后视为过度发酵
-# 提前收取和过度发酵产物统一配置在 result.early / result.over。
+# 提前收取和过度发酵产物统一配置在 result.early / result.over
 fermentation_time_seconds: 300
 
 fermentation:
@@ -47,20 +47,20 @@ fermentation:
 permission: "emakicooking.recipe.apple_cider"
 
 # ============================================================
-# 完成条件（true/false 动作分支）
+# 完成条件 (true/false 动作分支)
 # ============================================================
-# 发酵桶会在收取（正常/提前/过度）时统一评估此条件。
-# 注意：自动完成或破坏掉落时玩家可能离线，此时条件视为成立。
+# 发酵桶会在收取 (正常/提前/过度) 时统一评估此条件
+# 注意: 自动完成或破坏掉落时玩家可能离线, 此时条件视为成立
 condition:
   type: all_of
   entries:
     - "%player_level% >= 4"
   on_pass:
     actions:
-      - 'send_message text="<gold>发酵收取条件满足。</gold>"'
+      - 'send_message text="<gold>发酵收取条件满足.</gold>"'
   on_fail:
     actions:
-      - 'send_message text="<red>发酵收取条件不满足。</red>"'
+      - 'send_message text="<red>发酵收取条件不满足.</red>"'
     block_output: false
 
 # ============================================================
@@ -75,16 +75,16 @@ result:
       - item_source: "minecraft-honey_bottle"
         amount: 1
     actions:
-      - 'send_message text="<gold>发酵完成。</gold>"'
+      - 'send_message text="<gold>发酵完成.</gold>"'
   early:
     outputs:
       - item_source: "minecraft-potion"
         amount: 1
     actions:
-      - 'send_message text="<yellow>提前收取了半发酵苹果饮。</yellow>"'
+      - 'send_message text="<yellow>提前收取了半发酵苹果饮.</yellow>"'
   over:
     outputs:
       - item_source: "minecraft-honey_bottle"
         amount: 1
     actions:
-      - 'send_message text="<gold>苹果酒已经继续转化为酸甜果醋。</gold>"'
+      - 'send_message text="<gold>苹果酒已经继续转化为酸甜果醋.</gold>"'

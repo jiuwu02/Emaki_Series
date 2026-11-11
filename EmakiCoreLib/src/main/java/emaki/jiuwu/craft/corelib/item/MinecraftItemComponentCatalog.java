@@ -144,10 +144,10 @@ public final class MinecraftItemComponentCatalog {
         add(result, "max_damage", "正整数");
         add(result, "damage", "非负整数");
         addUnit(result, "unbreakable");
-        add(result, "custom_name", "MiniMessage 字符串，或原版文本组件 map/list");
-        add(result, "item_name", "MiniMessage 字符串，或原版文本组件 map/list");
-        add(result, "lore", "MiniMessage 字符串/list，或原版文本组件 list");
-        add(result, "rarity", "common、uncommon、rare 或 epic");
+        add(result, "custom_name", "MiniMessage 字符串, 或原版文本组件 map/list");
+        add(result, "item_name", "MiniMessage 字符串, 或原版文本组件 map/list");
+        add(result, "lore", "MiniMessage 字符串/list, 或原版文本组件 list");
+        add(result, "rarity", "common, uncommon, rare 或 epic");
         add(result, "enchantments", "附魔资源 id 到等级的映射");
         add(result, "can_place_on", "原版冒险谓词 map");
         add(result, "can_break", "原版冒险谓词 map");
@@ -255,6 +255,6 @@ public final class MinecraftItemComponentCatalog {
 
     private void addUnit(Map<String, Entry> entries, String id) {
         String namespacedId = MATERIAL_NAMESPACE + id;
-        entries.put(namespacedId, new Entry(namespacedId, "unit：true、null 或空 map", true));
+        entries.put(namespacedId, new Entry(namespacedId, "unit: true, null 或空 map", true));
     }
 }

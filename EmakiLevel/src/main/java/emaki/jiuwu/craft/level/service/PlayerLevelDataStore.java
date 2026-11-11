@@ -597,7 +597,7 @@ public final class PlayerLevelDataStore {
     private void logLoadFailure(UUID playerId, Throwable throwable) {
         logger.log(Level.WARNING,
                 "[persistence] 加载失败 " + playerId
-                        + "；该会话保持只读以保护现有文件",
+                        + "; 该会话保持只读以保护现有文件",
                 throwable);
     }
 

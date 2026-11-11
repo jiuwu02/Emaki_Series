@@ -1,4 +1,4 @@
-# EmakiItem 条件源：读取 condition_expressions 元数据并交给条件引擎；缺失时由 require_match 决定。
+# EmakiItem 条件源: 读取 condition_expressions 元数据并交给条件引擎; 缺失时由 require_match 决定
 
 enabled: true
 
@@ -6,10 +6,10 @@ source_id: "emakiitem"
 
 condition:
   type: "all_of"
-  # true 时表达式解析失败视为不匹配。
+  # true 时表达式解析失败视为不匹配
   invalid_as_failure: true
-  # pdc_meta 读取 condition_expressions；require_match=false 时缺字段跳过。
-  # pattern 要求非空，%value% 作为条件表达式执行。
+  # pdc_meta 读取 condition_expressions; require_match=false 时缺字段跳过
+  # pattern 要求非空, %value% 作为条件表达式执行
   entries:
     - type: pdc_meta
       key: condition_expressions

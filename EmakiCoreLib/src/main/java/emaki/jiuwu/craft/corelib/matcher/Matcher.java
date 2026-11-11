@@ -42,23 +42,23 @@ public sealed interface Matcher permits
         }
         YamlSection section = asSection(config);
         if (section == null) {
-            ComponentMatcherSupport.LOGGER.warning("[matcher] 匹配器配置不是映射，永远不会匹配: "
+            ComponentMatcherSupport.LOGGER.warning("[matcher] 匹配器配置不是映射, 永远不会匹配: "
                     + config.getClass().getSimpleName() + " -> " + config);
             return new AnyMatcher(List.of());
         }
         if (containsItemSourceField(section)) {
-            return reject("匹配器不能包含物品来源字段；请将它们移到同级 '"
-                    + ItemRequirement.KEY_ITEM_SOURCES + "' 字段，该字段与匹配器按 AND 求值");
+            return reject("匹配器不能包含物品来源字段; 请将它们移到同级 '"
+                    + ItemRequirement.KEY_ITEM_SOURCES + "' 字段, 该字段与匹配器按 AND 求值");
         }
         String type = Texts.lower(section.getString("type", ""));
         if (type.isEmpty()) {
-            return reject("匹配器缺少必需的 'type' 键；物品来源条件现在属于同级 '"
+            return reject("匹配器缺少必需的 'type' 键; 物品来源条件现在属于同级 '"
                     + ItemRequirement.KEY_ITEM_SOURCES + "' 字段");
         }
         return switch (type) {
             case "item_source", "item_sources", "source", "sources" -> reject(
-                    "匹配器不再接受物品来源条件('type: " + type + "')；请将它们移到同级 '"
-                            + ItemRequirement.KEY_ITEM_SOURCES + "' 字段，该字段与匹配器按 AND 求值");
+                    "匹配器不再接受物品来源条件('type: " + type + "'); 请将它们移到同级 '"
+                            + ItemRequirement.KEY_ITEM_SOURCES + "' 字段, 该字段与匹配器按 AND 求值");
             case "pdc_match", "pdc" -> parsePdcMatch(section);
             case "lore_match", "lore" -> parseLoreMatch(section);
             case "component", "component_match" -> parseComponentMatch(section);
@@ -81,7 +81,7 @@ public sealed interface Matcher permits
     }
 
     private static @NotNull Matcher reject(@NotNull String reason) {
-        ComponentMatcherSupport.LOGGER.warning("[matcher] 匹配器在加载时被拒绝，永远不会匹配: " + reason);
+        ComponentMatcherSupport.LOGGER.warning("[matcher] 匹配器在加载时被拒绝, 永远不会匹配: " + reason);
         return new AnyMatcher(List.of());
     }
 
@@ -151,13 +151,13 @@ public sealed interface Matcher permits
                 && resolved != ComponentOperator.EXISTS
                 && resolved != ComponentOperator.ABSENT) {
             return rejectComponentMatcher(componentId
-                    + " 是单位组件，仅支持 exists/absent，收到 '" + operator + "'");
+                    + " 是单位组件, 仅支持 exists/absent, 收到 '" + operator + "'");
         }
         return new ComponentMatcher(componentId, ComponentPath.parse(section.getString("path", "")), resolved, expected);
     }
 
     private static @NotNull Matcher rejectComponentMatcher(@NotNull String reason) {
-        ComponentMatcherSupport.LOGGER.warning("[matcher] 组件匹配器在加载时被拒绝，永远不会匹配: " + reason);
+        ComponentMatcherSupport.LOGGER.warning("[matcher] 组件匹配器在加载时被拒绝, 永远不会匹配: " + reason);
         return new AnyMatcher(List.of());
     }
 

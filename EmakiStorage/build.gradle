@@ -1,16 +1,16 @@
-// EmakiStorage（原 EmakiStorage/pom.xml，private-modules profile 模块）。
+// EmakiStorage (原 EmakiStorage/pom.xml, private-modules profile 模块)
 version = '2.0.1'
 
 dependencies {
-    // 原 shade artifactSet 白名单。
+    // 原 shade artifactSet 白名单
     shadeBundle project(':EmakiStorageApi')
 
-    // 原 compile 作用域。
+    // 原 compile 作用域
     api project(':EmakiCoreLibApi')
     provided project(':EmakiCoreLib')
     api project(':EmakiStorageApi')
 
-    // 原 provided 作用域。
+    // 原 provided 作用域
     provided libs.paper.api
     provided libs.placeholderapi
 }

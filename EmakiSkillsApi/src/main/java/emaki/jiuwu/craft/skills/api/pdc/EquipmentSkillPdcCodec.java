@@ -17,43 +17,43 @@ import org.bukkit.persistence.PersistentDataType;
 import emaki.jiuwu.craft.corelib.api.pdc.PdcKeyMigration;
 
 /**
- * 装备技能 PDC 的读写编解码器，是 EmakiSkills 与其他模块之间的 wire protocol。
+ * 装备技能 PDC 的读写编解码器, 是 EmakiSkills 与其他模块之间的 wire protocol
  *
- * <h2>持久化格式（跨版本稳定契约）</h2>
+ * <h2>持久化格式 (跨版本稳定契约)</h2>
  *
- * 三个 {@link NamespacedKey} 全部使用命名空间 {@code emaki_skills}，值类型均为
- * {@link PersistentDataType#STRING}：
+ * 三个 {@link NamespacedKey} 全部使用命名空间 {@code emaki_skills}, 值类型均为
+ * {@link PersistentDataType#STRING}:
  *
  * <ul>
- *   <li>{@code item.skills.ids} —— 技能 id 列表，以 {@code ;} 分隔并按自然序排序，
+ *   <li>{@code item.skills.ids} -- 技能 id 列表, 以 {@code ;} 分隔并按自然序排序,
  *       例如 {@code fireball;heal}</li>
- *   <li>{@code item.skills.active_slot} —— 生效槽位，取本类的 {@code SLOT_*} 常量之一</li>
- *   <li>{@code item.skills.triggers} —— 技能到触发器的绑定，形如
- *       {@code skillId=triggerId} 的键值对再以 {@code ;} 分隔，按 key 排序</li>
+ *   <li>{@code item.skills.active_slot} -- 生效槽位, 取本类的 {@code SLOT_*} 常量之一</li>
+ *   <li>{@code item.skills.triggers} -- 技能到触发器的绑定, 形如
+ *       {@code skillId=triggerId} 的键值对再以 {@code ;} 分隔, 按 key 排序</li>
  * </ul>
  *
- * <p><strong>三个 key 是同一份 payload 的组成部分</strong>：{@code clear} 会一并移除三者，
- * 只写其中一个会得到不完整的 payload。判断物品是否携带 payload 用
- * {@link #hasPayload(ItemStack)}，它对三个 key 取或。
+ * <p><strong>三个 key 是同一份 payload 的组成部分</strong>: {@code clear} 会一并移除三者,
+ * 只写其中一个会得到不完整的 payload.判断物品是否携带 payload 用
+ * {@link #hasPayload(ItemStack)}, 它对三个 key 取或
  *
  * <h2>规范化语义</h2>
  *
- * 写入前一律先经 {@link #normalize(Iterable, String, Map)}：技能 id 去空白、转小写、空格转
- * 下划线并去重排序；触发器 id 在此基础上再把 {@code -} 转为 {@code _}。
- * {@code boundTriggers} 的 key 会被并入技能 id 集合，因此绑定了触发器的技能不必再单独列入
- * {@code skillIds}。规范化后若技能集合为空，写入等价于 {@code clear}。
+ * 写入前一律先经 {@link #normalize(Iterable, String, Map)}: 技能 id 去空白, 转小写, 空格转
+ * 下划线并去重排序; 触发器 id 在此基础上再把 {@code -} 转为 {@code _}
+ * {@code boundTriggers} 的 key 会被并入技能 id 集合, 因此绑定了触发器的技能不必再单独列入
+ * {@code skillIds}.规范化后若技能集合为空, 写入等价于 {@code clear}
  *
- * <p>槽位匹配见 {@link #matchesSlot(String, String)}：{@code all} 匹配一切，
- * 而 {@code hand} 同时匹配 {@code main_hand} 与 {@code off_hand}。
+ * <p>槽位匹配见 {@link #matchesSlot(String, String)}: {@code all} 匹配一切,
+ * 而 {@code hand} 同时匹配 {@code main_hand} 与 {@code off_hand}
  *
  * <h2>失败语义</h2>
  *
- * 所有写操作返回 {@link SkillPdcMutation} 而不抛异常，其 {@code committed} 表示
- * {@code setItemMeta} 是否成功，{@code reason} 在未提交时给出原因
- * （{@code item_missing}、{@code item_meta_missing}、{@code payload_absent}）。
+ * 所有写操作返回 {@link SkillPdcMutation} 而不抛异常, 其 {@code committed} 表示
+ * {@code setItemMeta} 是否成功, {@code reason} 在未提交时给出原因
+ * ({@code item_missing}, {@code item_meta_missing}, {@code payload_absent})
  *
- * <p>本类被需要读写该 payload 的运行时模块 shade 并 relocate，因此
- * <strong>key 名称与编码格式的任何改动都是跨模块的破坏性变更</strong>。
+ * <p>本类被需要读写该 payload 的运行时模块 shade 并 relocate, 因此
+ * <strong>key 名称与编码格式的任何改动都是跨模块的破坏性变更</strong>
  */
 public final class EquipmentSkillPdcCodec {
 
@@ -68,12 +68,12 @@ public final class EquipmentSkillPdcCodec {
 
     private static final String NAMESPACE = "emaki_skills";
 
-    // 扁平键（无点），以便第三方插件从 Bukkit YAML 手写。
+    // 扁平键 (无点), 以便第三方插件从 Bukkit YAML 手写
     private static final NamespacedKey SKILL_IDS_KEY = new NamespacedKey(NAMESPACE, "item_skills_ids");
     private static final NamespacedKey SKILL_ACTIVE_SLOT_KEY = new NamespacedKey(NAMESPACE, "item_skills_active_slot");
     private static final NamespacedKey SKILL_TRIGGERS_KEY = new NamespacedKey(NAMESPACE, "item_skills_triggers");
 
-    // 历史带点键，仅供懒转换回落读取。
+    // 历史带点键, 仅供懒转换回落读取
     private static final NamespacedKey LEGACY_SKILL_IDS_KEY = new NamespacedKey(NAMESPACE, "item.skills.ids");
     private static final NamespacedKey LEGACY_SKILL_ACTIVE_SLOT_KEY =
             new NamespacedKey(NAMESPACE, "item.skills.active_slot");
@@ -124,10 +124,10 @@ public final class EquipmentSkillPdcCodec {
     }
 
     /**
-     * 读取技能载荷，命中历史带点键时就地迁移到扁平键。
+     * 读取技能载荷, 命中历史带点键时就地迁移到扁平键
      *
-     * <p>{@code getItemMeta()} 返回的是副本，所以迁移后必须 {@code setItemMeta} 回写，
-     * 否则转换只发生在副本上、随方法返回被丢弃（读到的值仍正确，但物品永远不会真正转换）。
+     * <p>{@code getItemMeta()} 返回的是副本, 所以迁移后必须 {@code setItemMeta} 回写,
+     * 否则转换只发生在副本上, 随方法返回被丢弃 (读到的值仍正确, 但物品永远不会真正转换)
      */
     public static RawSnapshot readRaw(ItemStack itemStack) {
         ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
@@ -286,10 +286,10 @@ public final class EquipmentSkillPdcCodec {
     }
 
     /**
-     * 读取三个键，新键缺失时回落到历史带点键并就地迁移。
+     * 读取三个键, 新键缺失时回落到历史带点键并就地迁移
      *
-     * <p>调用方拿到的 {@code container} 若来自 {@code ItemMeta}，迁移后需要
-     * {@code setItemMeta} 回写才能落盘；{@link #readRaw(ItemStack)} 已处理这一点。
+     * <p>调用方拿到的 {@code container} 若来自 {@code ItemMeta}, 迁移后需要
+     * {@code setItemMeta} 回写才能落盘; {@link #readRaw(ItemStack)} 已处理这一点
      */
     private static RawSnapshot readRaw(PersistentDataContainer container) {
         if (container == null) {
@@ -314,7 +314,7 @@ public final class EquipmentSkillPdcCodec {
                 || hasEither(container, SKILL_TRIGGERS_KEY, LEGACY_SKILL_TRIGGERS_KEY);
     }
 
-    /** {@return 新键或历史键任一存在}。只判存在，不触发迁移。 */
+    /** {@return 新键或历史键任一存在}.只判存在, 不触发迁移. */
     private static boolean hasEither(PersistentDataContainer container,
             NamespacedKey newKey,
             NamespacedKey legacyKey) {
@@ -323,10 +323,10 @@ public final class EquipmentSkillPdcCodec {
     }
 
     /**
-     * 删除三个历史带点键。
+     * 删除三个历史带点键
      *
-     * <p>每次写入与清理都要调：只写新键而留下老键，会让老键成为再也读不到的
-     * 孤儿残留（{@link #readRaw} 优先读新键），永久占用物品 NBT。
+     * <p>每次写入与清理都要调: 只写新键而留下老键, 会让老键成为再也读不到的
+     * 孤儿残留 ({@link #readRaw} 优先读新键), 永久占用物品 NBT
      */
     private static void removeLegacyKeys(PersistentDataContainer container) {
         if (container == null) {

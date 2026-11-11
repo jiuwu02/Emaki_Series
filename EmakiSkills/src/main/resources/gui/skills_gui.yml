@@ -1,4 +1,4 @@
-# 技能查看与装配界面。
+# 技能查看与装配界面
 id: "skills_gui"
 gui_type: CHEST
 title: "<gradient:#4DA6FF:#FF6B6B>主动技能</gradient>"

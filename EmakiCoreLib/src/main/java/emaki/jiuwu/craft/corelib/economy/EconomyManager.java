@@ -90,16 +90,16 @@ public final class EconomyManager {
     private Supported resolveSupported(String providerId, String currencyId) {
         if ("excellenteconomy".equalsIgnoreCase(providerId) && Texts.isBlank(currencyId)) {
             return new Supported(null,
-                    ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "ExcellentEconomy 操作需要 'currency'。"));
+                    ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "ExcellentEconomy 操作需要 'currency'."));
         }
         EconomyProvider provider = select(providerId, currencyId);
         if (provider == null) {
             return new Supported(null,
-                    ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "没有可用的经济提供者: '" + providerId + "'。"));
+                    ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "没有可用的经济提供者: '" + providerId + "'."));
         }
         if ("auto".equalsIgnoreCase(providerId) && Texts.isBlank(currencyId) && "excellenteconomy".equalsIgnoreCase(provider.id())) {
             return new Supported(null,
-                    ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "auto 提供者不会推断默认的 ExcellentEconomy 货币。"));
+                    ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "auto 提供者不会推断默认的 ExcellentEconomy 货币."));
         }
         return new Supported(provider, ActionResult.ok(Map.of("provider", provider.id())));
     }

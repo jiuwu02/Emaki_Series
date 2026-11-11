@@ -13,11 +13,11 @@ import java.util.regex.Pattern;
 /**
  * Package-private helpers that normalize and defensively copy the plain data behind the item API
  * types ({@link ItemBuildIssue}, {@link ItemComponentCapability}, {@link ItemComponentPatch} and
- * {@link ConfiguredItemDefinition}).
+ * {@link ConfiguredItemDefinition})
  *
  * <p>Accepted values are strings, boxed primitives, {@link BigInteger}, {@link BigDecimal},
  * maps with non-null keys, and lists of the same; anything else is rejected with
- * {@link IllegalArgumentException} instead of being silently stringified.
+ * {@link IllegalArgumentException} instead of being silently stringified
  */
 final class PlainItemData {
 
@@ -27,7 +27,7 @@ final class PlainItemData {
     }
 
     /**
-     * Normalizes a component id to the {@code namespace:key} form.
+     * Normalizes a component id to the {@code namespace:key} form
      *
      * @param raw raw id; a missing namespace is filled in with {@code minecraft:}
      * @return the trimmed, {@link Locale#ROOT}-lowercased id matching
@@ -37,7 +37,7 @@ final class PlainItemData {
      */
     static String componentId(String raw) {
         if (raw == null) {
-            throw new IllegalArgumentException("组件 ID 不能为 null。");
+            throw new IllegalArgumentException("组件 ID 不能为 null.");
         }
         String normalized = raw.trim().toLowerCase(Locale.ROOT);
         if (!normalized.contains(":")) {
@@ -50,12 +50,12 @@ final class PlainItemData {
     }
 
     /**
-     * Deep-copies a plain data value into an immutable structure.
+     * Deep-copies a plain data value into an immutable structure
      *
      * <p>Strings, boxed primitives, {@link BigInteger} and {@link BigDecimal} are returned
      * unchanged because they are immutable, {@code Character} becomes its string form, and maps
      * and lists are rebuilt as unmodifiable containers with every nested value copied the same
-     * way. Map keys are converted with {@code String.valueOf}.
+     * way. Map keys are converted with {@code String.valueOf}
      *
      * @param value value to copy; {@code null} is returned as-is
      * @return the copied value, never a mutable map or list
@@ -76,7 +76,7 @@ final class PlainItemData {
             Map<String, Object> copied = new LinkedHashMap<>();
             for (Map.Entry<?, ?> entry : map.entrySet()) {
                 if (entry.getKey() == null) {
-                    throw new IllegalArgumentException("纯物品数据映射不能包含 null 键。");
+                    throw new IllegalArgumentException("纯物品数据映射不能包含 null 键.");
                 }
                 copied.put(String.valueOf(entry.getKey()), copy(entry.getValue()));
             }
@@ -93,7 +93,7 @@ final class PlainItemData {
     }
 
     /**
-     * Copies a component-patch map under normalized component ids.
+     * Copies a component-patch map under normalized component ids
      *
      * @param source source map; {@code null} or empty yields {@link Map#of()}
      * @return an unmodifiable copy that keeps the source's iteration order, with every key

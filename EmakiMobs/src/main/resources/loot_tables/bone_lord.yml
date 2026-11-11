@@ -74,7 +74,7 @@ pools:
               min: 1
               max: 2
 
-  # 稀有掉落池（极低概率）
+  # 稀有掉落池 (极低概率)
   rare:
     rolls: 1
     entries:

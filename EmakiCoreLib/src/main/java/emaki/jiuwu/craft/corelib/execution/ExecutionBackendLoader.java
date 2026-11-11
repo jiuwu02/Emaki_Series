@@ -17,7 +17,7 @@ public final class ExecutionBackendLoader {
 
     public static LoadedExecution load(Server server, CapabilityProbe capabilities) {
         if (server == null) {
-            throw new IllegalStateException("服务器不可用；无法初始化执行后端");
+            throw new IllegalStateException("服务器不可用; 无法初始化执行后端");
         }
         CapabilityProbe detected = capabilities == null ? CapabilityProbe.detect(server) : capabilities;
         ExecutionBackend backend = detected.folia()
@@ -28,7 +28,7 @@ public final class ExecutionBackendLoader {
 
     private static ExecutionBackend loadFoliaBackend(Server server, CapabilityProbe capabilities) {
         if (!capabilities.foliaBackendReady()) {
-            throw new IllegalStateException("检测到 Folia，但所需的调度器或归属能力不可用");
+            throw new IllegalStateException("检测到 Folia, 但所需的调度器或归属能力不可用");
         }
         try {
             Class<?> backendClass = Class.forName(

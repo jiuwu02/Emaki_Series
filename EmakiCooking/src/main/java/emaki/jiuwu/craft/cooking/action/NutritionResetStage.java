@@ -29,9 +29,9 @@ public final class NutritionResetStage implements CoreActionStage {
 
     public enum Operation {
 
-        CLEAR("cooking_clear_nutrition", "将目标的营养值降至最小值。"),
+        CLEAR("cooking_clear_nutrition", "将目标的营养值降至最小值."),
 
-        RESET("cooking_reset_nutrition", "将目标的营养值恢复为默认值。");
+        RESET("cooking_reset_nutrition", "将目标的营养值恢复为默认值.");
 
         private final String id;
         private final String description;
@@ -72,7 +72,7 @@ public final class NutritionResetStage implements CoreActionStage {
     @Override
     public @NotNull List<CoreStageParameter> parameters() {
         return List.of(CoreStageParameter.optional("type", CoreStageParameterType.STRING, "",
-                "营养类型 ID；留空则覆盖所有已注册类型"));
+                "营养类型 ID; 留空则覆盖所有已注册类型"));
     }
 
     @Override

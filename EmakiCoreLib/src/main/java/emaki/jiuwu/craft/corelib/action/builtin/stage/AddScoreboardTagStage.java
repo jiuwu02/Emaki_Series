@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class AddScoreboardTagStage extends BaseStage {
 
     public AddScoreboardTagStage() {
-        super("add_scoreboard_tag", "meta", "为实体添加记分板标签。",
+        super("add_scoreboard_tag", "meta", "为实体添加记分板标签.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("tag", CoreStageParameterType.STRING, "标签文本"));
     }

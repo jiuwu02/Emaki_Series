@@ -26,7 +26,7 @@ public final class DamageItemStage extends BaseStage {
     private final ActionAuditLogger auditLogger;
 
     public DamageItemStage(ActionAuditLogger auditLogger) {
-        super("damage_item", "item", "为目标的某个槽位物品增加耐久损耗。",
+        super("damage_item", "item", "为目标的某个槽位物品增加耐久损耗.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "mainhand",
                         "背包槽位"),

@@ -37,7 +37,7 @@ public final class ProjectileStage extends BaseStage {
     private final Plugin owner;
 
     public ProjectileStage(ExecutionDispatcher executionDispatcher, Plugin owner) {
-        super("projectile", "combat", "从施法者处发射一枚自动飞行的弹射物。",
+        super("projectile", "combat", "从施法者处发射一枚自动飞行的弹射物.",
                 CoreTargetRequirement.OPTIONAL, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("speed", CoreStageParameterType.DOUBLE, "1.5",
                         "每 tick 移动的方块数"),
@@ -56,9 +56,9 @@ public final class ProjectileStage extends BaseStage {
                 CoreStageParameter.optional("particle", CoreStageParameterType.STRING, "flame",
                         "拖尾粒子键"),
                 CoreStageParameter.optional("damage", CoreStageParameterType.DOUBLE, "0",
-                        "命中造成的伤害，0 表示无伤害"),
+                        "命中造成的伤害, 0 表示无伤害"),
                 CoreStageParameter.optional("direction", CoreStageParameterType.STRING, "look",
-                        "初始方向：look 或 target"));
+                        "初始方向: look 或 target"));
         this.executionDispatcher = executionDispatcher;
         this.owner = owner;
     }

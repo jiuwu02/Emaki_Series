@@ -26,9 +26,9 @@ public final class SkillCooldownStage implements CoreActionStage {
 
     public enum Operation {
 
-        CLEAR("skill_cooldown_clear", "清除目标的单个或全部技能冷却。"),
+        CLEAR("skill_cooldown_clear", "清除目标的单个或全部技能冷却."),
 
-        SET("skill_cooldown_set", "设置目标的某个技能冷却。");
+        SET("skill_cooldown_set", "设置目标的某个技能冷却.");
 
         private final String id;
         private final String description;
@@ -72,10 +72,10 @@ public final class SkillCooldownStage implements CoreActionStage {
             case SET -> List.of(
                     CoreStageParameter.required("skill", CoreStageParameterType.STRING, "技能 ID"),
                     CoreStageParameter.required("duration_ticks", CoreStageParameterType.DURATION,
-                            "冷却时长（刻）；小于等于零则移除冷却"));
+                            "冷却时长 (刻); 小于等于零则移除冷却"));
             case CLEAR -> List.of(
                     CoreStageParameter.optional("skill", CoreStageParameterType.STRING, "",
-                            "技能 ID；留空则清除全部冷却与施法延迟"));
+                            "技能 ID; 留空则清除全部冷却与施法延迟"));
         };
     }
 

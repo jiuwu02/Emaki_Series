@@ -252,7 +252,7 @@ editor:
   marks_empty: "<yellow>暂无已暂存标记</yellow>"
   marks_header: "<gray>暂存标记 (<count>):</gray>"
   marks_entry: "<gray>- </gray><white><mark></white>"
-  test_started: "<green>测试开局启动中 (<dungeon>), 走正常进入流程且不计次数、不上榜</green>"
+  test_started: "<green>测试开局启动中 (<dungeon>), 走正常进入流程且不计次数, 不上榜</green>"
   test_failed: "<red>测试开局失败: <code></red>"
   test_dirty: "<red>存在未保存改动, 测试开局须从已保存模板进行, 请先保存</red>"
   save_nothing: "<yellow>没有需要保存的改动</yellow>"
@@ -267,14 +267,14 @@ editor:
   fill_too_large: "<red>填充数量 <count> 超过上限 <limit></red>"
   help_mark: |
     <gray>===== 标记速查 (共 22 类) =====</gray>
-    <white>用法: /edg editor mark 类型 [id] (类型用 Tab 补全, 或看主面板「全部模块」)</white>
+    <white>用法: /edg editor mark 类型 [id] (类型用 Tab 补全, 或看主面板"全部模块")</white>
     <white>单点(视线方块): entry/exit/spawn/block/chest/boss/option/hint/item/fx/respawn</white>
     <white>区域(两点): room/gate/trigger/teleport/boundary/effect/mechanism/room_timer/checkpoint</white>
     <white>无坐标: kill_target/temp_item (在编辑世界任意处即可标记)</white>
     <white>角点: /edg editor pos1 与 /edg editor pos2</white>
     <white>区域填充: /edg editor fill 方块</white>
     <white>列出暂存: /edg editor marks | 测试: /edg editor test</white>
-    <gray>标记与面板改动在点「保存」后才写入模板</gray>
+    <gray>标记与面板改动在点"保存"后才写入模板</gray>
   marker:
     spawn: "刷怪点"
     room: "房间"
@@ -321,13 +321,13 @@ editor:
     exit_item: "<white>离开副本点位</white>"
     pos1: "<white>角点1: <coord></white>"
     pos2: "<white>角点2: <coord></white>"
-    status: "<white>标记<marks> · <state> · 世代<generation></white>"
+    status: "<white>标记<marks> - <state> - 世代<generation></white>"
     state_dirty: "<red>未保存</red>"
     state_clean: "<green>已保存</green>"
     save: "<green>保存并回写模板</green>"
     discard: "<red>放弃全部未保存改动</red>"
     discard_confirm: "<gold>再次点击确认放弃</gold>"
-    test: "<yellow>测试开局 (不计次数、不上榜)</yellow>"
+    test: "<yellow>测试开局 (不计次数, 不上榜)</yellow>"
     exit: "<white>退出编辑会话</white>"
     close: "<red>关闭面板</red>"
     filler: ""
@@ -428,7 +428,7 @@ drop:
 rewardbox:
   disabled: "<yellow>奖励箱功能当前未启用, 副本奖励将直接进入背包</yellow>"
   gui:
-    title: "<gradient:#1E3A8A:#8B5CF6>奖励箱</gradient> <gray>(<page>/<total>) · <items> 件</gray>"
+    title: "<gradient:#1E3A8A:#8B5CF6>奖励箱</gradient> <gray>(<page>/<total>) - <items> 件</gray>"
     prev: "<white>上一页</white>"
     next: "<white>下一页</white>"
     toggle_on: "<green>自动流入: 开</green><gray> (点击关闭)</gray>"

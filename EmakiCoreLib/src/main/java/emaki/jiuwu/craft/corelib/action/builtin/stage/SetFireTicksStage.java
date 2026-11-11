@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetFireTicksStage extends BaseStage {
 
     public SetFireTicksStage() {
-        super("set_fire_ticks", "meta", "设置实体着火时长（tick，负数熄灭）。",
+        super("set_fire_ticks", "meta", "设置实体着火时长 (tick, 负数熄灭).",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("ticks", CoreStageParameterType.INTEGER, "着火 tick 数"));
     }

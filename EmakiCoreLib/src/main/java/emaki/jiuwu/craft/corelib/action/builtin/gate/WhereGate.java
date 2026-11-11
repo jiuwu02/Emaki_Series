@@ -26,7 +26,7 @@ public final class WhereGate extends BaseGate {
     private final TargetFactsReader factsReader;
 
     public WhereGate(TargetFactsReader factsReader) {
-        super("where", "只保留条件成立的目标。",
+        super("where", "只保留条件成立的目标.",
                 CoreGateThread.NEEDS_ENTITY_READ,
 
                 CoreStageParameter.positional("condition", CoreStageParameterType.STRING,

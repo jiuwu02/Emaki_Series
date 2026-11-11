@@ -243,7 +243,7 @@ public final class ScriptHost implements AutoCloseable {
 
     private String describePolyglot(PolyglotException exception) {
         if (isTimeoutInterruption(exception)) {
-            return "脚本求值超时，超过 " + settings.timeoutMs() + " ms";
+            return "脚本求值超时, 超过 " + settings.timeoutMs() + " ms";
         }
         String text = errorMessage(exception);
         SourceSection location = exception.getSourceLocation();

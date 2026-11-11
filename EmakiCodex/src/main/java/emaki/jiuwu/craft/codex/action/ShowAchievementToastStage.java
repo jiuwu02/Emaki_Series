@@ -62,7 +62,7 @@ public final class ShowAchievementToastStage implements CoreActionStage {
 
     @Override
     public @NotNull String description() {
-        return "向目标显示一个客户端成就弹窗。";
+        return "向目标显示一个客户端成就弹窗.";
     }
 
     @Override
@@ -79,7 +79,7 @@ public final class ShowAchievementToastStage implements CoreActionStage {
                 CoreStageParameter.optional("icon", CoreStageParameterType.STRING, DEFAULT_ICON,
                         "弹窗图标物品来源"),
                 CoreStageParameter.optional("frame", CoreStageParameterType.STRING, DEFAULT_FRAME,
-                        "弹窗边框：task、goal 或 challenge"),
+                        "弹窗边框: task, goal 或 challenge"),
                 CoreStageParameter.optional("id", CoreStageParameterType.STRING, "",
                         "客户端弹窗 id"),
                 CoreStageParameter.optional("remove_delay", CoreStageParameterType.DURATION,

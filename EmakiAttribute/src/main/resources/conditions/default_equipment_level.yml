@@ -1,15 +1,15 @@
-# 装备等级 Lore 条件源（默认禁用）；正则提取等级后与玩家等级比较。
+# 装备等级 Lore 条件源 (默认禁用); 正则提取等级后与玩家等级比较
 
-# 默认禁用。
+# 默认禁用
 enabled: false
 
 source_id: gem_equipment_level
 
 condition:
   type: all_of
-  # true 时表达式解析失败视为不匹配。
+  # true 时表达式解析失败视为不匹配
   invalid_as_failure: true
-  # lore_regex 将捕获组 1 作为 %value%。
+  # lore_regex 将捕获组 1 作为 %value%
   entries:
     - type: lore_regex
       pattern: "装备等级需求: Lv\\.(\\d+)"

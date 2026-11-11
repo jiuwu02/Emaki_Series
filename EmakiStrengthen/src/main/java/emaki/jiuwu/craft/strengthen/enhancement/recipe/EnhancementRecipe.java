@@ -50,7 +50,7 @@ public record EnhancementRecipe(
         }
         if (!LEGAL_MODES.contains(mode)) {
             throw new IllegalArgumentException(
-                    "配方 mode 必须是 " + LEGAL_MODES + " 之一，实际为 '" + mode + "'");
+                    "配方 mode 必须是 " + LEGAL_MODES + " 之一, 实际为 '" + mode + "'");
         }
         if (target == null) {
             throw new IllegalArgumentException("目标配置不能为空");

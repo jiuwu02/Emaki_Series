@@ -63,7 +63,7 @@ public final class SpawnQueue implements Runnable {
         try {
             TaskToken submitted = dispatcher.runAtLocation(plugin, entry.location(), () -> execute(entry));
             if (submitted == null || submitted == TaskToken.UNAVAILABLE) {
-                plugin.getLogger().warning("生物生成批次提交失败，坐标 "
+                plugin.getLogger().warning("生物生成批次提交失败, 坐标 "
                         + entry.location().getBlockX() + "," + entry.location().getBlockY()
                         + "," + entry.location().getBlockZ());
             }

@@ -25,12 +25,12 @@ import org.bukkit.entity.Player;
 public final class RingSource extends BaseSource {
 
     public RingSource() {
-        super("ring", "位于内半径与外半径之间的环形区域实体。",
+        super("ring", "位于内半径与外半径之间的环形区域实体.",
                 CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.optional("min_radius", CoreStageParameterType.DOUBLE, "1", "内半径"),
                 CoreStageParameter.optional("max_radius", CoreStageParameterType.DOUBLE, "8", "外半径"),
                 CoreStageParameter.optional("limit", CoreStageParameterType.INTEGER, "0",
-                        "最大实体数，0 表示不限制"),
+                        "最大实体数, 0 表示不限制"),
                 CoreStageParameter.optional("type", CoreStageParameterType.ENTITY_TYPE, "", "实体类型过滤"),
                 CoreStageParameter.optional("include_players", CoreStageParameterType.BOOLEAN, "true",
                         "允许以玩家为目标"));

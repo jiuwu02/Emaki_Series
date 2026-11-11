@@ -632,7 +632,7 @@ public final class PlayerDataStore {
     private void logLoadFailure(String uuid, Throwable throwable) {
         plugin.getLogger().log(Level.WARNING,
                 "[persistence] 加载玩家数据失败: " + uuid
-                        + "；本次会话将保持只读以保护现有文件",
+                        + "; 本次会话将保持只读以保护现有文件",
                 throwable);
     }
 

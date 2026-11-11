@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetCanPickupItemsStage extends BaseStage {
 
     public SetCanPickupItemsStage() {
-        super("set_can_pickup_items", "meta", "控制生物是否能拾取掉落物。",
+        super("set_can_pickup_items", "meta", "控制生物是否能拾取掉落物.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("can_pickup", CoreStageParameterType.BOOLEAN, "能否拾取"));
     }

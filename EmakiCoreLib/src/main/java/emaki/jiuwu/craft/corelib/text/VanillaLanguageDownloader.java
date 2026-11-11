@@ -71,7 +71,7 @@ public final class VanillaLanguageDownloader {
             }
             return parsed;
         } catch (IOException | RuntimeException exception) {
-            logger.fine("[text] 原版语言缓存不可读，将重新下载: " + exception.getMessage());
+            logger.fine("[text] 原版语言缓存不可读, 将重新下载: " + exception.getMessage());
             return Map.of();
         }
     }
@@ -216,7 +216,7 @@ public final class VanillaLanguageDownloader {
             connection.setRequestProperty("User-Agent", USER_AGENT);
             int responseCode = connection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
-                logger.fine("[text] 语言下载返回 HTTP " + responseCode + "，地址 " + url);
+                logger.fine("[text] 语言下载返回 HTTP " + responseCode + ", 地址 " + url);
                 return null;
             }
             try (InputStream inputStream = connection.getInputStream()) {
@@ -224,7 +224,7 @@ public final class VanillaLanguageDownloader {
                 return new String(bytes, StandardCharsets.UTF_8);
             }
         } catch (IOException | RuntimeException exception) {
-            logger.fine("[text] 语言下载失败，地址 " + url + ": " + exception.getMessage());
+            logger.fine("[text] 语言下载失败, 地址 " + url + ": " + exception.getMessage());
             return null;
         } finally {
             if (connection != null) {

@@ -209,7 +209,7 @@ final class EmakiCoreLibPluginDelegate {
             CoreStageKind kind = ownerRef.stageRegistry == null ? null : ownerRef.stageRegistry.kindOf(name);
             if (kind != null) {
                 ownerRef.getLogger().warning("[pipeline] 动作别名 '" + name
-                        + "' 与已注册段 id 同名，已忽略该别名以免静默遮蔽原段");
+                        + "' 与已注册段 id 同名, 已忽略该别名以免静默遮蔽原段");
                 continue;
             }
             accepted.put(name, entry.getValue());
@@ -222,8 +222,8 @@ final class EmakiCoreLibPluginDelegate {
             return;
         }
         int replayed = ownerRef.stageRebuildListeners.notifyRebuilt(failure -> ownerRef.getLogger().warning(
-                "[pipeline] 段重新注册失败，插件 " + failure.owner() + ": " + failure.error()));
-        ownerRef.getLogger().info("[pipeline] 已重放管道段注册，共 " + replayed + " 个插件");
+                "[pipeline] 段重新注册失败, 插件 " + failure.owner() + ": " + failure.error()));
+        ownerRef.getLogger().info("[pipeline] 已重放管道段注册, 共 " + replayed + " 个插件");
     }
 
     void loadScriptsSafely() {
@@ -464,7 +464,7 @@ final class EmakiCoreLibPluginDelegate {
     }
 
     void logReadinessFailure(ModuleReadinessRegistry.Failure failure) {
-        ownerRef.getLogger().warning("[startup] 就绪回调失败，插件 " + failure.owner()
+        ownerRef.getLogger().warning("[startup] 就绪回调失败, 插件 " + failure.owner()
                 + " 正在等待 " + failure.moduleName() + ": " + failure.error());
     }
 
@@ -506,7 +506,7 @@ final class EmakiCoreLibPluginDelegate {
                 });
         List<String> failed = ownerRef.sequenceRepository.failed();
         if (!failed.isEmpty()) {
-            ownerRef.getLogger().warning("[pipeline] 序列不可用，因为某行未通过编译: " + failed);
+            ownerRef.getLogger().warning("[pipeline] 序列不可用, 因为某行未通过编译: " + failed);
         }
         if (ownerRef.pipelineTaskService != null) {
             CoreLibConfig.LoopConfig loop = ownerRef.configModel.loopConfig();
@@ -541,7 +541,7 @@ final class EmakiCoreLibPluginDelegate {
             PacketBackendInstaller.install(ownerRef, ownerRef.guiBackendRegistry, ownerRef.executionDispatcher);
         } catch (LinkageError | RuntimeException exception) {
             ownerRef.getLogger().warning("[gui] 注册 packet GUI 后端失败: " + exception.getMessage()
-                    + "，EmakiCoreLib 将使用 Bukkit(实体)后端");
+                    + ", EmakiCoreLib 将使用 Bukkit(实体)后端");
         }
     }
 
@@ -606,11 +606,11 @@ final class EmakiCoreLibPluginDelegate {
             Map<String, String> table = downloader.load(minecraftVersion, locale);
             if (table.isEmpty()) {
                 ownerRef.getLogger().info("[text] 原版语言表('" + locale
-                        + "')不可用；需要本地化原版名称的功能将保持禁用");
+                        + "')不可用; 需要本地化原版名称的功能将保持禁用");
                 return;
             }
             ownerRef.vanillaTranslationService.install(table);
-            ownerRef.getLogger().info("[text] 已加载 " + table.size() + " 条原版翻译，语言 '" + locale + "'");
+            ownerRef.getLogger().info("[text] 已加载 " + table.size() + " 条原版翻译, 语言 '" + locale + "'");
         });
     }
 

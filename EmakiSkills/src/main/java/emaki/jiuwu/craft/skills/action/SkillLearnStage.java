@@ -23,11 +23,11 @@ public final class SkillLearnStage implements CoreActionStage {
 
     public enum Operation {
 
-        LEARN("skill_learn", "通过手动技能来源为目标解锁一个技能。"),
+        LEARN("skill_learn", "通过手动技能来源为目标解锁一个技能."),
 
-        FORGET("skill_forget", "移除目标一个手动解锁的技能。"),
+        FORGET("skill_forget", "移除目标一个手动解锁的技能."),
 
-        FORGET_ALL("skill_forget_all", "移除目标全部手动解锁的技能。");
+        FORGET_ALL("skill_forget_all", "移除目标全部手动解锁的技能.");
 
         private final String id;
         private final String description;

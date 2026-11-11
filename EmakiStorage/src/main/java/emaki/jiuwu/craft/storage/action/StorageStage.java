@@ -33,15 +33,15 @@ public final class StorageStage implements CoreActionStage {
 
     public enum Operation {
 
-        DEPOSIT("storage_deposit", "将物品存入目标仓库。"),
+        DEPOSIT("storage_deposit", "将物品存入目标仓库."),
 
-        WITHDRAW("storage_withdraw", "从目标仓库取出物品。"),
+        WITHDRAW("storage_withdraw", "从目标仓库取出物品."),
 
-        GRANT_SLOT("storage_grant_slot", "为目标授予或回收仓库槽位。"),
+        GRANT_SLOT("storage_grant_slot", "为目标授予或回收仓库槽位."),
 
-        UNLOCK_SLOT("storage_unlock_slot", "为目标增加已购买槽位，不向其收费。"),
+        UNLOCK_SLOT("storage_unlock_slot", "为目标增加已购买槽位, 不向其收费."),
 
-        SET_STACK_LIMIT("storage_set_stacklimit", "设置目标仓库的单槽上限。");
+        SET_STACK_LIMIT("storage_set_stacklimit", "设置目标仓库的单槽上限.");
 
         private final String id;
         private final String description;
@@ -91,14 +91,14 @@ public final class StorageStage implements CoreActionStage {
                     CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1",
                             "取出数量"));
             case GRANT_SLOT -> List.of(CoreStageParameter.required("amount",
-                    CoreStageParameterType.INTEGER, "授予的槽位数；负数为回收"));
+                    CoreStageParameterType.INTEGER, "授予的槽位数; 负数为回收"));
             case UNLOCK_SLOT -> List.of(CoreStageParameter.required("amount",
                     CoreStageParameterType.INTEGER, "解锁的槽位数"));
             case SET_STACK_LIMIT -> List.of(
                     CoreStageParameter.required("limit", CoreStageParameterType.INTEGER,
-                            "新的单槽上限；0 表示继承下一层级"),
+                            "新的单槽上限; 0 表示继承下一层级"),
                     CoreStageParameter.optional("slot", CoreStageParameterType.INTEGER, "-1",
-                            "逻辑槽位索引，-1 表示玩家默认值"));
+                            "逻辑槽位索引, -1 表示玩家默认值"));
         };
     }
 

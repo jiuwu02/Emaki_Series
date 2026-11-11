@@ -42,7 +42,7 @@ public final class SelectSource extends BaseSource {
             TargetFactsReader factsReader,
             TargetConditionEvaluator evaluator,
             Function<String, CoreActionSource> sources) {
-        super("select", "由 action.selectors 下定义的选择器选出的目标。",
+        super("select", "由 action.selectors 下定义的选择器选出的目标.",
                 CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.positional("name", CoreStageParameterType.STRING, "选择器 id"));
         this.selectors = selectors;

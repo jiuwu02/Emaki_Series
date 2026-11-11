@@ -1,19 +1,19 @@
 # ============================================================
 # EmakiLevel 经验来源示例 - 自定义物品与事件区分
 # ============================================================
-# 演示点：
-# 1. 同一个文件里放两条不同 trigger 的来源（craft_item 与 furnace_extract）
+# 演示点:
+# 1. 同一个文件里放两条不同 trigger 的来源 (craft_item 与 furnace_extract)
 # 2. 用 item_sources + matcher 区分普通产物与附魔产物
 # 3. 用 %result_amount% 参与经验公式
-# 规则按从上到下取第一条匹配，条件更窄的规则必须写在前面。
-# matcher 内禁止写物品源条件；item_sources 与 matcher 取 AND。
-# 字段依据：docs/modules/level/sources.md。
+# 规则按从上到下取第一条匹配, 条件更窄的规则必须写在前面
+# matcher 内禁止写物品源条件; item_sources 与 matcher 取 AND
+# 字段依据: docs/modules/level/sources.md
 # ============================================================
 
 id: "example_custom_source"
 enabled: true
 sources:
-  # 合成产物经验：附魔钻石工具给额外经验。
+  # 合成产物经验: 附魔钻石工具给额外经验
   example_craft_bonus:
     enabled: true
     type: "crafting"
@@ -22,7 +22,7 @@ sources:
     anti_abuse:
       exp_cooldown_ticks: 1
     rules:
-      # 附魔钻石剑 / 钻石镐：高价值产物。
+      # 附魔钻石剑 / 钻石镐: 高价值产物
       - item_sources:
           - "minecraft-diamond_sword"
           - "minecraft-diamond_pickaxe"
@@ -31,19 +31,19 @@ sources:
           component: enchantments
           operator: exists
         exp_formula: "40 * %result_amount%"
-      # 同一物品的普通版本：兜底。
+      # 同一物品的普通版本: 兜底
       - item_sources:
           - "minecraft-diamond_sword"
           - "minecraft-diamond_pickaxe"
         exp_formula: "10 * %result_amount%"
-      # 基础功能方块：少量经验。
+      # 基础功能方块: 少量经验
       - item_sources:
           - "minecraft-crafting_table"
           - "minecraft-furnace"
           - "minecraft-chest"
         exp_formula: "5 * %result_amount%"
 
-  # 熔炉取出产物经验：按产物来源区分。
+  # 熔炉取出产物经验: 按产物来源区分
   example_smelt_bonus:
     enabled: true
     type: "smelting"

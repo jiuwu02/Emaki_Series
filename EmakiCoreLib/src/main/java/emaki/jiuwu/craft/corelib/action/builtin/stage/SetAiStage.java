@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetAiStage extends BaseStage {
 
     public SetAiStage() {
-        super("set_ai", "meta", "控制生物的 AI 开关。",
+        super("set_ai", "meta", "控制生物的 AI 开关.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("enabled", CoreStageParameterType.BOOLEAN, "是否启用 AI"));
     }

@@ -216,7 +216,7 @@ public final class StrengthenMaterial {
         try {
             return requirement.test(context);
         } catch (RuntimeException | LinkageError exception) {
-            LOGGER.warning("[matcher] 材料判定抛出异常，视为不匹配: " + String.valueOf(exception.getMessage()));
+            LOGGER.warning("[matcher] 材料判定抛出异常, 视为不匹配: " + String.valueOf(exception.getMessage()));
             return false;
         }
     }

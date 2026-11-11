@@ -1,4 +1,4 @@
-// EmakiCookingApi（原 EmakiCookingApi/pom.xml）。
+// EmakiCookingApi (原 EmakiCookingApi/pom.xml)
 version = '5.0.1'
 
 dependencies {

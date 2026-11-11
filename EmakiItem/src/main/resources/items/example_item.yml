@@ -1,8 +1,8 @@
 # ============================================================
 # EmakiItem 物品定义示例
 # ============================================================
-# 物品 ID 取自 id，与文件名无关。
-# EmakiStrengthen 示例配方按物品源显式引用；修改 ID 时需同步更新该引用。
+# 物品 ID 取自 id, 与文件名无关
+# EmakiStrengthen 示例配方按物品源显式引用; 修改 ID 时需同步更新该引用
 # ============================================================
 
 id: "example_item"
@@ -10,17 +10,17 @@ id: "example_item"
 # ============================================================
 # 基础物品与原版 data components
 # ============================================================
-# item 只描述基础来源与 Minecraft 原版组件；堆叠数量由 /ei give 的 amount 参数决定。
-# equip_slot、effects、set、condition、repair、update、actions 等 EmakiItem 业务字段保持在根级。
+# item 只描述基础来源与 Minecraft 原版组件; 堆叠数量由 /ei give 的 amount 参数决定
+# equip_slot, effects, set, condition, repair, update, actions 等 EmakiItem 业务字段保持在根级
 item:
-  # CoreLib ItemSource 简写；原版物品推荐显式使用 minecraft- 前缀。
+  # CoreLib ItemSource 简写; 原版物品推荐显式使用 minecraft- 前缀
   item_source: "minecraft-diamond_sword"
   components:
-    # 组件 ID 省略命名空间时默认使用 minecraft:；显式命名空间保持不变。
-    # 文本组件可直接使用 MiniMessage 字符串。
+    # 组件 ID 省略命名空间时默认使用 minecraft:; 显式命名空间保持不变
+    # 文本组件可直接使用 MiniMessage 字符串
     custom_name: "<gold>示例之刃</gold>"
 
-    # 也可把原版结构化 JSON 对象直接改写为等价 YAML map/list。
+    # 也可把原版结构化 JSON 对象直接改写为等价 YAML map/list
     item_name:
       text: "示例之刃"
       color: "gold"
@@ -35,7 +35,7 @@ item:
         color: "dark_gray"
         italic: false
 
-    # 自定义模型数据（1.21.4+ 多字段格式）。
+    # 自定义模型数据 (1.21.4+ 多字段格式)
     custom_model_data:
       floats:
         - 1.0
@@ -46,11 +46,11 @@ item:
       colors:
         - 16733440
 
-    # 资源包模型与提示框样式。
+    # 资源包模型与提示框样式
     item_model: "minecraft:custom/example_blade"
     tooltip_style: "minecraft:custom/rare_tooltip"
 
-    # Minecraft 1.21.5+ 的 enchantments 值直接使用“附魔 ID → 等级”映射。
+    # Minecraft 1.21.5+ 的 enchantments 值直接使用"附魔 ID → 等级"映射
     enchantments:
       minecraft:sharpness: 5
 
@@ -62,7 +62,7 @@ item:
     enchantable:
       value: 15
 
-    # Minecraft 1.21.5+ 的 attribute_modifiers 值直接使用修饰符列表。
+    # Minecraft 1.21.5+ 的 attribute_modifiers 值直接使用修饰符列表
     attribute_modifiers:
       - type: "minecraft:attack_damage"
         id: "emakiitem:example_item/attack_damage"
@@ -75,7 +75,7 @@ item:
         operation: "add_value"
         slot: "mainhand"
 
-    # custom_data 等组件优先使用 JSON 等价的 YAML map/list。
+    # custom_data 等组件优先使用 JSON 等价的 YAML map/list
     custom_data:
       emakiitem:
         example: true
@@ -83,24 +83,24 @@ item:
           - "demo"
           - "blade"
 
-    # $unset 删除当前物品上的组件覆盖；$reset 恢复来源物品的默认组件。
-    # 两者的值都是组件 ID 列表，同样允许省略 minecraft: 命名空间。
+    # $unset 删除当前物品上的组件覆盖; $reset 恢复来源物品的默认组件
+    # 两者的值都是组件 ID 列表, 同样允许省略 minecraft: 命名空间
     $unset:
       - "repair_cost"
     $reset:
       - "dyed_color"
 
-    # 无法用 JSON 等价 YAML 表达时，单个组件值可仅含 $snbt，并原样交给原版解析器。
+    # 无法用 JSON 等价 YAML 表达时, 单个组件值可仅含 $snbt, 并原样交给原版解析器
 
-# 物品生效槽位；控制属性/技能何时生效，不负责原版拖拽穿戴拦截。
-# 支持 all / hand / main_hand / off_hand / helmet / chestplate / leggings / boots。
+# 物品生效槽位; 控制属性/技能何时生效, 不负责原版拖拽穿戴拦截
+# 支持 all / hand / main_hand / off_hand / helmet / chestplate / leggings / boots
 equip_slot: "main_hand"
 
 # ============================================================
 # 物品更新策略
 # ============================================================
-# 当配置变更时，自动更新玩家手中已有的物品。
-# version: 配置版本号（每次修改配置后递增，触发更新）
+# 当配置变更时, 自动更新玩家手中已有的物品
+# version: 配置版本号 (每次修改配置后递增, 触发更新)
 # triggers: 在哪些时机检测并执行更新
 update:
   enabled: true
@@ -117,13 +117,13 @@ update:
 # ============================================================
 # 物品效果
 # ============================================================
-# 统一使用 effects 列表，通过 type 字段区分效果类型:
-#   - type: "variables"      → 表达式引擎变量（用于名称/Lore 中的占位符渲染）
-#   - type: "ea_attribute"   → EmakiAttribute PDC 属性（写入物品 PDC）
-#   - type: "es_skill"       → EmakiSkills 技能附加（装备时获得技能）
-#     es_skill_triggers        → 可选，写入 skill_id: trigger_id 的装备强制触发器，不占用玩家技能槽
-#   - type: "accessory_slot" → 声明该物品可放入的饰品槽（写入物品 PDC），供 EmakiAccessory 过滤
-#     accessory_slots          → 槽位列表，写部位 id（如 ring）表示该部位任意一格，写槽位实例 id（如 ring_2）表示指定那一格
+# 统一使用 effects 列表, 通过 type 字段区分效果类型:
+#   - type: "variables"      → 表达式引擎变量 (用于名称/Lore 中的占位符渲染)
+#   - type: "ea_attribute"   → EmakiAttribute PDC 属性 (写入物品 PDC)
+#   - type: "es_skill"       → EmakiSkills 技能附加 (装备时获得技能)
+#     es_skill_triggers        → 可选, 写入 skill_id: trigger_id 的装备强制触发器, 不占用玩家技能槽
+#   - type: "accessory_slot" → 声明该物品可放入的饰品槽 (写入物品 PDC), 供 EmakiAccessory 过滤
+#     accessory_slots          → 槽位列表, 写部位 id (如 ring) 表示该部位任意一格, 写槽位实例 id (如 ring_2) 表示指定那一格
 effects:
   - type: "variables"
     variables:
@@ -146,8 +146,8 @@ effects:
 # ============================================================
 # 套装归属
 # ============================================================
-# 将此物品关联到一个套装，装备多件套装物品时触发套装效果。
-# id: 套装 ID（对应 sets/ 目录下的套装定义）
+# 将此物品关联到一个套装, 装备多件套装物品时触发套装效果
+# id: 套装 ID (对应 sets/ 目录下的套装定义)
 # piece: 此物品在套装中的部件标识
 set:
   id: "example_set"
@@ -156,17 +156,17 @@ set:
 # ============================================================
 # 装备条件
 # ============================================================
-# 条件不满足时，以下内容全部不生效：
-#   - EA 属性：本物品 Lore 词条与 PDC 属性两条来源同时失效
-#   - 装备技能：Lore 与 PDC 两条来源同时失效
-#   - 套装属性：emakiitem / emakiitem_set 两个 PDC 来源
-#   - 本物品的触发器动作（attack、interact 等）
-# 仍然生效、不受此条件门控的部分：
-#   - EmakiGem 宝石、EmakiForge 锻造、EmakiStrengthen 强化各自写入的 PDC 属性
-#     （它们由对应模块拥有，不随宿主物品条件失效）
-# 条件按玩家实时求值，等级/职业变化后立即生效，无需重新装备。
-# entries: 条件表达式列表（支持 CoreLib 占位符，例如 EmakiLevel 的 %emakilevel_level_main%）
-# type: 条件组合方式（all_of = 全部满足 / any_of = 任一满足）
+# 条件不满足时, 以下内容全部不生效:
+#   - EA 属性: 本物品 Lore 词条与 PDC 属性两条来源同时失效
+#   - 装备技能: Lore 与 PDC 两条来源同时失效
+#   - 套装属性: emakiitem / emakiitem_set 两个 PDC 来源
+#   - 本物品的触发器动作 (attack, interact 等)
+# 仍然生效, 不受此条件门控的部分:
+#   - EmakiGem 宝石, EmakiForge 锻造, EmakiStrengthen 强化各自写入的 PDC 属性
+#     (它们由对应模块拥有, 不随宿主物品条件失效)
+# 条件按玩家实时求值, 等级/职业变化后立即生效, 无需重新装备
+# entries: 条件表达式列表 (支持 CoreLib 占位符, 例如 EmakiLevel 的 %emakilevel_level_main%)
+# type: 条件组合方式 (all_of = 全部满足 / any_of = 任一满足)
 # required_count: 需要满足的最少条件数
 # invalid_as_failure: 表达式解析失败时是否视为不满足
 # on_fail.message: 条件不满足时发送给玩家的提示
@@ -190,13 +190,13 @@ condition:
 # ============================================================
 # 修复配置
 # ============================================================
-# 物品耐久耗尽后可以通过材料或经济修复。
+# 物品耐久耗尽后可以通过材料或经济修复
 # materials.item_sources: 修复材料的 CoreLib ItemSource shorthand 列表
 # materials.amount: 每次修复消耗的材料数量
-# materials.restore: 每次修复恢复的耐久值；支持固定值或百分比，例如 250 / 25%
-# economy: 经济修复配置，货币接口复用 CoreLib EconomyManager
-# economy.currencies.currency_id: 货币 ID；留空使用默认货币
-# economy.currencies.cost_formula: 费用公式，可使用 missing_durability 等变量
+# materials.restore: 每次修复恢复的耐久值; 支持固定值或百分比, 例如 250 / 25%
+# economy: 经济修复配置, 货币接口复用 CoreLib EconomyManager
+# economy.currencies.currency_id: 货币 ID; 留空使用默认货币
+# economy.currencies.cost_formula: 费用公式, 可使用 missing_durability 等变量
 # disabled_display: 物品损坏时的外观变化
 # on_disabled/on_repaired: 损坏/修复时执行的动作
 repair:
@@ -210,9 +210,9 @@ repair:
         - "minecraft-netherite_ingot"
       amount: 1
       restore: 500
-    # 用 matcher 做更精细的材料判定：同级 item_sources 与 matcher 取 AND。
-    # ⚠ matcher 内禁止写物品源条件，物品源一律写在同级 item_sources。
-    # 下例要求：既是钻石，又满足 custom_name 组件包含"精炼"。
+    # 用 matcher 做更精细的材料判定: 同级 item_sources 与 matcher 取 AND
+    # ⚠ matcher 内禁止写物品源条件, 物品源一律写在同级 item_sources
+    # 下例要求: 既是钻石, 又满足 custom_name 组件包含"精炼"
     - item_sources:
         - "minecraft-diamond"
       matcher:
@@ -244,7 +244,7 @@ repair:
 # ============================================================
 # 触发动作
 # ============================================================
-# 在特定事件发生时执行的动作列表。
+# 在特定事件发生时执行的动作列表
 # give: 物品被给予玩家时
 # interact: 玩家使用物品交互时
 actions:

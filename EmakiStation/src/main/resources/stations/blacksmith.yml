@@ -1,25 +1,25 @@
 # EmakiStation 工作站示例
-# 文件名与 id 一致。每个工作站有自己的界面布局、配方集、队列参数和权限。
+# 文件名与 id 一致.每个工作站有自己的界面布局, 配方集, 队列参数和权限
 id: "blacksmith"
 display_name: "<gold>铁匠工坊</gold>"
 
-# 三页界面各自的布局文件，都指向 gui/<名字>.yml。
-#   layout            配方目录页，省略时为 station_catalog
-#   preview_layout    材料预览页，省略时为 station_preview
-#   queue_layout      合成队列页，省略时为 station_queue
-# 三个文件都必须存在，缺任何一个都会在启动预检里报 missing_layout。
-# 物品分解页不再属于工作站：分解站是独立配置，见 stations_dismantle/ 目录。
+# 三页界面各自的布局文件, 都指向 gui/<名字>.yml
+#   layout            配方目录页, 省略时为 station_catalog
+#   preview_layout    材料预览页, 省略时为 station_preview
+#   queue_layout      合成队列页, 省略时为 station_queue
+# 三个文件都必须存在, 缺任何一个都会在启动预检里报 missing_layout
+# 物品分解页不再属于工作站: 分解站是独立配置, 见 stations_dismantle/ 目录
 layout: "station_catalog"
 preview_layout: "station_preview"
 queue_layout: "station_queue"
 
-# 打开该工作站需要的权限。留空则回落到 emakistation.access.<id>。
+# 打开该工作站需要的权限.留空则回落到 emakistation.access.<id>
 permission: ""
 
-# 该工作站开放哪些配方，由配方侧决定：在 recipes/<配方>.yml 里用 station_ids 列出所属工作站。
-# 配方不写 station_ids 表示它对所有工作站开放。工作站文件不再有 recipes 段。
+# 该工作站开放哪些配方, 由配方侧决定: 在 recipes/<配方>.yml 里用 station_ids 列出所属工作站
+# 配方不写 station_ids 表示它对所有工作站开放.工作站文件不再有 recipes 段
 
-# 队列参数，省略的键继承 config.yml 的 queue 段。
+# 队列参数, 省略的键继承 config.yml 的 queue 段
 queue:
   base_length: 3
   max_length: 16
@@ -27,29 +27,29 @@ queue:
   cancel_refund_rate: 1.0
   speed_multiplier: 1.0
 
-  # 本工作站是否出售额外队列位。还需要 config.yml 的 queue.purchase.enabled 为 true。
-  # 取消条目时，已付的货币按上面的 cancel_refund_rate 折算退还，与材料同一比例。
+  # 本工作站是否出售额外队列位.还需要 config.yml 的 queue.purchase.enabled 为 true
+  # 取消条目时, 已付的货币按上面的 cancel_refund_rate 折算退还, 与材料同一比例
   allow_purchase: false
 
-# 材料来源通道。两个都关会导致该工作站被拒绝加载
-# （能打开但永远用不了，不如启动时就报错）。
-# 两个都开时，材料来自"背包 + 仓库"的合并池，优先扣背包。
-# 玩家看不到通道切换按钮，也不需要切 —— 界面里显示的"拥有"就是两边的合计。
+# 材料来源通道.两个都关会导致该工作站被拒绝加载
+# (能打开但永远用不了, 不如启动时就报错)
+# 两个都开时, 材料来自"背包 + 仓库"的合并池, 优先扣背包
+# 玩家看不到通道切换按钮, 也不需要切 -- 界面里显示的"拥有"就是两边的合计
 channels:
   backpack: true
   storage: true
-  # 默认进入界面时优先使用的材料通道；两个通道都开启时仍会合并计算并优先扣除背包。
-  # 仅在指定通道可用时生效；不可用时会回退到另一个已启用通道。
+  # 默认进入界面时优先使用的材料通道; 两个通道都开启时仍会合并计算并优先扣除背包
+  # 仅在指定通道可用时生效; 不可用时会回退到另一个已启用通道
   default: "backpack"
 
-# 产物去向。
+# 产物去向
 #   storage_first / backpack_first - 首选目标满了会退到另一个
 #   storage_only / backpack_only   - 只用一个目标
-# 所有目标都放不下时，条目进入"待领取"状态，不会掉落也不会销毁。
+# 所有目标都放不下时, 条目进入"待领取"状态, 不会掉落也不会销毁
 output:
   default: "storage_first"
   player_switchable: true
 
-# 打开界面前的条件门。语法与其他 Emaki 模块一致。
+# 打开界面前的条件门.语法与其他 Emaki 模块一致
 condition:
   invalid_as_failure: true

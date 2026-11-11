@@ -281,8 +281,8 @@ public final class FlowRuntime {
                 anchor("exit point triggered | instance=" + instance.instanceId()
                         + " | exit=" + exitPoint.head().id());
                 recordFlowEvent("exit_point", "exit=" + exitPoint.head().id());
-                // 退出链路会恢复玩家位置并投递 Bukkit 事件，必须回到主线程执行，
-                // 否则会把实例虚拟线程上的事件派发变成异步调用而被拒绝。
+                // 退出链路会恢复玩家位置并投递 Bukkit 事件, 必须回到主线程执行,
+                // 否则会把实例虚拟线程上的事件派发变成异步调用而被拒绝
                 dispatcher.runGlobal(plugin, () -> {
                     FlowControllers bound = controllers;
                     if (bound == null) {

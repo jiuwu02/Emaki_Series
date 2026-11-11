@@ -22,7 +22,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class NearbySource extends BaseSource {
 
     public NearbySource() {
-        super("nearby", "管道原点周围的实体。",
+        super("nearby", "管道原点周围的实体.",
                 CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.optional("radius", CoreStageParameterType.DOUBLE, "1", "搜索半径"),
                 CoreStageParameter.optional("limit", CoreStageParameterType.INTEGER, "1", "最大实体数"),

@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetVisibleByDefaultStage extends BaseStage {
 
     public SetVisibleByDefaultStage() {
-        super("set_visible_by_default", "meta", "控制实体默认是否对所有玩家可见。",
+        super("set_visible_by_default", "meta", "控制实体默认是否对所有玩家可见.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("visible", CoreStageParameterType.BOOLEAN, "是否默认可见"));
     }

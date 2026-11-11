@@ -1,5 +1,5 @@
-# 物理伤害流程；stages 按顺序传递输出。allowed_events 与 hard_lock 限制 Bukkit 原因。
-# recovery 在结算后处理回复；消息为空时不发送。
+# 物理伤害流程; stages 按顺序传递输出.allowed_events 与 hard_lock 限制 Bukkit 原因
+# recovery 在结算后处理回复; 消息为空时不发送
 
 id: physical
 
@@ -14,12 +14,12 @@ allowed_events:
   - ENTITY_ATTACK
   - ENTITY_SWEEP_ATTACK
 
-# 是否锁定（true = 只有 allowed_events 中的事件才能触发）
+# 是否锁定 (true = 只有 allowed_events 中的事件才能触发)
 hard_lock: true
 
-# 阶段支持 FLAT_PERCENT/CUSTOM、ATTACKER/TARGET 与 ADD/MULTIPLY；role 可显式指定。
-# CUSTOM 使用 expression 和可选边界。variables 可引用内置/其他变量；同名覆盖内置变量。
-# 同一阶段内重复引用随机变量只取样一次，每次命中及每个阶段重新取样。
+# 阶段支持 FLAT_PERCENT/CUSTOM, ATTACKER/TARGET 与 ADD/MULTIPLY; role 可显式指定
+# CUSTOM 使用 expression 和可选边界.variables 可引用内置/其他变量; 同名覆盖内置变量
+# 同一阶段内重复引用随机变量只取样一次, 每次命中及每个阶段重新取样
 stages:
   - id: attack
     kind: FLAT_PERCENT
@@ -46,8 +46,8 @@ stages:
       - physical_defense
     expression: "max(0, %input% - %flat%)"
 
-  # 仅 shield.mode=attribute 时格挡；vanilla 模式下 %target_blocking%=0。
-  # %crit% 为 block_rate 命中结果，%multiplier% 为 block_reduction；block_rate=0 永不格挡。
+  # 仅 shield.mode=attribute 时格挡; vanilla 模式下 %target_blocking%=0.
+  # %crit% 为 block_rate 命中结果, %multiplier% 为 block_reduction; block_rate=0 永不格挡
   - id: block
     kind: CUSTOM
     source: TARGET
@@ -58,7 +58,7 @@ stages:
     expression: "%input% * (1 - (%target_blocking% * %crit% * (%multiplier% / 100)))"
     min_result: 0
 
-# 吸血/回复配置：伤害结算后按攻击方与目标方属性计算回复量。
+# 吸血/回复配置: 伤害结算后按攻击方与目标方属性计算回复量
 recovery:
   source: ATTACKER
   resistance_source: TARGET
@@ -74,4 +74,4 @@ attacker_message: "<gray>[<gold>%damage_type%</gold>]</gray> <green>你对 <whit
 
 target_message: "<gray>[<gold>%damage_type%</gold>]</gray> <red>%attacker%</red> 对你造成了 <yellow>%final_damage%</yellow> 点伤害%critical_suffix%"
 
-description: "Physical damage resolved entirely through Emaki attributes."
+description: "Physical damage resolved entirely through Emaki attributes"

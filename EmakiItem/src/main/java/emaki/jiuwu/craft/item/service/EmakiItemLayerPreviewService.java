@@ -94,11 +94,11 @@ public final class EmakiItemLayerPreviewService {
 
     private Map<String, Object> applySetPreview(EmakiItemDefinition definition, ItemStack itemStack) {
         if (definition == null || itemStack == null || itemStack.getType().isAir()) {
-            return mapOf("available", false, "reason", "当前物品无法生成套装预览。");
+            return mapOf("available", false, "reason", "当前物品无法生成套装预览.");
         }
         ItemSetMembership membership = definition.setMembership();
         if (membership == null || !membership.configured()) {
-            return mapOf("available", false, "reason", "当前物品未绑定套装。");
+            return mapOf("available", false, "reason", "当前物品未绑定套装.");
         }
         ItemSetDefinition setDefinition = plugin.setLoader().get(membership.setId());
         if (setDefinition == null) {
@@ -106,7 +106,7 @@ public final class EmakiItemLayerPreviewService {
                     "available", false,
                     "setId", membership.setId(),
                     "pieceId", membership.effectivePieceId(definition.id()),
-                    "reason", "未找到套装定义。"
+                    "reason", "未找到套装定义"
             );
         }
         String pieceId = membership.effectivePieceId(definition.id());
@@ -152,7 +152,7 @@ public final class EmakiItemLayerPreviewService {
             ItemLayerPreviewResult result = provider.preview(
                     new ItemLayerPreviewRequest(itemId, base, current == null ? base : current, options));
             return result == null
-                    ? unavailableProvider(providerId, "预览提供器未返回结果。")
+                    ? unavailableProvider(providerId, "预览提供器未返回结果")
                     : result;
         } catch (VirtualMachineError error) {
             throw error;
@@ -164,7 +164,7 @@ public final class EmakiItemLayerPreviewService {
     private ItemLayerPreviewResult unavailableProvider(String providerId, String detail) {
         String id = Texts.lower(providerId).trim();
         String message = Texts.isBlank(detail) ? "未知错误" : detail;
-        return ItemLayerPreviewResult.unavailable(id, id + " 预览失败：" + message, Map.of(), Map.of());
+        return ItemLayerPreviewResult.unavailable(id, id + " 预览失败: " + message, Map.of(), Map.of());
     }
 
     private Map<String, ItemLayerPreviewProvider> providersById() {
@@ -212,8 +212,8 @@ public final class EmakiItemLayerPreviewService {
             case "gem" -> "EmakiGem";
             default -> id;
         };
-        return ItemLayerPreviewResult.unavailable(id, pluginName + " 未加载。", Map.of(), Map.of())
-                .toLayerMap(itemPreview(id, false, pluginName + " 未加载。", null, Map.of()));
+        return ItemLayerPreviewResult.unavailable(id, pluginName + " 未加载.", Map.of(), Map.of())
+                .toLayerMap(itemPreview(id, false, pluginName + " 未加载.", null, Map.of()));
     }
 
     private EmakiItemDefinition parseDefinition(String content, String fallbackId, List<Map<String, Object>> warnings) {

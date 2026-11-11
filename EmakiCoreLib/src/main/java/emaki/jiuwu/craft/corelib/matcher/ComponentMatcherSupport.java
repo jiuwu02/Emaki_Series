@@ -87,7 +87,7 @@ final class ComponentMatcherSupport {
             try {
                 pattern = Pattern.compile(expression);
             } catch (RuntimeException exception) {
-                LOGGER.warning("[matcher] 组件匹配器正则无效，结果按 false 处理: "
+                LOGGER.warning("[matcher] 组件匹配器正则无效, 结果按 false 处理: "
                         + expression + ", cause=" + exception.getClass().getSimpleName());
                 return false;
             }

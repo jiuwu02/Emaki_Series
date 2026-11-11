@@ -176,7 +176,7 @@ public final class PlayerSkillStateService {
             if (conflictResolver.conflicts(triggerId, binding.triggerId())) {
                 SkillDefinition def = registryService.getDefinition(binding.skillId());
                 String skillName = def != null ? def.displayName() : binding.skillId();
-                return "槽位 " + binding.slotIndex() + "（" + skillName + "）使用了冲突的触发器";
+                return "槽位 " + binding.slotIndex() + "(" + skillName + ") 使用了冲突的触发器";
             }
         }
         return null;

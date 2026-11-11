@@ -1,18 +1,18 @@
-// EmakiGem（原 EmakiGem/pom.xml，private-modules profile 模块）。
+// EmakiGem (原 EmakiGem/pom.xml, private-modules profile 模块)
 version = '3.0.1'
 
 dependencies {
-    // 原 shade artifactSet 白名单。
+    // 原 shade artifactSet 白名单
     shadeBundle project(':EmakiGemApi')
     shadeBundle project(':EmakiSkillsApi')
 
-    // 原 compile 作用域。
+    // 原 compile 作用域
     api project(':EmakiCoreLibApi')
     provided project(':EmakiCoreLib')
     api project(':EmakiGemApi')
     api project(':EmakiSkillsApi')
 
-    // 原 provided 作用域。
+    // 原 provided 作用域
     provided project(':EmakiItemApi')
     provided project(':EmakiAttributeApi')
     provided project(':EmakiStrengthenApi')
@@ -22,7 +22,7 @@ dependencies {
 }
 
 tasks.named('shadowJar') {
-    // 同 EmakiItem：只保留 EmakiSkillsApi 的 pdc 协议包并重定位。
+    // 同 EmakiItem: 只保留 EmakiSkillsApi 的 pdc 协议包并重定位
     exclude 'emaki/jiuwu/craft/skills/api/*.class'
     exclude 'emaki/jiuwu/craft/skills/api/event/**'
     exclude 'emaki/jiuwu/craft/skills/api/model/**'

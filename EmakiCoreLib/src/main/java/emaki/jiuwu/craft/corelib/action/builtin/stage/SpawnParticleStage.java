@@ -22,7 +22,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SpawnParticleStage extends BaseStage {
 
     public SpawnParticleStage() {
-        super("spawn_particle", "feedback", "在目标位置生成粒子。",
+        super("spawn_particle", "feedback", "在目标位置生成粒子.",
                 CoreTargetRequirement.REQUIRED_ANY, CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.required("particle", CoreStageParameterType.STRING, "粒子键"),
                 CoreStageParameter.optional("count", CoreStageParameterType.INTEGER, "1", "粒子数量"),

@@ -578,7 +578,7 @@ public final class CookingCompletionJournalStore {
             return section.asMap();
         }
         if (!(value instanceof Map<?, ?> map)) {
-            throw new IllegalArgumentException("期望映射，实际为 " + value.getClass().getSimpleName());
+            throw new IllegalArgumentException("期望映射, 实际为 " + value.getClass().getSimpleName());
         }
         Map<String, Object> normalized = new LinkedHashMap<>();
         for (Map.Entry<?, ?> entry : map.entrySet()) {

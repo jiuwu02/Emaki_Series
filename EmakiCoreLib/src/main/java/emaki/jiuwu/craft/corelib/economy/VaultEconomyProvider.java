@@ -55,7 +55,7 @@ public final class VaultEconomyProvider implements EconomyProvider {
         }
         double balance = economy.getBalance(player);
         if (balance < amount) {
-            return ActionResult.failure(ActionErrorType.INSUFFICIENT_BALANCE, "Vault 余额不足。");
+            return ActionResult.failure(ActionErrorType.INSUFFICIENT_BALANCE, "Vault 余额不足.");
         }
         EconomyResponse response = economy.withdrawPlayer(player, amount);
         return response.transactionSuccess()
@@ -95,6 +95,6 @@ public final class VaultEconomyProvider implements EconomyProvider {
     }
 
     private ActionResult unavailable() {
-        return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "Vault 经济提供者不可用。");
+        return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "Vault 经济提供者不可用.");
     }
 }

@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetLevelStage extends BaseStage {
 
     public SetLevelStage() {
-        super("set_level", "player", "直接设置玩家经验等级。",
+        super("set_level", "player", "直接设置玩家经验等级.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("level", CoreStageParameterType.INTEGER, "经验等级"));
     }

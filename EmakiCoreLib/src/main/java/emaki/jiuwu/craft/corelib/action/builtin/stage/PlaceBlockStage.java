@@ -46,7 +46,7 @@ public final class PlaceBlockStage extends BaseStage {
             CustomBlockBridge itemsAdderBlockBridge,
             CustomBlockBridge nexoBlockBridge,
             CustomBlockBridge oraxenBlockBridge) {
-        super("place_block", "world", "在目标位置放置原版或自定义方块。",
+        super("place_block", "world", "在目标位置放置原版或自定义方块.",
                 CoreTargetRequirement.REQUIRED_ANY, CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "",
                         "方块物品来源"));

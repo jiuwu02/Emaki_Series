@@ -29,7 +29,7 @@ public final class ClearItemStage extends BaseStage {
     private final ActionAuditLogger auditLogger;
 
     public ClearItemStage(ItemSourceService itemSourceService, ActionAuditLogger auditLogger) {
-        super("clear_item", "item", "清空目标的一个背包槽位。",
+        super("clear_item", "item", "清空目标的一个背包槽位.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("slot", CoreStageParameterType.STRING, "背包槽位"),
                 CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "",

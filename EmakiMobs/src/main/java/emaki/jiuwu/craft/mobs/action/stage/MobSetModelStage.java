@@ -24,7 +24,7 @@ public final class MobSetModelStage extends BaseStage {
     private final MobModelManager modelManager;
 
     public MobSetModelStage(MobIdentifier mobIdentifier, MobModelManager modelManager) {
-        super("mob_set_model", "emakimobs", "切换目标生物挂载的模型蓝图。",
+        super("mob_set_model", "emakimobs", "切换目标生物挂载的模型蓝图.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("blueprint", CoreStageParameterType.STRING, "模型蓝图 ID"));
         this.mobIdentifier = mobIdentifier;

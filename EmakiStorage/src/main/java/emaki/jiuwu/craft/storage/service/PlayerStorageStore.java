@@ -150,12 +150,12 @@ public final class PlayerStorageStore {
             logger.warning("[persistence] 已隔离玩家 " + playerId + " 的 " + loaded.corruptRecords()
                     + " 条无法读取的记录"
                     + (loaded.quarantineTarget() == null
-                            ? "" : "，已移入 " + loaded.quarantineTarget().getFileName()));
+                            ? "" : ", 已移入 " + loaded.quarantineTarget().getFileName()));
         }
         if (loaded.truncated()) {
-            logger.warning("[persistence] 玩家 " + playerId + " 的存储文件被截断（"
-                    + loaded.truncationDetail() + "），已按加载失败处理并进入只读保护，原文件保留不覆盖");
-            throw new CompletionException(new IOException("存储文件框架被截断：" + loaded.truncationDetail()));
+            logger.warning("[persistence] 玩家 " + playerId + " 的存储文件被截断 ("
+                    + loaded.truncationDetail() + "), 已按加载失败处理并进入只读保护, 原文件保留不覆盖");
+            throw new CompletionException(new IOException("存储文件框架被截断: " + loaded.truncationDetail()));
         }
         int merged = 0;
         for (StorageDataFile.Record record : loaded.records()) {
@@ -171,7 +171,7 @@ public final class PlayerStorageStore {
         }
         if (merged > 0) {
             logger.warning("[persistence] 已为玩家 " + playerId + " 合并 " + merged
-                    + " 条重复条目；组件格式变更后两个已存物品现在判定相等");
+                    + " 条重复条目; 组件格式变更后两个已存物品现在判定相等");
         }
         restoreReservations(playerId, storage, loaded.reservations());
         storage.pruneEmpty();
@@ -208,7 +208,7 @@ public final class PlayerStorageStore {
         int threshold = warnEntryCount;
         if (threshold > 0 && storage.entryCount() > threshold) {
             logger.warning("[persistence] 玩家 " + playerId + " 持有 " + storage.entryCount()
-                    + " 个条目，超过 capacity.warn_entry_count=" + threshold);
+                    + " 个条目, 超过 capacity.warn_entry_count=" + threshold);
         }
     }
 

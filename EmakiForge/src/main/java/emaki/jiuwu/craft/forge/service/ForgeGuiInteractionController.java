@@ -341,13 +341,13 @@ final class ForgeGuiInteractionController {
                         cleanupRetiredAttempt(state, activeRecipe, result,
                                 "完成所有者在执行前已退役");
                         ownerCompletion.completeExceptionally(new RejectedExecutionException(
-                                "Forge GUI 完成所有者在执行前已退役。"));
+                                "Forge GUI 完成所有者在执行前已退役."));
                     });
             if (scheduled == null) {
                 cleanupRetiredAttempt(state, activeRecipe, result,
                         "完成调度被拒绝");
                 ownerCompletion.completeExceptionally(new RejectedExecutionException(
-                        "Forge GUI 完成调度被拒绝。"));
+                        "Forge GUI 完成调度被拒绝."));
             }
         } catch (Throwable schedulingFailure) {
             cleanupRetiredAttempt(state, activeRecipe, result,

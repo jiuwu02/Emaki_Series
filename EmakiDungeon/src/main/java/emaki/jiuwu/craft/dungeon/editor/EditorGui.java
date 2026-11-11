@@ -286,7 +286,7 @@ public final class EditorGui implements Listener {
             String label = textOf(view.value("options", optionId, "cases", caseKey, "label"), caseKey);
             int seals = sequenceSize(view, "options", optionId, "cases", caseKey, "seal_regions");
             inventory.setItem(index - range[0], item(Material.PAPER, "editor.gui.case_item",
-                    List.of(valueLine(caseKey + " · " + label),
+                    List.of(valueLine(caseKey + " - " + label),
                             valueLine(messages.message("editor.gui.region_count",
                                     Map.of("count", String.valueOf(seals)))))));
         }

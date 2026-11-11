@@ -1,16 +1,16 @@
-// EmakiCooking（原 EmakiCooking/pom.xml）。
+// EmakiCooking (原 EmakiCooking/pom.xml)
 version = '5.0.1'
 
 dependencies {
-    // 原 shade artifactSet 白名单。
+    // 原 shade artifactSet 白名单
     shadeBundle project(':EmakiCookingApi')
 
-    // 原 compile 作用域。
+    // 原 compile 作用域
     api project(':EmakiCoreLibApi')
     provided project(':EmakiCoreLib')
     api project(':EmakiCookingApi')
 
-    // 原 provided 作用域。
+    // 原 provided 作用域
     provided libs.paper.api
     provided libs.placeholderapi
     provided libs.craft.engine.core

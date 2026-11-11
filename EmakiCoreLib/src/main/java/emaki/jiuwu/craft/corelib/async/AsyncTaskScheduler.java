@@ -143,7 +143,7 @@ public final class AsyncTaskScheduler implements AutoCloseable {
         if (asyncQueueFull()) {
             failed.incrementAndGet();
             return CompletableFuture.failedFuture(new RejectedExecutionException(
-                    "异步任务队列已满，任务: " + safeTaskName(taskName)));
+                    "异步任务队列已满, 任务: " + safeTaskName(taskName)));
         }
         submitted.incrementAndGet();
         activeTasks.incrementAndGet();
@@ -216,7 +216,7 @@ public final class AsyncTaskScheduler implements AutoCloseable {
         if (delayedQueueFull()) {
             failed.incrementAndGet();
             return CompletableFuture.failedFuture(new RejectedExecutionException(
-                    "异步延迟任务队列已满，任务: " + safeTaskName(taskName)));
+                    "异步延迟任务队列已满, 任务: " + safeTaskName(taskName)));
         }
         CompletableFuture<T> result = new CompletableFuture<>();
         try {

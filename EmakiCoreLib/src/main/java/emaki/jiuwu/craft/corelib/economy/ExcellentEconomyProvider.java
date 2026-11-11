@@ -54,7 +54,7 @@ public final class ExcellentEconomyProvider implements EconomyProvider {
         }
         return api.deposit(player, currency, amount)
                 ? ActionResult.ok()
-                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "增加 ExcellentEconomy 余额失败。");
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "增加 ExcellentEconomy 余额失败.");
     }
 
     @Override
@@ -72,11 +72,11 @@ public final class ExcellentEconomyProvider implements EconomyProvider {
         }
         double balance = api.getBalance(player, currency);
         if (balance < amount) {
-            return ActionResult.failure(ActionErrorType.INSUFFICIENT_BALANCE, "ExcellentEconomy 余额不足，货币 '" + currencyId + "'。");
+            return ActionResult.failure(ActionErrorType.INSUFFICIENT_BALANCE, "ExcellentEconomy 余额不足, 货币 '" + currencyId + "'.");
         }
         return api.withdraw(player, currency, amount)
                 ? ActionResult.ok()
-                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "扣除 ExcellentEconomy 余额失败。");
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "扣除 ExcellentEconomy 余额失败.");
     }
 
     @Override
@@ -94,7 +94,7 @@ public final class ExcellentEconomyProvider implements EconomyProvider {
         }
         return api.setBalance(player, currency, amount)
                 ? ActionResult.ok()
-                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "设置 ExcellentEconomy 余额失败。");
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "设置 ExcellentEconomy 余额失败.");
     }
 
     private ExcellentCurrency resolveCurrency(String currencyId) {
@@ -115,7 +115,7 @@ public final class ExcellentEconomyProvider implements EconomyProvider {
     }
 
     private ActionResult unavailable() {
-        return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "ExcellentEconomy 提供者不可用。");
+        return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "ExcellentEconomy 提供者不可用.");
     }
 
     private ActionResult missingCurrency(String currencyId) {

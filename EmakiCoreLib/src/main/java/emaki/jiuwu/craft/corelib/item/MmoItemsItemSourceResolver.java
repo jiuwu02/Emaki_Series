@@ -51,7 +51,7 @@ final class MmoItemsItemSourceResolver implements ItemSourceProvider {
         String providerId = kind().key();
         if (!supports(ref)) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INVALID_SOURCE, ref, providerId,
-                    "该物品来源无效，或不被 MMOItems 提供者支持");
+                    "该物品来源无效, 或不被 MMOItems 提供者支持");
         }
         MmoItemsKey key = MmoItemsKey.parse(ref.identifier());
         if (key == null) {
@@ -61,7 +61,7 @@ final class MmoItemsItemSourceResolver implements ItemSourceProvider {
         try {
             if (!mmoItemsReady()) {
                 return ItemSourceProbeResult.of(ItemSourceProbeState.PROVIDER_NOT_READY, ref, providerId,
-                        "MMOItems 未启用，或其 API 实例尚未就绪");
+                        "MMOItems 未启用, 或其 API 实例尚未就绪");
             }
             Type type = resolveType(key.typeId());
             if (type == null) {

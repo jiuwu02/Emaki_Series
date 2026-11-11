@@ -1,5 +1,5 @@
-// Emaki Series 多模块构建入口。
-// 对应原根 pom.xml：<modules> 与 <profiles><profile id="private-modules">。
+// Emaki Series 多模块构建入口
+// 对应原根 pom.xml: <modules> 与 <profiles><profile id="private-modules">
 
 pluginManagement {
     repositories {
@@ -8,8 +8,8 @@ pluginManagement {
     }
 }
 
-// 原根 pom.xml 的 <repositories>，顺序保持原样：Gradle 与 Maven 一样按声明顺序
-// 取第一个可解析到该构件的仓库（EcoItems 依赖 jitpack 排在 auxilor 之前）。
+// 原根 pom.xml 的 <repositories>, 顺序保持原样: Gradle 与 Maven 一样按声明顺序
+// 取第一个可解析到该构件的仓库 (EcoItems 依赖 jitpack 排在 auxilor 之前)
 dependencyResolutionManagement {
     repositories {
         maven { name = 'papermc'; url = 'https://repo.papermc.io/repository/maven-public/' }
@@ -32,7 +32,7 @@ dependencyResolutionManagement {
 
 rootProject.name = 'emaki-parent'
 
-// 默认参与构建的 27 个模块（原 <modules> 列表 + EmakiStructure 一组 + EmakiDungeon 一组 + EmakiDummy）。
+// 默认参与构建的 27 个模块 (原 <modules> 列表 + EmakiStructure 一组 + EmakiDungeon 一组 + EmakiDummy)
 def defaultModules = [
         'EmakiCoreLibApi', 'EmakiCoreLib',
         'EmakiItemApi',
@@ -47,9 +47,9 @@ def defaultModules = [
 ]
 defaultModules.each { include it }
 
-// private-modules profile 等价实现：仓库根存在 .key 文件时，在 defaultModules 之外
-// 追加下列私有模块；清单与 emaki_manager.py 的 PRIVATE_PROFILE_MODULE_DIRS 保持一致。
-// .key 被 .gitignore 忽略，新克隆默认不存在，此时与 Maven 一致只构建 defaultModules。
+// private-modules profile 等价实现: 仓库根存在 .key 文件时, 在 defaultModules 之外
+// 追加下列私有模块; 清单与 emaki_manager.py 的 PRIVATE_PROFILE_MODULE_DIRS 保持一致
+// .key 被 .gitignore 忽略, 新克隆默认不存在, 此时与 Maven 一致只构建 defaultModules
 if (file('.key').exists()) {
     ['EmakiSkills', 'EmakiGem', 'EmakiItem', 'EmakiStorage', 'EmakiStructure', 'EmakiAccessory'].each { include it }
 }

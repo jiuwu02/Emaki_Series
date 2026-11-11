@@ -48,7 +48,7 @@ public final class CronExpression {
         }
         String[] parts = expression.trim().split("\\s+");
         if (parts.length != 6) {
-            throw new CronParseException("cron 表达式必须恰好 6 个字段，实际 "
+            throw new CronParseException("cron 表达式必须恰好 6 个字段, 实际 "
                     + parts.length + ": '" + expression + "'");
         }
 
@@ -178,7 +178,7 @@ public final class CronExpression {
                 int start = parseRaw(range[0].trim(), names, min, max);
                 int end = parseRaw(range[1].trim(), names, min, max);
                 if (start > end) {
-                    throw new CronParseException("区间 '" + part + "' 无效，字段: " + field);
+                    throw new CronParseException("区间 '" + part + "' 无效, 字段: " + field);
                 }
                 for (int v = start; v <= end; v++) {
                     validateRange(v, min, max, field);
@@ -216,7 +216,7 @@ public final class CronExpression {
     private static void validateRange(int value, int min, int max, String field) {
         if (value < min || value > max) {
             throw new CronParseException(
-                    "值 " + value + " 超出范围 [" + min + "," + max + "]，字段: " + field);
+                    "值 " + value + " 超出范围 [" + min + "," + max + "], 字段: " + field);
         }
     }
 

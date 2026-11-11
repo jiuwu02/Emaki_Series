@@ -1,7 +1,7 @@
 # ============================================================
 # EmakiItem 套装定义示例
 # ============================================================
-# 套装 ID 取自 id，与文件名无关；达到的件数阈值累计生效。
+# 套装 ID 取自 id, 与文件名无关; 达到的件数阈值累计生效
 # ============================================================
 
 id: "example_set"
@@ -11,9 +11,9 @@ display_name: "<aqua>示例守护者套装</aqua>"
 # ============================================================
 # 套装部件定义
 # ============================================================
-# 定义套装包含哪些部件，每个部件对应一个 EmakiItem 物品。
-# item: 对应的物品 ID（items/ 目录下的物品定义）
-# slot: 装备槽位（main_hand/off_hand/helmet/chestplate/leggings/boots）
+# 定义套装包含哪些部件, 每个部件对应一个 EmakiItem 物品
+# item: 对应的物品 ID (items/ 目录下的物品定义)
+# slot: 装备槽位 (main_hand/off_hand/helmet/chestplate/leggings/boots)
 # display: 在套装 Lore 中显示的部件名称
 pieces:
   blade:
@@ -36,15 +36,15 @@ pieces:
 # ============================================================
 # 套装 Lore 显示配置
 # ============================================================
-# 控制套装信息在物品 Lore 中的显示格式。
-# header: 套装标题行（%active% = 已装备件数，%total% = 总件数）
+# 控制套装信息在物品 Lore 中的显示格式
+# header: 套装标题行 (%active% = 已装备件数, %total% = 总件数)
 # equipped_format: 已装备部件的显示格式
 # missing_format: 未装备部件的显示格式
 # active_threshold_format: 已激活阈值的显示格式
 # inactive_threshold_format: 未激活阈值的显示格式
 # separator: 部件列表与阈值列表之间的分隔行
 lore:
-  header: "<dark_gray>—— <aqua>示例守护者套装</aqua> <gray>(%active%/%total%)</gray> ——</dark_gray>"
+  header: "<dark_gray> -- <aqua>示例守护者套装</aqua> <gray>(%active%/%total%)</gray> -- </dark_gray>"
   equipped_format: "<green>✔ %piece%</green>"
   missing_format: "<gray>✘ %piece%</gray>"
   active_threshold_format: "<green>%line%</green>"
@@ -54,13 +54,13 @@ lore:
 # ============================================================
 # 套装效果
 # ============================================================
-# 达到指定装备件数时激活的效果。
-# 统一使用 effects 列表，通过 type 字段区分效果类型。
+# 达到指定装备件数时激活的效果
+# 统一使用 effects 列表, 通过 type 字段区分效果类型
 thresholds:
   2:
-    # 套装 Lore 描述（显示在物品上，告知玩家此阈值的效果）
+    # 套装 Lore 描述 (显示在物品上, 告知玩家此阈值的效果)
     lore:
-      - "[2件套] 物理攻击 +5，解锁冲刺技能"
+      - "[2件套] 物理攻击 +5, 解锁冲刺技能"
     # 套装效果
     effects:
       - type: "ea_attribute"
@@ -72,7 +72,7 @@ thresholds:
 
   4:
     lore:
-      - "[4件套] 物理攻击 +15，物理防御 +10，解锁守护者光环"
+      - "[4件套] 物理攻击 +15, 物理防御 +10, 解锁守护者光环"
     effects:
       - type: "ea_attribute"
         ea_attributes:

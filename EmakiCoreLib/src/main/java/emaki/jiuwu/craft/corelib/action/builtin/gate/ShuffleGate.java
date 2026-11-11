@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 public final class ShuffleGate extends BaseGate {
 
     public ShuffleGate() {
-        super("shuffle", "随机打乱目标顺序。",
+        super("shuffle", "随机打乱目标顺序.",
                 CoreGateThread.PURE);
     }
 

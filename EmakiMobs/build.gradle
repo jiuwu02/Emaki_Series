@@ -1,16 +1,16 @@
-// EmakiMobs（原 EmakiMobs/pom.xml）。
+// EmakiMobs (原 EmakiMobs/pom.xml)
 version = '2.0.1'
 
 dependencies {
-    // 原 shade artifactSet 白名单。
+    // 原 shade artifactSet 白名单
     shadeBundle project(':EmakiMobsApi')
 
-    // 原 compile 作用域。
+    // 原 compile 作用域
     api project(':EmakiCoreLibApi')
     provided project(':EmakiCoreLib')
     api project(':EmakiMobsApi')
 
-    // 原 provided 作用域。
+    // 原 provided 作用域
     provided project(':EmakiAttributeApi')
     provided project(':EmakiSkillsApi')
     provided project(':EmakiItemApi')

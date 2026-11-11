@@ -138,7 +138,7 @@ public final class EmakiItemDefinitionParser {
         Object nestedItem = root.get("item");
         boolean hasNestedItem = nestedItem instanceof Map<?, ?> || nestedItem instanceof YamlSection || nestedItem instanceof String;
         if (!hasNestedItem) {
-            throw new IllegalArgumentException("缺少 'item' 段；基础物品必须在 'item' 下声明。");
+            throw new IllegalArgumentException("缺少 'item' 段; 基础物品必须在 'item' 下声明.");
         }
         ConfiguredItemDefinition shared = configuredItemParser.parse(nestedItem);
         Map<String, ItemComponentPatch> patches = new LinkedHashMap<>(shared.components());
@@ -272,7 +272,7 @@ public final class EmakiItemDefinitionParser {
             return ItemUpdatePolicy.defaults();
         }
         if (configuredVersion == null || configuredVersion < 1) {
-            warning("[loader] 物品定义 " + source + " 为 '" + itemId + "' 启用了更新，但缺少有效的 update.version；物品更新已禁用");
+            warning("[loader] 物品定义 " + source + " 为 '" + itemId + "' 启用了更新, 但缺少有效的 update.version; 物品更新已禁用");
             return ItemUpdatePolicy.defaults();
         }
         return new ItemUpdatePolicy(
@@ -307,7 +307,7 @@ public final class EmakiItemDefinitionParser {
             return normalized;
         }
         warning("[loader] 物品定义 " + source + " 为 '" + itemId + "' 配置了不支持的 equip_slot '" + configured
-                + "'；回退为 'all'");
+                + "'; 回退为 'all'");
         return EquipmentSlotMatcher.SLOT_ALL;
     }
 
@@ -646,8 +646,8 @@ public final class EmakiItemDefinitionParser {
         }
         if (!present.isEmpty()) {
             warning("[loader] 物品定义 " + source + " 声明了已停用的字段 " + String.join(", ", present)
-                    + "；这些字段会被忽略，请将基础物品声明为 'item.source' + 'item.components'，将效果写成 'effects' 条目"
-                    + "，并把堆叠数量传给 give 命令");
+                    + "; 这些字段会被忽略, 请将基础物品声明为 'item.source' + 'item.components', 将效果写成 'effects' 条目"
+                    + ", 并把堆叠数量传给 give 命令");
         }
     }
 

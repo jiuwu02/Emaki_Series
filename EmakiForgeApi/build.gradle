@@ -1,4 +1,4 @@
-// EmakiForgeApi（原 EmakiForgeApi/pom.xml）。
+// EmakiForgeApi (原 EmakiForgeApi/pom.xml)
 version = '5.0.1'
 
 dependencies {

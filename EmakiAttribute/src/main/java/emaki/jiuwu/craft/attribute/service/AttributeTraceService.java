@@ -103,7 +103,7 @@ public final class AttributeTraceService {
                 if (itemSlotMatched) {
                     addTraceRequest(reconstructed, traces, new TraceRequest(entry.getKey(), entry.getValue(), "EmakiAttribute", "lore", slot, label + " / 词条", slot, "", "lore", true, "", filter));
                 } else {
-                    addRejectedTrace(traces, entry.getKey(), entry.getValue(), "lore", slot, label + " / 词条（槽位未通过）", "lore", filter);
+                    addRejectedTrace(traces, entry.getKey(), entry.getValue(), "lore", slot, label + " / 词条 (槽位未通过)", "lore", filter);
                 }
             }
             for (Map.Entry<String, Double> entry : rawPdc.entrySet()) {
@@ -116,8 +116,8 @@ public final class AttributeTraceService {
                             slot, label + " / PDC", slot, "", "pdc", true, "", filter, raw, effective));
                 } else {
                     String rejectedLabel = itemSlotMatched
-                            ? label + " / PDC（条件未通过）"
-                            : label + " / PDC（槽位未通过）";
+                            ? label + " / PDC (条件未通过)"
+                            : label + " / PDC (槽位未通过)";
                     addRejectedTrace(traces, id, raw, "pdc", slot, rejectedLabel, "pdc", filter);
                 }
             }
@@ -203,7 +203,7 @@ public final class AttributeTraceService {
             }
             if (!settled.add(id) || Math.abs(captured.value() - winning) > 1.0E-9D) {
                 addRejectedTrace(traces, id, captured.value(), "temporary", "",
-                        temporaryLabel(captured, capture.capturedAtMillis()) + "（被更高 revision 覆盖）",
+                        temporaryLabel(captured, capture.capturedAtMillis()) + "(被更高 revision 覆盖)",
                         "temporary", filter);
                 continue;
             }

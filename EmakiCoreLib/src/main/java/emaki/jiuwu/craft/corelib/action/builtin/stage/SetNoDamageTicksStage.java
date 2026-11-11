@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetNoDamageTicksStage extends BaseStage {
 
     public SetNoDamageTicksStage() {
-        super("set_no_damage_ticks", "entity", "设置实体的无敌帧时长。",
+        super("set_no_damage_ticks", "entity", "设置实体的无敌帧时长.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("ticks", CoreStageParameterType.INTEGER, "无敌帧 tick 数"));
     }

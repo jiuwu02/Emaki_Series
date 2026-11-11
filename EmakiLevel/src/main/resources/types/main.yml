@@ -1,11 +1,11 @@
 # EmakiLevel 等级类型 - 主等级
-# 该等级类型的启用状态、显示名、等级区间与升级需求。
+# 该等级类型的启用状态, 显示名, 等级区间与升级需求
 
 id: "main"
 enabled: true
 display_name: "<gold>主等级</gold>"
 description:
-  - "<gray>代表玩家整体主线成长进度。</gray>"
+  - "<gray>代表玩家整体主线成长进度.</gray>"
 primary: true
 start_level: 1
 max_level: 100
@@ -27,7 +27,7 @@ upgrade:
         amount: 1
   actions:
     success:
-      - 'send_message text="<green>你的 <gold>主等级</gold> 提升到了 <yellow>%var.new_level%</yellow> 级！</green>"'
+      - 'send_message text="<green>你的 <gold>主等级</gold> 提升到了 <yellow>%var.new_level%</yellow> 级!</green>"'
 pdc:
   enabled: true
 attributes:

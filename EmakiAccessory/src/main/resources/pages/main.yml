@@ -1,12 +1,12 @@
 # EmakiAccessory 饰品页定义
-# page_id 与文件名无关；各页独立存储，只有启用页贡献属性、技能和套装件数。
-# parts 引用 parts.yml，并按 count 展开；每个实例必须出现在 gui_template 布局中。
-# permission 为空时不限制；失去权限会停用并隐藏该页，但保留数据且不自动换页。
-# 隐藏页饰品可用 /eacc retrieve <页> 取回。
+# page_id 与文件名无关; 各页独立存储, 只有启用页贡献属性, 技能和套装件数
+# parts 引用 parts.yml, 并按 count 展开; 每个实例必须出现在 gui_template 布局中
+# permission 为空时不限制; 失去权限会停用并隐藏该页, 但保留数据且不自动换页
+# 隐藏页饰品可用 /eacc retrieve <页> 取回
 page_id: "main"
 display_name: "<gold>主饰品栏</gold>"
 
-# 升序显示；最小值为默认启用页。
+# 升序显示; 最小值为默认启用页
 order: 1
 
 gui_template: "accessory_gui"

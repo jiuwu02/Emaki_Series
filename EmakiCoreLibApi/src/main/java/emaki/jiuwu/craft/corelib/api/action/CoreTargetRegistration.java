@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Owner-scoped handle for one target condition or one target identity provider registration.
+ * Owner-scoped handle for one target condition or one target identity provider registration
  *
  * <p>Close it on disable. Closing is idempotent, and a handle whose entry has already been replaced
  * does not remove the replacement.</p>
@@ -30,7 +30,7 @@ public interface CoreTargetRegistration extends AutoCloseable {
     void close();
 
     /**
-     * Creates a rejected handle, used when EmakiCoreLib is absent or its runtime predates the feature.
+     * Creates a rejected handle, used when EmakiCoreLib is absent or its runtime predates the feature
      *
      * @param targetId the id the caller aimed at
      * @param reasonKey stable language key

@@ -20,13 +20,13 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class PlayersInRegionSource extends BaseSource {
 
     public PlayersInRegionSource() {
-        super("players_in_region", "以管道原点为中心的立方区域内的玩家。",
+        super("players_in_region", "以管道原点为中心的立方区域内的玩家.",
                 CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.optional("width", CoreStageParameterType.DOUBLE, "16", "X 轴半宽"),
                 CoreStageParameter.optional("height", CoreStageParameterType.DOUBLE, "16", "Y 轴半高"),
                 CoreStageParameter.optional("depth", CoreStageParameterType.DOUBLE, "16", "Z 轴半深"),
                 CoreStageParameter.optional("limit", CoreStageParameterType.INTEGER, "0",
-                        "最大玩家数，0 表示不限制"));
+                        "最大玩家数, 0 表示不限制"));
     }
 
     @Override

@@ -211,7 +211,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                         plugin.guiTemplateLoader() == null ? 0 : plugin.guiTemplateLoader().all().size(),
                         ForgeItemRefreshService.RefreshSummary.empty(),
                         plugin.runtimeSnapshot().recipeReport(),
-                        "插件已开始关闭，重载被拒绝",
+                        "插件已开始关闭, 重载被拒绝",
                         0L);
                 plugin.runtimeMetrics().recordResult(result);
                 return CompletableFuture.completedFuture(result);
@@ -383,7 +383,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
         ForgeService forgeService = plugin.forgeService();
         if (forgeService == null) {
-            throw new IllegalStateException("候选校验期间 Forge 服务不可用。");
+            throw new IllegalStateException("候选校验期间 Forge 服务不可用.");
         }
         return new RuntimeValidatedCandidate(
                 preparation,
@@ -449,7 +449,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private void finalizeCandidateConfiguration(EmakiForgePlugin plugin, ForgeReloadCandidate candidate) {
         if (plugin == null || candidate == null
                 || candidate.appConfigLoader() == null || candidate.languageLoader() == null) {
-            throw new IllegalStateException("Forge 候选配置不完整。");
+            throw new IllegalStateException("Forge 候选配置不完整.");
         }
         if (playerStorePrepared.compareAndSet(false, true)) {
             try {
@@ -696,7 +696,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     plugin.forgeGuiService().clearSettledSessions();
                     if (!plugin.forgeGuiService().sessionsSnapshot().isEmpty()) {
                         throw new IllegalStateException(
-                                "GUI 物品结算未解决时无法安装 Forge 运行时重载。");
+                                "GUI 物品结算未解决时无法安装 Forge 运行时重载.");
                     }
                     plugin.recipeBookGuiService().clearAllBooks();
                     return null;
@@ -724,7 +724,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                         player.closeInventory();
                     }
                 } catch (Throwable throwable) {
-                    plugin.getLogger().warning("[shutdown] Forge GUI 关闭失败，玩家 "
+                    plugin.getLogger().warning("[shutdown] Forge GUI 关闭失败, 玩家 "
                             + player.getUniqueId() + ": " + String.valueOf(throwable.getMessage()));
                     plugin.forgeGuiService().handleShutdownClosureFailure(session,
                             "关闭背包时失败: " + String.valueOf(throwable.getMessage()));
@@ -755,7 +755,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     plugin.recipeBookGuiService().removeRecipeBook(player);
                     player.closeInventory();
                 } catch (Throwable throwable) {
-                    plugin.getLogger().warning("[shutdown] 配方图鉴关闭失败，玩家 "
+                    plugin.getLogger().warning("[shutdown] 配方图鉴关闭失败, 玩家 "
                             + player.getUniqueId() + ": " + String.valueOf(throwable.getMessage()));
                 } finally {
                     closure.complete(null);

@@ -21,8 +21,8 @@ public final class MiniMessages {
     }
 
     /**
-     * 配置 MiniMessage 解析结果是否默认取消斜体。
-     * 由 CoreLib 在启用与重载时依据 {@code minimessage.default_no_italic} 调用。
+     * 配置 MiniMessage 解析结果是否默认取消斜体
+     * 由 CoreLib 在启用与重载时依据 {@code minimessage.default_no_italic} 调用
      */
     public static void configureDefaultNoItalic(boolean enabled) {
         defaultNoItalic.set(enabled);
@@ -44,7 +44,7 @@ public final class MiniMessages {
     }
 
     /**
-     * 将使用 {@code &} 传统格式字符的外部文本转换为可安全嵌入模板的 MiniMessage 文本。
+     * 将使用 {@code &} 传统格式字符的外部文本转换为可安全嵌入模板的 MiniMessage 文本
      *
      * @param text 外部传统格式文本
      * @return 保留可见内容和格式的 MiniMessage 文本
@@ -62,7 +62,7 @@ public final class MiniMessages {
     }
 
     /**
-     * 套用全局文本默认值。仅在未显式声明时生效，文本内写出的 {@code <i>} 不会被覆盖。
+     * 套用全局文本默认值.仅在未显式声明时生效, 文本内写出的 {@code <i>} 不会被覆盖
      */
     private static Component applyDefaults(Component component) {
         if (component == null) {
@@ -176,8 +176,8 @@ public final class MiniMessages {
     }
 
     /**
-     * 返回底层 MiniMessage 实例。直接用它反序列化不会套用
-     * {@code minimessage.default_no_italic} 等全局默认值，需要默认值时请使用 {@link #parse(String)}。
+     * 返回底层 MiniMessage 实例.直接用它反序列化不会套用
+     * {@code minimessage.default_no_italic} 等全局默认值, 需要默认值时请使用 {@link #parse(String)}
      */
     public static MiniMessage miniMessage() {
         return MINI_MESSAGE;

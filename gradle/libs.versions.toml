@@ -1,10 +1,10 @@
-# Gradle 版本目录（version catalog）。
-# 对应原根 pom.xml 的 <properties> / <dependencyManagement>：
-# 这里是所有第三方依赖版本与坐标的唯一来源，模块 build.gradle 通过 libs.* 引用。
-# 修改依赖版本时只改本文件；模块自身的版本号写在各自 build.gradle 的 version 字段。
+# Gradle 版本目录 (version catalog)
+# 对应原根 pom.xml 的 <properties> / <dependencyManagement>:
+# 这里是所有第三方依赖版本与坐标的唯一来源, 模块 build.gradle 通过 libs.* 引用
+# 修改依赖版本时只改本文件; 模块自身的版本号写在各自 build.gradle 的 version 字段
 
 [versions]
-# --- 构建设置（原根 pom 的 maven.compiler.release）---
+# --- 构建设置 (原根 pom 的 maven.compiler.release)---
 java-release = "25"
 
 # --- 服务端与平台 ---
@@ -19,12 +19,12 @@ caffeine = "3.3.1"
 bstats = "3.2.1"
 packetevents = "2.14.0"
 graalvm = "25.4.4.1.1"
-# mcprotocollib 每个版本只内置一套协议号（26.2=776 对应 MC 26.2、26.3-2=777 对应 MC 26.3），
-# 无法跨版本兼容。EmakiDummy 假人用它做真实客户端登录，须与服务端版本一致；
-# 现有测试服为 Leaf 26.2，故锁在 26.2 而不是最新 26.3-2。
+# mcprotocollib 每个版本只内置一套协议号 (26.2=776 对应 MC 26.2, 26.3-2=777 对应 MC 26.3),
+# 无法跨版本兼容.EmakiDummy 假人用它做真实客户端登录, 须与服务端版本一致;
+# 现有测试服为 Leaf 26.2, 故锁在 26.2 而不是最新 26.3-2.
 mcprotocollib = "26.2"
 
-# --- 可选运行时集成（全部 provided）---
+# --- 可选运行时集成 (全部 provided)---
 vault = "1.7.1"
 excellent-economy = "2.8.0"
 placeholderapi = "2.12.3"
@@ -37,8 +37,8 @@ nexo = "1.29.1"
 oraxen = "1.220.1"
 neigeitems = "1.22.1"
 ecoitems = "2026.44"
-# eco / libreforge 无直接 import，但 EcoItems 的 API 签名引用其类型（ConfigCategory、
-# FastItemStack、Holder、Registrable），编译期必需，属签名级传递依赖。
+# eco / libreforge 无直接 import, 但 EcoItems 的 API 签名引用其类型 (ConfigCategory,
+# FastItemStack, Holder, Registrable), 编译期必需, 属签名级传递依赖
 eco = "2026.44.1"
 libreforge = "2026.44"
 betterhud = "2.0.0"

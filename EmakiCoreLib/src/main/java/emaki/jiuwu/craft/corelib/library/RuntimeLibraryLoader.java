@@ -112,7 +112,7 @@ public final class RuntimeLibraryLoader {
 
     private boolean prepareLibrary(RuntimeLibrary library, Path localFile, String preferredRepo, String fallbackRepo) {
         if (validCached(localFile)) {
-            info(NamedTextColor.GREEN, library + " 已就绪(缓存，" + formatSize(sizeKb(localFile)) + ")");
+            info(NamedTextColor.GREEN, library + " 已就绪(缓存, " + formatSize(sizeKb(localFile)) + ")");
             return true;
         }
         deleteIfExists(localFile);
@@ -147,7 +147,7 @@ public final class RuntimeLibraryLoader {
             info(NamedTextColor.GRAY, "已选择 Maven 仓库: " + central.name + "(延迟 " + central.latencyMs + "ms)");
             return CENTRAL_REPO;
         }
-        warn(NamedTextColor.YELLOW, "Maven 仓库探测均不可达，将优先尝试阿里云镜像");
+        warn(NamedTextColor.YELLOW, "Maven 仓库探测均不可达, 将优先尝试阿里云镜像");
         return ALIYUN_REPO;
     }
 

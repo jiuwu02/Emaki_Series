@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetNameVisibleStage extends BaseStage {
 
     public SetNameVisibleStage() {
-        super("set_name_visible", "meta", "控制实体自定义名称是否常显。",
+        super("set_name_visible", "meta", "控制实体自定义名称是否常显.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("visible", CoreStageParameterType.BOOLEAN, "是否常显"));
     }

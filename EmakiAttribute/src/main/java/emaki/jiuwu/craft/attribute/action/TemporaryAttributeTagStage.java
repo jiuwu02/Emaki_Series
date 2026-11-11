@@ -27,11 +27,11 @@ public final class TemporaryAttributeTagStage implements CoreActionStage {
 
     public enum Operation {
 
-        ADD("attribute_tag_add", "将所有带标签的属性加入目标的一个限时效果组。"),
+        ADD("attribute_tag_add", "将所有带标签的属性加入目标的一个限时效果组."),
 
-        REMOVE("attribute_tag_remove", "从目标移除带标签的限时属性修饰符。"),
+        REMOVE("attribute_tag_remove", "从目标移除带标签的限时属性修饰符."),
 
-        CLEAR("attribute_tag_clear", "清除目标上带标签的限时属性修饰符；等同于 attribute_tag_remove。");
+        CLEAR("attribute_tag_clear", "清除目标上带标签的限时属性修饰符; 等同于 attribute_tag_remove.");
 
         private final String id;
         private final String description;
@@ -81,7 +81,7 @@ public final class TemporaryAttributeTagStage implements CoreActionStage {
                 CoreStageParameter.required("duration_ticks", CoreStageParameterType.DURATION,
                         "修饰符持续时间"),
                 CoreStageParameter.optional("effect_prefix", CoreStageParameterType.STRING, "",
-                        "每个匹配属性的效果组 ID；默认为 tag:<tag>"),
+                        "每个匹配属性的效果组 ID; 默认为 tag:<tag>"),
                 CoreStageParameter.optional("stack_mode", CoreStageParameterType.STRING, "",
                         "与已有效果的叠加方式"));
     }

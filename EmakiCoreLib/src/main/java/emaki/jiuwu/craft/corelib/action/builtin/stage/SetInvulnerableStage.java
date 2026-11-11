@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetInvulnerableStage extends BaseStage {
 
     public SetInvulnerableStage() {
-        super("set_invulnerable", "meta", "控制实体是否无敌。",
+        super("set_invulnerable", "meta", "控制实体是否无敌.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("invulnerable", CoreStageParameterType.BOOLEAN, "是否无敌"));
     }

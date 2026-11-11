@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetAbsorptionStage extends BaseStage {
 
     public SetAbsorptionStage() {
-        super("set_absorption", "entity", "设置实体的伤害吸收生命值。",
+        super("set_absorption", "entity", "设置实体的伤害吸收生命值.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "吸收生命值"));
     }

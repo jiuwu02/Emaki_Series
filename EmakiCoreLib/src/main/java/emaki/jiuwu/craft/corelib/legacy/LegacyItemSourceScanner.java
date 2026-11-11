@@ -33,12 +33,12 @@ public final class LegacyItemSourceScanner {
             return;
         }
         if (!convertible.isEmpty()) {
-            logger.warning("[legacy] 检测到 " + convertible.size() + " 份配置仍在用旧 item_sources 识别格式，共 "
+            logger.warning("[legacy] 检测到 " + convertible.size() + " 份配置仍在用旧 item_sources 识别格式, 共 "
                     + report.occurrences() + " 处");
             for (FileReport file : convertible) {
                 logger.warning("[legacy]   " + file.fileName() + " (" + file.occurrences() + " 处)");
             }
-            logger.warning("[legacy] 执行 /" + command + " " + ConvertCommands.TOKEN + " 预览，/" + command
+            logger.warning("[legacy] 执行 /" + command + " " + ConvertCommands.TOKEN + " 预览, /" + command
                     + " " + ConvertCommands.TOKEN + " confirm 应用");
         }
         for (FileReport file : report.files()) {

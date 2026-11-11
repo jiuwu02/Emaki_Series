@@ -1,5 +1,5 @@
-# 技能升级确认界面；右键已装配技能进入。
-# upgrade.gui_template 可覆盖模板 id，缺省使用 upgrade_gui。
+# 技能升级确认界面; 右键已装配技能进入
+# upgrade.gui_template 可覆盖模板 id, 缺省使用 upgrade_gui
 id: "upgrade_gui"
 gui_type: CHEST
 title: "<gradient:#4DA6FF:#FF6B6B>技能升级</gradient>"
@@ -29,7 +29,7 @@ slots:
       components:
         custom_name: "<gold>货币消耗</gold>"
         lore:
-          # %currencies% 每项各占一行，条目文案见 lang 的 gui.upgrade_currency_entry
+          # %currencies% 每项各占一行, 条目文案见 lang 的 gui.upgrade_currency_entry
           - "%currencies%"
           - "<dark_gray>共 %currency_count% 项</dark_gray>"
 
@@ -43,9 +43,9 @@ slots:
       components:
         custom_name: "<gold>材料消耗</gold>"
         lore:
-          # %materials% 每项各占一行并带「拥有/需要」，不足的条目为红色
+          # %materials% 每项各占一行并带"拥有/需要", 不足的条目为红色
           - "%materials%"
-          - "<dark_gray>共 %material_count% 项，缺少 %missing_count% 项</dark_gray>"
+          - "<dark_gray>共 %material_count% 项, 缺少 %missing_count% 项</dark_gray>"
 
   # 成功率与失败惩罚 (位置 14)
   success_rate:
@@ -80,7 +80,7 @@ slots:
       components:
         custom_name: "%confirm_title%"
         lore:
-          # %confirm_status% 会渲染为可升级提示、成本不足原因或已满级
+          # %confirm_status% 会渲染为可升级提示, 成本不足原因或已满级
           - "%confirm_status%"
     sounds:
       click:

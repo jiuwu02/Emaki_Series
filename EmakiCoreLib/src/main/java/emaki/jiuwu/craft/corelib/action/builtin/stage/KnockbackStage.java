@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class KnockbackStage extends BaseStage {
 
     public KnockbackStage() {
-        super("knockback", "movement", "把目标从施法者方向推开。",
+        super("knockback", "movement", "把目标从施法者方向推开.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("strength", CoreStageParameterType.DOUBLE, "1", "击退力度"),
                 CoreStageParameter.optional("vertical", CoreStageParameterType.DOUBLE, "0.4",

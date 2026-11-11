@@ -1,17 +1,17 @@
-// EmakiAccessory（原 EmakiAccessory/pom.xml，private-modules profile 模块）。
+// EmakiAccessory (原 EmakiAccessory/pom.xml, private-modules profile 模块)
 version = '2.0.1'
 
 dependencies {
-    // 原 shade artifactSet 白名单。
+    // 原 shade artifactSet 白名单
     shadeBundle project(':EmakiAccessoryApi')
 
-    // 原 compile 作用域。
+    // 原 compile 作用域
     api project(':EmakiCoreLibApi')
     provided project(':EmakiCoreLib')
     api project(':EmakiAccessoryApi')
 
-    // 原 provided 作用域。Attribute / Skills / Item 保持 provided 且永不 shade：这些
-    // 运行期 Jar 各自内嵌未重定位的 API，重复一份会分裂类身份并破坏其静态门面。
+    // 原 provided 作用域.Attribute / Skills / Item 保持 provided 且永不 shade: 这些
+    // 运行期 Jar 各自内嵌未重定位的 API, 重复一份会分裂类身份并破坏其静态门面
     provided project(':EmakiAttributeApi')
     provided project(':EmakiSkillsApi')
     provided project(':EmakiItemApi')

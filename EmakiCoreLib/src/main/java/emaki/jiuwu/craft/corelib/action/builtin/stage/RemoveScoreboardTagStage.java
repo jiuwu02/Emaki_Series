@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class RemoveScoreboardTagStage extends BaseStage {
 
     public RemoveScoreboardTagStage() {
-        super("remove_scoreboard_tag", "meta", "移除实体的记分板标签。",
+        super("remove_scoreboard_tag", "meta", "移除实体的记分板标签.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("tag", CoreStageParameterType.STRING, "标签文本"));
     }

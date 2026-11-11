@@ -1,9 +1,9 @@
 # ============================================================
-# 主世界刷新规则；当前加载器仅接受 natural 与 autonomous。
-# 其他 type 会记录为未知并跳过。
+# 主世界刷新规则; 当前加载器仅接受 natural 与 autonomous
+# 其他 type 会记录为未知并跳过
 # ============================================================
 rules:
-  # natural 拦截满足条件的 CreatureSpawnEvent，并按概率替换为自定义生物。
+  # natural 拦截满足条件的 CreatureSpawnEvent, 并按概率替换为自定义生物
   - mob_id: elite_zombie
     type: natural
     biomes:
@@ -16,7 +16,7 @@ rules:
       - 50
     light_level_max: 7 # 光照等级不超过此值才触发
     replacement_chance: 0.08 # 8% 概率将原版生物替换为精英僵尸
-    max_nearby: 3 # 32 格内同 id 生物不超过此数量；0 = 不限
+    max_nearby: 3 # 32 格内同 id 生物不超过此数量; 0 = 不限
     count:
       min: 1
       max: 1
@@ -24,12 +24,12 @@ rules:
   - mob_id: bone_lord
     type: autonomous
     trigger: interval
-    interval_ticks: 6000 # 每 5 分钟（6000t）检查一次
+    interval_ticks: 6000 # 每 5 分钟 (6000t) 检查一次
     structures:
       - minecraft:stronghold # 要塞
     distance:
-      min: 16 # 距玩家最近刷新距离（格）
-      max: 48 # 距玩家最远刷新距离（格）
+      min: 16 # 距玩家最近刷新距离 (格)
+      max: 48 # 距玩家最远刷新距离 (格)
     max_nearby: 1 # 同一要塞附近最多存在 1 只骨骼领主
     count:
       min: 1
@@ -38,16 +38,16 @@ rules:
   - mob_id: jungle_stalker
     type: autonomous
     trigger: interval
-    interval_ticks: 600 # 每 30 秒（600t）尝试一次
+    interval_ticks: 600 # 每 30 秒 (600t) 尝试一次
     biomes:
       - jungle
       - bamboo_jungle
       - sparse_jungle
     distance:
-      min: 16 # 距玩家最近刷新距离（格）
+      min: 16 # 距玩家最近刷新距离 (格)
       max: 48
     light_level_max: 7 # 光照不超过 7
-    require_surface: false # 是否要求地表（有天空访问权限）
+    require_surface: false # 是否要求地表 (有天空访问权限)
     max_nearby: 2
     count:
       min: 1

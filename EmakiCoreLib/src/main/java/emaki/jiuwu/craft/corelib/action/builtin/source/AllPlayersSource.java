@@ -19,10 +19,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class AllPlayersSource extends BaseSource {
 
     public AllPlayersSource() {
-        super("all_players", "全服在线玩家。",
+        super("all_players", "全服在线玩家.",
                 CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.optional("limit", CoreStageParameterType.INTEGER, "0",
-                        "最大玩家数，0 表示不限制"));
+                        "最大玩家数, 0 表示不限制"));
     }
 
     @Override

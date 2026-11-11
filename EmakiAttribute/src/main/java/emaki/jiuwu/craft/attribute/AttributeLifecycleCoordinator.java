@@ -337,7 +337,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         ))).thenCompose(configModel -> plugin.scheduling().submitGlobal(plugin, () -> {
             if (ConfigCommitGate.evaluate(plugin.messageService(), "attribute").rejected()) {
                 restoreConfigModel(plugin, previousConfig);
-                notifyProgress(progressListener, "EmakiAttribute 配置预检未通过，已保留上一份配置。");
+                notifyProgress(progressListener, "EmakiAttribute 配置预检未通过, 已保留上一份配置.");
                 return currentTask;
             }
             notifyProgress(progressListener, "正在刷新缓存并同步在线实体...");
@@ -356,7 +356,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 plugin.attributeService().resyncAllPlayers();
             }
             TaskToken nextTask = rescheduleRegenTask(plugin, currentTask);
-            notifyProgress(progressListener, "EmakiAttribute 重载完成。");
+            notifyProgress(progressListener, "EmakiAttribute 重载完成.");
             return nextTask;
         }));
     }

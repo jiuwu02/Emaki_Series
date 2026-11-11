@@ -1,4 +1,4 @@
-# EmakiForge 条件源：读取 PDC required_level 并检查玩家等级。
+# EmakiForge 条件源: 读取 PDC required_level 并检查玩家等级
 
 enabled: true
 
@@ -6,7 +6,7 @@ source_id: "forge"
 
 condition:
   type: "all_of"
-  # true 时表达式解析失败视为不匹配；pdc_meta 将读取值放入 %value%。
+  # true 时表达式解析失败视为不匹配; pdc_meta 将读取值放入 %value%
   invalid_as_failure: true
   entries:
     - type: pdc_meta

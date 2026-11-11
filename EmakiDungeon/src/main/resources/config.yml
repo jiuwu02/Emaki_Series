@@ -1,91 +1,91 @@
 # EmakiDungeon 主配置
 #
-# 控制副本实例、组队、命令拦截、消息隔离与全局限流。
-# 重载不会中断运行中实例, 仅对新创建的副本生效。
+# 控制副本实例, 组队, 命令拦截, 消息隔离与全局限流
+# 重载不会中断运行中实例, 仅对新创建的副本生效
 # 文件位置: plugins/EmakiDungeon/config.yml
 
 version: "1.0.17"
 language: "zh_CN"
 
-# DEBUG 锚日志开关与审计保留天数 (按日切分)。
+# DEBUG 锚日志开关与审计保留天数 (按日切分)
 debug:
   enabled: false
   retention-days: 30
 
-# 全局并发实例世界上限 (含补位态世界)。
+# 全局并发实例世界上限 (含补位态世界)
 limit:
   max-instances: 20
 
-# 副本内命令管控: 白名单/黑名单模式与参数级规则列表。
-# 规则 = 命令根 + 参数模式, 玩家名统一写 player 占位。
+# 副本内命令管控: 白名单/黑名单模式与参数级规则列表
+# 规则 = 命令根 + 参数模式, 玩家名统一写 player 占位
 commands:
   mode: blacklist
   rules:
   #  - "/tpa player"
   #  - "/tpa accept"
 
-# 逃逸命令黑名单 (支持通配符), 判定优先级最高, 不可被副本放行条目豁免。
+# 逃逸命令黑名单 (支持通配符), 判定优先级最高, 不可被副本放行条目豁免
 escape:
   blacklist:
   #  - "/tp *"
   #  - "/back"
 
-# 队伍人数上限与默认邀请模式 (public / apply / invite)。
+# 队伍人数上限与默认邀请模式 (public / apply / invite)
 party:
   max-size: 4
   invite-mode: public
 
-# 组队招募板与本服自动匹配 (不做跨服)。
+# 组队招募板与本服自动匹配 (不做跨服)
 matchmaking:
   enabled: true
-  # 0 表示沿用 party.max-size; 有效值 2..party.max-size。
+  # 0 表示沿用 party.max-size; 有效值 2..party.max-size
   target-size: 0
-  # 招募过期秒数, <= 0 表示不过期。
+  # 招募过期秒数, <= 0 表示不过期
   recruit-ttl-seconds: 300
 
-# 断线重连宽限期 (秒): 0 表示关闭 (维持原有行为), 超期回归按孤儿快照恢复。
+# 断线重连宽限期 (秒): 0 表示关闭 (维持原有行为), 超期回归按孤儿快照恢复
 recovery:
   reconnect-grace-seconds: 0
 
-# 全局收听默认值 (每玩家可用 /edg globalchat 覆盖)。
+# 全局收听默认值 (每玩家可用 /edg globalchat 覆盖)
 isolation:
   global-chat-default: false
 
-# 次数限制的默认时区, 留空表示使用服务器时区。
+# 次数限制的默认时区, 留空表示使用服务器时区
 general:
   timezone: ""
 
-# 个人奖励箱: 启用后副本产出进入奖励箱 (/edg rewards), 关闭则副本产出直接进入玩家背包。
+# 个人奖励箱: 启用后副本产出进入奖励箱 (/edg rewards), 关闭则副本产出直接进入玩家背包
 rewardbox:
   enabled: true
 
-# GraalJS 脚本宿主: plugins/EmakiDungeon/scripts/<副本ID>.js 随实例启动自动装载, 实例销毁即释放。
-# timeout-ms 为单段脚本处理器超时上限 (毫秒), fail-on-error 为脚本异常停用时是否判定本局副本失败。
+# GraalJS 脚本宿主: plugins/EmakiDungeon/scripts/<副本ID>.js 随实例启动自动装载, 实例销毁即释放
+# timeout-ms 为单段脚本处理器超时上限 (毫秒), fail-on-error 为脚本异常停用时是否判定本局副本失败
 script:
   enabled: true
   timeout-ms: 5000
   fail-on-error: false
 
-# 运行期性能告警阈值: MSPT P95 (毫秒)、堆内存斜率 (MB/分钟)、写队列持续积压 (秒)。
-# 超阈值即控制台告警并写入审计日志, 该项阈值 <= 0 表示关闭该项监测。
+# 运行期性能告警阈值: MSPT P95 (毫秒), 堆内存斜率 (MB/分钟), 写队列持续积压 (秒)
+# 超阈值即控制台告警并写入审计日志, 该项阈值 <= 0 表示关闭该项监测
 monitor:
   mspt-p95-ms: 55
   mspt-p95-enter-ms: 200
   memory-slope-mb-per-min: 64
   queue-backlog-seconds: 5
 
-# bStats 经 CoreLib 统一接入 (插件 ID 35153, 不单独引入依赖或 shade)。
+# bStats 经 CoreLib 统一接入 (插件 ID 35153, 不单独引入依赖或 shade)
 storage:
   bstats: enabled
 
-# Folia 挂起世界全局上限, 达限按满载拒绝新挑战并告警, 重启回收。
+# Folia 挂起世界全局上限, 达限按满载拒绝新挑战并告警, 重启回收
 folia:
   held-worlds-max: 10
 
-# 副本生命周期 Action 管道 (经 CoreLib Action 段派发, 段 id 即键名)。
-# 支持: dungeon_enter、dungeon_exit、dungeon_room_clear、dungeon_gate_open、
-# dungeon_wave_start、dungeon_score、dungeon_complete、dungeon_fail、
-# dungeon_reward、dungeon_ending、dungeon_destroy
+# 副本生命周期 Action 管道 (经 CoreLib Action 段派发, 段 id 即键名)
+# 支持: dungeon_enter, dungeon_exit, dungeon_room_clear, dungeon_gate_open,
+# dungeon_wave_start, dungeon_score, dungeon_complete, dungeon_fail,
+# dungeon_reward, dungeon_ending, dungeon_destroy
 action:
   # dungeon_enter:
   #   - 'self | send_message text="<green>进入副本</green>"'

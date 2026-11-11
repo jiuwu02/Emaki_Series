@@ -1,5 +1,5 @@
-# 格挡减伤仅在 shield.mode=attribute 时生效；100 为全免，40 为减免 40%。
-# 基线来自 default_profile.attributes，物品属性可叠加，总值受 max_value 限制。
+# 格挡减伤仅在 shield.mode=attribute 时生效; 100 为全免, 40 为减免 40%
+# 基线来自 default_profile.attributes, 物品属性可叠加, 总值受 max_value 限制
 
 id: block_reduction
 
@@ -25,4 +25,4 @@ lore_format_id: default_percent
 
 attribute_power: 1.0
 
-description: "Damage percentage removed by a successful shield block."
+description: "Damage percentage removed by a successful shield block"

@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class AddVelocityStage extends BaseStage {
 
     public AddVelocityStage() {
-        super("add_velocity", "movement", "给实体叠加速度向量（击退/弹射）。",
+        super("add_velocity", "movement", "给实体叠加速度向量 (击退/弹射).",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("x", CoreStageParameterType.DOUBLE, "X 速度增量"),
                 CoreStageParameter.required("y", CoreStageParameterType.DOUBLE, "Y 速度增量"),

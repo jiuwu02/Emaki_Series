@@ -24,7 +24,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class BreakBlockStage extends BaseStage {
 
     public BreakBlockStage() {
-        super("break_block", "world", "破坏或清除目标位置的方块。",
+        super("break_block", "world", "破坏或清除目标位置的方块.",
                 CoreTargetRequirement.REQUIRED_ANY, CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.optional("drop_items", CoreStageParameterType.BOOLEAN, "false",
                         "掉落方块物品"),

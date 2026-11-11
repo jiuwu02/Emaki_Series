@@ -1,16 +1,16 @@
 # ============================================================
 # EmakiSkills 技能定义示例 - 战意激发
 # ============================================================
-# 演示功能: 主动自身增益技能 + 多段药水效果 + 本地资源 + 材料升级。
-# 触发方式: 主动技能，绑定主动触发器槽位后在施法模式中释放。
-# 依赖模块: EmakiSkills (本模块) 与 EmakiCoreLib 内置动作 give_potion_effect；
-#           不依赖 Vault/PAPI/MythicMobs。
-# 如何获得: 管理员执行 /eskills grant <玩家> example_toggle_skill。
+# 演示功能: 主动自身增益技能 + 多段药水效果 + 本地资源 + 材料升级
+# 触发方式: 主动技能, 绑定主动触发器槽位后在施法模式中释放
+# 依赖模块: EmakiSkills (本模块) 与 EmakiCoreLib 内置动作 give_potion_effect;
+#           不依赖 Vault/PAPI/MythicMobs
+# 如何获得: 管理员执行 /eskills grant <玩家> example_toggle_skill
 #
-# 实际形态说明: EmakiSkills 的触发器体系只提供主动触发器与 passive_triggers，
-#               释放流程只有 cast / hit / miss / fail 四个阶段，没有技能级的
-#               toggle（开/关状态）支持，因此本示例不能做成开关型技能，
-#               改为「一次性主动自身增益」形态演示。
+# 实际形态说明: EmakiSkills 的触发器体系只提供主动触发器与 passive_triggers,
+#               释放流程只有 cast / hit / miss / fail 四个阶段, 没有技能级的
+#               toggle (开/关状态) 支持, 因此本示例不能做成开关型技能,
+#               改为"一次性主动自身增益"形态演示
 # ============================================================
 
 id: "example_toggle_skill"
@@ -45,7 +45,7 @@ resource_costs:
     target_id: "example_resource"
     amount: 12.0
     operation: "consume"
-    failure_message: "<red>示例魔力不足，无法激发战意。</red>"
+    failure_message: "<red>示例魔力不足, 无法激发战意.</red>"
 
 variables:
   buff_duration:
@@ -57,8 +57,8 @@ variables:
   buff_message:
     type: "random_text"
     lines:
-      - "<gold>战意燃烧，力量涌动！</gold>"
-      - "<gold>你的斗志被彻底点燃。</gold>"
+      - "<gold>战意燃烧, 力量涌动!</gold>"
+      - "<gold>你的斗志被彻底点燃.</gold>"
 
 script:
   enabled: true
@@ -95,4 +95,4 @@ upgrade:
           amount: 4
       actions:
         success:
-          - 'send_message text="<gold>战意激发达到满级。</gold>"'
+          - 'send_message text="<gold>战意激发达到满级.</gold>"'

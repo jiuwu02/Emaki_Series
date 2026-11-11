@@ -1,15 +1,15 @@
-# 绑定条件源（默认禁用）；读取 bound_player 并与当前玩家名比较。
+# 绑定条件源 (默认禁用); 读取 bound_player 并与当前玩家名比较
 
-# 是否启用此条件源；默认 false。
+# 是否启用此条件源; 默认 false
 enabled: false
 
 source_id: gem_bind
 
 condition:
   type: all_of
-  # true 时表达式解析失败视为不匹配。
+  # true 时表达式解析失败视为不匹配
   invalid_as_failure: true
-  # pdc_meta 读取 key；%value% 为绑定的玩家名。
+  # pdc_meta 读取 key; %value% 为绑定的玩家名
   entries:
     - type: pdc_meta
       key: bound_player

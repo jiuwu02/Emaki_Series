@@ -420,7 +420,7 @@ public final class EditorRenderer {
             lines.add(messages.message("editor.value.list_header", Map.of("count", list.size())));
             int limit = Math.min(list.size(), DETAIL_LIMIT);
             for (int index = 0; index < limit; index++) {
-                lines.add("  · " + truncateTo(inline(list.get(index)), INLINE_LIMIT));
+                lines.add("  - " + truncateTo(inline(list.get(index)), INLINE_LIMIT));
             }
             appendRemaining(lines, list.size() - limit);
             return lines;
@@ -433,7 +433,7 @@ public final class EditorRenderer {
                 if (shown >= DETAIL_LIMIT) {
                     break;
                 }
-                lines.add("  · " + truncateTo(inline(entry.getKey()), INLINE_LIMIT)
+                lines.add("  - " + truncateTo(inline(entry.getKey()), INLINE_LIMIT)
                         + " = " + truncateTo(inline(entry.getValue()), INLINE_LIMIT));
                 shown++;
             }
@@ -451,7 +451,7 @@ public final class EditorRenderer {
 
     private void appendRemaining(List<String> lines, int remaining) {
         if (remaining > 0) {
-            lines.add("  · " + messages.message("editor.value.more", Map.of("count", remaining)));
+            lines.add("  - " + messages.message("editor.value.more", Map.of("count", remaining)));
         }
     }
 
@@ -477,7 +477,7 @@ public final class EditorRenderer {
                 builder.append(inline(list.get(index)));
             }
             if (list.size() > DETAIL_LIMIT) {
-                builder.append(", …");
+                builder.append(", ...");
             }
             return builder.append(']').toString();
         }
@@ -486,7 +486,7 @@ public final class EditorRenderer {
             int shown = 0;
             for (Map.Entry<?, ?> entry : map.entrySet()) {
                 if (shown >= DETAIL_LIMIT) {
-                    builder.append(", …");
+                    builder.append(", ...");
                     break;
                 }
                 if (shown > 0) {

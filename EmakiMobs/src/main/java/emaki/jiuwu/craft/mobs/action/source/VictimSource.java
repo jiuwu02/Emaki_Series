@@ -15,7 +15,7 @@ public final class VictimSource extends BaseSource {
 
     public VictimSource() {
         super("victim", 
-              "被施法者击杀的实体（来自 on_kill 触发器）。",
+              "被施法者击杀的实体 (来自 on_kill 触发器).",
               CoreActionExecutionDomain.SERVER_GLOBAL);
     }
 

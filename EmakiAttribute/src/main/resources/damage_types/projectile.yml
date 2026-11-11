@@ -1,4 +1,4 @@
-# 投射物伤害流程；字段契约同 physical.yml。
+# 投射物伤害流程; 字段契约同 physical.yml
 
 id: projectile
 
@@ -41,7 +41,7 @@ stages:
       - projectile_defense
     expression: "max(0, %input% - %flat%)"
 
-  # 投射物格挡仅在 shield.mode=attribute 时生效，字段同 physical.yml。
+  # 投射物格挡仅在 shield.mode=attribute 时生效, 字段同 physical.yml
   - id: block
     kind: CUSTOM
     source: TARGET
@@ -65,4 +65,4 @@ recovery:
 attacker_message: "<gray>[<gold>%damage_type%</gold>]</gray> <green>你对 <white>%target%</white> 造成了 <yellow>%final_damage%</yellow> 点伤害</green>%critical_suffix%"
 target_message: "<gray>[<gold>%damage_type%</gold>]</gray> <red>%attacker%</red> 对你造成了 <yellow>%final_damage%</yellow> 点伤害%critical_suffix%"
 
-description: "Projectile damage resolved entirely through Emaki attributes."
+description: "Projectile damage resolved entirely through Emaki attributes"

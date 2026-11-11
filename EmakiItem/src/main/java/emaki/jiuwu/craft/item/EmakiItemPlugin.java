@@ -321,7 +321,7 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         try {
             CompletableFuture<Void> reload = reloadAction == null ? null : reloadAction.get();
             return reload == null ? CompletableFuture.failedFuture(
-                    new IllegalStateException("EmakiItem 重载操作未返回完成阶段。")) : reload;
+                    new IllegalStateException("EmakiItem 重载操作未返回完成阶段.")) : reload;
         } catch (RuntimeException | LinkageError exception) {
             return CompletableFuture.failedFuture(exception);
         }

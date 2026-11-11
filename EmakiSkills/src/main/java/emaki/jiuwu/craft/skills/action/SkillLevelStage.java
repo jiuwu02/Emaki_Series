@@ -25,9 +25,9 @@ public final class SkillLevelStage implements CoreActionStage {
 
     public enum Operation {
 
-        SET_LEVEL("skill_set_level", "直接设置目标的某个技能等级。"),
+        SET_LEVEL("skill_set_level", "直接设置目标的某个技能等级."),
 
-        UPGRADE("skill_upgrade", "通过升级服务升级目标的某个技能。");
+        UPGRADE("skill_upgrade", "通过升级服务升级目标的某个技能.");
 
         private final String id;
         private final String description;

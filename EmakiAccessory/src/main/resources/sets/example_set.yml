@@ -1,11 +1,11 @@
 # EmakiAccessory 饰品套装示例
-# 仅统计饰品槽，与 EmakiItem 装备栏套装独立累计；同一物品可同时参与两者。
-# 套装 ID 取自 id，与文件名无关。
+# 仅统计饰品槽, 与 EmakiItem 装备栏套装独立累计; 同一物品可同时参与两者
+# 套装 ID 取自 id, 与文件名无关
 id: "example_set"
 display_name: "<gold>试炼者饰品</gold>"
 
-# 成员键仅作本地标识；item 引用 EmakiItem 定义，依赖不可用时整个套装不生效。
-# slot 可填部位 ID、槽位实例 ID，留空则任意饰品槽均计数。
+# 成员键仅作本地标识; item 引用 EmakiItem 定义, 依赖不可用时整个套装不生效
+# slot 可填部位 ID, 槽位实例 ID, 留空则任意饰品槽均计数
 pieces:
   necklace:
     item: "example_necklace"
@@ -22,7 +22,7 @@ pieces:
     slot: "charm"
     display: "<gray>试炼者护符</gray>"
 
-# 键名为 1 到成员总数的件数阈值；已达到的各档累计生效。
+# 键名为 1 到成员总数的件数阈值; 已达到的各档累计生效
 thresholds:
   2:
     effects:

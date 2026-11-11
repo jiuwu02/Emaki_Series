@@ -144,7 +144,7 @@ public final class EmakiItemMigrationService {
             throw new IOException("旧 ID 与新 ID 不合法");
         }
         if (plugin.itemLoader().get(newNormalized) == null) {
-            throw new IOException("目标物品 ID 不存在：" + newNormalized);
+            throw new IOException("目标物品 ID 不存在: " + newNormalized);
         }
 
         List<PlannedWrite> plannedWrites = new ArrayList<>();
@@ -169,7 +169,7 @@ public final class EmakiItemMigrationService {
             Map<String, EmakiItemAlias> aliases = new LinkedHashMap<>(plugin.aliasLoader().all());
             EmakiItemAlias alias = new EmakiItemAlias(oldNormalized, newNormalized, true, true, "never");
             if (!alias.valid()) {
-                throw new IOException("无法创建 ID alias：" + oldNormalized + " -> " + newNormalized);
+                throw new IOException("无法创建 ID alias: " + oldNormalized + " -> " + newNormalized);
             }
             aliases.put(alias.oldId(), alias);
             String content = renderAliases(aliases);
@@ -238,7 +238,7 @@ public final class EmakiItemMigrationService {
             long aliasRevision,
             Throwable cause) {
         return new PartialMigrationException(
-                "迁移仅部分完成：" + oldId + " -> " + newId,
+                "迁移仅部分完成: " + oldId + " -> " + newId,
                 cause,
                 applyOutcome(oldId, newId, changed, replacementCount, aliasKept, aliasRevision));
     }
@@ -396,7 +396,7 @@ public final class EmakiItemMigrationService {
     private long requireUnchanged(Path path, long expectedRevision) throws IOException {
         long currentRevision = FileRevisions.revision(path);
         if (currentRevision != expectedRevision) {
-            throw new IOException("文件已被其他进程修改，请重新执行迁移：" + path.getFileName());
+            throw new IOException("文件已被其他进程修改, 请重新执行迁移: " + path.getFileName());
         }
         return FileRevisions.requireExpected(path, expectedRevision);
     }
@@ -404,12 +404,12 @@ public final class EmakiItemMigrationService {
     private void validateYamlContent(String content, String label) throws IOException {
         String safeContent = content == null ? "" : content;
         if (safeContent.getBytes(StandardCharsets.UTF_8).length > MAX_FILE_BYTES) {
-            throw new IOException("YAML 文件超过 512 KiB 限制：" + label);
+            throw new IOException("YAML 文件超过 512 KiB 限制: " + label);
         }
         try {
             YamlFiles.load(safeContent);
         } catch (RuntimeException exception) {
-            throw new IOException("YAML 校验失败：" + label, exception);
+            throw new IOException("YAML 校验失败: " + label, exception);
         }
     }
 
@@ -421,10 +421,10 @@ public final class EmakiItemMigrationService {
             return;
         }
         if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
-            throw new IOException("目标不是普通文件：" + path.getFileName());
+            throw new IOException("目标不是普通文件: " + path.getFileName());
         }
         if (Files.size(path) > MAX_FILE_BYTES) {
-            throw new IOException("YAML 文件超过 512 KiB 限制：" + path.getFileName());
+            throw new IOException("YAML 文件超过 512 KiB 限制: " + path.getFileName());
         }
     }
 
@@ -437,11 +437,11 @@ public final class EmakiItemMigrationService {
         requireSafeDirectory(snapshotRoot, "迁移备份快照目录");
         Path backup = SafePaths.resolveInside(snapshotRoot, target.moduleId() + "/" + target.relativePath());
         if (backup == null || backup.getParent() == null) {
-            throw new IOException("无法创建迁移备份路径：" + target.moduleId() + "/" + target.relativePath());
+            throw new IOException("无法创建迁移备份路径: " + target.moduleId() + "/" + target.relativePath());
         }
         createSafeDirectories(snapshotRoot, backup.getParent());
         if (Files.exists(backup) && !Files.isRegularFile(backup, LinkOption.NOFOLLOW_LINKS)) {
-            throw new IOException("迁移备份目标不是普通文件：" + backup.getFileName());
+            throw new IOException("迁移备份目标不是普通文件: " + backup.getFileName());
         }
         Files.writeString(backup, content == null ? "" : content, StandardCharsets.UTF_8);
     }

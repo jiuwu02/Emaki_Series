@@ -1,15 +1,15 @@
 # ============================================================
-# EmakiStation 界面布局：分解页
+# EmakiStation 界面布局: 分解页
 # ============================================================
-# 通过 /emakistation dismantle <station> 进入本页。
-# 本页可用的 type：
-#   dismantle_input        - 展示配方所需物品（当前选中配方的输入图标）
-#   dismantle_item_display - 同 dismantle_input，别名
-#   dismantle_rolls_display- 显示投掷次数范围（%rolls_min% / %rolls_max%）
-#   dismantle_cost         - 显示货币成本与玩家余额（免费配方显示免费图标）
-#   dismantle_output_list  - 分解产物列表（多格分页，含 pool_entry / rolled_output 虚拟物品）
+# 通过 /emakistation dismantle <station> 进入本页
+# 本页可用的 type:
+#   dismantle_input        - 展示配方所需物品 (当前选中配方的输入图标)
+#   dismantle_item_display - 同 dismantle_input, 别名
+#   dismantle_rolls_display- 显示投掷次数范围 (%rolls_min% / %rolls_max%)
+#   dismantle_cost         - 显示货币成本与玩家余额 (免费配方显示免费图标)
+#   dismantle_output_list  - 分解产物列表 (多格分页, 含 pool_entry / rolled_output 虚拟物品)
 #   dismantle_confirm      - 确认执行分解 / 领取已投掷产物
-#   prev_page / next_page / page_info - 分页控件（产物列表翻页）
+#   prev_page / next_page / page_info - 分页控件 (产物列表翻页)
 #   back                   - 返回目录页
 #   close                  - 关闭界面
 # ============================================================
@@ -129,9 +129,9 @@ slots:
       components:
         custom_name: "<red>关闭</red>"
 
-# 以下由 EmakiStation 自己读取，CoreLib 的模板解析器不会处理。
+# 以下由 EmakiStation 自己读取, CoreLib 的模板解析器不会处理
 virtual_items:
-  # 没有匹配配方时，dismantle_input 格显示的图标
+  # 没有匹配配方时, dismantle_input 格显示的图标
   no_recipe:
     item:
       source: "barrier"
@@ -140,7 +140,7 @@ virtual_items:
         lore:
           - "<dark_gray>放入物品后若有配方将自动匹配</dark_gray>"
 
-  # dismantle_input 有配方时的图标覆盖（%recipe%/%recipe_name%/%input%）
+  # dismantle_input 有配方时的图标覆盖 (%recipe%/%recipe_name%/%input%)
   dismantle_input:
     item:
       components:
@@ -149,7 +149,7 @@ virtual_items:
           - "<gray>输入: <white>%input%</white></gray>"
           - "<dark_gray>配方 ID: %recipe%</dark_gray>"
 
-  # 分解产物列表——预览阶段显示概率池条目
+  # 分解产物列表 -- 预览阶段显示概率池条目
   pool_entry:
     item:
       components:
@@ -159,7 +159,7 @@ virtual_items:
           - "<gray>概率: <aqua>%chance%%</aqua> <dark_gray>(权重 %weight%)</dark_gray></gray>"
           - "<dark_gray>#%index%</dark_gray>"
 
-  # 分解产物列表——已投掷后显示实际产物
+  # 分解产物列表 -- 已投掷后显示实际产物
   rolled_output:
     item:
       components:
@@ -168,7 +168,7 @@ virtual_items:
           - "<gray>数量: <white>%amount%</white></gray>"
           - "<dark_gray>#%index% / %total%</dark_gray>"
 
-  # 确认槽位——已投掷后切换为领取按钮
+  # 确认槽位 -- 已投掷后切换为领取按钮
   dismantle_claim:
     item:
       source: "chest"
@@ -179,7 +179,7 @@ virtual_items:
           - "<gray>产物共 <yellow>%output_count%</yellow> 项</gray>"
           - "<dark_gray>点击领取全部</dark_gray>"
 
-  # 货币成本槽位——收费配方（%recipe%/%recipe_name%/%cost_exact%/%currency%/%balance%）
+  # 货币成本槽位 -- 收费配方 (%recipe%/%recipe_name%/%cost_exact%/%currency%/%balance%)
   dismantle_cost:
     item:
       components:
@@ -189,7 +189,7 @@ virtual_items:
           - "<gray>余额: <yellow>%balance%</yellow></gray>"
           - "<dark_gray>确认分解时扣除</dark_gray>"
 
-  # 货币成本槽位——免费配方（%recipe%/%recipe_name%）
+  # 货币成本槽位 -- 免费配方 (%recipe%/%recipe_name%)
   dismantle_cost_free:
     item:
       source: "lime_stained_glass_pane"

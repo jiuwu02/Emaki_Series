@@ -19,7 +19,7 @@ import java.util.Map;
 public final class SetItemCooldownStage extends BaseStage {
 
     public SetItemCooldownStage() {
-        super("set_item_cooldown", "player", "为玩家的指定材质物品设置冷却。",
+        super("set_item_cooldown", "player", "为玩家的指定材质物品设置冷却.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("material", CoreStageParameterType.MATERIAL, "物品材质"),
                 CoreStageParameter.required("seconds", CoreStageParameterType.INTEGER, "冷却秒数"));

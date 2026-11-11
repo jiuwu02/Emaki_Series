@@ -435,7 +435,7 @@ public final class EnhancementAttemptService {
                 return PreparedLevel.failed(refreshError);
             }
             if (provider.readLevel(player, candidate) != level) {
-                warn("刷新阶段改变了目标等级，已拒绝提交", null);
+                warn("刷新阶段改变了目标等级, 已拒绝提交", null);
                 return PreparedLevel.failed(ERROR_REBUILD_FAILED);
             }
             return new PreparedLevel(candidate, "");

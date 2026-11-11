@@ -15,10 +15,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetFlySpeedStage extends BaseStage {
 
     public SetFlySpeedStage() {
-        super("set_fly_speed", "player", "设置玩家飞行速度。",
+        super("set_fly_speed", "player", "设置玩家飞行速度.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("speed", CoreStageParameterType.DOUBLE,
-                        "飞行速度，范围 -1.0 至 1.0"));
+                        "飞行速度, 范围 -1.0 至 1.0"));
     }
 
     @Override

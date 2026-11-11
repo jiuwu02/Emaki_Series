@@ -21,7 +21,7 @@ import java.util.Map;
 public final class SetGameModeStage extends BaseStage {
 
     public SetGameModeStage() {
-        super("set_gamemode", "player", "设置玩家游戏模式。",
+        super("set_gamemode", "player", "设置玩家游戏模式.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("gamemode", CoreStageParameterType.STRING,
                         "survival / creative / adventure / spectator"));

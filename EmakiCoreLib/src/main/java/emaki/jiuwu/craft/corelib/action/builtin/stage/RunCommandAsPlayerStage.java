@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class RunCommandAsPlayerStage extends BaseStage {
 
     public RunCommandAsPlayerStage() {
-        super("run_command_as_player", "command", "以目标玩家身份执行命令。",
+        super("run_command_as_player", "command", "以目标玩家身份执行命令.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("command", CoreStageParameterType.STRING, "命令行"));
     }

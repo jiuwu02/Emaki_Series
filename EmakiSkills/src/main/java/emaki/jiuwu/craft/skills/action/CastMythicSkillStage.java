@@ -37,7 +37,7 @@ public final class CastMythicSkillStage implements CoreActionStage {
 
     @Override
     public @NotNull String description() {
-        return "对目标释放一个 MythicMobs 技能。";
+        return "对目标释放一个 MythicMobs 技能.";
     }
 
     @Override

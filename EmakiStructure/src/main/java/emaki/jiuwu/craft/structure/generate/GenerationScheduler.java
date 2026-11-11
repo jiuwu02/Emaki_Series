@@ -149,7 +149,7 @@ public final class GenerationScheduler implements Runnable {
         int effective = AdaptiveThrottle.effectiveBudget(budget, true, tps);
         throttledWarnActive = AdaptiveThrottle.shouldWarn(true, tps);
         if (throttledWarnActive && throttleWarned.compareAndSet(false, true)) {
-            plugin.getLogger().warning("TPS 低于阈值，生成写入限额已下调至 " + effective + "/" + budget);
+            plugin.getLogger().warning("TPS 低于阈值, 生成写入限额已下调至 " + effective + "/" + budget);
         }
         if (!throttledWarnActive) {
             throttleWarned.set(false);

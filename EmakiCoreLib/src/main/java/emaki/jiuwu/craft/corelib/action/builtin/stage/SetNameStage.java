@@ -18,7 +18,7 @@ import net.kyori.adventure.text.Component;
 public final class SetNameStage extends BaseStage {
 
     public SetNameStage() {
-        super("set_name", "meta", "设置实体的自定义名称（MiniMessage）。",
+        super("set_name", "meta", "设置实体的自定义名称 (MiniMessage).",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("name", CoreStageParameterType.STRING, "名称文本"));
     }

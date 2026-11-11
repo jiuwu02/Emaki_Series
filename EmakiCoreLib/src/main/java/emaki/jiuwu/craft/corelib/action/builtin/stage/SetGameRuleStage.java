@@ -23,7 +23,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 public final class SetGameRuleStage extends BaseStage {
 
     public SetGameRuleStage() {
-        super("set_game_rule", "world", "设置世界的原版游戏规则。",
+        super("set_game_rule", "world", "设置世界的原版游戏规则.",
                 CoreTargetRequirement.NONE, CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.required("rule", CoreStageParameterType.STRING, "游戏规则名"),
                 CoreStageParameter.required("value", CoreStageParameterType.STRING, "规则值"));

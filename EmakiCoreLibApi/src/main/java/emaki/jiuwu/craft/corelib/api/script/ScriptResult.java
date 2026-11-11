@@ -4,9 +4,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * JavaScript 脚本执行的结果，封装成功值、失败原因或超时标记。
+ * JavaScript 脚本执行的结果, 封装成功值, 失败原因或超时标记
  *
- * <p>该类是密封的结果类型，只能通过工厂方法构造：
+ * <p>该类是密封的结果类型, 只能通过工厂方法构造:
  * <ul>
  *   <li>{@link #success(Object)} - 脚本正常执行完成</li>
  *   <li>{@link #error(Throwable)} - 脚本抛出异常</li>
@@ -33,9 +33,9 @@ public final class ScriptResult {
     }
 
     /**
-     * 创建成功结果。
+     * 创建成功结果
      *
-     * @param value 脚本返回值（可能为 {@code null}，对应 JavaScript 的 {@code null} 或 {@code undefined}）
+     * @param value 脚本返回值 (可能为 {@code null}, 对应 JavaScript 的 {@code null} 或 {@code undefined})
      * @return 成功结果
      */
     public static @NotNull ScriptResult success(@Nullable Object value) {
@@ -43,7 +43,7 @@ public final class ScriptResult {
     }
 
     /**
-     * 创建失败结果。
+     * 创建失败结果
      *
      * @param error 脚本执行过程中抛出的异常
      * @return 失败结果
@@ -56,7 +56,7 @@ public final class ScriptResult {
     }
 
     /**
-     * 创建超时结果。
+     * 创建超时结果
      *
      * @return 超时结果
      */
@@ -65,7 +65,7 @@ public final class ScriptResult {
     }
 
     /**
-     * 创建中断结果。
+     * 创建中断结果
      *
      * @return 中断结果
      */
@@ -81,23 +81,23 @@ public final class ScriptResult {
     }
 
     /**
-     * 获取脚本返回值。
+     * 获取脚本返回值
      *
-     * <p>仅当 {@link #isSuccess()} 为 {@code true} 时有意义。
-     * JavaScript 的 {@code null} 和 {@code undefined} 都映射为 Java {@code null}。</p>
+     * <p>仅当 {@link #isSuccess()} 为 {@code true} 时有意义
+     * JavaScript 的 {@code null} 和 {@code undefined} 都映射为 Java {@code null}.</p>
      *
-     * @return 脚本返回值，可能为 {@code null}
+     * @return 脚本返回值, 可能为 {@code null}
      */
     public @Nullable Object getValue() {
         return value;
     }
 
     /**
-     * 获取脚本执行过程中抛出的异常。
+     * 获取脚本执行过程中抛出的异常
      *
-     * <p>仅当 {@link #isSuccess()} 为 {@code false} 且非超时/中断时有意义。</p>
+     * <p>仅当 {@link #isSuccess()} 为 {@code false} 且非超时/中断时有意义.</p>
      *
-     * @return 异常对象，若无异常则为 {@code null}
+     * @return 异常对象, 若无异常则为 {@code null}
      */
     public @Nullable Throwable getError() {
         return error;

@@ -30,7 +30,7 @@ public final class JsEntityStage extends BaseStage {
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("code", CoreStageParameterType.STRING, "JavaScript 代码"),
                 CoreStageParameter.optional("timeout", CoreStageParameterType.INTEGER,
-                        String.valueOf(DEFAULT_TIMEOUT_MS), "超时时间（毫秒）"));
+                        String.valueOf(DEFAULT_TIMEOUT_MS), "超时时间 (毫秒)"));
     }
 
     @Override

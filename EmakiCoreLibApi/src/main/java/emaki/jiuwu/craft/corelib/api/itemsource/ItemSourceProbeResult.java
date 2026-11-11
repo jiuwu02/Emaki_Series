@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Outcome of probing one item source reference.
+ * Outcome of probing one item source reference
  *
  * @param state which outcome occurred
  * @param ref the probed reference, {@code null} when the input could not even be parsed
@@ -29,7 +29,7 @@ public record ItemSourceProbeResult(@NotNull ItemSourceProbeState state,
     }
 
     /**
-     * Creates a result.
+     * Creates a result
      *
      * @param state which outcome occurred
      * @param ref the probed reference
@@ -45,7 +45,7 @@ public record ItemSourceProbeResult(@NotNull ItemSourceProbeState state,
     }
 
     /**
-     * Creates a successful result.
+     * Creates a successful result
      *
      * @param ref the resolved reference
      * @param providerId key of the reporting provider
@@ -56,13 +56,13 @@ public record ItemSourceProbeResult(@NotNull ItemSourceProbeState state,
     }
 
     /**
-     * Creates a result for a reference no provider claims.
+     * Creates a result for a reference no provider claims
      *
      * @param ref the unclaimed reference
      * @return the result
      */
     public static @NotNull ItemSourceProbeResult providerMissing(@Nullable ItemSourceRef ref) {
         return of(ItemSourceProbeState.PROVIDER_MISSING, ref, "",
-                "没有已注册的提供者支持该物品来源。");
+                "没有已注册的提供者支持该物品来源.");
     }
 }

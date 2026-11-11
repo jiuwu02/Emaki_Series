@@ -35,7 +35,7 @@ public final class StructureConfigPrecheckContributor extends AbstractModuleConf
         var loader = plugin.appConfigLoader();
         if (loader == null || !loader.file().isFile()) {
             issues.add(ConfigPrecheckIssue.of(MODULE, "config.yml",
-                    ConfigPrecheckSeverity.WARN, "配置文件不存在，已使用内置默认值"));
+                    ConfigPrecheckSeverity.WARN, "配置文件不存在, 已使用内置默认值"));
             return new ConfigPrecheckResult(module(), List.copyOf(issues));
         }
         addUnknownTopLevelKeys(loader.file(), issues);
@@ -53,7 +53,7 @@ public final class StructureConfigPrecheckContributor extends AbstractModuleConf
                 if (!KNOWN_TOP_LEVEL.contains(key)) {
                     issues.add(ConfigPrecheckIssue.of(MODULE, "config.yml." + key,
                             ConfigPrecheckSeverity.WARN,
-                            "未知顶层配置键 " + key + "，请检查拼写"));
+                            "未知顶层配置键 " + key + ", 请检查拼写"));
                 }
             }
         } catch (RuntimeException exception) {

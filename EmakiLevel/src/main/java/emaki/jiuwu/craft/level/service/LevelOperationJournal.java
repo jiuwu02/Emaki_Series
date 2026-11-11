@@ -136,8 +136,8 @@ final class LevelOperationJournal {
                     .whenComplete((_, failure) -> {
                         if (failure != null) {
                             plugin.getLogger().severe("[journal] 等级操作 " + operationId
-                                    + " 已完成动作但操作日志写入失败；该条目保留在 active 中"
-                                    + "，等待下次恢复处理: " + rootCauseMessage(failure));
+                                    + " 已完成动作但操作日志写入失败; 该条目保留在 active 中"
+                                    + ", 等待下次恢复处理: " + rootCauseMessage(failure));
                         }
                     });
         });

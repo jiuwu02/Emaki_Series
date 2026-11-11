@@ -30,11 +30,11 @@ public final class TemporaryAttributeStage implements CoreActionStage {
 
     public enum Operation {
 
-        ADD("attribute_add", "向目标的一个效果组添加限时属性修饰符。"),
+        ADD("attribute_add", "向目标的一个效果组添加限时属性修饰符."),
 
-        SET("attribute_set", "在目标的一个效果组内设置限时属性修饰符。"),
+        SET("attribute_set", "在目标的一个效果组内设置限时属性修饰符."),
 
-        REMOVE("attribute_remove", "从目标移除整个限时效果组。");
+        REMOVE("attribute_remove", "从目标移除整个限时效果组.");
 
         private final String id;
         private final String description;
@@ -77,11 +77,11 @@ public final class TemporaryAttributeStage implements CoreActionStage {
     public @NotNull List<CoreStageParameter> parameters() {
         if (operation == Operation.REMOVE) {
             return List.of(CoreStageParameter.required("effect_id", CoreStageParameterType.STRING,
-                    "要移除的效果组 ID，会清除该组内所有属性"));
+                    "要移除的效果组 ID, 会清除该组内所有属性"));
         }
         return List.of(
                 CoreStageParameter.required("effect_id", CoreStageParameterType.STRING,
-                        "效果组 ID；复用同一 ID 可将多个属性归入同一组"),
+                        "效果组 ID; 复用同一 ID 可将多个属性归入同一组"),
                 CoreStageParameter.required("attribute", CoreStageParameterType.STRING, "属性 ID"),
                 CoreStageParameter.required("value", CoreStageParameterType.DOUBLE, "修饰符数值"),
                 CoreStageParameter.required("duration_ticks", CoreStageParameterType.DURATION,

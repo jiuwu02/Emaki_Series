@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetGravityStage extends BaseStage {
 
     public SetGravityStage() {
-        super("set_gravity", "meta", "控制实体是否受重力影响。",
+        super("set_gravity", "meta", "控制实体是否受重力影响.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("gravity", CoreStageParameterType.BOOLEAN, "是否受重力"));
     }

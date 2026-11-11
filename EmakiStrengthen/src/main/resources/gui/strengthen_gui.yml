@@ -71,7 +71,7 @@ slots:
         custom_name: "<aqua>放入待强化装备</aqua>"
         lore:
           - "<gray>支持所有可识别为 Emaki 来源的装备"
-          - "<gray>会叠加 strengthen 层，不覆盖 forge 层"
+          - "<gray>会叠加 strengthen 层, 不覆盖 forge 层"
 
   preview_display:
     slots:
@@ -80,11 +80,11 @@ slots:
     item:
       source: "book"
       components:
-        # 标题与内容都由插件按当前状态供给，文案见 lang 的 gui.preview.*
+        # 标题与内容都由插件按当前状态供给, 文案见 lang 的 gui.preview*
         custom_name: "%preview_title%"
         lore:
-          # %preview_lines% 每项各占一行：成功率、花费、失败惩罚与材料清单
-          # 材料按「已放入 GUI 的量 / 需要的量」计数，满足为绿色、不足为红色
+          # %preview_lines% 每项各占一行: 成功率, 花费, 失败惩罚与材料清单
+          # 材料按"已放入 GUI 的量 / 需要的量"计数, 满足为绿色, 不足为红色
           - "%preview_lines%"
 
   temper_display:
@@ -96,7 +96,7 @@ slots:
       components:
         custom_name: "<gold>强化值状态</gold>"
         lore:
-          # %temper_lines% 每项各占一行，文案见 lang 的 gui.temper.*
+          # %temper_lines% 每项各占一行, 文案见 lang 的 gui.temper*
           - "%temper_lines%"
 
   material_input_1:
@@ -119,7 +119,7 @@ slots:
       components:
         custom_name: "<yellow>强化材料槽 II</yellow>"
         lore:
-          - "<gray>包括固定材料、保护材料和强化值材料"
+          - "<gray>包括固定材料, 保护材料和强化值材料"
 
   material_input_3:
     slots:
@@ -153,7 +153,7 @@ slots:
         # 不满足强化条件时插件会把图标换成 BARRIER 并改写标题
         custom_name: "%confirm_title%"
         lore:
-          # %confirm_lines% 每项各占一行，文案见 lang 的 gui.confirm.* 与 gui.preview.cost_*
+          # %confirm_lines% 每项各占一行, 文案见 lang 的 gui.confirm.* 与 gui.preview.cost_*
           - "%confirm_lines%"
     sounds:
       click:

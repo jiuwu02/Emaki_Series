@@ -216,12 +216,12 @@ public final class StructureExporter {
     }
 
     /**
-     * 原版结构文件必需的 DataVersion 标记。
+     * 原版结构文件必需的 DataVersion 标记
      *
-     * <p>Paper 26 的 API 中没有 {@code getDataVersion()} 的非过时入口：
-     * {@link org.bukkit.UnsafeValues#getDataVersion()} 本身未过时，只有
-     * {@code Bukkit#getUnsafe()} 这个取用入口标记了 {@code @Deprecated(since = "1.7.2")}，
-     * 且没有任何官方替代类。此处局限在本方法内取用，避免过时警告外溢到其他代码。
+     * <p>Paper 26 的 API 中没有 {@code getDataVersion()} 的非过时入口:
+     * {@link org.bukkit.UnsafeValues#getDataVersion()} 本身未过时, 只有
+     * {@code Bukkit#getUnsafe()} 这个取用入口标记了 {@code @Deprecated(since = "1.7.2")},
+     * 且没有任何官方替代类.此处局限在本方法内取用, 避免过时警告外溢到其他代码
      */
     @SuppressWarnings("deprecation")
     private static int dataVersion() {

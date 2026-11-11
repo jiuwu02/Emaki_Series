@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Answers "which mob of my system is this entity?" for the shared target selector.
+ * Answers "which mob of my system is this entity?" for the shared target selector
  *
  * <p>EmakiCoreLib ships a built-in provider for MythicMobs. Every other mob system — including the
  * Emaki gameplay modules — contributes one through
@@ -27,7 +27,7 @@ public interface CoreTargetIdentityProvider {
     String systemId();
 
     /**
-     * Identifies one entity.
+     * Identifies one entity
      *
      * @param entity the entity to inspect, possibly {@code null}
      * @return the identity when this entity belongs to this provider's system, otherwise {@code null}

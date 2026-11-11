@@ -3,11 +3,11 @@ package emaki.jiuwu.craft.cooking.api.model;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Result of changing a player's nutrition value.
+ * Result of changing a player's nutrition value
  *
  * <p>{@link #oldValue()} and {@link #newValue()} are equal when the requested change was clamped away
  * entirely — for example adding to a value that already sits at its configured maximum. That is a
- * success, not a failure: the operation was applied and the outcome is simply "no movement".
+ * success, not a failure: the operation was applied and the outcome is simply "no movement"
  *
  * @param typeId   canonical lowercase nutrition type id
  * @param oldValue the value before the change
@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 public record NutritionChange(@NotNull String typeId, double oldValue, double newValue) {
 
     /**
-     * Normalises the type id so it can never be {@code null}.
+     * Normalises the type id so it can never be {@code null}
      *
      * @param typeId   canonical lowercase nutrition type id
      * @param oldValue value before the change

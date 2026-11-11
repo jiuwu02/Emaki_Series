@@ -20,12 +20,12 @@ import java.util.Map;
 public final class SetWeatherStage extends BaseStage {
 
     public SetWeatherStage() {
-        super("set_weather", "world", "设置世界天气。",
+        super("set_weather", "world", "设置世界天气.",
                 CoreTargetRequirement.NONE, CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.required("weather", CoreStageParameterType.STRING,
-                        "天气：clear / rain / thunder"),
+                        "天气: clear / rain / thunder"),
                 CoreStageParameter.optional("duration", CoreStageParameterType.INTEGER, "0",
-                        "持续秒数，0 表示无限"));
+                        "持续秒数, 0 表示无限"));
     }
 
     @Override

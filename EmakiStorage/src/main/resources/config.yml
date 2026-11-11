@@ -1,67 +1,67 @@
 # EmakiStorage 主配置
-# 控制仓库界面、容量、存取行为、自动拾取、搜索、持久化与流水日志。
+# 控制仓库界面, 容量, 存取行为, 自动拾取, 搜索, 持久化与流水日志
 
 version: "2.0.1"
 
-# 语言文件名，对应 lang/<language>.yml。
+# 语言文件名, 对应 lang/<language>.yml
 language: "zh_CN"
 
-# 是否在启动时释放 unlock_costs.yml 等内置业务示例数据。
+# 是否在启动时释放 unlock_costs.yml 等内置业务示例数据
 release_default_data: true
 
-# OP 是否绕过本插件的权限检查。
+# OP 是否绕过本插件的权限检查
 op_bypass: false
 
 # ============================================================
 # 界面
 # ============================================================
 gui:
-  # 仓库展示区行数，范围 1–5；功能区额外占用最后一行。
-  # 每页展示格数 = storage_rows × 9。
+  # 仓库展示区行数, 范围 1–5; 功能区额外占用最后一行
+  # 每页展示格数 = storage_rows × 9.
   storage_rows: 5
-  # 存入成功后的反馈方式：actionbar | message | none。
+  # 存入成功后的反馈方式: actionbar | message | none
   deposit_feedback: actionbar
-  # 取出物品时是否要求玩家光标为空。
+  # 取出物品时是否要求玩家光标为空
   require_empty_cursor_for_withdraw: false
 
 # ============================================================
 # 容量
 # ============================================================
 capacity:
-  # 默认开放槽位数；权限、命令与购买获得的额度另行叠加。
+  # 默认开放槽位数; 权限, 命令与购买获得的额度另行叠加
   base_slots: 45
-  # 槽位总量硬上限；0 表示不设置此上限。
-  # 放开上限会增加单玩家可持有条目数，请按服务器资源规划。
+  # 槽位总量硬上限; 0 表示不设置此上限
+  # 放开上限会增加单玩家可持有条目数, 请按服务器资源规划
   max_slots: 1000
-  # 条目数超过此值时记录警告；0 表示不提醒。
+  # 条目数超过此值时记录警告; 0 表示不提醒
   warn_entry_count: 5000
-  # 默认单槽数量上限；顶层 0 表示不限制。
-  # 玩家级或条目级的 0 表示继承上一层设置。
+  # 默认单槽数量上限; 顶层 0 表示不限制
+  # 玩家级或条目级的 0 表示继承上一层设置
   default_stack_limit: 100
 
 # ============================================================
 # 扩容与缩容
 # ============================================================
 unlock:
-  # 缩容导致已用槽位超出容量时的处理策略：
-  # lock_readonly：超出部分只读；compact：尝试压缩条目；
-  # return_inventory：尝试退回玩家背包；reject_change：拒绝本次缩容。
+  # 缩容导致已用槽位超出容量时的处理策略:
+  # lock_readonly: 超出部分只读; compact: 尝试压缩条目;
+  # return_inventory: 尝试退回玩家背包; reject_change: 拒绝本次缩容
   overflow_policy: lock_readonly
-  # 是否开放 GUI 内付费扩容；仍需对应权限。
+  # 是否开放 GUI 内付费扩容; 仍需对应权限
   purchase_enabled: true
-  # 付费档位文件名，相对插件数据目录。
+  # 付费档位文件名, 相对插件数据目录
   cost_file: "unlock_costs.yml"
 
 # ============================================================
 # 展示
 # ============================================================
 display:
-  # 槽位物品数量的视觉表达：percent 按占用比例显示，one 恒显示 1。
-  # 单槽上限为“不限制”时，percent 会退化为 one。
+  # 槽位物品数量的视觉表达: percent 按占用比例显示, one 恒显示 1.
+  # 单槽上限为"不限制"时, percent 会退化为 one
   amount_mode: percent
-  # percent 模式使用的刻度上限；建议保持在物品堆叠组件可接受范围内。
+  # percent 模式使用的刻度上限; 建议保持在物品堆叠组件可接受范围内
   percent_scale: 99
-  # 紧凑数量单位；列表为空时使用精确数字。
+  # 紧凑数量单位; 列表为空时使用精确数字
   compact_units:
     - "K"
     - "M"
@@ -72,33 +72,33 @@ display:
   compact_decimals: 2
   # 是否在 lore 中额外显示带千分位的精确数量
   show_exact_amount: true
-  # 展示信息插入 lore 的位置：top | bottom
+  # 展示信息插入 lore 的位置: top | bottom
   lore_position: bottom
 
 # ============================================================
 # 存取行为
 # ============================================================
 behavior:
-  # 取出时背包装不下的剩余部分：return（放回仓库）| drop（掉落地面）。
+  # 取出时背包装不下的剩余部分: return (放回仓库)| drop (掉落地面)
   overflow_on_withdraw: return
   withdraw_amounts:
     left: 1
     right: 16
     shift_left: 32
     shift_right: 64
-  # 中键自定义取出数量。
+  # 中键自定义取出数量
   withdraw_prompt:
-    # 是否启用自定义数量输入。
+    # 是否启用自定义数量输入
     enabled: true
-    # 输入方式：auto（优先对话框，失败时聊天）、dialog（仅对话框）、chat（仅聊天）。
-    # 对话框还需要客户端与 EmakiCoreLib 对话框能力可用。
+    # 输入方式: auto (优先对话框, 失败时聊天), dialog (仅对话框), chat (仅聊天)
+    # 对话框还需要客户端与 EmakiCoreLib 对话框能力可用
     mode: "auto"
-    # 对话框配置。键集与 EmakiCoreLib/dialogs/*.yml 完全一致，
-    # 但 id 由插件提供，这里不需要写。
+    # 对话框配置.键集与 EmakiCoreLib/dialogs/*.yml 完全一致,
+    # 但 id 由插件提供, 这里不需要写
     # title / body 的 text / inputs 的 label / buttons 的 label 与 tooltip
-    # 填语言键名时会读取 lang/*.yml；键不存在则按原文渲染，可直接写 MiniMessage。
-    # inputs 必须保留一个 key 为 amount 的输入框，否则对话框取不到数量，
-    # 该交互会按 mode 回退聊天输入(auto)或被禁用(dialog)。
+    # 填语言键名时会读取 lang/*.yml; 键不存在则按原文渲染, 可直接写 MiniMessage
+    # inputs 必须保留一个 key 为 amount 的输入框, 否则对话框取不到数量,
+    # 该交互会按 mode 回退聊天输入(auto)或被禁用(dialog)
     dialog:
       title: "dialog.withdraw.title"
       # 玩家按 ESC 是否可以关闭
@@ -111,75 +111,75 @@ behavior:
         - type: "text"
           key: "amount"
           label: "dialog.withdraw.label"
-          # 输入长度上限，0 表示不限制
+          # 输入长度上限, 0 表示不限制
           max_length: 32
       buttons:
         - label: "dialog.confirm"
   deposit_filter:
-    # 筛选模式：blacklist | whitelist | off。
+    # 筛选模式: blacklist | whitelist | off
     mode: blacklist
-    # entries 与 matcher 取 OR；两者均空时关闭筛选，再由 mode 决定放行或拒绝。
-    # 物品源使用连字符；组件 ID/path 使用冒号，省略命名空间时补 minecraft:。
-  # 是否允许存入带唯一标记的物品，例如 EmakiItem 实例 UUID。
+    # entries 与 matcher 取 OR; 两者均空时关闭筛选, 再由 mode 决定放行或拒绝
+    # 物品源使用连字符; 组件 ID/path 使用冒号, 省略命名空间时补 minecraft:
+  # 是否允许存入带唯一标记的物品, 例如 EmakiItem 实例 UUID
   allow_unique_items: true
-  # 单槽达到上限后，是否允许同一物品继续占用后续槽位。
-  # 开启后占用槽位数按总数量与单槽上限计算，仍受总容量限制。
-  # 关闭后，超过单槽上限的剩余数量会被拒绝。
+  # 单槽达到上限后, 是否允许同一物品继续占用后续槽位
+  # 开启后占用槽位数按总数量与单槽上限计算, 仍受总容量限制
+  # 关闭后, 超过单槽上限的剩余数量会被拒绝
   multi_slot_stacking: false
-  # 单次 API 原子批量允许的最大操作数。
-  # 范围 1–2000，超出时会夹紧；超过生效上限的请求会整批拒绝，不会截断执行。
-  # 仅影响批量 API，不影响 GUI 与命令。
+  # 单次 API 原子批量允许的最大操作数
+  # 范围 1–2000, 超出时会夹紧; 超过生效上限的请求会整批拒绝, 不会截断执行
+  # 仅影响批量 API, 不影响 GUI 与命令
   batch_max_ops: 200
-  # 排序默认值：material_asc|material_desc|name_asc|name_desc|amount_asc|amount_desc
+  # 排序默认值: material_asc|material_desc|name_asc|name_desc|amount_asc|amount_desc
   default_sort: amount_desc
-  # 是否允许玩家在 GUI 中切换排序（false 时强制使用 default_sort）
+  # 是否允许玩家在 GUI 中切换排序 (false 时强制使用 default_sort)
   player_sort_enabled: true
 
 # ============================================================
 # 自动拾取
 # ============================================================
-# 需要 emakistorage.autopickup 权限，并由玩家使用 /storage autopickup 管理个人开关。
+# 需要 emakistorage.autopickup 权限, 并由玩家使用 /storage autopickup 管理个人开关
 auto_pickup:
   enabled: true
-  # 拾取模式：on_pickup（响应原版拾取事件）或 radius（周期扫描附近掉落物）。
+  # 拾取模式: on_pickup (响应原版拾取事件) 或 radius (周期扫描附近掉落物)
   mode: "on_pickup"
-  # radius 模式扫描半径，单位：方块；会限制在 max_radius 内。
+  # radius 模式扫描半径, 单位: 方块; 会限制在 max_radius 内
   radius: 8
-  # radius 模式扫描半径上限，单位：方块。
+  # radius 模式扫描半径上限, 单位: 方块
   max_radius: 16
-  # radius 模式扫描间隔，单位：tick。
+  # radius 模式扫描间隔, 单位: tick
   scan_interval_ticks: 10
-  # 新玩家的默认个人开关状态。
+  # 新玩家的默认个人开关状态
   default_enabled: false
-  # 仓库存不下时的提示间隔，单位：毫秒；0 表示不提示。
+  # 仓库存不下时的提示间隔, 单位: 毫秒; 0 表示不提示
   notify_cooldown_ms: 3000
 
 # ============================================================
 # 搜索
 # ============================================================
 search:
-  # 搜索功能总开关。
+  # 搜索功能总开关
   enabled: true
-  # 搜索原版物品本地化名称需要在 EmakiCoreLib 中启用 vanilla_language。
-  # 未启用或语言表不可用时，仍可按服务端已有名称与标识搜索。
-  # 查询前缀操作符；可按服务器习惯修改。
+  # 搜索原版物品本地化名称需要在 EmakiCoreLib 中启用 vanilla_language
+  # 未启用或语言表不可用时, 仍可按服务端已有名称与标识搜索
+  # 查询前缀操作符; 可按服务器习惯修改
   operators:
     name: "@"
     lore: "#"
     id: "$"
     exclude: "!"
-  # 搜索关键词输入。
+  # 搜索关键词输入
   input:
-    # auto：优先对话框，失败时聊天；dialog：仅对话框；chat：仅聊天。
+    # auto: 优先对话框, 失败时聊天; dialog: 仅对话框; chat: 仅聊天
     mode: "auto"
-    # 聊天输入等待时间，单位：秒；小于 0 的值会按 0 处理。
+    # 聊天输入等待时间, 单位: 秒; 小于 0 的值会按 0 处理
     timeout: 30
-    # 取消聊天输入的关键词。
+    # 取消聊天输入的关键词
     cancel_keywords:
       - "取消"
       - "cancel"
-    # 对话框配置，键集同 behavior.withdraw_prompt.dialog。
-    # inputs 必须保留一个 key 为 query 的输入框，否则对话框取不到关键词。
+    # 对话框配置, 键集同 behavior.withdraw_prompt.dialog
+    # inputs 必须保留一个 key 为 query 的输入框, 否则对话框取不到关键词
     dialog:
       title: "dialog.search.title"
       can_close_with_escape: true
@@ -193,28 +193,28 @@ search:
           max_length: 64
       buttons:
         - label: "dialog.confirm"
-  # 不提供正则搜索：恶意正则会造成 ReDoS 卡服，且子串匹配已够用
+  # 不提供正则搜索: 恶意正则会造成 ReDoS 卡服, 且子串匹配已够用
 
 # ============================================================
 # 持久化
 # ============================================================
 persistence:
-  # 自动保存间隔，单位：秒；0 表示不启用定时保存。
+  # 自动保存间隔, 单位: 秒; 0 表示不启用定时保存
   autosave_interval_seconds: 300
-  # 插件停用时等待未完成文件写入的最长时间，单位：秒。
+  # 插件停用时等待未完成文件写入的最长时间, 单位: 秒
   drain_timeout_seconds: 10
 
 # ============================================================
 # 存取流水日志
 # ============================================================
-# 流水文件仅用于审计，不参与仓库业务读取。
+# 流水文件仅用于审计, 不参与仓库业务读取
 logging:
-  # 是否记录普通存取流水。
+  # 是否记录普通存取流水
   enabled: true
-  # 日志保留天数。
+  # 日志保留天数
   retention_days: 30
-  # 允许记录的来源：gui、command、api、action；留空表示全部。
-  # 管理员 SET、GIVE、CLEAR 操作由审计路径强制记录。
+  # 允许记录的来源: gui, command, api, action; 留空表示全部
+  # 管理员 SET, GIVE, CLEAR 操作由审计路径强制记录
 
-# 是否输出本插件的调试信息。
+# 是否输出本插件的调试信息
 debug: false

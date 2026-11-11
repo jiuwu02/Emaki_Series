@@ -14,7 +14,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetWorldSpawnStage extends BaseStage {
 
     public SetWorldSpawnStage() {
-        super("set_world_spawn", "world", "把世界出生点设置为管道原点。",
+        super("set_world_spawn", "world", "把世界出生点设置为管道原点.",
                 CoreTargetRequirement.NONE, CoreActionExecutionDomain.LOCATION_REGION);
     }
 

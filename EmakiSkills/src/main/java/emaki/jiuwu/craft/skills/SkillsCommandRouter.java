@@ -452,7 +452,7 @@ final class SkillsCommandRouter implements TabExecutor {
             }
             plugin.scheduling().runForEntity(plugin, player, operation,
                     () -> future.completeExceptionally(new RejectedExecutionException(
-                            "技能命令的玩家操作在执行前已退役。")));
+                            "技能命令的玩家操作在执行前已退役.")));
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }

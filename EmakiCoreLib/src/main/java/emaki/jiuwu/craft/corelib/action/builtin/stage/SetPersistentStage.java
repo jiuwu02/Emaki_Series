@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetPersistentStage extends BaseStage {
 
     public SetPersistentStage() {
-        super("set_persistent", "meta", "控制实体是否在区块卸载后保留。",
+        super("set_persistent", "meta", "控制实体是否在区块卸载后保留.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("persistent", CoreStageParameterType.BOOLEAN, "是否保留"));
     }

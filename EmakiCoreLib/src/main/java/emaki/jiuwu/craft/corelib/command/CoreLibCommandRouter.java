@@ -258,7 +258,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             boolean dryRun) {
         if (throwable != null || reports == null) {
             sendLang(sender, "command.pdc_convert_failed", Map.of(
-                    "error", throwable == null ? "没有返回结果。" : Texts.toStringSafe(throwable.getMessage())
+                    "error", throwable == null ? "没有返回结果." : Texts.toStringSafe(throwable.getMessage())
             ));
             return;
         }
@@ -326,7 +326,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             return;
         }
         if (outcome == null) {
-            sendLang(sender, "command.action_execute_failed", Map.of("stage", "-", "error", "没有返回结果。"));
+            sendLang(sender, "command.action_execute_failed", Map.of("stage", "-", "error", "没有返回结果."));
             return;
         }
         if (outcome.status() == PipelineOutcome.Status.FAILURE) {

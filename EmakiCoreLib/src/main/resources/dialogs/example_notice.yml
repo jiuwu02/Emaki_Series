@@ -1,14 +1,14 @@
-# EmakiCoreLib 原版对话框示例。
-# 需要 Minecraft 1.21.6+ 客户端，且调用方必须位于目标玩家的所有者线程。
-# 业务插件按 ID example/notice 展示。
+# EmakiCoreLib 原版对话框示例
+# 需要 Minecraft 1.21.6+ 客户端, 且调用方必须位于目标玩家的所有者线程
+# 业务插件按 ID example/notice 展示
 
-# 对话框 id，跨插件唯一
+# 对话框 id, 跨插件唯一
 id: "example/notice"
 
-# 类型: notice(单按钮) | confirmation(是/否，需两个按钮) | multi_action(多按钮)
+# 类型: notice(单按钮) | confirmation(是/否, 需两个按钮) | multi_action(多按钮)
 type: "notice"
 
-# 标题，支持 MiniMessage
+# 标题, 支持 MiniMessage
 title: "<gold>服务器公告</gold>"
 
 # 玩家按 ESC 是否可以关闭
@@ -20,13 +20,13 @@ pause: false
 # 交互结束后的行为: close | none | wait_for_response
 after_action: "close"
 
-# 正文。字符串条目即纯文本；写成映射可指定 width，或用 item 展示物品
+# 正文.字符串条目即纯文本; 写成映射可指定 width, 或用 item 展示物品
 body:
-  - "<gray>欢迎来到服务器。</gray>"
-  - text: "<yellow>请遵守服务器规则，祝你玩得愉快。</yellow>"
+  - "<gray>欢迎来到服务器.</gray>"
+  - text: "<yellow>请遵守服务器规则, 祝你玩得愉快.</yellow>"
     width: 320
 
-# 输入控件。key 会作为 command_template 中 $(key) 的取值来源
+# 输入控件.key 会作为 command_template 中 $(key) 的取值来源
 inputs:
   - type: "text"
     key: "feedback"
@@ -34,12 +34,12 @@ inputs:
     max_length: 64
     width: 300
 
-# 按钮。notice 用第一个按钮；confirmation 需要两个；multi_action 可多个
+# 按钮.notice 用第一个按钮; confirmation 需要两个; multi_action 可多个
 buttons:
   - label: "<green>我知道了</green>"
     tooltip: "<gray>关闭该公告</gray>"
     width: 120
     # 动作类型: none | command_template | run_command | open_url
-    # command_template 可引用输入项，例如 "say $(feedback)"
+    # command_template 可引用输入项, 例如 "say $(feedback)"
     action:
       type: "none"

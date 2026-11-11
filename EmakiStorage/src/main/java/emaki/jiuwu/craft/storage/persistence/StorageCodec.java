@@ -24,7 +24,7 @@ public final class StorageCodec {
 
     public static void writeVarLong(OutputStream out, long value) throws IOException {
         if (value < 0L) {
-            throw new IOException("拒绝编码负数 varint：" + value);
+            throw new IOException("拒绝编码负数 varint: " + value);
         }
         long remaining = value;
         while (true) {
@@ -64,11 +64,11 @@ public final class StorageCodec {
     public static byte[] readItemPayload(InputStream in) throws IOException {
         long length = readVarLong(in);
         if (length <= 0L || length > MAX_PAYLOAD_LENGTH) {
-            throw new IOException("物品负载长度不合理：" + length);
+            throw new IOException("物品负载长度不合理: " + length);
         }
         byte[] payload = in.readNBytes((int) length);
         if (payload.length != length) {
-            throw new EOFException("物品负载被截断：预期 " + length + " 字节，实际 " + payload.length);
+            throw new EOFException("物品负载被截断: 预期 " + length + " 字节, 实际 " + payload.length);
         }
         return payload;
     }
@@ -121,7 +121,7 @@ public final class StorageCodec {
         }
         long version = readVarLong(in);
         if (version <= 0L || version > FORMAT_VERSION) {
-            throw new IOException("不支持的存储格式版本：" + version);
+            throw new IOException("不支持的存储格式版本: " + version);
         }
         return (int) version;
     }

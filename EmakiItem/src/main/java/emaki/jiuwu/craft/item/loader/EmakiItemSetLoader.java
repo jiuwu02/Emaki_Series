@@ -67,7 +67,7 @@ public final class EmakiItemSetLoader {
                 continue;
             }
             if (loaded.containsKey(definition.id())) {
-                plugin.getLogger().warning("[loader] 重复的 EmakiItem 套装 ID '" + definition.id() + "' (位于 " + file.getPath() + ")，保留首个定义");
+                plugin.getLogger().warning("[loader] 重复的 EmakiItem 套装 ID '" + definition.id() + "' (位于 " + file.getPath() + "), 保留首个定义");
                 continue;
             }
             loaded.put(definition.id(), definition);
@@ -205,7 +205,7 @@ public final class EmakiItemSetLoader {
         if (!present.isEmpty()) {
             plugin.getLogger().warning("[loader] 套装定义 " + source + " 阈值 " + required
                     + " 声明了已停用的字段 " + String.join(", ", present)
-                    + "；这些字段会被忽略，请改用 'effects' 条目表达");
+                    + "; 这些字段会被忽略, 请改用 'effects' 条目表达");
         }
     }
 

@@ -318,7 +318,7 @@ final class StationIndexRegistry {
         }
         return fileScope.write(file, "station-index-save:" + world, task)
                 .exceptionally(throwable -> {
-                    plugin.getLogger().warning("[persistence] 写入工位索引失败，世界 " + world + ": " + StationStateStore.rootCauseMessage(throwable));
+                    plugin.getLogger().warning("[persistence] 写入工位索引失败, 世界 " + world + ": " + StationStateStore.rootCauseMessage(throwable));
                     return null;
                 });
     }

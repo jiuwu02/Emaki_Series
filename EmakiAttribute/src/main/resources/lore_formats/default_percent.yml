@@ -1,4 +1,4 @@
-# 百分比属性 Lore 格式。
+# 百分比属性 Lore 格式
 
 id: default_percent
 
@@ -9,5 +9,5 @@ precision: 2
 read_priority: 100
 
 read_patterns:
-  # %Value% 支持单值与区间；区间在每次命中对应阶段随机取值。
+  # %Value% 支持单值与区间; 区间在每次命中对应阶段随机取值
   - "%Key%.*?: ?%Value%%$"

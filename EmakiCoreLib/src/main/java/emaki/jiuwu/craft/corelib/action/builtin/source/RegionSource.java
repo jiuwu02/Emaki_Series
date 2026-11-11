@@ -23,13 +23,13 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class RegionSource extends BaseSource {
 
     public RegionSource() {
-        super("region", "以管道原点为角点的立方区域实体。",
+        super("region", "以管道原点为角点的立方区域实体.",
                 CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.optional("width", CoreStageParameterType.DOUBLE, "8", "X 轴半宽"),
                 CoreStageParameter.optional("height", CoreStageParameterType.DOUBLE, "8", "Y 轴半高"),
                 CoreStageParameter.optional("depth", CoreStageParameterType.DOUBLE, "8", "Z 轴半深"),
                 CoreStageParameter.optional("limit", CoreStageParameterType.INTEGER, "0",
-                        "最大实体数，0 表示不限制"),
+                        "最大实体数, 0 表示不限制"),
                 CoreStageParameter.optional("type", CoreStageParameterType.ENTITY_TYPE, "", "实体类型过滤"),
                 CoreStageParameter.optional("include_players", CoreStageParameterType.BOOLEAN, "true",
                         "允许以玩家为目标"));

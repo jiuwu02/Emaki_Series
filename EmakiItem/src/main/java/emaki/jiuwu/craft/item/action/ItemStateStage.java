@@ -31,10 +31,10 @@ import emaki.jiuwu.craft.item.service.EmakiItemStateService;
 
 public final class ItemStateStage implements CoreActionStage {
     public enum Operation {
-        SET("item_state_set", "设置一个带类型的持久化物品状态。"),
-        ADD("item_state_add", "为一个数值型持久化物品状态累加。"),
-        REMOVE("item_state_remove", "移除一个持久化物品状态。"),
-        REFRESH("item_state_refresh", "刷新目标物品并保留持久化状态。");
+        SET("item_state_set", "设置一个带类型的持久化物品状态."),
+        ADD("item_state_add", "为一个数值型持久化物品状态累加."),
+        REMOVE("item_state_remove", "移除一个持久化物品状态."),
+        REFRESH("item_state_refresh", "刷新目标物品并保留持久化状态.");
         private final String id;
         private final String description;
         Operation(String id, String description) { this.id = id; this.description = description; }

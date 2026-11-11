@@ -361,7 +361,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                         task.completeExceptionally(throwable);
                     }
                 }, () -> task.completeExceptionally(new RejectedExecutionException(
-                        "技能玩家重载操作在执行前已退役。")));
+                        "技能玩家重载操作在执行前已退役.")));
             } catch (Throwable throwable) {
                 task.completeExceptionally(throwable);
             }
@@ -629,7 +629,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             if (!skill.cronExpression().isBlank()) {
                 registry.register(new TriggerDefinition(
                         "cron_" + skill.id(),
-                        skill.displayName() + "（定时）",
+                        skill.displayName() + "(定时)",
                         null,
                         true,
                         Set.of(),

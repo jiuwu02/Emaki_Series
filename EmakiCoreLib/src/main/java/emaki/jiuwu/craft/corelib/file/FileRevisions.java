@@ -8,7 +8,7 @@ import java.nio.file.attribute.FileTime;
 
 public final class FileRevisions {
 
-    public static final String SAVE_CONFLICT_MESSAGE = "文件已被其他管理员修改，请重载后再保存。";
+    public static final String SAVE_CONFLICT_MESSAGE = "文件已被其他管理员修改, 请重载后再保存.";
 
     private FileRevisions() {
     }

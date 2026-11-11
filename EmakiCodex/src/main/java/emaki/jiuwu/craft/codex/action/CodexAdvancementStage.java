@@ -28,15 +28,15 @@ public final class CodexAdvancementStage implements CoreActionStage {
 
     public enum Operation {
 
-        GRANT("codex_grant_advancement", "为目标授予一项 EmakiCodex 成就。"),
+        GRANT("codex_grant_advancement", "为目标授予一项 EmakiCodex 成就."),
 
-        REVOKE("codex_revoke_advancement", "撤销目标的一项 EmakiCodex 成就。"),
+        REVOKE("codex_revoke_advancement", "撤销目标的一项 EmakiCodex 成就."),
 
-        RESYNC("codex_resync_advancement", "向目标重新推送 EmakiCodex 成就树。"),
+        RESYNC("codex_resync_advancement", "向目标重新推送 EmakiCodex 成就树."),
 
-        RESET_PAGE("codex_reset_page", "撤销目标在某一页上的所有 EmakiCodex 成就。"),
+        RESET_PAGE("codex_reset_page", "撤销目标在某一页上的所有 EmakiCodex 成就."),
 
-        RESET_ALL("codex_reset_all", "撤销目标所有已注册的 EmakiCodex 成就。");
+        RESET_ALL("codex_reset_all", "撤销目标所有已注册的 EmakiCodex 成就.");
 
         private final String id;
         private final String description;

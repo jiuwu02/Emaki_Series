@@ -13,7 +13,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class ClearInventoryStage extends BaseStage {
 
     public ClearInventoryStage() {
-        super("clear_inventory", "player", "清空玩家背包。",
+        super("clear_inventory", "player", "清空玩家背包.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY);
     }
 

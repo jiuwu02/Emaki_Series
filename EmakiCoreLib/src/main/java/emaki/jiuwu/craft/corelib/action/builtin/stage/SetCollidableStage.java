@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetCollidableStage extends BaseStage {
 
     public SetCollidableStage() {
-        super("set_collidable", "entity", "控制生物之间是否互相碰撞。",
+        super("set_collidable", "entity", "控制生物之间是否互相碰撞.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("collidable", CoreStageParameterType.BOOLEAN, "是否碰撞"));
     }

@@ -1,12 +1,12 @@
 # ============================================================
-# EmakiItem 示例：守护者护符
+# EmakiItem 示例: 守护者护符
 # ============================================================
-# 演示功能：
+# 演示功能:
 #   - accessory_slot 声明该物品可放入 EmakiAccessory 的 charm 部位
 #   - ea_attribute 同时提供物理防御与移动速度
 #   - max_damage 让饰品在 EmakiAccessory 中按耐久规则损耗
-# 获得方式：/ei give <玩家> example_charm
-# 依赖：EmakiAccessory（饰品槽位与耐久）；EmakiAttribute（属性生效）
+# 获得方式: /ei give <玩家> example_charm
+# 依赖: EmakiAccessory (饰品槽位与耐久); EmakiAttribute (属性生效)
 # ============================================================
 
 id: "example_charm"

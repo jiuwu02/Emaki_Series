@@ -22,7 +22,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SpawnEntityStage extends BaseStage {
 
     public SpawnEntityStage() {
-        super("spawn_entity", "entity", "在目标位置生成实体。",
+        super("spawn_entity", "entity", "在目标位置生成实体.",
                 CoreTargetRequirement.REQUIRED_ANY, CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.required("type", CoreStageParameterType.ENTITY_TYPE, "实体类型"),
                 CoreStageParameter.optional("count", CoreStageParameterType.INTEGER, "1", "实体数量"));

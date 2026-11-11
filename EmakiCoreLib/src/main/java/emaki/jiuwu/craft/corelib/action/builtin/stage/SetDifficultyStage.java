@@ -21,10 +21,10 @@ import java.util.Map;
 public final class SetDifficultyStage extends BaseStage {
 
     public SetDifficultyStage() {
-        super("set_difficulty", "world", "设置世界难度。",
+        super("set_difficulty", "world", "设置世界难度.",
                 CoreTargetRequirement.NONE, CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.required("difficulty", CoreStageParameterType.STRING,
-                        "难度：peaceful / easy / normal / hard"));
+                        "难度: peaceful / easy / normal / hard"));
     }
 
     @Override

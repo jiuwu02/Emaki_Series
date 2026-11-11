@@ -82,7 +82,7 @@ public final class PityPersistenceRetryScheduler {
         }
         int maxAttempts = plugin.appConfig() == null ? 0 : plugin.appConfig().enhancementPityRetryMaxAttempts();
         if (attempt >= maxAttempts) {
-            warn("保底状态落盘连续失败 " + attempt + " 次，已停止重试，等待下一次生命周期 flush");
+            warn("保底状态落盘连续失败 " + attempt + " 次, 已停止重试, 等待下一次生命周期 flush");
             stop();
         }
     }

@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetRotationStage extends BaseStage {
 
     public SetRotationStage() {
-        super("set_rotation", "movement", "设置实体朝向（yaw/pitch）。",
+        super("set_rotation", "movement", "设置实体朝向 (yaw/pitch).",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("yaw", CoreStageParameterType.DOUBLE, "水平朝向角度"),
                 CoreStageParameter.required("pitch", CoreStageParameterType.DOUBLE, "俯仰角度"));

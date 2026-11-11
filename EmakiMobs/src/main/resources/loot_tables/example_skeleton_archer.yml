@@ -1,13 +1,13 @@
 # ============================================================
 # EmakiMobs 掉落表示例 - 骷髅弓手
-# 演示：多掉落池、权重、set_count / looting_enchant 函数、
-#       chance 概率过滤与 EmakiItem 物品集成。
-# mob_id 必须与 mobs/example_skeleton_archer.yml 的 id 完全一致。
+# 演示: 多掉落池, 权重, set_count / looting_enchant 函数,
+#       chance 概率过滤与 EmakiItem 物品集成
+# mob_id 必须与 mobs/example_skeleton_archer.yml 的 id 完全一致
 # ============================================================
 mob_id: example_skeleton_archer
 
 pools:
-  # 主材料池：每次死亡抽 2 次，按权重选条目
+  # 主材料池: 每次死亡抽 2 次, 按权重选条目
   main:
     rolls: 2
     entries:
@@ -40,7 +40,7 @@ pools:
               min: 0
               max: 2
 
-  # 装备池：概率掉落原版装备
+  # 装备池: 概率掉落原版装备
   equipment:
     rolls: 1
     entries:
@@ -53,7 +53,7 @@ pools:
         weight: 1
         chance: 0.05
 
-  # EmakiItem 物品必须写在 emaki_item 键下；没装 EmakiItem 时整条跳过
+  # EmakiItem 物品必须写在 emaki_item 键下; 没装 EmakiItem 时整条跳过
   emaki:
     rolls: 1
     entries:

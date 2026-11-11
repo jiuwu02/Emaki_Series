@@ -1,4 +1,4 @@
-// EmakiAccessoryApi（原 EmakiAccessoryApi/pom.xml）。
+// EmakiAccessoryApi (原 EmakiAccessoryApi/pom.xml)
 version = '2.0.1'
 
 dependencies {

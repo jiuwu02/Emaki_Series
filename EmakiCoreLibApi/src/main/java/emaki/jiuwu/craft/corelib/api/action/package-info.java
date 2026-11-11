@@ -1,5 +1,5 @@
 /**
- * Action pipeline contracts for sources, gates, actions, and triggers — the extension SDK.
+ * Action pipeline contracts for sources, gates, actions, and triggers — the extension SDK
  *
  * <p><b>Registration entry points.</b> All six live on
  * {@link emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi} and are owner-scoped (owner = your plugin):
@@ -62,6 +62,6 @@
  * docs under CoreLib / Action Extension SDK.</p>
  *
  * <p>Stages declare scheduler ownership; async stages cannot require Bukkit targets. Registrations
- * are owner-scoped, must be closed on disable, and become inactive when CoreLib is unavailable.
+ * are owner-scoped, must be closed on disable, and become inactive when CoreLib is unavailable
  */
 package emaki.jiuwu.craft.corelib.api.action;

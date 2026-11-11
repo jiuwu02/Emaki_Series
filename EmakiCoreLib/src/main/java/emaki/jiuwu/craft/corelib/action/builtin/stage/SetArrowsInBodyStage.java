@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetArrowsInBodyStage extends BaseStage {
 
     public SetArrowsInBodyStage() {
-        super("set_arrows_in_body", "entity", "设置插在实体身上的箭矢数量。",
+        super("set_arrows_in_body", "entity", "设置插在实体身上的箭矢数量.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("count", CoreStageParameterType.INTEGER, "箭矢数量"));
     }

@@ -26,9 +26,9 @@ slots:
         tooltip_display:
           hide_tooltip: true
 
-  # 39/40/42 分别由 mode_inlay / mode_extract / mode_upgrade 占用，
-  # 43/44 由 mode_reroll_full / mode_reroll_value 占用，均不能重复声明：
-  # GuiTemplate 用无序 Map 解析槽位，重复声明会让同一格由哪个定义生效变得不确定。
+  # 39/40/42 分别由 mode_inlay / mode_extract / mode_upgrade 占用,
+  # 43/44 由 mode_reroll_full / mode_reroll_value 占用, 均不能重复声明:
+  # GuiTemplate 用无序 Map 解析槽位, 重复声明会让同一格由哪个定义生效变得不确定
   bottom_frame:
     slots:
       - 36

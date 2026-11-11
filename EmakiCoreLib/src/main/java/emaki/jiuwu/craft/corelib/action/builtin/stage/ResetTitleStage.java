@@ -13,7 +13,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class ResetTitleStage extends BaseStage {
 
     public ResetTitleStage() {
-        super("reset_title", "message", "清除玩家屏幕上的标题与副标题。",
+        super("reset_title", "message", "清除玩家屏幕上的标题与副标题.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY);
     }
 

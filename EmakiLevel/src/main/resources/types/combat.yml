@@ -1,11 +1,11 @@
 # EmakiLevel 等级类型 - 战斗等级
-# 该等级类型的启用状态、显示名、等级区间与升级需求。
+# 该等级类型的启用状态, 显示名, 等级区间与升级需求
 
 id: "combat"
 enabled: true
 display_name: "<red>战斗等级</red>"
 description:
-  - "<gray>通过击杀实体或 MythicMobs 生物获得经验。</gray>"
+  - "<gray>通过击杀实体或 MythicMobs 生物获得经验.</gray>"
 primary: false
 start_level: 1
 max_level: 80

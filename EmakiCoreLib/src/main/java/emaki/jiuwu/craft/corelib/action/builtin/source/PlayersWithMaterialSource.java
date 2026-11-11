@@ -22,11 +22,11 @@ import java.util.Map;
 public final class PlayersWithMaterialSource extends BaseSource {
 
     public PlayersWithMaterialSource() {
-        super("players_with_material", "背包中持有指定材质物品的在线玩家。",
+        super("players_with_material", "背包中持有指定材质物品的在线玩家.",
                 CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.required("material", CoreStageParameterType.MATERIAL, "物品材质"),
                 CoreStageParameter.optional("limit", CoreStageParameterType.INTEGER, "0",
-                        "最大玩家数，0 表示不限制"));
+                        "最大玩家数, 0 表示不限制"));
     }
 
     @Override

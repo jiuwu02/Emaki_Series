@@ -54,7 +54,7 @@ public final class AdvancementPacketGateway {
             registeredListener = PacketEvents.getAPI().getEventManager().registerListener(listener);
             return true;
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[packet] 成就坐标通道不可用，已跳过: "
+            plugin.getLogger().warning("[packet] 成就坐标通道不可用, 已跳过: "
                     + throwable.getMessage());
             registeredListener = null;
             return false;

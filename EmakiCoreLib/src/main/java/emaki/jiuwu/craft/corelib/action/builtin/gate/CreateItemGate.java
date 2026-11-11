@@ -27,7 +27,7 @@ public final class CreateItemGate extends BaseGate {
     private final ItemSourceService itemSourceService;
 
     public CreateItemGate(ItemSourceService itemSourceService) {
-        super("create_item", "构建物品并作为管道物品发布。", CoreGateThread.PURE,
+        super("create_item", "构建物品并作为管道物品发布.", CoreGateThread.PURE,
                 CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "", "物品来源"),
                 CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1", "物品数量"));
         this.itemSourceService = itemSourceService;

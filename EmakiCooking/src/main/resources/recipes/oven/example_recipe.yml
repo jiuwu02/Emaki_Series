@@ -1,8 +1,8 @@
 # ============================================================
 # EmakiCooking 烤炉配方示例
 # ============================================================
-# 烤炉是温度敏感型烹饪设备，玩家需要控制温度在合适范围内，
-# 并在正确的时间取出食物，否则会烤焦或未熟。
+# 烤炉是温度敏感型烹饪设备, 玩家需要控制温度在合适范围内,
+# 并在正确的时间取出食物, 否则会烤焦或未熟
 # ============================================================
 
 id: "example_recipe"
@@ -12,8 +12,8 @@ display_name: "烤马铃薯"
 # ============================================================
 # 输入食材
 # ============================================================
-# 放入烤炉的原料物品。判定由同级 item_sources 与 matcher 取 AND，
-# 两者都省略则这条配方永不命中。⚠ matcher 内禁止写物品源条件。
+# 放入烤炉的原料物品.判定由同级 item_sources 与 matcher 取 AND,
+# 两者都省略则这条配方永不命中.⚠ matcher 内禁止写物品源条件
 input:
   item_sources:
     - minecraft-potato
@@ -21,10 +21,10 @@ input:
 # ============================================================
 # 烘烤参数
 # ============================================================
-# bake_time_seconds: 基础烘烤时间（秒）
+# bake_time_seconds: 基础烘烤时间 (秒)
 # baking: 烘烤品质控制
-#   perfect_heat: 完美温度范围（min-max）
-#   perfect_required_ratio: 在完美温度范围内的时间占比要求（0.0-1.0）
+#   perfect_heat: 完美温度范围 (min-max)
+#   perfect_required_ratio: 在完美温度范围内的时间占比要求 (0.0-1.0)
 #   overbake_seconds: 超时多少秒后视为烤焦
 bake_time_seconds: 20
 
@@ -38,19 +38,19 @@ baking:
 permission: "emakicooking.recipe.baked_potato"
 
 # ============================================================
-# 完成条件（true/false 动作分支）
+# 完成条件 (true/false 动作分支)
 # ============================================================
-# 烤炉会在烤制完成（普通/完美/过烤）时统一评估此条件。
+# 烤炉会在烤制完成 (普通/完美/过烤) 时统一评估此条件
 condition:
   type: all_of
   entries:
     - "%player_level% >= 2"
   on_pass:
     actions:
-      - 'send_message text="<gold>烤制条件满足。</gold>"'
+      - 'send_message text="<gold>烤制条件满足.</gold>"'
   on_fail:
     actions:
-      - 'send_message text="<red>烤制条件不满足。</red>"'
+      - 'send_message text="<red>烤制条件不满足.</red>"'
     block_output: false
 
 # ============================================================
@@ -65,16 +65,16 @@ result:
       - item_source: "minecraft-baked_potato"
         amount: 1
     actions:
-      - 'send_message text="<gold>烤制完成。</gold>"'
+      - 'send_message text="<gold>烤制完成.</gold>"'
   perfect:
     outputs:
       - item_source: "minecraft-baked_potato"
         amount: 1
     actions:
-      - 'send_message text="<green>火候完美，烤制完成。</green>"'
+      - 'send_message text="<green>火候完美, 烤制完成.</green>"'
   overbaked:
     outputs:
       - item_source: "minecraft-charcoal"
         amount: 1
     actions:
-      - 'send_message text="<red>烤过头了。</red>"'
+      - 'send_message text="<red>烤过头了.</red>"'

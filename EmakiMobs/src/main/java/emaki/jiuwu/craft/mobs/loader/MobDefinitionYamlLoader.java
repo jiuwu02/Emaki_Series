@@ -104,8 +104,8 @@ public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> 
             return currentKey;
         }
         plugin.getLogger().warning("[loader] 生物文件 '" + file.getName() + "' 仍在使用旧键 '"
-                + legacyKey + "'，请改为 '" + currentKey
-                + "'，旧键将在下一个大版本移除");
+                + legacyKey + "', 请改为 '" + currentKey
+                + "', 旧键将在下一个大版本移除");
         return legacyKey;
     }
 

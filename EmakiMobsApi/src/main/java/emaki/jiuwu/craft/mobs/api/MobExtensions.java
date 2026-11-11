@@ -5,22 +5,22 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Extension registration API for EmakiMobs.
+ * Extension registration API for EmakiMobs
  *
  * <p>Third-party plugins can register custom spawners that receive a callback
- * each time EmakiMobs reloads, allowing them to adapt to configuration changes.
+ * each time EmakiMobs reloads, allowing them to adapt to configuration changes
  *
  * <p>Obtain the current instance via {@link EmakiMobsApi#extensions()} rather
- * than caching it in a field — the backing implementation is replaced across reloads.
+ * than caching it in a field — the backing implementation is replaced across reloads
  */
 public interface MobExtensions {
 
     /**
-     * Registers an owner-scoped custom spawner identified by the given {@code id}.
+     * Registers an owner-scoped custom spawner identified by the given {@code id}
      *
      * <p>{@link CustomSpawner#onReload()} is called immediately upon registration, and again after
      * every EmakiMobs config reload. The returned handle is the precise registration and should be
-     * closed when the caller no longer needs it.
+     * closed when the caller no longer needs it
      *
      * @param owner   plugin that owns the registration; may be {@code null}, but then automatic owner
      *                disable cleanup is unavailable
@@ -34,7 +34,7 @@ public interface MobExtensions {
                                                  @Nullable CustomSpawner spawner);
 
     /**
-     * Removes every custom spawner registered by the given owner.
+     * Removes every custom spawner registered by the given owner
      *
      * @param owner plugin whose registrations should be removed
      */
@@ -42,14 +42,14 @@ public interface MobExtensions {
 
     /**
      * Callback contract for custom mob spawners registered via
-     * {@link MobExtensions#registerCustomSpawner}.
+     * {@link MobExtensions#registerCustomSpawner}
      */
     @FunctionalInterface
     interface CustomSpawner {
 
         /**
          * Called once on registration and again after every EmakiMobs reload.
-         * Use this to read updated config values and (re)schedule spawn tasks.
+         * Use this to read updated config values and (re)schedule spawn tasks
          */
         void onReload();
     }

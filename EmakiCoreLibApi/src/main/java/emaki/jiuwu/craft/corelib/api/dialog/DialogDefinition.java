@@ -4,10 +4,10 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 一份对话框定义的不可变模型。
+ * 一份对话框定义的不可变模型
  *
- * <p>只描述配置意图，不持有任何 Bukkit 或 Paper 运行时对象；
- * 转换为原版对话框由 {@code DialogService} 负责。
+ * <p>只描述配置意图, 不持有任何 Bukkit 或 Paper 运行时对象;
+ * 转换为原版对话框由 {@code DialogService} 负责
  */
 public record DialogDefinition(
         String id,
@@ -32,13 +32,13 @@ public record DialogDefinition(
         columns = Math.max(1, columns);
     }
 
-    /** 对话框类型。 */
+    /** 对话框类型. */
     public enum Type {
-        /** 单按钮通知。 */
+        /** 单按钮通知. */
         NOTICE,
-        /** 是/否确认。 */
+        /** 是/否确认. */
         CONFIRMATION,
-        /** 多按钮。 */
+        /** 多按钮. */
         MULTI_ACTION;
 
         public static Type parse(String raw, Type fallback) {
@@ -54,7 +54,7 @@ public record DialogDefinition(
         }
     }
 
-    /** 对话框关闭后的行为。 */
+    /** 对话框关闭后的行为. */
     public enum AfterAction {
         CLOSE,
         NONE,
@@ -73,7 +73,7 @@ public record DialogDefinition(
         }
     }
 
-    /** 正文条目。{@code item} 为空表示纯文本条目。 */
+    /** 正文条目.{@code item} 为空表示纯文本条目. */
     public record Body(String text, String item, int width) {
 
         public Body {
@@ -81,7 +81,7 @@ public record DialogDefinition(
         }
     }
 
-    /** 输入控件。 */
+    /** 输入控件. */
     public record Input(
             InputType type,
             String key,
@@ -104,12 +104,12 @@ public record DialogDefinition(
             width = width <= 0 ? 0 : Math.clamp(width, 1, 1024);
         }
 
-        /** 单选项条目。 */
+        /** 单选项条目. */
         public record Option(String id, String display, boolean initial) {
         }
     }
 
-    /** 输入控件类型。 */
+    /** 输入控件类型. */
     public enum InputType {
         TEXT,
         BOOLEAN,
@@ -130,7 +130,7 @@ public record DialogDefinition(
         }
     }
 
-    /** 按钮。 */
+    /** 按钮. */
     public record Button(String label, String tooltip, int width, Action action) {
 
         public Button {
@@ -138,7 +138,7 @@ public record DialogDefinition(
         }
     }
 
-    /** 按钮动作。 */
+    /** 按钮动作. */
     public record Action(ActionType type, String value) {
 
         public Action {
@@ -146,15 +146,15 @@ public record DialogDefinition(
         }
     }
 
-    /** 按钮动作类型。 */
+    /** 按钮动作类型. */
     public enum ActionType {
-        /** 无动作，仅关闭。 */
+        /** 无动作, 仅关闭. */
         NONE,
-        /** 以玩家身份执行命令模板，可引用输入项。 */
+        /** 以玩家身份执行命令模板, 可引用输入项. */
         COMMAND_TEMPLATE,
-        /** 打开链接。 */
+        /** 打开链接. */
         OPEN_URL,
-        /** 以玩家身份运行命令。 */
+        /** 以玩家身份运行命令. */
         RUN_COMMAND;
 
         public static ActionType parse(String raw, ActionType fallback) {

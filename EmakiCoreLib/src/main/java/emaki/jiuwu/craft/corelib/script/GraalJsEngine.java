@@ -76,11 +76,11 @@ public final class GraalJsEngine implements ScriptEngine {
             throw new IllegalArgumentException("bindings 不能为 null");
         }
         if (timeoutMs <= 0) {
-            throw new IllegalArgumentException("timeoutMs 必须为正数，实际: " + timeoutMs);
+            throw new IllegalArgumentException("timeoutMs 必须为正数, 实际: " + timeoutMs);
         }
 
         if (closed) {
-            return ScriptResult.error(new IllegalStateException("脚本引擎已关停，评估请求被拒绝"));
+            return ScriptResult.error(new IllegalStateException("脚本引擎已关停, 评估请求被拒绝"));
         }
 
         Source source = cache.getOrCompile(code, "eval-" + System.currentTimeMillis());

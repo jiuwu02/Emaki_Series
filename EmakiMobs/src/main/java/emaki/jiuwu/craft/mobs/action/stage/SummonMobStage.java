@@ -24,7 +24,7 @@ public final class SummonMobStage extends BaseStage {
     private final MobFactory mobFactory;
 
     public SummonMobStage(Supplier<Map<String, MobSpec>> mobRegistrySupplier, MobFactory mobFactory) {
-        super("summon_mob", "emakimobs", "在目标位置生成 EmakiMobs 定义的实体。",
+        super("summon_mob", "emakimobs", "在目标位置生成 EmakiMobs 定义的实体.",
                 CoreTargetRequirement.REQUIRED_ANY, CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.required("mob_id", CoreStageParameterType.STRING, "EmakiMobs 生物定义 ID"),
                 CoreStageParameter.optional("count", CoreStageParameterType.INTEGER, "1", "生成数量"));

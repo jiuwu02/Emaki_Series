@@ -174,7 +174,7 @@ public final class ConfiguredItemService {
                 issues.add(ItemBuildIssue.error(componentId, "未知的物品组件 id"));
             } else {
                 issues.add(ItemBuildIssue.warning(componentId,
-                        "当前 Paper 运行时未通过通用桥接暴露该组件；为保留来源数据已跳过补丁"));
+                        "当前 Paper 运行时未通过通用桥接暴露该组件; 为保留来源数据已跳过补丁"));
             }
         }
     }
@@ -222,7 +222,7 @@ public final class ConfiguredItemService {
         if (loggedIssues.get(issueKey) == null) {
             loggedIssues.put(issueKey, Boolean.TRUE);
             plugin.getLogger().warning("[assembly] 物品组件 " + componentId + " 需要 Minecraft " + requirement
-                    + "，但当前服务器为 " + server + "；该组件不会生效");
+                    + ", 但当前服务器为 " + server + "; 该组件不会生效");
         }
     }
 

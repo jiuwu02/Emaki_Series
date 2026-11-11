@@ -14,7 +14,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetCompassTargetStage extends BaseStage {
 
     public SetCompassTargetStage() {
-        super("set_compass_target", "player", "把玩家指南针指向管道原点。",
+        super("set_compass_target", "player", "把玩家指南针指向管道原点.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY);
     }
 

@@ -72,7 +72,7 @@ final class ForgeLifecycleCoordinatorDelegate {
 
     void loadCandidateAppConfigReadOnly(YamlConfigLoader<AppConfig> loader) {
         if (loader == null) {
-            throw new IllegalStateException("Forge 应用配置加载器不可用。");
+            throw new IllegalStateException("Forge 应用配置加载器不可用.");
         }
         File file = loader.file();
         if (file == null || !file.isFile()) {
@@ -184,7 +184,7 @@ final class ForgeLifecycleCoordinatorDelegate {
                 plugin.messageService().info(key, replacements);
             }
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[shutdown] 消息派发失败，键 '" + key + "': "
+            plugin.getLogger().warning("[shutdown] 消息派发失败, 键 '" + key + "': "
                     + String.valueOf(throwable.getMessage()));
         }
     }
@@ -195,7 +195,7 @@ final class ForgeLifecycleCoordinatorDelegate {
         if (unresolvedSessions > 0) {
             plugin.runtimeMetrics().recordGuiSettlementFailure();
             plugin.getLogger().severe("[shutdown] " + unresolvedSessions
-                    + " 个 Forge GUI 会话仍持有未结算物品；未静默丢弃这些会话");
+                    + " 个 Forge GUI 会话仍持有未结算物品; 未静默丢弃这些会话");
         }
         plugin.recipeBookGuiService().clearAllBooks();
         if (plugin.forgeService() != null) {
@@ -209,7 +209,7 @@ final class ForgeLifecycleCoordinatorDelegate {
                 plugin.forgeGuiService().settleShutdownSessionOnOwner(session);
                 player.closeInventory();
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("[shutdown] Forge GUI 结算回退失败，玩家 "
+                plugin.getLogger().warning("[shutdown] Forge GUI 结算回退失败, 玩家 "
                         + player.getUniqueId() + ": " + String.valueOf(throwable.getMessage()));
                 plugin.forgeGuiService().handleShutdownClosureFailure(session,
                         "关闭结算回退失败: " + String.valueOf(throwable.getMessage()));
@@ -315,7 +315,7 @@ final class ForgeLifecycleCoordinatorDelegate {
                             () -> closure.complete(null));
                     if (scheduled == null) {
                         closure.completeExceptionally(new RejectedExecutionException(
-                                "Forge GUI 关闭调度被拒绝。"));
+                                "Forge GUI 关闭调度被拒绝."));
                     }
                 }
             } catch (Throwable throwable) {
@@ -356,8 +356,8 @@ final class ForgeLifecycleCoordinatorDelegate {
         if (permission != null && permission.contains("op_bypass")) {
             boolean legacyValue = permission.getBoolean("op_bypass", false);
             JavaPlugin.getPlugin(EmakiForgePlugin.class).getLogger().warning("[config] 配置键 permission.op_bypass"
-                    + " 已移到顶层 op_bypass，当前按旧键值 " + legacyValue
-                    + " 生效，启动时会自动迁移到新键");
+                    + " 已移到顶层 op_bypass, 当前按旧键值 " + legacyValue
+                    + " 生效, 启动时会自动迁移到新键");
             return legacyValue;
         }
         return false;

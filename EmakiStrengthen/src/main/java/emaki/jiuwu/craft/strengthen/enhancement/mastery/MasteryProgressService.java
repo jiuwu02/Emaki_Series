@@ -38,7 +38,7 @@ public final class MasteryProgressService {
             }
             return codec.write(target, base.withGainedExp(gain));
         } catch (RuntimeException | LinkageError exception) {
-            warn("熟练度写入失败，本次强化结果不受影响", exception);
+            warn("熟练度写入失败, 本次强化结果不受影响", exception);
             return false;
         }
     }

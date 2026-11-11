@@ -16,7 +16,7 @@ import java.util.List;
 public final class HighestBlockSource extends BaseSource {
 
     public HighestBlockSource() {
-        super("highest_block", "管道原点所在列的最高方块。",
+        super("highest_block", "管道原点所在列的最高方块.",
                 CoreActionExecutionDomain.LOCATION_REGION);
     }
 

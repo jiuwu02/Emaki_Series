@@ -1,7 +1,7 @@
 # ============================================================
 # EmakiGem 插槽物品配置示例
 # ============================================================
-# id 是配置标识，与文件名无关；匹配物品获得下方插槽。
+# id 是配置标识, 与文件名无关; 匹配物品获得下方插槽
 # ============================================================
 
 id: "example_socket_item"
@@ -9,15 +9,15 @@ id: "example_socket_item"
 # ============================================================
 # 物品匹配规则
 # ============================================================
-# 决定哪些物品会被此配置匹配、从而拥有宝石插槽。
-# slot_groups、item_sources、matcher 三者取 AND：都成立才算命中。
-#   item_sources: 允许的物品源，省略表示不限来源。
-#   matcher:      组件、PDC、Lore 等非物品源条件，省略表示不加额外条件。
-# ⚠ matcher 内禁止写物品源条件，物品源一律写在同级 item_sources。
-# 注意两种 ID 形状不同，不要混写：
-#   物品源用连字符 —— item_sources 里写 "minecraft-diamond_sword"。
-#   组件用冒号   —— component / path 里的资源 ID 写 "minecraft:sharpness"，
-#                     命名空间可省略，直接写 sharpness 等价。
+# 决定哪些物品会被此配置匹配, 从而拥有宝石插槽
+# slot_groups, item_sources, matcher 三者取 AND: 都成立才算命中
+#   item_sources: 允许的物品源, 省略表示不限来源
+#   matcher:      组件, PDC, Lore 等非物品源条件, 省略表示不加额外条件
+# ⚠ matcher 内禁止写物品源条件, 物品源一律写在同级 item_sources
+# 注意两种 ID 形状不同, 不要混写:
+#   物品源用连字符 -- item_sources 里写 "minecraft-diamond_sword"
+#   组件用冒号   -- component / path 里的资源 ID 写 "minecraft:sharpness",
+#                     命名空间可省略, 直接写 sharpness 等价
 item_sources:
   - "minecraft-diamond_sword"
 
@@ -25,17 +25,17 @@ item_sources:
 # ============================================================
 # 装备槽位组
 # ============================================================
-# 按装备槽位组匹配（weapon/armor/offhand），与上方 matcher 取 AND。
-# 留空或不写表示不限制。
+# 按装备槽位组匹配 (weapon/armor/offhand), 与上方 matcher 取 AND
+# 留空或不写表示不限制
 slot_groups:
   - "weapon"
 
 # ============================================================
 # 插槽定义
 # ============================================================
-# 定义此物品拥有的宝石插槽列表。
-# index: 插槽索引（从 0 开始，唯一）
-# type: 插槽类型（决定哪些宝石可以镶嵌）
+# 定义此物品拥有的宝石插槽列表
+# index: 插槽索引 (从 0 开始, 唯一)
+# type: 插槽类型 (决定哪些宝石可以镶嵌)
 # display_name: 插槽在 GUI 中的显示名称
 slots:
   - index: 0
@@ -51,8 +51,8 @@ slots:
 # ============================================================
 # 默认开放插槽
 # ============================================================
-# 物品初始时哪些插槽是已开放的（可直接镶嵌）。
-# 未列出的插槽需要玩家通过开槽操作来解锁。
+# 物品初始时哪些插槽是已开放的 (可直接镶嵌)
+# 未列出的插槽需要玩家通过开槽操作来解锁
 default_open_slots:
   - 0
 
@@ -60,8 +60,8 @@ default_open_slots:
 # 宝石类型限制
 # ============================================================
 # allowed_gem_types: 此物品允许镶嵌的宝石类型白名单
-# max_same_type: 同类型宝石最大数量（0 = 不限制）
-# max_same_id: 同 ID 宝石最大数量（防止重复镶嵌同一颗宝石）
+# max_same_type: 同类型宝石最大数量 (0 = 不限制)
+# max_same_id: 同 ID 宝石最大数量 (防止重复镶嵌同一颗宝石)
 allowed_gem_types:
   - "attack"
   - "defense"
@@ -83,11 +83,11 @@ gui:
 # ============================================================
 # 获得装备时的外观与动作
 # ============================================================
-# 配置风格参考 EmakiForge 的 result 字段：
-# name_actions / lore_actions / actions 直接写在 obtain 下。
+# 配置风格参考 EmakiForge 的 result 字段:
+# name_actions / lore_actions / actions 直接写在 obtain 下
 # actions: 首次识别并写入宝石层时执行的动作
-# 这里完全由文件控制：直接写你想要显示的宝石槽文本即可。
-# 如果要在镶嵌成功后把某个 □ 改成 ■，就让对应流程写一条单独的 lore_actions 去替换整行或替换字符。
+# 这里完全由文件控制: 直接写你想要显示的宝石槽文本即可
+# 如果要在镶嵌成功后把某个 □ 改成 ■, 就让对应流程写一条单独的 lore_actions 去替换整行或替换字符
 obtain:
   name_actions:
     - action: "prepend_prefix"
@@ -98,4 +98,4 @@ obtain:
         - '<dark_gray>─────────────</dark_gray>'
         - '<gray>宝石槽: <yellow>□□□</yellow> <dark_gray>(%opened_slots%/%total_slots%)</dark_gray></gray>'
   actions:
-    - 'send_message text="<gray>已识别可镶嵌装备：<yellow>%item_definition_id%</yellow></gray>"'
+    - 'send_message text="<gray>已识别可镶嵌装备: <yellow>%item_definition_id%</yellow></gray>"'

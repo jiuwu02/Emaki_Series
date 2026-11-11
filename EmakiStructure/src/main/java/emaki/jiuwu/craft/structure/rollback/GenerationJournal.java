@@ -123,7 +123,7 @@ public final class GenerationJournal {
         }
         byte[] raw = batch.toString().getBytes(StandardCharsets.UTF_8);
         if (bytes + raw.length > maxBytes) {
-            throw new OverflowException("journal 快照超限（上限 " + maxBytes + " 字节）");
+            throw new OverflowException("journal 快照超限 (上限 " + maxBytes + " 字节)");
         }
         write(raw);
         entries.addAll(snapshots);

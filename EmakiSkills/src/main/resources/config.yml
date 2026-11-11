@@ -1,74 +1,74 @@
-# EmakiSkills 主配置：技能槽、来源、施法模式、触发器与脚本限制。
+# EmakiSkills 主配置: 技能槽, 来源, 施法模式, 触发器与脚本限制
 
-# version 由资源同步维护，不是功能开关。
+# version 由资源同步维护, 不是功能开关
 version: "3.0.1"
 
-# 语言文件名，对应 lang/<language>.yml。
+# 语言文件名, 对应 lang/<language>.yml
 language: "zh_CN"
 
-# 是否在启动时释放插件内置的默认技能数据。
+# 是否在启动时释放插件内置的默认技能数据
 release_default_data: true
 
 slots:
-  # 默认技能槽数量；小于 1 的值会按 1 处理。
+  # 默认技能槽数量; 小于 1 的值会按 1 处理
   default_count: 3
 
-# 装备技能来源；默认合并 Lore 与 PDC，严格模式只保留两侧共同的技能 ID。
+# 装备技能来源; 默认合并 Lore 与 PDC, 严格模式只保留两侧共同的技能 ID
 skill_sources:
   read_lore_skills: true
   read_pdc_skills: true
   require_lore_pdc_match: false
 
-# 技能 tags 命中后按对应数量限制同时装备数。
+# 技能 tags 命中后按对应数量限制同时装备数
 skill_tags:
   equip_limits:
     ultimate: 1
     mobility: 2
 
 cast_mode:
-  # 入口固定为 F；enabled 仅控制 F 键切换，不是施法模式总开关。
+  # 入口固定为 F; enabled 仅控制 F 键切换, 不是施法模式总开关
   entry_key: "f"
-  # false 时 F 恢复原版换手，命令和 GUI 仍可切换。
+  # false 时 F 恢复原版换手, 命令和 GUI 仍可切换
   enabled: true
-  # 玩家重新加入后是否恢复上次的施法模式状态。
+  # 玩家重新加入后是否恢复上次的施法模式状态
   restore_last_state_on_join: true
 
 cast_timing:
-  # 成功施法后的全局延迟，单位 tick；0 关闭。
+  # 成功施法后的全局延迟, 单位 tick; 0 关闭
   forced_global_cast_delay_ticks: 0
 
 actionbar:
-  # 是否启用技能状态 ActionBar。
+  # 是否启用技能状态 ActionBar
   enabled: true
-  # 刷新间隔，单位 tick；小于 1 按 1 处理。
+  # 刷新间隔, 单位 tick; 小于 1 按 1 处理
   refresh_interval_ticks: 10
-  # 施法模式下的显示模板。
+  # 施法模式下的显示模板
   template_cast_mode: "<gold>施法模式</gold> %slot_1% %slot_2% %slot_3%
     <gray>延迟:</gray> %forced_delay%"
-  # 非施法模式模板；空值回退源码默认文本，不关闭显示。
+  # 非施法模式模板; 空值回退源码默认文本, 不关闭显示
   template_idle: ""
 
-# 原生技能脚本执行器。
+# 原生技能脚本执行器
 script_engine:
   enabled: true
-  # 未指定时使用的模式。
+  # 未指定时使用的模式
   default_mode: "native"
-  # 动作失败后是否停止当前阶段。
+  # 动作失败后是否停止当前阶段
   stop_on_failure: true
-  # 单阶段最大行数；小于 1 按 1 处理。
+  # 单阶段最大行数; 小于 1 按 1 处理
   max_lines_per_phase: 64
-  # 单动作最大目标数；小于 1 按 1 处理。
+  # 单动作最大目标数; 小于 1 按 1 处理
   max_targets_per_action: 16
   debug: false
 
-# JS 技能脚本扩展宿主。
+# JS 技能脚本扩展宿主
 scripts:
-  # false 时关闭脚本扫描与加载。
+  # false 时关闭脚本扫描与加载
   enabled: true
-  # 单次求值超时，单位毫秒；非正数回退 5000。
+  # 单次求值超时, 单位毫秒; 非正数回退 5000.
   timeout_ms: 5000
 
-# 主动触发器定义；incompatible_with 为空表示不声明互斥触发器。
+# 主动触发器定义; incompatible_with 为空表示不声明互斥触发器
 triggers:
   left_click:
     display_name: "[左键]"
@@ -134,20 +134,20 @@ triggers:
     display_name: "[数字键 9]"
     enabled: true
 
-# 主动触发器设置。
+# 主动触发器设置
 trigger_settings:
-  # 启用后仍分发已被 Bukkit 取消的事件；关闭可避免保护插件拦截后继续耗能或施法。
+  # 启用后仍分发已被 Bukkit 取消的事件; 关闭可避免保护插件拦截后继续耗能或施法
   legacy_dispatch_cancelled_events: false
 
-# 被动触发器设置。
+# 被动触发器设置
 passive_trigger_settings:
-  # timer 的检查间隔，单位：tick；小于 1 的值会按 1 处理。
+  # timer 的检查间隔, 单位: tick; 小于 1 的值会按 1 处理
   timer_interval_ticks: 20
-  # combo_attack 的超时，单位：tick；超时未攻击时重置连击计数。
+  # combo_attack 的超时, 单位: tick; 超时未攻击时重置连击计数
   combo_timeout_ticks: 60
 
-# 被动触发器定义。
-# 由技能文件的 passive_triggers 声明，玩家不能在 GUI 中修改。
+# 被动触发器定义
+# 由技能文件的 passive_triggers 声明, 玩家不能在 GUI 中修改
 passive_triggers:
   attack:
     display_name: "[攻击命中]"

@@ -20,13 +20,13 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class OffsetSource extends BaseSource {
 
     public OffsetSource() {
-        super("offset", "相对管道原点的位置偏移。",
+        super("offset", "相对管道原点的位置偏移.",
                 CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.optional("x", CoreStageParameterType.DOUBLE, "0", "X 偏移"),
                 CoreStageParameter.optional("y", CoreStageParameterType.DOUBLE, "0", "Y 偏移"),
                 CoreStageParameter.optional("z", CoreStageParameterType.DOUBLE, "0", "Z 偏移"),
                 CoreStageParameter.optional("relative", CoreStageParameterType.BOOLEAN, "false",
-                        "沿原点朝向偏移，而非世界坐标轴"));
+                        "沿原点朝向偏移, 而非世界坐标轴"));
     }
 
     @Override

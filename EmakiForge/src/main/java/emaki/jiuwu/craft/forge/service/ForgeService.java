@@ -321,16 +321,16 @@ public final class ForgeService {
                 task.run();
             } else if (executionDispatcher == null) {
                 future.completeExceptionally(new RejectedExecutionException(
-                        "Forge 准备需要执行调度器。"));
+                        "Forge 准备需要执行调度器."));
             } else {
                 var scheduled = player == null
                         ? executionDispatcher.runGlobal(plugin, task)
                         : executionDispatcher.runEntity(plugin, player, task,
                                 () -> future.completeExceptionally(new RejectedExecutionException(
-                                        "Forge 玩家准备在执行前已退役。")));
+                                        "Forge 玩家准备在执行前已退役.")));
                 if (scheduled == null) {
                     future.completeExceptionally(new RejectedExecutionException(
-                            "Forge 准备调度被拒绝。"));
+                            "Forge 准备调度被拒绝."));
                 }
             }
         } catch (Throwable throwable) {
@@ -430,7 +430,7 @@ public final class ForgeService {
             if (execution == null) {
                 permit.close();
                 return CompletableFuture.failedFuture(new IllegalStateException(
-                        "Forge 执行未返回完成 Future。"));
+                        "Forge 执行未返回完成 Future."));
             }
             return execution.whenComplete((ignored, throwable) -> permit.close());
         } catch (Throwable throwable) {

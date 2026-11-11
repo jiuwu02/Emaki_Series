@@ -1,4 +1,4 @@
-# EmakiStrengthen 条件源；空 entries 表示不增加配置条件，仅使用代码判定。
+# EmakiStrengthen 条件源; 空 entries 表示不增加配置条件, 仅使用代码判定
 
 enabled: true
 
@@ -6,5 +6,5 @@ source_id: "strengthen"
 
 condition:
   type: "all_of"
-  # true 时表达式解析失败视为不匹配；空 entries 不增加配置条件。
+  # true 时表达式解析失败视为不匹配; 空 entries 不增加配置条件
   invalid_as_failure: true

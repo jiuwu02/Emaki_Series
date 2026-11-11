@@ -5,10 +5,10 @@ import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Read-only view of one advancement page — the tab a group of advancements appears under.
+ * Read-only view of one advancement page — the tab a group of advancements appears under
  *
  * <p>The background texture path is not exposed: it is a client-side resource reference that carries no
- * meaning for server-side callers.
+ * meaning for server-side callers
  *
  * @param pageId       canonical lowercase page id
  * @param title        MiniMessage text of the page's title
@@ -22,7 +22,7 @@ public record CodexPageView(@NotNull String pageId,
                             @NotNull List<AdvancementView> advancements) {
 
     /**
-     * Normalises every reference component so no accessor can return {@code null}.
+     * Normalises every reference component so no accessor can return {@code null}
      *
      * @param pageId       canonical lowercase page id
      * @param title        MiniMessage title

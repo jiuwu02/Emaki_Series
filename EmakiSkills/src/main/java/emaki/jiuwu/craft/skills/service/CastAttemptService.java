@@ -562,7 +562,7 @@ public final class CastAttemptService {
                 CompletionStage<T> stage = task.get();
                 if (stage == null) {
                     future.completeExceptionally(new IllegalStateException(
-                            "施法实体域任务未返回完成阶段。"));
+                            "施法实体域任务未返回完成阶段."));
                     return;
                 }
                 stage.whenComplete((result, throwable) -> {
@@ -583,7 +583,7 @@ public final class CastAttemptService {
             }
             plugin.scheduling().runForEntity(plugin, player, operation,
                     () -> future.completeExceptionally(new RejectedExecutionException(
-                            "施法实体域任务在执行前已退役。")));
+                            "施法实体域任务在执行前已退役.")));
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }

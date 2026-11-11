@@ -19,10 +19,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class PartySource extends BaseSource {
 
     public PartySource() {
-        super("party", "拥有同一队伍权限节点的在线玩家。",
+        super("party", "拥有同一队伍权限节点的在线玩家.",
                 CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.required("permission", CoreStageParameterType.STRING,
-                        "队伍权限节点，如 emaki.party.alpha"));
+                        "队伍权限节点, 如 emaki.party.alpha"));
     }
 
     @Override

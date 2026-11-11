@@ -10,11 +10,11 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Provider for one item-source kind, including shorthand, creation, identification, display, probing,
- * and lifecycle state.
+ * and lifecycle state
  *
  * <p>{@link #identify}, {@link #create}, {@link #supports}, and {@link #probe} may run on any thread
  * and must not touch Bukkit world/entity state. Lifecycle hooks run on the server thread. Close the
- * {@link ItemSourceRegistration} on disable.
+ * {@link ItemSourceRegistration} on disable
  */
 public interface ItemSourceProvider {
 
@@ -26,14 +26,14 @@ public interface ItemSourceProvider {
      * {@return resolution priority, highest first}
      *
      * <p>CoreLib's built-in vanilla provider uses {@code 0} so anything else outranks it. Third-party
-     * providers should use {@code 100} or above.
+     * providers should use {@code 100} or above
      */
     int priority();
 
     /**
      * {@return claimed shorthand prefixes}
      *
-     * <p>Prefixes must be unique; matching uses longest-prefix-first.
+     * <p>Prefixes must be unique; matching uses longest-prefix-first
      */
     @NotNull
     Set<String> shorthandPrefixes();
@@ -43,7 +43,7 @@ public interface ItemSourceProvider {
      *
      * <p>Defaults to the longest declared prefix, which is the spelled-out one in every case this
      * repository ships ({@code minecraft-} over {@code mc-}, {@code craftengine-} over {@code ce-}).
-     * Override when that is not the canonical form for your source.
+     * Override when that is not the canonical form for your source
      */
     default @NotNull String canonicalShorthandPrefix() {
         return shorthandPrefixes().stream()
@@ -54,7 +54,7 @@ public interface ItemSourceProvider {
     }
 
     /**
-     * Writes a reference back into shorthand text.
+     * Writes a reference back into shorthand text
      *
      * @param ref the reference to write
      * @return the shorthand, or {@code null} when this provider cannot express it
@@ -68,11 +68,11 @@ public interface ItemSourceProvider {
     }
 
     /**
-     * Normalises the identifier portion of a shorthand this provider claimed.
+     * Normalises the identifier portion of a shorthand this provider claimed
      *
      * <p>Defaults to identity, because {@link ItemSourceRef} already trims, lower-cases and replaces
      * spaces. Override when the kind has its own rules &mdash; vanilla, for instance, rejects
-     * namespaced ids outright.
+     * namespaced ids outright
      *
      * @param identifier the raw identifier, already stripped of its prefix
      * @return the normalised identifier, or {@code null}/blank to reject it
@@ -83,12 +83,12 @@ public interface ItemSourceProvider {
 
     /**
      * Claims a reference. Rejection skips this provider's create/display/probe paths; {@code null}
-     * should return false. Runtime and linkage failures are treated as rejection.
+     * should return false. Runtime and linkage failures are treated as rejection
      */
     boolean supports(@Nullable ItemSourceRef ref);
 
     /**
-     * Recognises an existing stack as belonging to this source.
+     * Recognises an existing stack as belonging to this source
      *
      * @param itemStack the stack to inspect
      * @return the reference, or {@code null} when the stack is not from this source
@@ -97,7 +97,7 @@ public interface ItemSourceProvider {
     ItemSourceRef identify(@Nullable ItemStack itemStack);
 
     /**
-     * Builds a fresh item.
+     * Builds a fresh item
      *
      * @param ref the reference to build
      * @param amount the stack amount; implementations clamp to at least one
@@ -108,17 +108,17 @@ public interface ItemSourceProvider {
 
     /**
      * Supplies a MiniMessage name after {@link #supports} accepts the reference. {@code null}, blank,
-     * runtime failure, or linkage failure continues to lower-priority providers and CoreLib fallbacks.
+     * runtime failure, or linkage failure continues to lower-priority providers and CoreLib fallbacks
      */
     default @Nullable String displayName(@Nullable ItemSourceRef ref) {
         return null;
     }
 
     /**
-     * Reports whether a reference resolves right now, and why not when it does not.
+     * Reports whether a reference resolves right now, and why not when it does not
      *
      * <p>The default builds one item and reads the outcome, which is correct but does a real build.
-     * Override when the source can answer more cheaply.
+     * Override when the source can answer more cheaply
      *
      * @param ref the reference to probe
      * @return the outcome; never {@code null}
@@ -127,13 +127,13 @@ public interface ItemSourceProvider {
         String providerId = kind().key();
         if (!supports(ref)) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INVALID_SOURCE, ref, providerId,
-                    "该提供者不处理给定的物品来源。");
+                    "该提供者不处理给定的物品来源.");
         }
         try {
             ItemStack created = create(ref, 1);
             return created == null || created.getType().isAir()
                     ? ItemSourceProbeResult.of(ItemSourceProbeState.SOURCE_NOT_FOUND, ref, providerId,
-                            "该提供者在标识符下没有持有物品。")
+                            "该提供者在标识符下没有持有物品")
                     : ItemSourceProbeResult.ready(ref, providerId);
         } catch (LinkageError exception) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INCOMPATIBLE, ref, providerId,
@@ -148,14 +148,14 @@ public interface ItemSourceProvider {
      * {@return the plugin this provider reads items from, or an empty string when it needs none}
      *
      * <p>CoreLib matches this against {@code PluginEnableEvent} / {@code PluginDisableEvent} to drive
-     * the lifecycle hooks below.
+     * the lifecycle hooks below
      */
     default @NotNull String providerPluginName() {
         return "";
     }
 
     /**
-     * Called once at registration.
+     * Called once at registration
      *
      * @return the resulting lifecycle status
      */
@@ -165,7 +165,7 @@ public interface ItemSourceProvider {
 
     /**
      * Called when the backing plugin enables or signals completed item loading.
-     * {@code itemsLoaded} distinguishes those phases.
+     * {@code itemsLoaded} distinguishes those phases
      */
     default @NotNull LifecycleStatus onProviderReady(boolean itemsLoaded) {
         return LifecycleStatus.ready();

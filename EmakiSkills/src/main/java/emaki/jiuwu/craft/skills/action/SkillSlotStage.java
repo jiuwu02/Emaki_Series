@@ -23,11 +23,11 @@ public final class SkillSlotStage implements CoreActionStage {
 
     public enum Operation {
 
-        EQUIP("skill_equip", "将技能装配到目标的一个技能槽位中。"),
+        EQUIP("skill_equip", "将技能装配到目标的一个技能槽位中."),
 
-        UNEQUIP("skill_unequip", "清除目标的一个技能槽位。"),
+        UNEQUIP("skill_unequip", "清除目标的一个技能槽位."),
 
-        BIND("skill_bind", "将触发器绑定到目标的一个技能槽位。");
+        BIND("skill_bind", "将触发器绑定到目标的一个技能槽位.");
 
         private final String id;
         private final String description;

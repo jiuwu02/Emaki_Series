@@ -145,7 +145,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                 if (scheduled == null) {
                     failed.incrementAndGet();
                     refresh.completeExceptionally(new RejectedExecutionException(
-                            "Forge 玩家刷新调度被拒绝。"));
+                            "Forge 玩家刷新调度被拒绝."));
                 }
             } catch (Throwable throwable) {
                 failed.incrementAndGet();
@@ -319,7 +319,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                     Map.of("recipe", plan.recipe().id())
             );
             if (failOnRefreshError) {
-                throw new IllegalStateException("配方 '" + plan.recipe().id() + "' 的锻造物品组装失败。");
+                throw new IllegalStateException("配方 '" + plan.recipe().id() + "' 的锻造物品组装失败.");
             }
             return itemStack;
         }
@@ -329,7 +329,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
             debugForgeStateLoss(player, target, plan, stateLoss, itemStack, rebuilt);
             if (failOnRefreshError) {
                 throw new IllegalStateException("刷新配方 '"
-                        + plan.recipe().id() + "' 的锻造物品会丢弃持久化状态。");
+                        + plan.recipe().id() + "' 的锻造物品会丢弃持久化状态.");
             }
             return itemStack;
         }

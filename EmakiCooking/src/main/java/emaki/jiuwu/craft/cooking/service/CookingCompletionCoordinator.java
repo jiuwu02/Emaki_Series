@@ -121,7 +121,7 @@ public final class CookingCompletionCoordinator {
             operation = prepareOperation(request);
         } catch (Throwable error) {
             activeByStation.remove(stationKey, operationId);
-            logger.warning("[completion] 准备烹饪完成失败，位置 " + stationKey + ": " + rootCauseMessage(error));
+            logger.warning("[completion] 准备烹饪完成失败, 位置 " + stationKey + ": " + rootCauseMessage(error));
             return false;
         }
 
@@ -384,8 +384,8 @@ public final class CookingCompletionCoordinator {
             CookingCompletionOperation operation,
             Unit unit) {
         logger.warning("[completion] 放弃烹饪完成 " + operation.operationId()
-                + "，经 " + unit.attempts() + " 次尝试后所需物品栏输入始终不可用"
-                + " (未消耗任何物品，工位状态未变)");
+                + ", 经 " + unit.attempts() + " 次尝试后所需物品栏输入始终不可用"
+                + " (未消耗任何物品, 工位状态未变)");
         debugCompletion("station.completion_input_abandoned", Map.of(
                 "operation", operation.operationId(),
                 "station", operation.stationCoordinates().runtimeKey(),

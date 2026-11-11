@@ -1,16 +1,16 @@
 # ============================================================
-# EmakiForge 示例配方：护甲锻造（example_armor_forge）
+# EmakiForge 示例配方: 护甲锻造 (example_armor_forge)
 # ============================================================
-# 演示功能：
-#   1. 不同材料提供不同的 EmakiAttribute 属性（physical_defense / health / dodge_chance）
-#   2. 材料附带 EmakiSkills 技能（es_skill，多个技能 ID）
+# 演示功能:
+#   1. 不同材料提供不同的 EmakiAttribute 属性 (physical_defense / health / dodge_chance)
+#   2. 材料附带 EmakiSkills 技能 (es_skill, 多个技能 ID)
 #   3. 可选材料的名称前缀与 Lore 追加
-# 如何触发：
-#   安装 EmakiForge 后执行 /ef forge，放入 minecraft-book 作为图纸，
-#   再放铁锭、皮革与可选紫水晶碎片。
-# 依赖：
-#   EmakiAttribute / EmakiSkills 未安装时，ea_attribute 与 es_skill 效果会走空操作，
-#   锻造照常完成，只是不写入属性与技能；其余材料效果仍然生效。
+# 如何触发:
+#   安装 EmakiForge 后执行 /ef forge, 放入 minecraft-book 作为图纸,
+#   再放铁锭, 皮革与可选紫水晶碎片
+# 依赖:
+#   EmakiAttribute / EmakiSkills 未安装时, ea_attribute 与 es_skill 效果会走空操作,
+#   锻造照常完成, 只是不写入属性与技能; 其余材料效果仍然生效
 # ============================================================
 
 id: "example_armor_forge"
@@ -23,7 +23,7 @@ blueprint_requirements:
     amount: 1
 
 materials:
-  # ---- 必选材料：铁锭（物理防御）----
+  # ---- 必选材料: 铁锭 (物理防御)----
   - material_id: "armor_iron"
     count_key: "armor_iron"
     audit_id: "armor_iron"
@@ -45,7 +45,7 @@ materials:
             content:
               - "<gray>物理防御: <blue>+%physical_defense%</blue></gray>"
 
-  # ---- 必选材料：皮革（生命与闪避）----
+  # ---- 必选材料: 皮革 (生命与闪避)----
   - material_id: "armor_leather"
     count_key: "armor_leather"
     audit_id: "armor_leather"
@@ -63,7 +63,7 @@ materials:
           health: 4.0
           dodge_chance: 2.0
 
-  # ---- 可选材料：紫水晶碎片（生命、技能与名称前缀）----
+  # ---- 可选材料: 紫水晶碎片 (生命, 技能与名称前缀)----
   - material_id: "armor_amethyst"
     count_key: "armor_amethyst"
     audit_id: "armor_amethyst"
@@ -115,8 +115,8 @@ result:
 
 actions:
   pre:
-    - 'send_action_bar text="<gray>皮革与铁片正在成型……</gray>"'
+    - 'send_action_bar text="<gray>皮革与铁片正在成型...</gray>"'
   success:
     - "play_sound sound=BLOCK_ANVIL_USE volume=1 pitch=1"
   failure:
-    - 'send_message text="<red>锻造前置步骤失败，本次锻造已中止。</red>"'
+    - 'send_message text="<red>锻造前置步骤失败, 本次锻造已中止.</red>"'

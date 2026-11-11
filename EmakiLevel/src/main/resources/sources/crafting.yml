@@ -1,5 +1,5 @@
 # EmakiLevel 经验来源 - 合成
-# 工作台与合成类操作的经验来源定义。
+# 工作台与合成类操作的经验来源定义
 
 id: "crafting_sources"
 enabled: true
@@ -20,10 +20,10 @@ sources:
           - "minecraft-diamond_pickaxe"
           - "minecraft-diamond_sword"
         exp_formula: "40 * %result_amount%"
-      # 判定由同级 item_sources 与 matcher 共同决定，两者是 AND 关系。
-      # 只写 matcher 表示不限物品源，只看组件条件；两者都不写则该规则作为兜底命中一切。
-      # matcher 内禁止写物品源条件，物品源一律写在同级 item_sources。
-      # 组件命名空间缺省为 minecraft；operator 支持比较、字符串、regex、键值存在性和 size。
+      # 判定由同级 item_sources 与 matcher 共同决定, 两者是 AND 关系
+      # 只写 matcher 表示不限物品源, 只看组件条件; 两者都不写则该规则作为兜底命中一切
+      # matcher 内禁止写物品源条件, 物品源一律写在同级 item_sources
+      # 组件命名空间缺省为 minecraft; operator 支持比较, 字符串, regex, 键值存在性和 size
       - matcher:
           type: component
           component: enchantments

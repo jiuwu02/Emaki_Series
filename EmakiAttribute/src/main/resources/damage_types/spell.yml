@@ -1,4 +1,4 @@
-# 法术伤害流程；字段契约同 physical.yml。
+# 法术伤害流程; 字段契约同 physical.yml
 
 id: spell
 
@@ -54,4 +54,4 @@ recovery:
 attacker_message: "<gray>[<gold>%damage_type%</gold>]</gray> <green>你对 <white>%target%</white> 造成了 <yellow>%final_damage%</yellow> 点伤害</green>%critical_suffix%"
 target_message: "<gray>[<gold>%damage_type%</gold>]</gray> <red>%attacker%</red> 对你造成了 <yellow>%final_damage%</yellow> 点伤害%critical_suffix%"
 
-description: "Spell damage resolved entirely through Emaki attributes."
+description: "Spell damage resolved entirely through Emaki attributes"

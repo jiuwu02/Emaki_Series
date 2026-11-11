@@ -198,7 +198,7 @@ public final class DialogService {
             try {
                 handler.onSubmit(player, submission);
             } catch (RuntimeException exception) {
-                plugin.getLogger().warning("[dialog] 提交处理器执行失败，玩家 "
+                plugin.getLogger().warning("[dialog] 提交处理器执行失败, 玩家 "
                         + player.getName() + ": " + exception.getMessage());
             }
         };
@@ -240,7 +240,7 @@ public final class DialogService {
                     continue;
                 }
                 plugin.getLogger().warning("[dialog] " + definition.id()
-                        + ": 未知的物品来源 '" + body.item() + "'，跳过该 body 条目");
+                        + ": 未知的物品来源 '" + body.item() + "', 跳过该 body 条目");
                 continue;
             }
             if (body.width() > 0) {

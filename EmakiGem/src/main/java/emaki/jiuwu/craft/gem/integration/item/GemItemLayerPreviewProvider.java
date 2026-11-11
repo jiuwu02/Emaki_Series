@@ -50,11 +50,11 @@ public final class GemItemLayerPreviewProvider implements ItemLayerPreviewProvid
     public ItemLayerPreviewResult preview(ItemLayerPreviewRequest request) {
         ItemStack input = request == null ? null : request.currentItem();
         if (input == null || input.getType().isAir()) {
-            return ItemLayerPreviewResult.unavailable(LAYER_ID, "基础物品不可用。", Map.of(), Map.of());
+            return ItemLayerPreviewResult.unavailable(LAYER_ID, "基础物品不可用.", Map.of(), Map.of());
         }
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(input);
         if (itemDefinition == null) {
-            return ItemLayerPreviewResult.unavailable(LAYER_ID, "没有任何宝石模板匹配当前 EmakiItem。", Map.of(), Map.of());
+            return ItemLayerPreviewResult.unavailable(LAYER_ID, "没有任何宝石模板匹配当前 EmakiItem.", Map.of(), Map.of());
         }
         GemState state = plugin.stateService().resolveState(input, itemDefinition);
         Map<String, Object> requestOptions = request == null || request.options() == null ? Map.of() : request.options();
@@ -64,11 +64,11 @@ public final class GemItemLayerPreviewProvider implements ItemLayerPreviewProvid
                 : state.withAssignment(selection.slotIndex(), new GemItemInstance(selection.gem().id(), selection.level(), System.currentTimeMillis()));
         ItemStack preview = plugin.stateService().applyState(input.clone(), itemDefinition, previewState);
         if (preview == null || preview.getType().isAir()) {
-            return ItemLayerPreviewResult.unavailable(LAYER_ID, "宝石层预览重建失败。", details(itemDefinition, previewState, selection), options(itemDefinition, state, selection));
+            return ItemLayerPreviewResult.unavailable(LAYER_ID, "宝石层预览重建失败.", details(itemDefinition, previewState, selection), options(itemDefinition, state, selection));
         }
         String reason = selection.gem() == null
-                ? "已按真实宝石模板重建预览。"
-                : "已按真实宝石镶嵌层重建预览。";
+                ? "已按真实宝石模板重建预览"
+                : "已按真实宝石镶嵌层重建预览.";
         return ItemLayerPreviewResult.available(
                 LAYER_ID,
                 reason,

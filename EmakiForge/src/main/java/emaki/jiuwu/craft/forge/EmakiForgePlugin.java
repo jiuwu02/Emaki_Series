@@ -541,11 +541,11 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 || previous.status() == ForgeRuntimeStatus.CLOSING
                 || previous.status() == ForgeRuntimeStatus.CLOSED
                 || !isGenerationRequested(candidate.generation())) {
-            throw new IllegalStateException("Forge 运行时候选已不可安装。");
+            throw new IllegalStateException("Forge 运行时候选已不可安装.");
         }
         ForgeRuntimeComponents previousComponents = previous.components();
         if (previousComponents == null) {
-            throw new IllegalStateException("安装候选时 Forge 运行时组件不可用。");
+            throw new IllegalStateException("安装候选时 Forge 运行时组件不可用.");
         }
         EmakiCoreLibPlugin coreLibPlugin = coreLib();
         ForgeService nextForgeService = new ForgeService(
@@ -605,7 +605,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             nextForgeService.installLookupSnapshot(candidate.lookupSnapshot());
             if (!runtimeSnapshot.compareAndSet(previous, next)) {
-                throw new IllegalStateException("候选发布前 Forge 运行时已变化。");
+                throw new IllegalStateException("候选发布前 Forge 运行时已变化.");
             }
             committed = true;
             applyRuntimeFields(next);

@@ -146,7 +146,7 @@ final class ForgeExecutionService {
             result.setErrorKey("forge.error.item_create");
             result.setReplacements(Map.of());
             return finishFailureAsync(player, recipe, guiItems, result, runtimeGeneration,
-                    "无法准备锻造组装请求。");
+                    "无法准备锻造组装请求.");
         }
         result.setQuality(forgePlan.quality());
         result.setMultiplier(forgePlan.multiplier());
@@ -155,7 +155,7 @@ final class ForgeExecutionService {
             result.setErrorKey("forge.error.item_create");
             result.setReplacements(Map.of());
             return finishFailureAsync(player, recipe, guiItems, result, runtimeGeneration,
-                    "无法创建锻造结果物品。");
+                    "无法创建锻造结果物品.");
         }
         if (resultItemPostProcessor != null) {
             resultItemPostProcessor.process(player, recipe, guiItems, forgePlan, resultItem);
@@ -203,7 +203,7 @@ final class ForgeExecutionService {
                 result.setErrorKey("forge.error.action_failed");
                 result.setReplacements(Map.of("reason", Texts.toStringSafe(throwable.getMessage())));
                 return finishFailureAsync(player, recipe, guiItems, result, runtimeGeneration,
-                        "无法预留锻造结果发放。");
+                        "无法预留锻造结果发放.");
             }
         }
         ItemStack resultItem = itemTarget.itemStack();
@@ -215,14 +215,14 @@ final class ForgeExecutionService {
             result.setErrorKey("forge.error.item_create");
             result.setReplacements(Map.of("reason", Texts.toStringSafe(throwable.getMessage())));
             return finishFailureAsync(player, recipe, guiItems, result, runtimeGeneration,
-                    "锻造结果发放抛出异常。");
+                    "锻造结果发放抛出异常.");
         }
         if (!delivered) {
             releaseDeliveryReservation(deliveryReserved, deliveryRollback);
             result.setErrorKey("forge.error.item_create");
             result.setReplacements(Map.of());
             return finishFailureAsync(player, recipe, guiItems, result, runtimeGeneration,
-                    "无法发放锻造结果物品。");
+                    "无法发放锻造结果物品.");
         }
         result.setSuccess(true);
         result.setResultItem(resultItem);
@@ -267,7 +267,7 @@ final class ForgeExecutionService {
                 CompletionStage<ForgeResult> stage = operation.get();
                 if (stage == null) {
                     future.completeExceptionally(new IllegalStateException(
-                            "Forge 玩家所有者操作未返回完成阶段。"));
+                            "Forge 玩家所有者操作未返回完成阶段."));
                     return;
                 }
                 stage.whenComplete((value, throwable) -> {
@@ -288,9 +288,9 @@ final class ForgeExecutionService {
         try {
             var scheduled = executionDispatcher.runEntity(plugin, player, task,
                     () -> future.completeExceptionally(new RejectedExecutionException(
-                            "Forge 玩家所有者操作在执行前已退役。")));
+                            "Forge 玩家所有者操作在执行前已退役.")));
             if (scheduled == null) {
-                future.completeExceptionally(new RejectedExecutionException("Forge 玩家所有者调度被拒绝。"));
+                future.completeExceptionally(new RejectedExecutionException("Forge 玩家所有者调度被拒绝."));
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
@@ -323,9 +323,9 @@ final class ForgeExecutionService {
         try {
             var scheduled = executionDispatcher.runEntity(plugin, player, task,
                     () -> future.completeExceptionally(new RejectedExecutionException(
-                            "Forge 玩家所有者操作在执行前已退役。")));
+                            "Forge 玩家所有者操作在执行前已退役.")));
             if (scheduled == null) {
-                future.completeExceptionally(new RejectedExecutionException("Forge 玩家所有者调度被拒绝。"));
+                future.completeExceptionally(new RejectedExecutionException("Forge 玩家所有者调度被拒绝."));
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);

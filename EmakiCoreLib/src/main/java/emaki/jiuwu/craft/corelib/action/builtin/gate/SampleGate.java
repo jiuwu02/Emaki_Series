@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class SampleGate extends BaseGate {
 
     public SampleGate() {
-        super("sample", "随机抽取 count 个目标。",
+        super("sample", "随机抽取 count 个目标.",
                 CoreGateThread.PURE,
                 CoreStageParameter.positional("count", CoreStageParameterType.INTEGER,
                         "随机抽取的目标数量"));

@@ -1,10 +1,10 @@
 # ============================================================
 # EmakiCoreLib 对话框示例 - 多按钮商店
-# 演示：multi_action 多按钮、single_option / number_range 输入控件、
-#       command_template 点击动作与 $(key) 输入项替换。
-# 说明：对话框动作以玩家身份执行，示例使用原版 /give；
-#       实际运营时请替换成服务器的购买命令，并给对应权限。
-# 需要 Minecraft 1.21.6+ 客户端才能看到原版对话框。
+# 演示: multi_action 多按钮, single_option / number_range 输入控件,
+#       command_template 点击动作与 $(key) 输入项替换
+# 说明: 对话框动作以玩家身份执行, 示例使用原版 /give;
+#       实际运营时请替换成服务器的购买命令, 并给对应权限
+# 需要 Minecraft 1.21.6+ 客户端才能看到原版对话框
 # ============================================================
 id: "example_shop"
 
@@ -16,8 +16,8 @@ after_action: "close"
 columns: 2
 
 body:
-  - "<gray>选择商品和数量，然后点击购买。</gray>"
-  - text: "<yellow>示例商品会在购买后直接发放。</yellow>"
+  - "<gray>选择商品和数量, 然后点击购买.</gray>"
+  - text: "<yellow>示例商品会在购买后直接发放.</yellow>"
     width: 320
 
 # 输入控件的 key 会作为 command_template 中 $(key) 的取值来源

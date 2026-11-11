@@ -51,7 +51,7 @@ public final class EmakiEventBus {
             try {
                 ((EventSubscription<T>) subscription).dispatch(event);
             } catch (Exception exception) {
-                LOGGER.warning("[event] 事件处理器抛出异常，事件 " + event.eventType() + ": " + exception.getMessage());
+                LOGGER.warning("[event] 事件处理器抛出异常, 事件 " + event.eventType() + ": " + exception.getMessage());
             }
         }
     }

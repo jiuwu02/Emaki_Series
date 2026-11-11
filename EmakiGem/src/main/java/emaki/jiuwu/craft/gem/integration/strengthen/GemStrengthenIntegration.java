@@ -88,7 +88,7 @@ public final class GemStrengthenIntegration {
         } catch (RuntimeException | LinkageError exception) {
             if (plugin.getLogger() != null) {
                 plugin.getLogger().log(Level.WARNING,
-                        "[integration] 注册 gem 强化目标 Provider 失败；宝石升级将无法通过强化框架执行", exception);
+                        "[integration] 注册 gem 强化目标 Provider 失败; 宝石升级将无法通过强化框架执行", exception);
             }
         }
     }

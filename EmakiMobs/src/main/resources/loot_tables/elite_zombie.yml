@@ -5,13 +5,13 @@
 mob_id: elite_zombie
 
 pools:
-  # 主掉落池：普通材料
+  # 主掉落池: 普通材料
   main:
     rolls: 1          # 每次死亡在本池中随机抽取 1 次
     entries:
       rotten_flesh:
         item: "minecraft:rotten_flesh"
-        weight: 10    # 权重越高，抽到概率越大
+        weight: 10    # 权重越高, 抽到概率越大
         functions:
           count:
             type: set_count
@@ -44,14 +44,14 @@ pools:
               min: 1
               max: 2
 
-  # 稀有掉落池：精英装备（概率过滤）
+  # 稀有掉落池: 精英装备 (概率过滤)
   rare:
     rolls: 1
     entries:
       iron_sword:
         item: "minecraft:iron_sword"
         weight: 1
-        # chance: 在此条目被选中的前提下，额外的概率过滤（0.0~1.0）
+        # chance: 在此条目被选中的前提下, 额外的概率过滤 (0.0~1.0)
         chance: 0.15
         functions:
           count:

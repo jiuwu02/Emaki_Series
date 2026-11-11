@@ -28,10 +28,10 @@ public final class WhereAnyGate extends BaseGate {
     private final TargetConditionEvaluator evaluator;
 
     public WhereAnyGate(TargetFactsReader factsReader, TargetConditionEvaluator evaluator) {
-        super("where_any", "只保留满足任一谓词的目标；谓词以 || 分隔。",
+        super("where_any", "只保留满足任一谓词的目标; 谓词以 || 分隔.",
                 CoreGateThread.NEEDS_ENTITY_READ,
                 CoreStageParameter.positional("conditions", CoreStageParameterType.STRING,
-                        "多个谓词，|| 分隔，如 'health_percent<=50 || dead'"));
+                        "多个谓词, || 分隔, 如 'health_percent<=50 || dead'"));
         this.factsReader = factsReader;
         this.evaluator = evaluator;
     }

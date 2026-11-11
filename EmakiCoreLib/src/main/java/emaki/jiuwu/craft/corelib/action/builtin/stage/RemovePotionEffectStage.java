@@ -20,7 +20,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class RemovePotionEffectStage extends BaseStage {
 
     public RemovePotionEffectStage() {
-        super("remove_potion_effect", "entity", "移除目标的一个药水效果。",
+        super("remove_potion_effect", "entity", "移除目标的一个药水效果.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("type", CoreStageParameterType.STRING, "效果类型"));
     }

@@ -59,7 +59,7 @@ public final class ItemComponentInspector {
     public ComponentValueParseResult parseComponentValue(String rawValue) {
         String value = Texts.toStringSafe(rawValue).trim();
         if (value.isEmpty()) {
-            return ComponentValueParseResult.failure("组件值不能为空。");
+            return ComponentValueParseResult.failure("组件值不能为空.");
         }
         String unquoted = ComponentValueParser.unquote(value);
         String candidate = unquoted == null ? value : unquoted;
@@ -71,7 +71,7 @@ public final class ItemComponentInspector {
             return ComponentValueParseResult.success(unquoted);
         }
         if (looksStructured(value)) {
-            return ComponentValueParseResult.failure("结构化组件值格式错误。");
+            return ComponentValueParseResult.failure("结构化组件值格式错误.");
         }
         Object scalar = ComponentValueParser.parseScalar(value);
         return ComponentValueParseResult.success(scalar == ComponentValueParser.INVALID ? value : scalar);

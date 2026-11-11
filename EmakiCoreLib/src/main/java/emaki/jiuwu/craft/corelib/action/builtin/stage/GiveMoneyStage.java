@@ -10,7 +10,7 @@ import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 public final class GiveMoneyStage extends MoneyStage {
 
     public GiveMoneyStage(EconomyManager economyManager, ActionAuditLogger auditLogger) {
-        super("give_money", "为目标余额增加金钱。", economyManager,
+        super("give_money", "为目标余额增加金钱.", economyManager,
                 auditLogger, OperationType.INCREASE, false);
     }
 

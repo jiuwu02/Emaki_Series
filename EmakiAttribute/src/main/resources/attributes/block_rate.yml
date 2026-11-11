@@ -1,5 +1,5 @@
-# 格挡率仅在 shield.mode=attribute 时生效；block_reduction 决定触发后的减伤。
-# 基线来自 default_profile.attributes；有效值为 0 时格挡永不触发。
+# 格挡率仅在 shield.mode=attribute 时生效; block_reduction 决定触发后的减伤
+# 基线来自 default_profile.attributes; 有效值为 0 时格挡永不触发
 
 id: block_rate
 
@@ -25,4 +25,4 @@ lore_format_id: default_percent
 
 attribute_power: 1.0
 
-description: "Chance to block while raising a shield."
+description: "Chance to block while raising a shield"

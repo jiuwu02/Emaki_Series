@@ -20,10 +20,10 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 public final class FactionMembersSource extends BaseSource {
 
     public FactionMembersSource() {
-        super("faction_members", "指定阵营成员中的在线玩家。",
+        super("faction_members", "指定阵营成员中的在线玩家.",
                 CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.required("member", CoreStageParameterType.STRING,
-                        "成员玩家名列表，逗号分隔"));
+                        "成员玩家名列表, 逗号分隔"));
     }
 
     @Override

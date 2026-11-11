@@ -76,7 +76,7 @@ public final class AccessoryDataFile {
         String migratedPage = defaultPage();
         if (legacySlots != null && Texts.isBlank(migratedPage)) {
             warn("[persistence] 无法迁移玩家 " + playerId
-                    + " 的饰品数据: 未配置任何饰品页，文件保持原样");
+                    + " 的饰品数据: 未配置任何饰品页, 文件保持原样");
             accessories.installLoaded(Map.of(), "");
             applyName(accessories, playerName, storedName);
             return accessories;
@@ -92,7 +92,7 @@ public final class AccessoryDataFile {
             return accessories;
         }
         warn("[persistence] 无法识别玩家 " + playerId
-                + " 的饰品数据结构；文件保持原样，本次会话从空数据开始");
+                + " 的饰品数据结构; 文件保持原样, 本次会话从空数据开始");
         accessories.installLoaded(Map.of(), defaultPage());
         applyName(accessories, playerName, storedName);
         return accessories;

@@ -15,10 +15,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetWalkSpeedStage extends BaseStage {
 
     public SetWalkSpeedStage() {
-        super("set_walk_speed", "player", "设置玩家行走速度。",
+        super("set_walk_speed", "player", "设置玩家行走速度.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("speed", CoreStageParameterType.DOUBLE,
-                        "行走速度，范围 -1.0 至 1.0"));
+                        "行走速度, 范围 -1.0 至 1.0"));
     }
 
     @Override

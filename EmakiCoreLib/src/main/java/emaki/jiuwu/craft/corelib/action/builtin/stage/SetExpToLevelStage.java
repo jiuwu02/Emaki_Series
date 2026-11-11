@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetExpToLevelStage extends BaseStage {
 
     public SetExpToLevelStage() {
-        super("set_exp_to_level", "player", "直接设置玩家经验条百分比。",
+        super("set_exp_to_level", "player", "直接设置玩家经验条百分比.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("percent",
                         CoreStageParameterType.INTEGER, "经验条百分比 0-100"));

@@ -432,7 +432,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                     plugin.messageService().info("console.sets_loaded", Map.of("count", plugin.setLoader().all().size()));
                 }
                 if (reloadAllowed(allowed)) {
-                    notifyProgress(progressListener, "重载完成。");
+                    notifyProgress(progressListener, "重载完成.");
                 }
                 return null;
             });

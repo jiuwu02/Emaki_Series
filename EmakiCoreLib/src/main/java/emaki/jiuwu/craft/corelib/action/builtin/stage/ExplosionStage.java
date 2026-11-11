@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class ExplosionStage extends BaseStage {
 
     public ExplosionStage() {
-        super("explosion", "world", "在目标位置制造一次爆炸。",
+        super("explosion", "world", "在目标位置制造一次爆炸.",
                 CoreTargetRequirement.REQUIRED_ANY, CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.optional("power", CoreStageParameterType.DOUBLE, "0", "爆炸威力"),
                 CoreStageParameter.optional("fire", CoreStageParameterType.BOOLEAN, "false", "点燃火焰"),

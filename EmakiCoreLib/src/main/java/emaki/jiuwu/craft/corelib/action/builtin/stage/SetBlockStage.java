@@ -25,7 +25,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 public final class SetBlockStage extends BaseStage {
 
     public SetBlockStage() {
-        super("set_block", "world", "设置目标位置的方块。",
+        super("set_block", "world", "设置目标位置的方块.",
                 CoreTargetRequirement.REQUIRED_ANY, CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.optional("material", CoreStageParameterType.STRING, "", "方块材质"),
                 CoreStageParameter.optional("block_data", CoreStageParameterType.STRING, "",

@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetVelocityStage extends BaseStage {
 
     public SetVelocityStage() {
-        super("set_velocity", "movement", "设置实体速度向量。",
+        super("set_velocity", "movement", "设置实体速度向量.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("x", CoreStageParameterType.DOUBLE, "X 速度"),
                 CoreStageParameter.required("y", CoreStageParameterType.DOUBLE, "Y 速度"),

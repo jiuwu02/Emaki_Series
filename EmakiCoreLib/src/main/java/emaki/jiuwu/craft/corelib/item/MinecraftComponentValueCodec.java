@@ -30,7 +30,7 @@ public final class MinecraftComponentValueCodec {
             if (value == null || Boolean.TRUE.equals(value) || value instanceof Map<?, ?> map && map.isEmpty()) {
                 return "{}";
             }
-            throw new IllegalArgumentException("非值组件 " + componentId + " 只接受 true、null 或空 map。");
+            throw new IllegalArgumentException("非值组件 " + componentId + " 只接受 true, null 或空 map.");
         }
         if ("minecraft:custom_name".equals(componentId) || "minecraft:item_name".equals(componentId)) {
             return encodeTextComponent(value);
@@ -94,7 +94,7 @@ public final class MinecraftComponentValueCodec {
         if (value instanceof Number number) {
             if (number instanceof Double doubleValue && !Double.isFinite(doubleValue)
                     || number instanceof Float floatValue && !Float.isFinite(floatValue)) {
-                throw new IllegalArgumentException("组件数值必须是有限数。");
+                throw new IllegalArgumentException("组件数值必须是有限数.");
             }
             return number.toString();
         }
@@ -102,7 +102,7 @@ public final class MinecraftComponentValueCodec {
             if (map.size() == 1 && map.containsKey("$snbt")) {
                 Object raw = map.get("$snbt");
                 if (!(raw instanceof String text) || text.isBlank()) {
-                    throw new IllegalArgumentException("$snbt 必须包含非空字符串。");
+                    throw new IllegalArgumentException("$snbt 必须包含非空字符串.");
                 }
                 return text;
             }
@@ -111,7 +111,7 @@ public final class MinecraftComponentValueCodec {
             while (iterator.hasNext()) {
                 Map.Entry<?, ?> entry = iterator.next();
                 if (entry.getKey() == null) {
-                    throw new IllegalArgumentException("组件 map 不能包含 null 键。");
+                    throw new IllegalArgumentException("组件 map 不能包含 null 键.");
                 }
                 builder.append(quote(String.valueOf(entry.getKey())))
                         .append(':')
@@ -153,7 +153,7 @@ public final class MinecraftComponentValueCodec {
             }
         } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
             if (gsonWarningLogged.compareAndSet(false, true)) {
-                LOGGER.warning("[component] Adventure GsonComponentSerializer 不可用，回退为纯文本"
+                LOGGER.warning("[component] Adventure GsonComponentSerializer 不可用, 回退为纯文本"
                         + "组件编码: " + describe(exception));
             }
         }

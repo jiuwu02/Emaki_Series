@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 
 /**
- * Immutable input supplied to an action execution request.
+ * Immutable input supplied to an action execution request
  *
  * <p>The origin is copied independently and is never derived from a live entity while this object is
  * built. Variable names are trimmed and normalised with {@link Locale#ROOT}; typed data is validated
@@ -84,7 +84,7 @@ public final class CoreActionExecutionContext {
     }
 
     /**
-     * Reads a pipeline variable by its normalised name.
+     * Reads a pipeline variable by its normalised name
      *
      * @param name variable name without the {@code %var.} prefix
      * @return the value, empty when the name is blank or absent
@@ -95,7 +95,7 @@ public final class CoreActionExecutionContext {
     }
 
     /**
-     * Reads one typed context value.
+     * Reads one typed context value
      *
      * @param key context key
      * @param <T> value type
@@ -162,7 +162,7 @@ public final class CoreActionExecutionContext {
         Map<CoreActionKey<?>, Object> copy = new LinkedHashMap<>();
         source.forEach((key, value) -> {
             if (key == null || value == null || !key.type().isInstance(value)) {
-                throw new IllegalArgumentException("执行上下文数据与其类型化 key 不匹配。");
+                throw new IllegalArgumentException("执行上下文数据与其类型化 key 不匹配.");
             }
             copy.put(key, value);
         });
@@ -184,7 +184,7 @@ public final class CoreActionExecutionContext {
         }
 
         /**
-         * Sets the subject that requested the execution.
+         * Sets the subject that requested the execution
          *
          * @param value caster subject; {@code null} selects {@code Absent}
          * @return this builder
@@ -195,7 +195,7 @@ public final class CoreActionExecutionContext {
         }
 
         /**
-         * Sets a live entity as the execution caster without reading its location.
+         * Sets a live entity as the execution caster without reading its location
          *
          * @param value caster entity; {@code null} selects {@code Absent}
          * @return this builder
@@ -206,7 +206,7 @@ public final class CoreActionExecutionContext {
         }
 
         /**
-         * Replaces the initial target flow.
+         * Replaces the initial target flow
          *
          * @param values target subjects
          * @return this builder
@@ -217,7 +217,7 @@ public final class CoreActionExecutionContext {
         }
 
         /**
-         * Sets the explicit spatial origin.
+         * Sets the explicit spatial origin
          *
          * @param value origin, or {@code null} to leave it absent
          * @return this builder
@@ -229,7 +229,7 @@ public final class CoreActionExecutionContext {
 
 
         /**
-         * Sets the execution phase.
+         * Sets the execution phase
          *
          * @param value phase name; blank values select {@code default}
          * @return this builder
@@ -240,7 +240,7 @@ public final class CoreActionExecutionContext {
         }
 
         /**
-         * Sets whether player-facing feedback should be suppressed.
+         * Sets whether player-facing feedback should be suppressed
          *
          * @param value whether feedback is suppressed
          * @return this builder
@@ -251,7 +251,7 @@ public final class CoreActionExecutionContext {
         }
 
         /**
-         * Replaces all pipeline variables.
+         * Replaces all pipeline variables
          *
          * @param values variables keyed without the {@code %var.} prefix
          * @return this builder
@@ -262,7 +262,7 @@ public final class CoreActionExecutionContext {
         }
 
         /**
-         * Adds or replaces one pipeline variable.
+         * Adds or replaces one pipeline variable
          *
          * @param name variable name without the {@code %var.} prefix
          * @param value variable value; {@code null} removes the variable
@@ -283,7 +283,7 @@ public final class CoreActionExecutionContext {
         }
 
         /**
-         * Replaces all typed context data.
+         * Replaces all typed context data
          *
          * @param values typed values
          * @return this builder
@@ -295,7 +295,7 @@ public final class CoreActionExecutionContext {
         }
 
         /**
-         * Adds or replaces one typed context value.
+         * Adds or replaces one typed context value
          *
          * @param key context key
          * @param value value matching the key's declared type
@@ -305,7 +305,7 @@ public final class CoreActionExecutionContext {
          */
         public <T> @NotNull Builder data(@NotNull CoreActionKey<T> key, @NotNull T value) {
             if (key == null || value == null || !key.type().isInstance(value)) {
-                throw new IllegalArgumentException("执行上下文数据与其类型化 key 不匹配。");
+                throw new IllegalArgumentException("执行上下文数据与其类型化 key 不匹配.");
             }
             Map<CoreActionKey<?>, Object> copy = new LinkedHashMap<>(data);
             copy.put(key, value);

@@ -1,8 +1,8 @@
 # ============================================================
 # EmakiSkills 被动技能示例 - 连击终结技
 # ============================================================
-# combo_attack 每次攻击累加计数；超过 combo_timeout_ticks 未攻击即重置。
-# 触发时提供 %combo_count% 变量。
+# combo_attack 每次攻击累加计数; 超过 combo_timeout_ticks 未攻击即重置
+# 触发时提供 %combo_count% 变量
 # ============================================================
 
 id: "combo_finisher"
@@ -32,18 +32,18 @@ condition:
   entries:
     - "%combo_count% >= 5"
 
-# 冷却时间（tick，20 tick = 1 秒）
+# 冷却时间 (tick, 20 tick = 1 秒)
 cooldown_ticks: 100
 
 # ============================================================
 # 技能脚本
 # ============================================================
-# combo_attack 以刚被攻击的实体为目标与范围中心；inherited 读取该目标。
-# nearby 使用球形范围且默认不含玩家。
+# combo_attack 以刚被攻击的实体为目标与范围中心; inherited 读取该目标
+# nearby 使用球形范围且默认不含玩家
 script:
   actions:
     cast:
       - "nearby radius=4 limit=20 | damage amount=20"
       - "inherited | spawn_particle particle=explosion count=5"
       - "self | play_sound sound=minecraft:entity.generic.explode volume=1 pitch=0.8"
-      - "send_message text='<red>连击终结！</red>'"
+      - "send_message text='<red>连击终结!</red>'"

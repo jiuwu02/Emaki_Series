@@ -40,7 +40,7 @@ public final class RunRecipeRewardStage implements CoreActionStage {
 
     @Override
     public @NotNull String description() {
-        return "向目标发放已配置的配方结果。";
+        return "向目标发放已配置的配方结果.";
     }
 
     @Override
@@ -53,9 +53,9 @@ public final class RunRecipeRewardStage implements CoreActionStage {
         return List.of(
                 CoreStageParameter.required("recipe", CoreStageParameterType.STRING, "配方 ID"),
                 CoreStageParameter.optional("station", CoreStageParameterType.STRING, "",
-                        "工位目录名；留空则搜索所有工位"),
+                        "工位目录名; 留空则搜索所有工位"),
                 CoreStageParameter.optional("outcome", CoreStageParameterType.STRING, "success",
-                        "结果名称或路径，例如 success 或 result.perfect"),
+                        "结果名称或路径, 例如 success 或 result.perfect"),
                 CoreStageParameter.optional("drop_result", CoreStageParameterType.BOOLEAN, "false",
                         "在目标处掉落输出而非直接给予"),
                 CoreStageParameter.optional("include_outputs", CoreStageParameterType.BOOLEAN, "true",

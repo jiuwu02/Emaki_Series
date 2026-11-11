@@ -1,17 +1,17 @@
 # ============================================================
 # EmakiCooking 物品展示调整 - 金苹果
 # ============================================================
-# 文件名格式为“提供者-物品 ID.yml”，实际匹配以文件内 item_sources 为准。
-# item_adjustments 只支持展示参数：adjustment 或 stations.<工位> 下的
-# offset / rotation / scale；营养与药水效果请配在 config.yml 的
-# nutrition.food_sources，不要写进本文件。
-# 字段依据：docs/modules/cooking/stations.md 的「物品展示调整」章节。
+# 文件名格式为"提供者-物品 ID.yml", 实际匹配以文件内 item_sources 为准
+# item_adjustments 只支持展示参数: adjustment 或 stations.<工位> 下的
+# offset / rotation / scale; 营养与药水效果请配在 config.yml 的
+# nutrition.food_sources, 不要写进本文件
+# 字段依据: docs/modules/cooking/stations.md 的"物品展示调整"章节
 # ============================================================
 
 item_sources:
   - "minecraft-golden_apple"
 
-# 共享调整：省略时也可直接从文件根读取 offset / rotation / scale。
+# 共享调整: 省略时也可直接从文件根读取 offset / rotation / scale
 adjustment:
   offset:
     x: 0.5
@@ -26,7 +26,7 @@ adjustment:
     y: 0.58
     z: 0.58
 
-# 按工位覆盖，优先级高于共享 adjustment。
+# 按工位覆盖, 优先级高于共享 adjustment
 stations:
   oven:
     offset:

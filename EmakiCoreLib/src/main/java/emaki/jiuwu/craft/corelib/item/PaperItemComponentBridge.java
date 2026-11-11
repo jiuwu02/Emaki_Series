@@ -97,7 +97,7 @@ final class PaperItemComponentBridge {
         String encoded = codec.encode(componentId, value, type instanceof DataComponentType.NonValued);
         ItemStack decoded = parseItemStack(materialId + "[" + componentId + "=" + encoded + "]");
         if (decoded == null || !decoded.isDataOverridden(type)) {
-            throw new IllegalArgumentException("原版解析器未产生被覆盖的值。");
+            throw new IllegalArgumentException("原版解析器未产生被覆盖的值.");
         }
         target.copyDataFrom(decoded, candidate -> candidate.equals(type));
     }
@@ -120,7 +120,7 @@ final class PaperItemComponentBridge {
                 addType(destination, value);
             }
         } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
-            LOGGER.warning("[component] 静态 Paper 数据组件发现失败，回退为仅使用注册表发现: "
+            LOGGER.warning("[component] 静态 Paper 数据组件发现失败, 回退为仅使用注册表发现: "
                     + message(exception));
         }
     }
@@ -135,7 +135,7 @@ final class PaperItemComponentBridge {
                 }
             }
         } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
-            LOGGER.warning("[component] 基于注册表的 Paper 数据组件发现失败，组件支持可能不完整: "
+            LOGGER.warning("[component] 基于注册表的 Paper 数据组件发现失败, 组件支持可能不完整: "
                     + message(exception));
         }
     }

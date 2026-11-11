@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class ExtinguishStage extends BaseStage {
 
     public ExtinguishStage() {
-        super("extinguish", "entity", "扑灭目标身上的火焰。",
+        super("extinguish", "entity", "扑灭目标身上的火焰.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY);
     }
 

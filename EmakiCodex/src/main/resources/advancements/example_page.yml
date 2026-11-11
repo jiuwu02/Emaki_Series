@@ -1,30 +1,30 @@
-# EmakiCodex 示例成就页。
-# 成就键为 emakicodex:<page_id>/<节点ID>，可由命令、CoreLib 动作或事件触发器授予。
-# 坐标仅在 PacketEvents 可用且 packet-coordinates 启用时生效；x/y 同为 0 表示未指定。
-# trigger.condition 省略时事件即命中；同一节点多个 trigger 为 OR。
-# 条件变量先替换再求值；所有事件提供 %player% 和 %world%，依赖事件仅在对应插件可用时触发。
+# EmakiCodex 示例成就页
+# 成就键为 emakicodex:<page_id>/<节点ID>, 可由命令, CoreLib 动作或事件触发器授予
+# 坐标仅在 PacketEvents 可用且 packet-coordinates 启用时生效; x/y 同为 0 表示未指定
+# trigger.condition 省略时事件即命中; 同一节点多个 trigger 为 OR
+# 条件变量先替换再求值; 所有事件提供 %player% 和 %world%, 依赖事件仅在对应插件可用时触发
 # ============================================================
 
-# 成就页 id（也作为成就 key 的路径前缀）
+# 成就页 id (也作为成就 key 的路径前缀)
 page_id: "example"
 
-# 标签页标题（MiniMessage）
+# 标签页标题 (MiniMessage)
 title: "<gradient:#F59E0B:#EC4899>图鉴示例</gradient>"
 
-# 背景材质路径（支持资源包路径）
+# 背景材质路径 (支持资源包路径)
 background: "minecraft:textures/gui/advancements/backgrounds/adventure.png"
 
-# 根成就的本地 id（对应下方 advancements 中的 key）
+# 根成就的本地 id (对应下方 advancements 中的 key)
 root: "root"
 
 advancements:
   root:
     icon: "minecraft-enchanted_book"
     title: "<gold>图鉴之路</gold>"
-    description: "<gray>开启你的探索之旅。</gray>"
+    description: "<gray>开启你的探索之旅.</gray>"
     frame: "task"
     # 根成就不写 parent
-    # 坐标（需 PacketEvents）：根节点在最左，纵向居中
+    # 坐标 (需 PacketEvents): 根节点在最左, 纵向居中
     x: 0.0
     y: 1.0
     toast: false
@@ -34,20 +34,20 @@ advancements:
   first_step:
     icon: "minecraft-crafting_table"
     title: "<yellow>初次尝试</yellow>"
-    description: "<gray>迈出探索的第一步。</gray>"
+    description: "<gray>迈出探索的第一步.</gray>"
     frame: "task"
     parent: "root"
-    # 坐标（需 PacketEvents）：根节点右侧一格
+    # 坐标 (需 PacketEvents): 根节点右侧一格
     x: 1.0
     y: 1.0
     toast: true
     announce: false
     hidden: false
-    # 完成时执行 corelib action：给玩家发消息
+    # 完成时执行 corelib action: 给玩家发消息
     actions:
       complete:
-        - "send_message text=<green>你迈出了图鉴之路的第一步！</green>"
-    # 事件触发：合成一个工作台即达成
+        - "send_message text=<green>你迈出了图鉴之路的第一步!</green>"
+    # 事件触发: 合成一个工作台即达成
     triggers:
       entries:
         - event: "craft_item"
@@ -59,20 +59,20 @@ advancements:
   challenge:
     icon: "minecraft-nether_star"
     title: "<light_purple>终极挑战</light_purple>"
-    description: "<gray>完成一项艰巨的挑战。</gray>"
+    description: "<gray>完成一项艰巨的挑战.</gray>"
     frame: "challenge"
     parent: "root"
-    # 坐标（需 PacketEvents）：再向右一格
+    # 坐标 (需 PacketEvents): 再向右一格
     x: 2.0
     y: 1.0
     toast: true
     announce: true
-    # 默认可见（未完成也在 GUI 中显示）
+    # 默认可见 (未完成也在 GUI 中显示)
     hidden: false
     actions:
       complete:
-        - "send_message text=<gold>恭喜达成终极挑战！</gold>"
-    # 事件触发：击杀凋灵或末影龙任意其一即达成
+        - "send_message text=<gold>恭喜达成终极挑战!</gold>"
+    # 事件触发: 击杀凋灵或末影龙任意其一即达成
     triggers:
       entries:
         - event: "entity_kill"

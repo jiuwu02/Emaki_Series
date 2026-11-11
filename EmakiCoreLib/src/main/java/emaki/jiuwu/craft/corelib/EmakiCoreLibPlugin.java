@@ -690,7 +690,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                 }
             }
         }, this);
-        getLogger().info("[gui] PacketEvents 尚未启用；在其启用后会自动注册 packet GUI 后端");
+        getLogger().info("[gui] PacketEvents 尚未启用; 在其启用后会自动注册 packet GUI 后端");
     }
 
     private void registerPacketBackend() { new EmakiCoreLibPluginDelegate(this).registerPacketBackend(); }

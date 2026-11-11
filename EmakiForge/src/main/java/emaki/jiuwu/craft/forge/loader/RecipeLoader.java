@@ -395,7 +395,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         }
         if (!SUPPORTED_CONDITION_TYPES.contains(Texts.lower(recipe.conditionType()))) {
             recordIssue(file, recipe.id(), "condition.type", IssueSeverity.ERROR, "INVALID_CONDITION_MODE",
-                    "不支持的 condition 模式 '" + recipe.conditionType() + "'，允许值: "
+                    "不支持的 condition 模式 '" + recipe.conditionType() + "', 允许值: "
                             + String.join(", ", SUPPORTED_CONDITION_TYPES), true, null, null);
             skipped++;
             return null;
@@ -488,7 +488,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                 return false;
             }
             recordIssue(file, recipeId, path + ".item_sources", IssueSeverity.WARNING, "OUTPUT_LEGACY_SOURCE",
-                    "接受旧 item_sources；请迁移到 item_source", false, null, null);
+                    "接受旧 item_sources; 请迁移到 item_source", false, null, null);
         }
         return true;
     }
@@ -510,7 +510,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             }
             if (ConfigNodes.get(entry, "item_sources") == null && ConfigNodes.get(entry, "matcher") == null) {
                 recordIssue(file, recipeId, path, IssueSeverity.ERROR, "MATERIAL_MATCH_EMPTY",
-                        "材料必须声明 item_sources、matcher 或两者都声明", true, null, null);
+                        "材料必须声明 item_sources, matcher 或两者都声明", true, null, null);
                 return false;
             }
             String materialId = normalizedIdentity(entry, "material_id", "count_key", "audit_id");
@@ -530,7 +530,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                     || optional != materialOptional.get(materialId))) {
                 recordIssue(file, recipeId, path, IssueSeverity.ERROR, "MATERIAL_IDENTITY_CONFLICT",
                         "material_id '" + materialId
-                                + "' 的所有形式必须使用相同的 count_key、audit_id、amount 与 optional 标志",
+                                + "' 的所有形式必须使用相同的 count_key, audit_id, amount 与 optional 标志",
                         true, null, null);
                 return false;
             }
@@ -558,7 +558,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             }
             if (ConfigNodes.get(entry, "item_sources") == null && ConfigNodes.get(entry, "matcher") == null) {
                 recordIssue(file, recipeId, path, IssueSeverity.ERROR, "BLUEPRINT_MATCH_EMPTY",
-                        "图纸需求必须声明 item_sources、matcher 或两者都声明",
+                        "图纸需求必须声明 item_sources, matcher 或两者都声明",
                         true, null, null);
                 return false;
             }
@@ -590,7 +590,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         ActionEngine engine = actionEngineSupplier == null ? null : actionEngineSupplier.get();
         if (engine == null) {
             recordIssue(file, recipe.id(), "actions", IssueSeverity.WARNING, "ACTION_VALIDATION_SKIPPED",
-                    "EmakiCoreLib 操作管线不可用，已跳过操作校验",
+                    "EmakiCoreLib 操作管线不可用, 已跳过操作校验",
                     false, null, null);
             return true;
         }

@@ -44,13 +44,13 @@ public final class ModelBridgeFactory {
                 return bridge;
             }
         }
-        logger.info("[integration] 未找到可用的模型后端，EmakiMobs 模型功能已禁用");
+        logger.info("[integration] 未找到可用的模型后端, EmakiMobs 模型功能已禁用");
         return NoopModelBridge.INSTANCE;
     }
 
     private MobModelBridge createNamed(String pluginName, String bridgeClassName) {
         if (!Bukkit.getPluginManager().isPluginEnabled(pluginName)) {
-            logger.warning("[integration] 模型后端 '" + pluginName + "' 未安装，模型功能已禁用");
+            logger.warning("[integration] 模型后端 '" + pluginName + "' 未安装, 模型功能已禁用");
             return NoopModelBridge.INSTANCE;
         }
         try {
@@ -62,7 +62,7 @@ public final class ModelBridgeFactory {
             }
             logger.warning("[integration] 模型后端 " + pluginName + " 的桥接实现无效");
         } catch (ClassNotFoundException | LinkageError exception) {
-            logger.info("[integration] 模型后端 " + pluginName + " 的类不可用，模型功能已禁用");
+            logger.info("[integration] 模型后端 " + pluginName + " 的类不可用, 模型功能已禁用");
         } catch (ReflectiveOperationException | SecurityException exception) {
             logger.warning("[integration] 模型后端 " + pluginName + " 初始化失败: " + exception.getMessage());
         }

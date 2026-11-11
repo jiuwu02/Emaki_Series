@@ -321,7 +321,7 @@ editor:
     exit_item: "<white>Leave-dungeon point</white>"
     pos1: "<white>Corner 1: <coord></white>"
     pos2: "<white>Corner 2: <coord></white>"
-    status: "<white>Marks <marks> · <state> · Gen <generation></white>"
+    status: "<white>Marks <marks> - <state> - Gen <generation></white>"
     state_dirty: "<red>unsaved</red>"
     state_clean: "<green>saved</green>"
     save: "<green>Save and write back</green>"
@@ -428,7 +428,7 @@ drop:
 rewardbox:
   disabled: "<yellow>The reward box is disabled, dungeon rewards go straight to your inventory</yellow>"
   gui:
-    title: "<gradient:#1E3A8A:#8B5CF6>Reward Box</gradient> <gray>(<page>/<total>) · <items> items</gray>"
+    title: "<gradient:#1E3A8A:#8B5CF6>Reward Box</gradient> <gray>(<page>/<total>) - <items> items</gray>"
     prev: "<white>Previous page</white>"
     next: "<white>Next page</white>"
     toggle_on: "<green>Auto deposit: ON</green><gray> (click to disable)</gray>"

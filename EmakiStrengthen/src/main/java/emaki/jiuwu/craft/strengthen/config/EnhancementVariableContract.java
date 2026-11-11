@@ -42,14 +42,14 @@ public final class EnhancementVariableContract {
         Map<String, List<String>> actual = EnhancementTargetVariables.forgeAliasContract();
         if (!actual.keySet().equals(EXPECTED_ALIASES.keySet())) {
             violations.add("forge 别名路径期望为 " + EXPECTED_ALIASES.keySet()
-                    + "，实际为 " + actual.keySet());
+                    + ", 实际为 " + actual.keySet());
             return;
         }
         EXPECTED_ALIASES.forEach((path, expected) -> {
             List<String> resolved = EnhancementTargetVariables.forgeAliases(path);
             if (!expected.equals(resolved)) {
                 violations.add("forge 别名集合 '" + path + "' 期望为 " + expected
-                        + "，实际为 " + resolved);
+                        + ", 实际为 " + resolved);
             }
         });
         if (!EnhancementTargetVariables.forgeAliases("forge.unknown_key").isEmpty()) {
@@ -77,11 +77,11 @@ public final class EnhancementVariableContract {
         boolean valid = EnhancementTargetVariables.validQualityMultiplier(raw);
         if (Double.compare(value, expectedValue) != 0) {
             violations.add("品质倍率 '" + raw + "' 期望为 " + expectedValue
-                    + "，实际为 " + value);
+                    + ", 实际为 " + value);
         }
         if (valid != expectedValid) {
             violations.add("品质倍率有效性 '" + raw + "' 期望为 " + expectedValid
-                    + "，实际为 " + valid);
+                    + ", 实际为 " + valid);
         }
     }
 
@@ -99,17 +99,17 @@ public final class EnhancementVariableContract {
         if (!(multiplier instanceof Number number)
                 || Double.compare(number.doubleValue(), EnhancementTargetVariables.DEFAULT_QUALITY_MULTIPLIER) != 0) {
             violations.add("默认 forge_quality_multiplier 期望为 "
-                    + EnhancementTargetVariables.DEFAULT_QUALITY_MULTIPLIER + "，实际为 " + multiplier);
+                    + EnhancementTargetVariables.DEFAULT_QUALITY_MULTIPLIER + ", 实际为 " + multiplier);
         }
         Object multiplierValid = variables.get(EnhancementTargetVariables.VARIABLE_MULTIPLIER_VALID);
         if (!(multiplierValid instanceof Number validFlag) || validFlag.intValue() != 1) {
             violations.add("默认 " + EnhancementTargetVariables.VARIABLE_MULTIPLIER_VALID
-                    + " 期望为 1，实际为 " + multiplierValid);
+                    + " 期望为 1, 实际为 " + multiplierValid);
         }
         Object readErrors = variables.get(EnhancementTargetVariables.VARIABLE_PDC_READ_ERRORS);
         if (!(readErrors instanceof Number errorCount) || errorCount.intValue() != 0) {
             violations.add("默认 " + EnhancementTargetVariables.VARIABLE_PDC_READ_ERRORS
-                    + " 期望为 0，实际为 " + readErrors);
+                    + " 期望为 0, 实际为 " + readErrors);
         }
         if (!snapshot.unreadablePdcKeys().isEmpty()) {
             violations.add("空捕获不应报告任何不可读的 PDC 键");

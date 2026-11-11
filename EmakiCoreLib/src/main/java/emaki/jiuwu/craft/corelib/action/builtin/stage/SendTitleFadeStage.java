@@ -18,7 +18,7 @@ import net.kyori.adventure.title.Title;
 public final class SendTitleFadeStage extends BaseStage {
 
     public SendTitleFadeStage() {
-        super("send_title_fade", "message", "发送带淡入淡出时长的标题。",
+        super("send_title_fade", "message", "发送带淡入淡出时长的标题.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("title", CoreStageParameterType.STRING, "标题文本"),
                 CoreStageParameter.optional("subtitle", CoreStageParameterType.STRING, "", "副标题文本"),

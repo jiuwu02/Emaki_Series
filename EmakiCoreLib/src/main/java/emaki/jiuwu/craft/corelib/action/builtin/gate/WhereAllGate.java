@@ -28,10 +28,10 @@ public final class WhereAllGate extends BaseGate {
     private final TargetConditionEvaluator evaluator;
 
     public WhereAllGate(TargetFactsReader factsReader, TargetConditionEvaluator evaluator) {
-        super("where_all", "只保留同时满足全部谓词的目标；谓词以 || 分隔。",
+        super("where_all", "只保留同时满足全部谓词的目标; 谓词以 || 分隔.",
                 CoreGateThread.NEEDS_ENTITY_READ,
                 CoreStageParameter.positional("conditions", CoreStageParameterType.STRING,
-                        "多个谓词，|| 分隔，如 'player || health_percent<=50'"));
+                        "多个谓词, || 分隔, 如 'player || health_percent<=50'"));
         this.factsReader = factsReader;
         this.evaluator = evaluator;
     }

@@ -34,7 +34,7 @@ public final class CodexStageRegistrar {
                 handles.add(registration);
             } else {
                 plugin.getLogger().warning("[startup] 注册管道阶段失败: '" + stage.id()
-                        + "'，原因: " + registration.reasonKey());
+                        + "', 原因: " + registration.reasonKey());
             }
         }
         EmakiCoreLibApi.onStageRegistryRebuilt(plugin, this::register);

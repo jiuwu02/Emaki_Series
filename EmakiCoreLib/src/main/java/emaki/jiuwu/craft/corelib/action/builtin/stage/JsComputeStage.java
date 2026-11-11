@@ -23,11 +23,11 @@ public final class JsComputeStage extends BaseStage {
     private static final int DEFAULT_TIMEOUT_MS = 5000;
 
     public JsComputeStage() {
-        super("js_compute", "script", "执行纯计算 JavaScript 脚本（不操作 Bukkit 状态）",
+        super("js_compute", "script", "执行纯计算 JavaScript 脚本 (不操作 Bukkit 状态)",
                 CoreTargetRequirement.NONE, CoreActionExecutionDomain.ASYNC_COMPUTE,
                 CoreStageParameter.required("code", CoreStageParameterType.STRING, "JavaScript 代码"),
                 CoreStageParameter.optional("timeout", CoreStageParameterType.INTEGER,
-                        String.valueOf(DEFAULT_TIMEOUT_MS), "超时时间（毫秒）"));
+                        String.valueOf(DEFAULT_TIMEOUT_MS), "超时时间 (毫秒)"));
     }
 
     @Override

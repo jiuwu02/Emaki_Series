@@ -154,8 +154,8 @@ public final class PipelineContext implements CoreStageContext {
             return value;
         }
         throw new IllegalStateException("缺少必需的上下文键 '" + key.name()
-                + "'，类型 " + key.type().getSimpleName()
-                + "；上下文包含 " + presentKeys());
+                + "', 类型 " + key.type().getSimpleName()
+                + "; 上下文包含 " + presentKeys());
     }
 
     @Override

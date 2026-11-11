@@ -23,10 +23,10 @@ import emaki.jiuwu.craft.dungeon.snapshot.SnapshotManager;
 import org.bukkit.plugin.Plugin;
 
 /**
- * 离开副本的统一执行链：命令 {@code /edg leave} 与流程「离开副本」功能模块共用同一套语义。
+ * 离开副本的统一执行链: 命令 {@code /edg leave} 与流程"离开副本"功能模块共用同一套语义
  *
- * <p>负责把玩家从当前副本实例移出（恢复原位置与背包、退出队伍、通知挑战服务），
- * 并在实例内无其他在线玩家时销毁该实例及其克隆世界。</p>
+ * <p>负责把玩家从当前副本实例移出 (恢复原位置与背包, 退出队伍, 通知挑战服务),
+ * 并在实例内无其他在线玩家时销毁该实例及其克隆世界.</p>
  */
 public final class InstanceExitService {
 
@@ -66,11 +66,11 @@ public final class InstanceExitService {
     }
 
     /**
-     * 流程模块触发入口：按模块的 {@code need_confirm} 决定是否先做二次确认。
+     * 流程模块触发入口: 按模块的 {@code need_confirm} 决定是否先做二次确认
      *
      * @param player      触发玩家
      * @param needConfirm {@code true} 时先等待聊天确认
-     * @param reason      退出原因，写入恢复/审计流水
+     * @param reason      退出原因, 写入恢复/审计流水
      */
     public void requestLeaveFromFlow(Player player, boolean needConfirm, String reason) {
         if (player == null) {
@@ -96,7 +96,7 @@ public final class InstanceExitService {
     }
 
     /**
-     * 直接把玩家移出当前副本实例，并在实例无人在内时销毁实例。
+     * 直接把玩家移出当前副本实例, 并在实例无人在内时销毁实例
      *
      * @param player 目标玩家
      * @param reason 退出原因

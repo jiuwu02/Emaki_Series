@@ -200,7 +200,7 @@ public final class LegacyItemSourceRewriter {
         for (YamlBlockLocator.Match match : YamlBlockLocator.locateWithSibling(lines, spec)) {
             YamlBlockLocator.Hit hit = match.legacy();
             if (hit.inline() && !inlineList(hit.inlineValue())) {
-                unconvertible.add(spec.legacyKey() + " 为行内映射写法，请改为块状写法后重试");
+                unconvertible.add(spec.legacyKey() + " 为行内映射写法, 请改为块状写法后重试");
                 continue;
             }
             List<String> sources = LegacyMatcherFragment.parseSources(lines, hit);
@@ -211,11 +211,11 @@ public final class LegacyItemSourceRewriter {
             if ("item_source".equals(spec.matcherKey())
                     && (match.matcher() != null
                             || YamlBlockLocator.hasSiblingAtKeyColumn(lines, hit, "item_source"))) {
-                unconvertible.add(spec.legacyKey() + " 与 item_source 同时存在，无法自动迁移");
+                unconvertible.add(spec.legacyKey() + " 与 item_source 同时存在, 无法自动迁移");
                 continue;
             }
             if ("item_source".equals(spec.matcherKey()) && sources.size() != 1) {
-                unconvertible.add(spec.legacyKey() + " 必须恰好包含一个来源，当前为 " + sources.size() + " 个");
+                unconvertible.add(spec.legacyKey() + " 必须恰好包含一个来源, 当前为 " + sources.size() + " 个");
                 continue;
             }
             List<String> rendered = LegacyMatcherFragment.render(sources, hit, spec.matcherKey());

@@ -1,34 +1,34 @@
 # EmakiDungeon 副本默认配置模板
 #
-# 重载时复制到各副本世界文件夹生成 config.yml (已存在不覆盖), 承载副本元数据与副本级规则。
-# 不提供 schema 版本兼容, 加载期按当前结构严格校验。
+# 重载时复制到各副本世界文件夹生成 config.yml (已存在不覆盖), 承载副本元数据与副本级规则
+# 不提供 schema 版本兼容, 加载期按当前结构严格校验
 # 文件位置: plugins/EmakiDungeon/world/<副本ID>/config.yml
 
 version: "1.0.0"
 language: "zh_CN"
 
-# 副本元数据。
+# 副本元数据
 display-name: "示例副本"
 description: "一份用于演示的线性副本配置"
 difficulty-group: "default"
 
-# 副本类型 (normal=常规, affix=词条类型可挂接点)。未知类型加载期告警并静默回退 normal。
+# 副本类型 (normal=常规, affix=词条类型可挂接点).未知类型加载期告警并静默回退 normal
 type: normal
 
-# 实例内常驻 HUD (默认关闭; channel 仅 bossbar / scoreboard, 非法值静默回退 bossbar)。
+# 实例内常驻 HUD (默认关闭; channel 仅 bossbar / scoreboard, 非法值静默回退 bossbar)
 hud:
   enabled: false
   channel: bossbar
 
-# 进入与失败判定。
+# 进入与失败判定
 enter:
   timeout-seconds: 1800
   prepare-window-seconds: 10
   wait-channel: bossbar
   wait-timeout-seconds: 60
 
-# 前置解锁: 以 CoreLib 条件行列表为唯一判定源, entries 空 = 不限制。
-# 布尔判定示例: "%emakidungeon_data_<dungeonId>_cleared% == true"。
+# 前置解锁: 以 CoreLib 条件行列表为唯一判定源, entries 空 = 不限制
+# 布尔判定示例: "%emakidungeon_data_<dungeonId>_cleared% == true"
 unlock:
   type: all_of
   required_count: 0
@@ -38,20 +38,20 @@ unlock:
     message: ""
 
 # 入场门票: enabled=false 不消耗; item 支持原版 Material 名或 EmakiItem id;
-# 系统侧失败(世界准备超时/实例创建失败/插件异常)原样退还, 玩家侧失败不退还。
+# 系统侧失败(世界准备超时/实例创建失败/插件异常)原样退还, 玩家侧失败不退还
 ticket:
   enabled: false
   item: ""
   amount: 1
 
-# 该副本实例世界占用上限 (含补位态世界), 达上限提示等待重试。
+# 该副本实例世界占用上限 (含补位态世界), 达上限提示等待重试
 pool:
   max-worlds: 5
   warm-reserves: 2
 
-# 挑战限制: 日历门 + 三层次数串联, 判定顺序 月 > 周 > 日, 任一层不满足或耗尽即不可进入。
-# count 为 0 表示该层次数不限; days 取 1-7 (1=周一 ... 7=周日); weeks 取 1-6 (当月第几周, 周一起始)。
-# time-window 格式 "HH:mm-HH:mm", 支持跨午夜, 留空表示全天。
+# 挑战限制: 日历门 + 三层次数串联, 判定顺序 月 > 周 > 日, 任一层不满足或耗尽即不可进入
+# count 为 0 表示该层次数不限; days 取 1-7 (1=周一 ... 7=周日); weeks 取 1-6 (当月第几周, 周一起始)
+# time-window 格式 "HH:mm-HH:mm", 支持跨午夜, 留空表示全天
 # 示例: 每月第 3 周的周五/周六/周日 15:00-17:00 可挑战, 每日 2 次:
 #  limits:
 #    daily:
@@ -76,12 +76,12 @@ limits:
     weeks: []
   cooldown-seconds: 0
 
-# 副本实例的仿真距离与实体上限, 各实例世界独立生效。
+# 副本实例的仿真距离与实体上限, 各实例世界独立生效
 world:
   simulation-distance: 6
   entity-limit: 0
 
-# 难度动态调整三项: 怪物属性倍率、掉落数量倍率、玩家剩余重生次数。
+# 难度动态调整三项: 怪物属性倍率, 掉落数量倍率, 玩家剩余重生次数
 difficulty:
   normal:
     mob-multiplier: 1.0
@@ -92,8 +92,8 @@ difficulty:
     drop-multiplier: 1.2
     respawn-count: 1
 
-# 贡献评分权重与满分 (time-weight 为 0 时关闭时间维度; >0 且 target-time-seconds >0 时生效)。
-# 时间评分 = time-weight * min(1, target-time-seconds / 实际用时秒数), 复用结算已算出的 durationMs。
+# 贡献评分权重与满分 (time-weight 为 0 时关闭时间维度; >0 且 target-time-seconds >0 时生效)
+# 时间评分 = time-weight * min(1, target-time-seconds / 实际用时秒数), 复用结算已算出的 durationMs
 score:
   damage-weight: 1.0
   kill-weight: 1.0
@@ -104,8 +104,8 @@ score:
   target-time-seconds: 0.0
   max: 100.0
 
-# 掉落等级定义与队长可选分配模式 (五种: free / roll / killer / score / share)。
-# drop.levels 仅在评分贡献模式下参与分配权重。
+# 掉落等级定义与队长可选分配模式 (五种: free / roll / killer / score / share)
+# drop.levels 仅在评分贡献模式下参与分配权重
 drop:
   levels:
     common: 1
@@ -119,28 +119,28 @@ drop:
     - score
     - share
 
-# 副本级命令放行条目 (语法同全局 commands.rules): 可豁免常规模式判定, 不可豁免逃逸黑名单。
+# 副本级命令放行条目 (语法同全局 commands.rules): 可豁免常规模式判定, 不可豁免逃逸黑名单
 commands:
   allow:
   #  - "/home"
 
-# 交互白名单: 容器与漏斗行为, 漏斗默认关闭。
+# 交互白名单: 容器与漏斗行为, 漏斗默认关闭
 interaction:
   containers: true
   hoppers: false
 
-# 倒计时档位秒数, 触发 CoreLib 发送消息 Action。
+# 倒计时档位秒数, 触发 CoreLib 发送消息 Action
 timer:
   messages:
     - 300
     - 60
     - 10
 
-# 命令链结算步骤, 可引用 EmakiItem/EmakiLevel。
+# 命令链结算步骤, 可引用 EmakiItem/EmakiLevel
 settlement:
   commands:
   #  - "emakiitem give %player% reward_key 1"
 
-# 榜单条数上限与超限淘汰。
+# 榜单条数上限与超限淘汰
 leaderboard:
   max-entries: 100

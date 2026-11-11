@@ -23,12 +23,12 @@ import java.util.Map;
 public final class PlayersByGameModeSource extends BaseSource {
 
     public PlayersByGameModeSource() {
-        super("players_by_gamemode", "处于指定游戏模式的在线玩家。",
+        super("players_by_gamemode", "处于指定游戏模式的在线玩家.",
                 CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.required("gamemode", CoreStageParameterType.STRING,
-                        "游戏模式，如 survival / creative / adventure / spectator"),
+                        "游戏模式, 如 survival / creative / adventure / spectator"),
                 CoreStageParameter.optional("limit", CoreStageParameterType.INTEGER, "0",
-                        "最大玩家数，0 表示不限制"));
+                        "最大玩家数, 0 表示不限制"));
     }
 
     @Override

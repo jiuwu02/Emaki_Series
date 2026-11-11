@@ -20,12 +20,12 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class WorldPlayersSource extends BaseSource {
 
     public WorldPlayersSource() {
-        super("world_players", "指定世界内的在线玩家。",
+        super("world_players", "指定世界内的在线玩家.",
                 CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.optional("world", CoreStageParameterType.STRING, "",
-                        "世界名，留空取管道原点所在世界"),
+                        "世界名, 留空取管道原点所在世界"),
                 CoreStageParameter.optional("limit", CoreStageParameterType.INTEGER, "0",
-                        "最大玩家数，0 表示不限制"));
+                        "最大玩家数, 0 表示不限制"));
     }
 
     @Override

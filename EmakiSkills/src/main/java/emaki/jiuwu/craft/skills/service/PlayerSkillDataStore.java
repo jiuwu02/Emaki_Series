@@ -511,7 +511,7 @@ public final class PlayerSkillDataStore {
     private void logLoadFailure(UUID playerId, Throwable throwable) {
         plugin.getLogger().log(Level.WARNING,
                 "[persistence] 读取 " + playerId
-                        + " 失败；本会话保持只读以保护现有文件",
+                        + " 失败; 本会话保持只读以保护现有文件",
                 throwable);
     }
 

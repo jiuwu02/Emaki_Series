@@ -14,18 +14,18 @@ import emaki.jiuwu.craft.strengthen.api.model.ItemMasteryView;
 import emaki.jiuwu.craft.strengthen.api.model.TargetSnapshotCategory;
 
 /**
- * Reads and writes the enhancement layer of one target type.
+ * Reads and writes the enhancement layer of one target type
  *
  * <p>This is the extension point of the enhancement framework. EmakiStrengthen ships the
  * {@code equipment} provider; other plugins register their own target types through
  * {@link emaki.jiuwu.craft.strengthen.api.StrengthenOperations#registerEnhancementTarget}
- * so the framework never references a target plugin's internal classes.
+ * so the framework never references a target plugin's internal classes
  *
  * <p>Every method must tolerate a {@code null} or air stack rather than throwing. Read methods
- * return a neutral value in that case; write methods do nothing.
+ * return a neutral value in that case; write methods do nothing
  *
  * <p><strong>Thread:</strong> called on the owner thread of whatever holds the stack. A detached
- * item copy may be processed on the caller's current thread.
+ * item copy may be processed on the caller's current thread
  */
 public interface EnhancementTargetProvider {
 
@@ -63,7 +63,7 @@ public interface EnhancementTargetProvider {
     String readRecipeId(@Nullable ItemStack itemStack);
 
     /**
-     * Writes the enhancement level into the stack in place.
+     * Writes the enhancement level into the stack in place
      *
      * @param itemStack the stack to modify
      * @param level     the level to record
@@ -71,7 +71,7 @@ public interface EnhancementTargetProvider {
     void writeLevel(@Nullable ItemStack itemStack, int level);
 
     /**
-     * Writes the temper level into the stack in place.
+     * Writes the temper level into the stack in place
      *
      * @param itemStack the stack to modify
      * @param temper    the temper level to record
@@ -79,7 +79,7 @@ public interface EnhancementTargetProvider {
     void writeTemper(@Nullable ItemStack itemStack, int temper);
 
     /**
-     * Writes the owning recipe id into the stack in place.
+     * Writes the owning recipe id into the stack in place
      *
      * @param itemStack the stack to modify
      * @param recipeId  the recipe id to record; {@code null} clears it
@@ -87,18 +87,18 @@ public interface EnhancementTargetProvider {
     void writeRecipeId(@Nullable ItemStack itemStack, @Nullable String recipeId);
 
     /**
-     * Removes this provider's entire enhancement layer from the stack in place.
+     * Removes this provider's entire enhancement layer from the stack in place
      *
      * @param itemStack the stack to modify
      */
     void clearEnhancement(@Nullable ItemStack itemStack);
 
     /**
-     * Context-aware variant of {@link #canHandle(ItemStack)}.
+     * Context-aware variant of {@link #canHandle(ItemStack)}
      *
      * <p>The default implementation preserves compatibility with providers compiled against the
      * original item-only contract. Providers that need the acting player should override this method
-     * and the corresponding context-aware read/write methods.
+     * and the corresponding context-aware read/write methods
      *
      * @param player    the acting player, when the operation is player-scoped
      * @param itemStack the candidate stack
@@ -124,10 +124,10 @@ public interface EnhancementTargetProvider {
     }
 
     /**
-     * Reads this provider's item mastery snapshot when the provider exposes one.
+     * Reads this provider's item mastery snapshot when the provider exposes one
      *
      * <p>The default preserves compatibility for existing providers and reports unavailability rather than
-     * inventing mastery state from enhancement level, temper, or recipe metadata.
+     * inventing mastery state from enhancement level, temper, or recipe metadata
      *
      * @param itemStack the item to inspect
      * @return the mastery snapshot or {@link EmakiResult#unavailable()} when unsupported
@@ -165,9 +165,9 @@ public interface EnhancementTargetProvider {
     }
 
     /**
-     * Reads a stable provider-owned instance identifier when one is available.
+     * Reads a stable provider-owned instance identifier when one is available
      *
-     * <p>The default is empty so providers compiled against the original contract remain valid.
+     * <p>The default is empty so providers compiled against the original contract remain valid
      */
     default @NotNull String readInstanceId(@Nullable ItemStack itemStack) {
         return "";
@@ -179,9 +179,9 @@ public interface EnhancementTargetProvider {
     }
 
     /**
-     * Reads a provider-owned version or revision marker when one is available.
+     * Reads a provider-owned version or revision marker when one is available
      *
-     * <p>The default is empty so providers compiled against the original contract remain valid.
+     * <p>The default is empty so providers compiled against the original contract remain valid
      */
     default @NotNull String readVersion(@Nullable ItemStack itemStack) {
         return "";
@@ -194,19 +194,19 @@ public interface EnhancementTargetProvider {
 
     /**
      * Rebuilds the presentation layer — lore, attribute payload, display metadata — of a stack whose
-     * enhancement level was just written.
+     * enhancement level was just written
      *
      * <p>The enhancement runtime calls this <strong>inside the transaction, on the prepared clone,
      * before any cost is charged</strong>. A provider that reports failure therefore aborts the whole
      * attempt while the player still owns their currency and materials; it never produces a
      * "charged but unchanged" item. Implementations must not assume the stack is the one held by a
-     * player, and must not write to any inventory.
+     * player, and must not write to any inventory
      *
      * <p>The default returns {@link EmakiResult#ok()} because a provider whose {@code writeLevel}
      * already produces its own final presentation has nothing left to do. Override this only when the
      * level write leaves lore or attributes stale, and return a classified failure — rather than a
      * silent success — when a required bridge is missing, so the runtime can surface a specific
-     * reason key instead of a generic write-back error.
+     * reason key instead of a generic write-back error
      *
      * @param player    the acting player, when the operation is player-scoped
      * @param itemStack the prepared stack to refresh in place
@@ -221,17 +221,17 @@ public interface EnhancementTargetProvider {
     /**
      * Declares which PDC key prefixes this provider owns for each structured snapshot category, so the
      * enhancement runtime can classify a target's persistent data by contract instead of by guessing
-     * from key spelling.
+     * from key spelling
      *
      * <p>Each returned prefix is matched against a target key's <em>path</em> — the part after the
      * namespace — case-insensitively, and a key is assigned to a category when its path equals a
      * declared prefix or starts with that prefix followed by {@code .}. A key may legitimately land in
-     * several categories, and keys matching no prefix stay in the flat {@code item_pdc_*} view.
+     * several categories, and keys matching no prefix stay in the flat {@code item_pdc_*} view
      *
      * <p>The default returns an empty map, so the runtime uses its compatibility substring heuristic. That
      * fallback cannot distinguish {@code side_effect_audit} from {@code effect}; providers that need exact
      * {@code target_effect_*}, {@code target_layer_*}, {@code target_audit_*} or {@code target_meta_*}
-     * variables should override this and declare their partitions.
+     * variables should override this and declare their partitions
      *
      * @return category to owned path prefixes; an empty map requests the compatibility heuristic
      */

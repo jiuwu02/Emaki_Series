@@ -214,7 +214,7 @@ public final class ExpressionEngine {
                     + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         if (Texts.isBlank(expression)) {
-            return NumericEvaluationResult.failure("数值表达式为空。");
+            return NumericEvaluationResult.failure("数值表达式为空.");
         }
         if (!ExpressionEngineSupport.validateExpressionLength(expression)) {
             return NumericEvaluationResult.failure("数值表达式长度超过 "
@@ -311,7 +311,7 @@ public final class ExpressionEngine {
             if (value != null) {
                 return evaluateStringConfigDetailed(value, scoped, depth + 1);
             }
-            return TextEvaluationResult.failure("文本配置未声明文本值或随机文本行。");
+            return TextEvaluationResult.failure("文本配置未声明文本值或随机文本行.");
         }
 
         if (ExpressionEngineSupport.isRandomTextConfigType(type)) {
@@ -352,7 +352,7 @@ public final class ExpressionEngine {
                     : TextEvaluationResult.failure(result.issues());
         }
         return TextEvaluationResult.failure("不支持的文本配置类型 '" + type
-                + "'.支持的文本类型: string、random_text、random_char、weighted_random_char、conditional_char、boolean。");
+                + "'.支持的文本类型: string, random_text, random_char, weighted_random_char, conditional_char, boolean.");
     }
 
     static TextEvaluationResult evaluateRandomTextLinesDetailed(Object config,
@@ -371,7 +371,7 @@ public final class ExpressionEngine {
         TextCandidates candidates = randomCharCandidates(config, scoped, depth + 1);
         List<String> issues = new ArrayList<>(candidates.issues());
         if (candidates.values().isEmpty()) {
-            issues.add("随机字符配置没有候选字符。");
+            issues.add("随机字符配置没有候选字符.");
             return TextEvaluationResult.failure(issues);
         }
 
@@ -408,17 +408,17 @@ public final class ExpressionEngine {
             for (int index = 0; index < cases.size(); index++) {
                 Object entry = cases.get(index);
                 if (entry == null) {
-                    issues.add("索引 " + index + " 处的条件字符分支为空。");
+                    issues.add("索引 " + index + " 处的条件字符分支为空.");
                     continue;
                 }
                 Object condition = ConfigNodes.get(entry, "condition");
                 if (condition == null) {
-                    issues.add("索引 " + index + " 处的条件字符分支缺少 condition。");
+                    issues.add("索引 " + index + " 处的条件字符分支缺少 condition.");
                     continue;
                 }
                 TextBooleanResult conditionResult = evaluateTextBooleanValue(condition, scoped, depth + 1, false);
                 if (!conditionResult.issues().isEmpty()) {
-                    issues.add("索引 " + index + " 处的条件字符分支的 condition 无效。");
+                    issues.add("索引 " + index + " 处的条件字符分支的 condition 无效.");
                     issues.addAll(conditionResult.issues());
                     continue;
                 }
@@ -427,7 +427,7 @@ public final class ExpressionEngine {
                 }
                 Object value = ConfigNodes.get(entry, "value");
                 if (value == null) {
-                    issues.add("索引 " + index + " 处的条件字符分支缺少 value。");
+                    issues.add("索引 " + index + " 处的条件字符分支缺少 value.");
                     return new TextEvaluationResult(false, "", List.of(), issues);
                 }
                 return evaluateConditionalCharValue(value, scoped, depth + 1, issues);
@@ -441,7 +441,7 @@ public final class ExpressionEngine {
 
         Object condition = ConfigNodes.get(config, "condition");
         if (condition == null) {
-            return TextEvaluationResult.failure("条件字符配置缺少 'condition' 或 'cases'。");
+            return TextEvaluationResult.failure("条件字符配置缺少 'condition' 或 'cases'.");
         }
         TextBooleanResult conditionResult = evaluateTextBooleanValue(condition, scoped, depth + 1, false);
         issues.addAll(conditionResult.issues());
@@ -502,7 +502,7 @@ public final class ExpressionEngine {
                 return TextEvaluationResult.success(formatTextNumber(result.value()));
             }
             List<String> issues = new ArrayList<>();
-            issues.add("文本表达式变量 '{" + name + "}' 的数值配置无效。");
+            issues.add("文本表达式变量 '{" + name + "}' 的数值配置无效.");
             issues.addAll(result.issues());
             return TextEvaluationResult.failure(issues, "", List.of());
         }
@@ -617,7 +617,7 @@ public final class ExpressionEngine {
         public NumericEvaluationResult {
             issues = issues == null || issues.isEmpty() ? List.of() : List.copyOf(issues);
             if (!success && issues.isEmpty()) {
-                issues = List.of("数值求值失败。");
+                issues = List.of("数值求值失败.");
             }
         }
 
@@ -645,7 +645,7 @@ public final class ExpressionEngine {
             lines = lines == null || lines.isEmpty() ? List.of() : List.copyOf(lines);
             issues = issues == null || issues.isEmpty() ? List.of() : List.copyOf(issues);
             if (!success && issues.isEmpty()) {
-                issues = List.of("文本求值失败。");
+                issues = List.of("文本求值失败.");
             }
         }
 

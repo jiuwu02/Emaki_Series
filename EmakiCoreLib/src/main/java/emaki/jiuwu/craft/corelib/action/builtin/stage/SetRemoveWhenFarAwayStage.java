@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetRemoveWhenFarAwayStage extends BaseStage {
 
     public SetRemoveWhenFarAwayStage() {
-        super("set_remove_when_far_away", "meta", "控制生物距离过远时是否被移除。",
+        super("set_remove_when_far_away", "meta", "控制生物距离过远时是否被移除.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("remove", CoreStageParameterType.BOOLEAN, "是否移除"));
     }

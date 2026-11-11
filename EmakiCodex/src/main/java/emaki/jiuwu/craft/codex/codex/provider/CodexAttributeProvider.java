@@ -54,7 +54,7 @@ public final class CodexAttributeProvider implements AttributeContributionProvid
             return contributionsFor(player);
         } catch (RuntimeException exception) {
             logger.warning("[provider] 属性加成计算失败: 玩家 " + player.getName()
-                    + "，原因: " + Texts.toStringSafe(exception.getMessage()));
+                    + ", 原因: " + Texts.toStringSafe(exception.getMessage()));
             return List.of();
         }
     }

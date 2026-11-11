@@ -1,7 +1,7 @@
 package emaki.jiuwu.craft.corelib.api.action;
 
 /**
- * The verdict of one target condition test.
+ * The verdict of one target condition test
  *
  * <p>{@link #UNKNOWN} is deliberately separate from {@link #FAIL}: a subject that cannot answer the
  * question at all — a non-player asked for its experience level, or any entity asked for an EmakiMobs id

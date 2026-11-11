@@ -1,5 +1,5 @@
-# 物理伤害属性示例。value_kind 与 target_type 使用已声明枚举；数值边界由 min/max 和 allow_negative 控制。
-# priority 越高越先匹配；attribute_power 仅在 attribute_balance.yml 无 score 时回退使用。
+# 物理伤害属性示例.value_kind 与 target_type 使用已声明枚举; 数值边界由 min/max 和 allow_negative 控制
+# priority 越高越先匹配; attribute_power 仅在 attribute_balance.yml 无 score 时回退使用
 
 id: physical_attack
 
@@ -25,10 +25,10 @@ lore_format_id: default_flat
 
 attribute_power: 1.0
 
-# MythicMobs 临时属性动作可按 tags 批量操作。
+# MythicMobs 临时属性动作可按 tags 批量操作
 
-# 同一 effect_id 重复施加时，REPLACE 覆盖数值/时长，STACK 累加数值/剩余时长。
-# 技能显式 stack_mode 优先。
+# 同一 effect_id 重复施加时, REPLACE 覆盖数值/时长, STACK 累加数值/剩余时长
+# 技能显式 stack_mode 优先
 temporary_stack_mode: REPLACE
 
-description: "Adds flat physical damage."
+description: "Adds flat physical damage"

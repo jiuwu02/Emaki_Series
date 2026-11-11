@@ -183,7 +183,7 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
             Exception rollbackFailure) {
         Logger logger = rollbackLogOwner == null ? EmakiLog.of("EmakiCoreLib") : rollbackLogOwner.getLogger();
         logger.log(Level.SEVERE,
-                "[reload] 阶段失败后重载回滚失败；模块可能既未应用新配置也未应用旧配置: stage=" + stageName
+                "[reload] 阶段失败后重载回滚失败; 模块可能既未应用新配置也未应用旧配置: stage=" + stageName
                         + ", stageFailure=" + stageFailure
                         + ", rollbackFailure=" + rollbackFailure,
                 rollbackFailure);

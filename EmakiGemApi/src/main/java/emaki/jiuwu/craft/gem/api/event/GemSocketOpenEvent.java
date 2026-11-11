@@ -9,28 +9,28 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Fired immediately before a socket-open state change is applied.
+ * Fired immediately before a socket-open state change is applied
  *
  * <p>This is the pre event: the target socket has been resolved and validated, but the equipment has
  * not been rebuilt and no opener item has been consumed. Cancelling stops both, and the caller receives
- * a {@code gem.error.condition_not_met} failure.
+ * a {@code gem.error.condition_not_met} failure
  *
  * <p>There is no paired completion event for socket opening. Once this event returns uncancelled the
- * runtime applies the change synchronously, so a successful open has no separate post notification.
+ * runtime applies the change synchronously, so a successful open has no separate post notification
  *
  * <h2>Threading</h2>
  * Fired synchronously on the thread that owns the player, so listeners may touch the player, their
  * inventory, and the surrounding world. On Paper that is the main server thread; on Folia it is the
- * player's region thread.
+ * player's region thread
  *
  * <h2>Coverage — this event is not fired for every open attempt</h2>
  * It is skipped when the runtime rejects the request before a socket is resolved: an unknown or disabled
  * opener configuration, an unrecognised or non-socketable equipment item, the configured plugin
  * conditions failing, the required opener item not being held, no closed socket matching the opener's
- * supported types, and a requested socket index that does not exist or is already open.
+ * supported types, and a requested socket index that does not exist or is already open
  *
  * <p>It is also skipped, without any error, when the call is made off the owner thread of the player, in
- * which case the socket may still be opened uncancellable.
+ * which case the socket may still be opened uncancellable
  */
 public final class GemSocketOpenEvent extends Event implements Cancellable {
 
@@ -46,7 +46,7 @@ public final class GemSocketOpenEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     /**
-     * Creates a socket-open pre event.
+     * Creates a socket-open pre event
      *
      * @param operationId      a per-call trace id
      * @param player           the player whose equipment is being modified
@@ -86,7 +86,7 @@ public final class GemSocketOpenEvent extends Event implements Cancellable {
      * {@return the equipment whose socket is about to be opened}
      *
      * <p>This is the runtime's own stack, not a defensive copy. Read it freely, but mutating it changes
-     * what the operation applies to; cancel the event instead of editing the stack in place.
+     * what the operation applies to; cancel the event instead of editing the stack in place
      */
     public @NotNull ItemStack getEquipment() {
         return equipment;
@@ -97,10 +97,10 @@ public final class GemSocketOpenEvent extends Event implements Cancellable {
      *
      * <p>May also be air. Both cases mean the open was authorised without a physical opener being
      * matched, which happens on paths that bypass the opener-item requirement such as administrative
-     * commands.
+     * commands
      *
      * <p>This is the stack as it stands <em>before</em> consumption, and it is the runtime's own
-     * reference rather than a copy. Whether it is actually consumed depends on the opener configuration.
+     * reference rather than a copy. Whether it is actually consumed depends on the opener configuration
      */
     public @Nullable ItemStack getOpenerItem() {
         return openerItem;

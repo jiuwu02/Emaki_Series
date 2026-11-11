@@ -268,7 +268,7 @@ public final class EnhancementRecipeParser {
         List<PityIsolationEnum> isolate = PityIsolationEnum.parseAll(rawIsolate);
         if (rawIsolate != null && isolate.size() != new LinkedHashSet<>(rawIsolate).size()) {
             throw new IllegalArgumentException("pity isolate 在 "
-                    + rawIsolate + " 中声明了未知或重复的维度；合法取值为 " + PityIsolationEnum.legalTokens());
+                    + rawIsolate + " 中声明了未知或重复的维度; 合法取值为 " + PityIsolationEnum.legalTokens());
         }
 
         return new EnhancementRecipe.PityConfig(counter, trigger, effect, decay, isolate);

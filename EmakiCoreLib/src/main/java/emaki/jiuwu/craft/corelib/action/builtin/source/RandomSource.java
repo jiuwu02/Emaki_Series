@@ -21,7 +21,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class RandomSource extends BaseSource {
 
     public RandomSource() {
-        super("random", "从在线玩家中随机抽取若干目标。",
+        super("random", "从在线玩家中随机抽取若干目标.",
                 CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.optional("count", CoreStageParameterType.INTEGER, "1",
                         "随机抽取的目标数"));

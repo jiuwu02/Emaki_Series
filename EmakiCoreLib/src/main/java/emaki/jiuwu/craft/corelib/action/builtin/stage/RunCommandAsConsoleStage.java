@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class RunCommandAsConsoleStage extends BaseStage {
 
     public RunCommandAsConsoleStage() {
-        super("run_command_as_console", "command", "以控制台身份执行命令。",
+        super("run_command_as_console", "command", "以控制台身份执行命令.",
                 CoreTargetRequirement.NONE, CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.required("command", CoreStageParameterType.STRING, "命令行"));
     }

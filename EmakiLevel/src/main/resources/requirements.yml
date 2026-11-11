@@ -1,5 +1,5 @@
 # EmakiLevel 升级需求配置
-# 全局与分组的升级经验公式；groups 下的键对应等级类型的 requirement.group。
+# 全局与分组的升级经验公式; groups 下的键对应等级类型的 requirement.group
 
 global:
   formula: "floor(100 + 25 * %target_level% + 8 * pow(%target_level%, 2))"
@@ -64,7 +64,7 @@ groups:
     formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
   smelting:
     formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
-  # 示例等级类型 example_prestige 使用的分组，可按需调整数值。
+  # 示例等级类型 example_prestige 使用的分组, 可按需调整数值
   prestige:
     formula: "floor(180 + 45 * %target_level% + 12 * pow(%target_level%, 2))"
     values:

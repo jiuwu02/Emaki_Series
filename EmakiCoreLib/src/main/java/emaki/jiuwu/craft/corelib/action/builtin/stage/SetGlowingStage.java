@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SetGlowingStage extends BaseStage {
 
     public SetGlowingStage() {
-        super("set_glowing", "meta", "控制实体是否发光描边。",
+        super("set_glowing", "meta", "控制实体是否发光描边.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("glowing", CoreStageParameterType.BOOLEAN, "是否发光"));
     }

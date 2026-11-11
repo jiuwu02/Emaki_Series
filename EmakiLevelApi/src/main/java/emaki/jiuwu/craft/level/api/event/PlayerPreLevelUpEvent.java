@@ -9,20 +9,20 @@ import emaki.jiuwu.craft.level.api.LevelUpCause;
 
 /**
  * Fired after all non-mutating level-up checks pass and immediately before EmakiLevel starts its
- * journal, charges costs, changes state, grants rewards, runs actions, or fires post events.
+ * journal, charges costs, changes state, grants rewards, runs actions, or fires post events
  *
  * <p>This is the pre-commit hook, not a completion notification: nothing has been charged or written
  * when listeners run. It is cancellable, and cancelling prevents the level-up and leaves the journal,
  * balances, inventory, level state, rewards and actions untouched. The runtime then reports the
  * attempt as a {@code CANCELLED} failure. Cancelling is the only supported way to veto an upgrade;
- * the reported levels and requirement are read-only.
+ * the reported levels and requirement are read-only
  *
  * <h2>Threading</h2>
  * Fired synchronously on the thread that owns the levelling player, inside the runtime's player-data
  * mutation, so listeners may safely touch the player, their inventory and the surrounding world.
  * Because the mutation is held open for the duration of the call, listeners must return quickly and
  * must not block on other threads or on futures. Player data may be loaded or saved asynchronously
- * afterwards, but this event does not signal persistence completion.
+ * afterwards, but this event does not signal persistence completion
  *
  * <h2>Coverage — this event is not fired for every level-up attempt</h2>
  * It is fired only when the player is online and the current thread owns them, so upgrades resolved
@@ -32,7 +32,7 @@ import emaki.jiuwu.craft.level.api.LevelUpCause;
  * every cause, including automatic upgrades chained from an experience gain, so a single
  * {@code addExp} call may fire it repeatedly. Treat a missing event as "no committed upgrade to veto"
  * rather than "no attempt happened", and do not use it as an audit trail; observe
- * {@link PlayerLevelUpEvent} for committed upgrades.
+ * {@link PlayerLevelUpEvent} for committed upgrades
  *
  * @see PlayerLevelUpEvent
  * @see PlayerMaxLevelReachedEvent
@@ -50,9 +50,9 @@ public final class PlayerPreLevelUpEvent extends Event implements Cancellable {
     private boolean cancelled;
 
     /**
-     * Creates a pre level-up event.
+     * Creates a pre level-up event
      *
-     * <p>Constructed by EmakiLevel; third-party code normally only listens for this event.
+     * <p>Constructed by EmakiLevel; third-party code normally only listens for this event
      *
      * @param player       the player about to level up; the runtime only constructs this event for an
      *                     online, thread-owned player
@@ -95,7 +95,7 @@ public final class PlayerPreLevelUpEvent extends Event implements Cancellable {
      * {@return the level that would be reached, always one above {@link #getCurrentLevel()}}
      *
      * <p>A single upgrade step never skips levels; chained automatic upgrades fire this event once per
-     * step.
+     * step
      */
     public int getTargetLevel() {
         return targetLevel;
@@ -105,7 +105,7 @@ public final class PlayerPreLevelUpEvent extends Event implements Cancellable {
      * {@return the experience this upgrade would consume}
      *
      * <p>The single-step requirement for {@link #getTargetLevel()}, already verified to be positive
-     * and covered by the player's current progress. It is deducted only if the event is not cancelled.
+     * and covered by the player's current progress. It is deducted only if the event is not cancelled
      */
     public double getRequiredExp() {
         return requiredExp;
@@ -115,7 +115,7 @@ public final class PlayerPreLevelUpEvent extends Event implements Cancellable {
      * {@return the attribution for the pending upgrade, or {@code null}}
      *
      * <p>{@link LevelUpCause#AUTO} identifies an upgrade chained from an experience gain rather than a
-     * direct request.
+     * direct request
      */
     public LevelUpCause getCause() {
         return cause;

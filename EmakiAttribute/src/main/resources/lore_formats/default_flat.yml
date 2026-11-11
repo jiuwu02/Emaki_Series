@@ -1,17 +1,17 @@
-# 固定值 Lore 的显示模板与读取正则。
+# 固定值 Lore 的显示模板与读取正则
 
 # 格式唯一标识符
 id: default_flat
 
-# 模板占位符：%name% 属性名，%sign% 正负号，%value% 数值。
+# 模板占位符: %name% 属性名, %sign% 正负号, %value% 数值
 format: "%name% %sign%%value%"
 
-# 数值精度（小数位数）
+# 数值精度 (小数位数)
 precision: 2
 
-# 读取优先级（数值越高越优先匹配）
+# 读取优先级 (数值越高越优先匹配)
 read_priority: 50
 
-# %Key% 匹配属性名；%Value% 支持单值及 a-b/a~b 区间，区间在每次命中时随机取值。
+# %Key% 匹配属性名; %Value% 支持单值及 a-b/a~b 区间, 区间在每次命中时随机取值
 read_patterns:
   - "%Key%.*?: ?%Value%$"

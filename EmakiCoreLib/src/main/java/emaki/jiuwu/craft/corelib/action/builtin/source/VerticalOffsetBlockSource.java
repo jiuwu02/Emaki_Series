@@ -17,10 +17,10 @@ import java.util.List;
 public final class VerticalOffsetBlockSource extends BaseSource {
 
     public VerticalOffsetBlockSource() {
-        super("vertical_block", "管道原点垂直偏移后的方块位置。",
+        super("vertical_block", "管道原点垂直偏移后的方块位置.",
                 CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.optional("offset", CoreStageParameterType.INTEGER, "1",
-                        "垂直偏移格数，正数向上、负数向下"));
+                        "垂直偏移格数, 正数向上, 负数向下"));
     }
 
     @Override

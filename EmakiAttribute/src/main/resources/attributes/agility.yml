@@ -1,4 +1,4 @@
-# 敏捷父级属性定义。
+# 敏捷父级属性定义
 
 id: agility
 
@@ -32,4 +32,4 @@ child_bonuses:
   dodge_chance: 0.05
   speed: 0.01
 
-description: "每点敏捷提升暴击率、闪避率与少量移动速度。"
+description: "每点敏捷提升暴击率, 闪避率与少量移动速度"

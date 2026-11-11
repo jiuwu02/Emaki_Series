@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class DistanceFilterGate extends BaseGate {
 
     public DistanceFilterGate() {
-        super("distance_filter", "只保留与管道原点距离在 [min, max] 内的目标。",
+        super("distance_filter", "只保留与管道原点距离在 [min, max] 内的目标.",
                 CoreGateThread.NEEDS_ENTITY_READ,
                 CoreStageParameter.optional("min", CoreStageParameterType.DOUBLE, "0", "最小距离"),
                 CoreStageParameter.optional("max", CoreStageParameterType.DOUBLE, "32", "最大距离"));

@@ -19,6 +19,6 @@ public final class WorldBounds {
     public static String describe(World world, int x, int y, int z) {
         return "x=" + x + " y=" + y + " z=" + z
                 + " (允许 y " + world.getMinHeight() + ".." + (world.getMaxHeight() - 1)
-                + "，水平 ±" + HORIZONTAL_LIMIT + ")";
+                + ", 水平 ±" + HORIZONTAL_LIMIT + ")";
     }
 }

@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class IgniteStage extends BaseStage {
 
     public IgniteStage() {
-        super("ignite", "entity", "让目标燃烧一段时间。",
+        super("ignite", "entity", "让目标燃烧一段时间.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("duration", CoreStageParameterType.DURATION, "5s",
                         "燃烧时长"));

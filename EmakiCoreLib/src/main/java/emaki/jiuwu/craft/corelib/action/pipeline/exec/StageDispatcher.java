@@ -77,7 +77,7 @@ public final class StageDispatcher implements AutoCloseable {
         }
         if (!target.valid()) {
             return CompletableFuture.failedFuture(new IllegalStateException(
-                    "无效的执行目标: " + target.domain() + "。"));
+                    "无效的执行目标: " + target.domain() + "."));
         }
         if (inline) {
             if (dispatchObserver != null) {
@@ -90,7 +90,7 @@ public final class StageDispatcher implements AutoCloseable {
         }
         if (!capabilities.supports(target.domain())) {
             return CompletableFuture.failedFuture(new IllegalStateException(
-                    "不支持的执行域: " + target.domain() + "。"));
+                    "不支持的执行域: " + target.domain() + "."));
         }
 
         CompletableFuture<T> future = new CompletableFuture<>();
@@ -106,7 +106,7 @@ public final class StageDispatcher implements AutoCloseable {
             handleReference.set(handle);
             if (handle == null) {
                 future.completeExceptionally(new IllegalStateException(
-                        "调度器拒绝了动作组 " + safeName(taskName) + "。"));
+                        "调度器拒绝了动作组 " + safeName(taskName) + "."));
             } else {
                 handlesByOwner.computeIfAbsent(owner, ignored -> ConcurrentHashMap.newKeySet()).add(handle);
             }
@@ -168,7 +168,7 @@ public final class StageDispatcher implements AutoCloseable {
 
     private <T> CompletableFuture<T> invokeInline(CancellationSignal cancellation, Supplier<T> task) {
         if (cancellation.cancelled()) {
-            return CompletableFuture.failedFuture(new CancellationException("管道已取消。"));
+            return CompletableFuture.failedFuture(new CancellationException("管道已取消."));
         }
         try {
             return CompletableFuture.completedFuture(task.get());
@@ -184,7 +184,7 @@ public final class StageDispatcher implements AutoCloseable {
             return;
         }
         if (cancellation.cancelled()) {
-            future.completeExceptionally(new CancellationException("管道已取消。"));
+            future.completeExceptionally(new CancellationException("管道已取消."));
             return;
         }
         try {
@@ -280,14 +280,14 @@ public final class StageDispatcher implements AutoCloseable {
     public static final class StageRetiredException extends RuntimeException {
 
         private StageRetiredException(String taskName) {
-            super("动作组在执行前已失效: " + taskName + "。");
+            super("动作组在执行前已失效: " + taskName + ".");
         }
     }
 
     public static final class OwnerDisabledException extends RuntimeException {
 
         private OwnerDisabledException(String ownerName) {
-            super("动作所属插件已停用: " + ownerName + "。");
+            super("动作所属插件已停用: " + ownerName + ".");
         }
     }
 

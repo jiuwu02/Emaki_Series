@@ -1,59 +1,59 @@
 # EmakiStation 配方示例
-# 匹配方式是无序集合匹配：只看材料种类和总数，不看摆放位置，没有 shaped 概念。
+# 匹配方式是无序集合匹配: 只看材料种类和总数, 不看摆放位置, 没有 shaped 概念
 id: "iron_ingot_block"
 display_name: "<white>铁块压制</white>"
 
-# 声明配方所属工作站；留空时对所有工作站开放。
+# 声明配方所属工作站; 留空时对所有工作站开放
 station_ids:
   - "blacksmith"
 
-# tags 仍可用于其他用途（如 API 查询），但不再驱动工作站归属逻辑。
+# tags 仍可用于其他用途 (如 API 查询), 但不再驱动工作站归属逻辑
 tags:
   - "blacksmith"
 
-# 使用该配方需要的权限，留空表示不限制。
-# 没有该权限时配方【不出现在目录里】，不是显示为灰色。
+# 使用该配方需要的权限, 留空表示不限制
+# 没有该权限时配方[不出现在目录里], 不是显示为灰色
 permission: ""
 
-# 是否出现在配方目录里。false 表示彻底不显示，通常配合 API 提交使用。
+# 是否出现在配方目录里.false 表示彻底不显示, 通常配合 API 提交使用
 visible: true
 
-# 单次合成耗时（秒）。填 0 或省略表示立即完成，不进队列。
+# 单次合成耗时 (秒).填 0 或省略表示立即完成, 不进队列
 duration_seconds: 30
 
-# 每次合成额外收取的货币，按倍率乘算。省略或注释掉整个 cost 节表示不收费。
-# 货币类型与金额必须写在嵌套的 cost.currency 子节下：
+# 每次合成额外收取的货币, 按倍率乘算.省略或注释掉整个 cost 节表示不收费
+# 货币类型与金额必须写在嵌套的 cost.currency 子节下:
 #   type: vault | excellent
-# 余额在扣材料之前先校验，扣款在扣材料之后执行；扣款失败会把材料原额退回。
-# 取消队列条目时按工作站的 cancel_refund_rate 折算退还。
-# 注意：把 type/amount 直接写在 cost 下（不嵌套 currency）会在加载时告警，配方按免费处理。
+# 余额在扣材料之前先校验, 扣款在扣材料之后执行; 扣款失败会把材料原额退回
+# 取消队列条目时按工作站的 cancel_refund_rate 折算退还
+# 注意: 把 type/amount 直接写在 cost 下 (不嵌套 currency) 会在加载时告警, 配方按免费处理
 cost:
   currency:
     type: "vault"
     amount: 25
 
-# 材料需求。
-# item_sources 是"任意其一"集合，数量按集合内总数计算：
-# 需要 64 个时，30 个 coal + 34 个 charcoal 也算满足。
-# 单个配方的材料种类数不受 GUI 槽位数限制。仓库通道按 long 直扣，
-# 背包通道受原版每格 64 上限约束。
-# 物品源简写用【连字符】：minecraft-iron_ingot、emakiitem-example_item。
-# 下面 matcher 里 component 的组件 ID 与 path 资源 ID 用【冒号】。
-# 两种分配模型，按本配方是否出现 matcher 决定，一个配方只走其中一种：
-#   1) 全部材料只写 item_sources（下面第一条）——沿用原有聚合计数模型，
-#      背包 + 仓库两通道都参与，分配是贪心的、没有回溯。当同一个物品能
-#      满足多条需求时会分配给先声明的那一条，极少数情况下会让理论可行的
-#      配方匹配失败，拆分配方即可规避。
-#   2) 任意一条材料写了 matcher（下面第二条）——整条配方改走最大二分匹配
-#      分配（带容量最大流），不会再因为声明顺序不巧而失配。代价是
-#      【只从背包扣料，不走仓库通道】：matcher 判定的是具体物品栈的组件，
-#      而仓库只按物品模板记数、拿不到逐栈组件，无法参与判定。
-#      需要仓库供料的配方请不要写 matcher。
-# ⚠ Station 材料是本项目里保留 item_sources 的例外站点：别的插件已经把判定位
-#   收敛到 matcher，而这里的 item_sources 不只是判定用的条件，它还要被【枚举】——
-#   仓库通道必须逐个物品源去查库存与扣料，而 matcher 是一个谓词、无法枚举出
-#   "有哪些物品源"。背包扣料也依赖它定位具体物品。
-#   所以下面的材料保持 item_sources 写法，不要照搬其他插件改成纯 matcher。
+# 材料需求
+# item_sources 是"任意其一"集合, 数量按集合内总数计算:
+# 需要 64 个时, 30 个 coal + 34 个 charcoal 也算满足
+# 单个配方的材料种类数不受 GUI 槽位数限制.仓库通道按 long 直扣,
+# 背包通道受原版每格 64 上限约束
+# 物品源简写用[连字符]: minecraft-iron_ingot, emakiitem-example_item
+# 下面 matcher 里 component 的组件 ID 与 path 资源 ID 用[冒号]
+# 两种分配模型, 按本配方是否出现 matcher 决定, 一个配方只走其中一种:
+#   1) 全部材料只写 item_sources (下面第一条) -- 沿用原有聚合计数模型,
+#      背包 + 仓库两通道都参与, 分配是贪心的, 没有回溯.当同一个物品能
+#      满足多条需求时会分配给先声明的那一条, 极少数情况下会让理论可行的
+#      配方匹配失败, 拆分配方即可规避
+#   2) 任意一条材料写了 matcher (下面第二条) -- 整条配方改走最大二分匹配
+#      分配 (带容量最大流), 不会再因为声明顺序不巧而失配.代价是
+#      [只从背包扣料, 不走仓库通道]: matcher 判定的是具体物品栈的组件,
+#      而仓库只按物品模板记数, 拿不到逐栈组件, 无法参与判定
+#      需要仓库供料的配方请不要写 matcher
+# ⚠ Station 材料是本项目里保留 item_sources 的例外站点: 别的插件已经把判定位
+#   收敛到 matcher, 而这里的 item_sources 不只是判定用的条件, 它还要被[枚举] --
+#   仓库通道必须逐个物品源去查库存与扣料, 而 matcher 是一个谓词, 无法枚举出
+#   "有哪些物品源".背包扣料也依赖它定位具体物品
+#   所以下面的材料保持 item_sources 写法, 不要照搬其他插件改成纯 matcher
 materials:
   - material_id: iron_ingot
     requirement_id: iron_ingot_input
@@ -61,7 +61,7 @@ materials:
     item_sources:
       - "minecraft-iron_ingot"
     amount: 9
-    # consume: false 表示只校验持有、不扣除（用于"需要工具在手"这类需求）
+    # consume: false 表示只校验持有, 不扣除 (用于"需要工具在手"这类需求)
     consume: true
 
 
@@ -70,19 +70,19 @@ result:
     - item_source: "minecraft-iron_block"
       amount: 1
 
-  # 结算后执行的动作行，语法与其他 Emaki 模块一致。
+  # 结算后执行的动作行, 语法与其他 Emaki 模块一致
 
-# 提交前的条件门。不满足时配方仍在目录里，但点击会被拒绝。
+# 提交前的条件门.不满足时配方仍在目录里, 但点击会被拒绝
 condition:
   invalid_as_failure: true
 
-# 解锁条件。与上面的 condition 是两回事：
-#   condition          决定"能不能做"，不满足时配方照常显示，点了会被拒
-#   display_condition  决定"解锁没有"，不满足时配方显示为灰色占位、点击无反应
-# 用灰色占位而不是隐藏，是为了让玩家知道后面还有内容。
-# 想彻底隐藏请用上面的 visible: false 或 permission。
-# 这里的条件会在每次绘制目录页时求值，写得太重会拖慢界面。
+# 解锁条件.与上面的 condition 是两回事:
+#   condition          决定"能不能做", 不满足时配方照常显示, 点了会被拒
+#   display_condition  决定"解锁没有", 不满足时配方显示为灰色占位, 点击无反应
+# 用灰色占位而不是隐藏, 是为了让玩家知道后面还有内容
+# 想彻底隐藏请用上面的 visible: false 或 permission
+# 这里的条件会在每次绘制目录页时求值, 写得太重会拖慢界面
 display_condition:
   invalid_as_failure: false
 
-# 各阶段动作行。
+# 各阶段动作行

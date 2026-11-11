@@ -22,7 +22,7 @@ public final class QueueCostLoader {
         if (section == null || section.isEmpty()) {
             if (reportMissingFile && logger != null) {
                 logger.warning("[config] " + (file == null ? "queue_costs.yml" : file.getName())
-                        + " 缺失或为空；在提供之前付费队列槽位将被禁用");
+                        + " 缺失或为空; 在提供之前付费队列槽位将被禁用");
             }
             return QueueCostConfig.empty();
         }
@@ -69,7 +69,7 @@ public final class QueueCostLoader {
         Double maxAmount = section.getDouble("max_amount", null);
         if (maxAmount == null || maxAmount <= 0.0D) {
 
-            warn(logger, "queue_costs.yml 的 fallback 需要正数 max_amount 作为保护值；"
+            warn(logger, "queue_costs.yml 的 fallback 需要正数 max_amount 作为保护值; "
                     + "超出已定义档位的付费队列槽位将被禁用");
             return null;
         }

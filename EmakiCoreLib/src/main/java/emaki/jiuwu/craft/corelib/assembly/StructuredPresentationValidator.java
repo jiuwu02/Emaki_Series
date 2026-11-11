@@ -58,7 +58,7 @@ public final class StructuredPresentationValidator {
 
         if (presentation.baseNamePolicy() == BaseNamePolicy.EXPLICIT_TEMPLATE
                 && Texts.isBlank(presentation.baseNameTemplate())) {
-            issues.add("base_name_policy 为 EXPLICIT_TEMPLATE，但 base_name_template 为空");
+            issues.add("base_name_policy 为 EXPLICIT_TEMPLATE, 但 base_name_template 为空");
         }
 
         EmakiStructuredPresentation sanitized = new EmakiStructuredPresentation(

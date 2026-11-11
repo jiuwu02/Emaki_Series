@@ -46,15 +46,15 @@ public final class LevelOperationStage implements CoreActionStage {
     @Override
     public @NotNull String description() {
         return switch (operationType) {
-            case ADD_EXP -> "为目标等级类型增加经验。";
-            case SET_EXP -> "设置目标在某个等级类型上的经验。";
-            case REMOVE_EXP -> "从目标等级类型移除经验。";
-            case ADD_LEVEL -> "为目标等级类型增加等级。";
-            case SET_LEVEL -> "设置目标在某个等级类型上的等级。";
-            case REMOVE_LEVEL -> "从目标等级类型移除等级。";
-            case RESET -> "重置目标在某个等级类型上的进度。";
-            case LEVEL_UP -> "使目标在某个等级类型上升一级。";
-            default -> "修改目标的等级进度。";
+            case ADD_EXP -> "为目标等级类型增加经验.";
+            case SET_EXP -> "设置目标在某个等级类型上的经验.";
+            case REMOVE_EXP -> "从目标等级类型移除经验.";
+            case ADD_LEVEL -> "为目标等级类型增加等级.";
+            case SET_LEVEL -> "设置目标在某个等级类型上的等级.";
+            case REMOVE_LEVEL -> "从目标等级类型移除等级.";
+            case RESET -> "重置目标在某个等级类型上的进度.";
+            case LEVEL_UP -> "使目标在某个等级类型上升一级.";
+            default -> "修改目标的等级进度.";
         };
     }
 
@@ -69,7 +69,7 @@ public final class LevelOperationStage implements CoreActionStage {
         parameters.add(CoreStageParameter.required("type", CoreStageParameterType.STRING, "等级类型 ID"));
 
         parameters.add(CoreStageParameter.optional("amount", CoreStageParameterType.EXPRESSION, "0",
-                "数量，可为算术表达式"));
+                "数量, 可为算术表达式"));
         parameters.add(CoreStageParameter.optional("reason", CoreStageParameterType.STRING, "action",
                 "随变更记录的审计原因"));
         if (operationType == LevelOperationType.ADD_EXP) {

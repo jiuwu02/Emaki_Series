@@ -42,7 +42,7 @@ public final class CastSkillStage implements CoreActionStage {
 
     @Override
     public @NotNull String description() {
-        return "以目标为施法者释放一个 EmakiSkills 技能。";
+        return "以目标为施法者释放一个 EmakiSkills 技能.";
     }
 
     @Override
@@ -56,11 +56,11 @@ public final class CastSkillStage implements CoreActionStage {
                 CoreStageParameter.required("skill", CoreStageParameterType.STRING,
                         "EmakiSkills 技能 ID"),
                 CoreStageParameter.optional("bypass_cooldown", CoreStageParameterType.BOOLEAN, "false",
-                        "跳过技能独立冷却与公共冷却检查；非玩家施法者忽略此项"),
+                        "跳过技能独立冷却与公共冷却检查; 非玩家施法者忽略此项"),
                 CoreStageParameter.optional("bypass_resource_check", CoreStageParameterType.BOOLEAN, "false",
-                        "资源不足时仍可释放；非玩家施法者忽略此项"),
+                        "资源不足时仍可释放; 非玩家施法者忽略此项"),
                 CoreStageParameter.optional("consume_resource", CoreStageParameterType.BOOLEAN, "true",
-                        "成功释放是否扣除资源消耗；非玩家施法者忽略此项"));
+                        "成功释放是否扣除资源消耗; 非玩家施法者忽略此项"));
     }
 
     @Override

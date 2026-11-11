@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 public final class OpPlayersSource extends BaseSource {
 
     public OpPlayersSource() {
-        super("op_players", "全服在线的 OP 玩家。",
+        super("op_players", "全服在线的 OP 玩家.",
                 CoreActionExecutionDomain.SERVER_GLOBAL);
     }
 

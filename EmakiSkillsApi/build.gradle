@@ -1,4 +1,4 @@
-// EmakiSkillsApi（原 EmakiSkillsApi/pom.xml）。
+// EmakiSkillsApi (原 EmakiSkillsApi/pom.xml)
 version = '3.0.1'
 
 dependencies {

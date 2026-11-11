@@ -1,11 +1,11 @@
 # ============================================================
-# EmakiItem 示例：守护者战靴
+# EmakiItem 示例: 守护者战靴
 # ============================================================
-# 演示功能：
-#   - equip_slot 限定为靴子槽，set 归属 example_set 的 boots 部件
+# 演示功能:
+#   - equip_slot 限定为靴子槽, set 归属 example_set 的 boots 部件
 #   - ea_attribute 同时写入防御与移动速度属性
-# 获得方式：/ei give <玩家> example_guardian_boots
-# 依赖：EmakiAttribute（属性生效）；套装阈值技能由 EmakiSkills 提供
+# 获得方式: /ei give <玩家> example_guardian_boots
+# 依赖: EmakiAttribute (属性生效); 套装阈值技能由 EmakiSkills 提供
 # ============================================================
 
 id: "example_guardian_boots"

@@ -25,12 +25,12 @@ final class ExpressionEngineDelegate2 {
     static List<ExpressionEngine.WeightedChar> weightedCharCandidates(Object config, List<String> candidates, ExpressionEngine.TextEvaluationScope scope, int depth, List<String> issues) {
         Object rawWeights = ConfigNodes.get(config, "weights");
         if (rawWeights == null) {
-            issues.add("加权随机字符配置缺少 'weights'。");
+            issues.add("加权随机字符配置缺少 'weights'.");
             return List.of();
         }
         List<Object> weights = ConfigNodes.asObjectList(rawWeights);
         if (weights.size() != candidates.size()) {
-            issues.add("加权随机字符配置要求权重数量与字符数量一致。");
+            issues.add("加权随机字符配置要求权重数量与字符数量一致.");
             return List.of();
         }
         List<ExpressionEngine.WeightedChar> result = new ArrayList<>();
@@ -39,7 +39,7 @@ final class ExpressionEngineDelegate2 {
                     ExpressionEngine.NumericEvaluationScope.of(scope.variables()),
                     depth + 1);
             if (!weight.success()) {
-                issues.add("索引 " + index + " 处的加权随机字符权重无效。");
+                issues.add("索引 " + index + " 处的加权随机字符权重无效.");
                 issues.addAll(weight.issues());
                 continue;
             }
@@ -48,7 +48,7 @@ final class ExpressionEngineDelegate2 {
             }
         }
         if (result.isEmpty()) {
-            issues.add("加权随机字符配置没有正权重。");
+            issues.add("加权随机字符配置没有正权重.");
         }
         return result;
     }

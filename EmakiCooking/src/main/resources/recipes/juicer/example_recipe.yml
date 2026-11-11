@@ -1,8 +1,8 @@
 # ============================================================
 # EmakiCooking 榨汁机配方示例
 # ============================================================
-# 榨汁机是按压型烹饪设备，玩家需要多次按压来榨取液体，
-# 然后用容器收集成品。
+# 榨汁机是按压型烹饪设备, 玩家需要多次按压来榨取液体,
+# 然后用容器收集成品
 # ============================================================
 
 id: "example_recipe"
@@ -12,8 +12,8 @@ display_name: "苹果汁"
 # ============================================================
 # 输入食材
 # ============================================================
-# 放入榨汁机的原料物品。判定由同级 item_sources 与 matcher 取 AND，
-# 两者都省略则这条配方永不命中。⚠ matcher 内禁止写物品源条件。
+# 放入榨汁机的原料物品.判定由同级 item_sources 与 matcher 取 AND,
+# 两者都省略则这条配方永不命中.⚠ matcher 内禁止写物品源条件
 input:
   item_sources:
     - minecraft-apple
@@ -29,7 +29,7 @@ presses_required: 5
 # ============================================================
 # id: 液体类型标识
 # display_name: 液体显示名称
-# amount_ml: 每次榨取产生的液体量（毫升）
+# amount_ml: 每次榨取产生的液体量 (毫升)
 fluid:
   id: "apple_juice"
   display_name: "苹果汁"
@@ -38,10 +38,10 @@ fluid:
 # ============================================================
 # 容器配置
 # ============================================================
-# 判定哪个物品算合格容器：同级 item_sources 与 matcher 取 AND，
-# 两者都省略则本配方无法盛取。⚠ matcher 内禁止写物品源条件。
+# 判定哪个物品算合格容器: 同级 item_sources 与 matcher 取 AND,
+# 两者都省略则本配方无法盛取.⚠ matcher 内禁止写物品源条件
 # 写在这里会覆盖 config.yml 的 stations.juicer.container
-# serving_ml: 每个容器可装的液体量（毫升）
+# serving_ml: 每个容器可装的液体量 (毫升)
 container:
   item_sources:
     - minecraft-glass_bottle
@@ -50,7 +50,7 @@ container:
 permission: "emakicooking.recipe.apple_juice"
 
 # ============================================================
-# 完成条件（true/false 动作分支）
+# 完成条件 (true/false 动作分支)
 # ============================================================
 condition:
   type: all_of
@@ -58,10 +58,10 @@ condition:
     - "%player_level% >= 1"
   on_pass:
     actions:
-      - 'send_message text="<aqua>榨汁条件满足。</aqua>"'
+      - 'send_message text="<aqua>榨汁条件满足.</aqua>"'
   on_fail:
     actions:
-      - 'send_message text="<red>榨汁条件不满足。</red>"'
+      - 'send_message text="<red>榨汁条件不满足.</red>"'
     block_output: false
 
 # ============================================================
@@ -76,4 +76,4 @@ result:
       - item_source: "minecraft-honey_bottle"
         amount: 1
     actions:
-      - 'send_message text="<aqua>榨汁完成。</aqua>"'
+      - 'send_message text="<aqua>榨汁完成.</aqua>"'

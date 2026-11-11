@@ -59,7 +59,7 @@ public final class EmakiItemLoader {
                     continue;
                 }
                 if (loaded.containsKey(definition.id())) {
-                    plugin.getLogger().warning("[loader] 重复的 EmakiItem ID '" + definition.id() + "' (位于 " + file.getPath() + ")，保留首个定义");
+                    plugin.getLogger().warning("[loader] 重复的 EmakiItem ID '" + definition.id() + "' (位于 " + file.getPath() + "), 保留首个定义");
                     continue;
                 }
                 loaded.put(definition.id(), definition);

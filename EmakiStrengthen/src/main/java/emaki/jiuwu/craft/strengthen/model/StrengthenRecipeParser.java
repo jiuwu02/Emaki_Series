@@ -316,7 +316,7 @@ public final class StrengthenRecipeParser {
             Map<String, Object> canonical = StrengthenMaterialSchema.canonicalize(stringKeyMap(rawEntry), index);
             if (canonical.isEmpty()) {
                 throw new IllegalArgumentException("materials[" + index
-                        + "] 在缺少 material_id、id 或 count_key 的情况下声明了多个 item_sources");
+                        + "] 在缺少 material_id, id 或 count_key 的情况下声明了多个 item_sources");
             }
             List<String> sources = parseMaterialSources(canonical);
             String item = sources.isEmpty() ? parseMaterialItem(canonical) : sources.getFirst();

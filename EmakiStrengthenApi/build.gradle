@@ -1,4 +1,4 @@
-// EmakiStrengthenApi（原 EmakiStrengthenApi/pom.xml）。
+// EmakiStrengthenApi (原 EmakiStrengthenApi/pom.xml)
 version = '5.0.1'
 
 dependencies {

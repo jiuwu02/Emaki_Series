@@ -21,7 +21,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class LookingAtSource extends BaseSource {
 
     public LookingAtSource() {
-        super("looking_at", "施法者视线所指向的实体。",
+        super("looking_at", "施法者视线所指向的实体.",
                 CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("range", CoreStageParameterType.DOUBLE, "5", "射线长度"),
                 CoreStageParameter.optional("width", CoreStageParameterType.DOUBLE, "0.5", "射线宽度"));

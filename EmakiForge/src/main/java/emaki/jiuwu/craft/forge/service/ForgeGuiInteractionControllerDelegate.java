@@ -67,7 +67,7 @@ final class ForgeGuiInteractionControllerDelegate {
             return;
         }
         if (state.processing()) {
-            ownerRef.recordSettlementFailure(state, reason + "；被跟踪的处理完成仍保留结算所有权");
+            ownerRef.recordSettlementFailure(state, reason + "; 被跟踪的处理完成仍保留结算所有权");
             return;
         }
         ownerRef.abandonRetiredSession(state, reason);
@@ -78,8 +78,8 @@ final class ForgeGuiInteractionControllerDelegate {
             return;
         }
         ownerRef.recordSettlementFailure(state, state.processing()
-                ? reason + "；处理完成仍持有未解决结算"
-                : reason + "；未解决物品仍为所有者线程重试保留");
+                ? reason + "; 处理完成仍持有未解决结算"
+                : reason + "; 未解决物品仍为所有者线程重试保留");
     }
 
     void runTerminalSettlement(ForgeGuiSession state, Runnable settlement, String failureReason) {
@@ -89,7 +89,7 @@ final class ForgeGuiInteractionControllerDelegate {
                 settlement.run();
             }
             if (state == null || !state.commitSettlement()) {
-                throw new IllegalStateException("无法提交锻造结算预留。");
+                throw new IllegalStateException("无法提交锻造结算预留.");
             }
             committed = true;
         } catch (Throwable throwable) {

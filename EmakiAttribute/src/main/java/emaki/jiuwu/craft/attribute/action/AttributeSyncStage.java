@@ -24,9 +24,9 @@ public final class AttributeSyncStage implements CoreActionStage {
 
     public enum Operation {
 
-        SYNC("attribute_sync", "为目标或所有在线玩家重新计算属性值。", "false"),
+        SYNC("attribute_sync", "为目标或所有在线玩家重新计算属性值.", "false"),
 
-        REFRESH("attribute_refresh", "丢弃属性缓存并重新计算数值。", "true");
+        REFRESH("attribute_refresh", "丢弃属性缓存并重新计算数值.", "true");
 
         private final String id;
         private final String description;

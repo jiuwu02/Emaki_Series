@@ -67,7 +67,7 @@ public final class MobAttributeRegistrar {
             }
             logger.warning("[integration] EmakiAttribute 集成实现类型无效");
         } catch (ClassNotFoundException | LinkageError exception) {
-            logger.info("[integration] EmakiAttribute 集成不可用，将在不提供属性贡献的情况下继续");
+            logger.info("[integration] EmakiAttribute 集成不可用, 将在不提供属性贡献的情况下继续");
         } catch (ReflectiveOperationException | SecurityException exception) {
             logger.warning("[integration] EmakiAttribute 集成失败: " + exception.getMessage());
         }

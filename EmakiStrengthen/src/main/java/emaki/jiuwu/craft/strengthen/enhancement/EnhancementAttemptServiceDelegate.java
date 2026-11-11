@@ -291,7 +291,7 @@ final class EnhancementAttemptServiceDelegate {
             return "";
         }
         String reasonKey = Texts.isBlank(refresh.reasonKey()) ? EnhancementAttemptService.ERROR_REBUILD_FAILED : refresh.reasonKey();
-        ownerRef.warn("目标 Provider 刷新阶段失败，未扣费即拒绝 | 原因键=" + reasonKey, null);
+        ownerRef.warn("目标 Provider 刷新阶段失败, 未扣费即拒绝 | 原因键=" + reasonKey, null);
         ownerRef.debug(player, "debug.attempt.refresh_failed", Map.of(
                 "provider", EnhancementAttemptServiceSupport.safeProviderId(provider),
                 "reason", refresh.failureKind() == null ? "未知" : refresh.failureKind().name(),
@@ -316,7 +316,7 @@ final class EnhancementAttemptServiceDelegate {
             }
             return passed;
         } catch (RuntimeException | LinkageError exception) {
-            ownerRef.warn("配方条件求值失败，按不通过处理", exception);
+            ownerRef.warn("配方条件求值失败, 按不通过处理", exception);
             ownerRef.debug(player, "debug.attempt.condition_rejected", Map.of(
                     "recipe", recipe.id(),
                     "condition_type", exception.getClass().getSimpleName(),
@@ -332,7 +332,7 @@ final class EnhancementAttemptServiceDelegate {
         if (expected.sameIdentityAndVersion(actual)) {
             return true;
         }
-        ownerRef.warn("目标在预览与确认之间发生变化，已在扣费前拒绝 | 操作=" + operation, null);
+        ownerRef.warn("目标在预览与确认之间发生变化, 已在扣费前拒绝 | 操作=" + operation, null);
         ownerRef.debug(player, "debug.attempt.target_changed", Map.of(
                 "operation_id", operation,
                 "expected_version", expected.version(),
@@ -361,7 +361,7 @@ final class EnhancementAttemptServiceDelegate {
     }
 
     void logContainerRejection(Player player, ItemStack target) {
-        ownerRef.warn("强化目标位于外部容器，已拒绝执行", null);
+        ownerRef.warn("强化目标位于外部容器, 已拒绝执行", null);
         ownerRef.debug(player, "debug.attempt.container_rejected", Map.of(
                 "item", target == null ? "-" : target.getType().name(),
                 "error_key", EnhancementAttemptService.ERROR_CONTAINER_TARGET));
@@ -413,7 +413,7 @@ final class EnhancementAttemptServiceDelegate {
                     target, targetSource, effective);
             return slot.requirement().test(context);
         } catch (RuntimeException | LinkageError exception) {
-            ownerRef.warn("材料判定抛出异常，视为不匹配", exception);
+            ownerRef.warn("材料判定抛出异常, 视为不匹配", exception);
             return false;
         }
     }
@@ -461,7 +461,7 @@ final class EnhancementAttemptServiceDelegate {
                     target, identifySource(target), effective);
             return filterMatcher.test(context);
         } catch (RuntimeException | LinkageError exception) {
-            ownerRef.warn("目标 Matcher 判定抛出异常，视为不匹配", exception);
+            ownerRef.warn("目标 Matcher 判定抛出异常, 视为不匹配", exception);
             return false;
         }
     }
@@ -545,7 +545,7 @@ final class EnhancementAttemptServiceDelegate {
     }
 
     void logContainerMaterialRejection(Player player, int suppliedCount) {
-        ownerRef.warn("强化材料位于外部容器，已拒绝执行", null);
+        ownerRef.warn("强化材料位于外部容器, 已拒绝执行", null);
         ownerRef.debug(player, "debug.attempt.container_material_rejected", Map.of(
                 "count", suppliedCount,
                 "error_key", EnhancementAttemptService.ERROR_CONTAINER_MATERIAL));

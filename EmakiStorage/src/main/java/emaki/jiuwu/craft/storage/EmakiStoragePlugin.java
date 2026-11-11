@@ -218,7 +218,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private void reportLogDrain(CompletableFuture<StorageOperationLog.DrainReport> drain, long timeoutSeconds) {
         StorageOperationLog.DrainReport report = awaitLogDrain(drain, timeoutSeconds);
         if (report == null) {
-            getLogger().warning("[shutdown] 存储日志落盘在 " + timeoutSeconds + " 秒内未完成，停服结果不完整");
+            getLogger().warning("[shutdown] 存储日志落盘在 " + timeoutSeconds + " 秒内未完成, 停服结果不完整");
             return;
         }
         if (!report.drained()) {

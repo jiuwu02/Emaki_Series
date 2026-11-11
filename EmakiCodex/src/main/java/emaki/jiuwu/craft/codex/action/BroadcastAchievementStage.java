@@ -44,7 +44,7 @@ public final class BroadcastAchievementStage implements CoreActionStage {
 
     @Override
     public @NotNull String description() {
-        return "以原版风格的一句话向全服公告一项成就。";
+        return "以原版风格的一句话向全服公告一项成就.";
     }
 
     @Override
@@ -59,7 +59,7 @@ public final class BroadcastAchievementStage implements CoreActionStage {
                 CoreStageParameter.optional("description", CoreStageParameterType.STRING, "",
                         "悬停提示内容"),
                 CoreStageParameter.optional("frame", CoreStageParameterType.STRING, DEFAULT_FRAME,
-                        "默认句式：task、goal 或 challenge"),
+                        "默认句式: task, goal 或 challenge"),
                 CoreStageParameter.optional("format", CoreStageParameterType.STRING, "",
                         "非空时完全覆盖默认句式"),
                 CoreStageParameter.optional("permission", CoreStageParameterType.STRING, "",

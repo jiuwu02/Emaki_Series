@@ -20,7 +20,7 @@ import net.kyori.adventure.title.Title;
 public final class SendTitleStage extends BaseStage {
 
     public SendTitleStage() {
-        super("send_title", "message", "向目标显示标题。",
+        super("send_title", "message", "向目标显示标题.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("title", CoreStageParameterType.STRING, "主标题"),
                 CoreStageParameter.optional("subtitle", CoreStageParameterType.STRING, "", "副标题"),

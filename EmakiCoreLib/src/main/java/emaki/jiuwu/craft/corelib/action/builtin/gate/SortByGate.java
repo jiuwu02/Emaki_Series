@@ -25,7 +25,7 @@ public final class SortByGate extends BaseGate {
     private static final String HEALTH = "health";
 
     public SortByGate() {
-        super("sort_by", "按距离或生命值排序目标流。",
+        super("sort_by", "按距离或生命值排序目标流.",
                 CoreGateThread.NEEDS_ENTITY_READ,
                 CoreStageParameter.positional("key", CoreStageParameterType.STRING,
                         "distance 或 health"),

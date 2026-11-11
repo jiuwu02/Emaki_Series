@@ -141,7 +141,7 @@ public final class MobDropHandler implements Listener {
             return EmakiItemApi.operations().create(itemId, 1).orElse(null);
         } catch (NoClassDefFoundError e) {
             emakiItemAbsent = true;
-            logger.fine("[loot] EmakiItem API 不可用，emaki_item 掉落已禁用");
+            logger.fine("[loot] EmakiItem API 不可用, emaki_item 掉落已禁用");
             return null;
         }
     }

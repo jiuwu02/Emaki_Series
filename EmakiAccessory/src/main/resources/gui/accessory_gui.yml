@@ -1,12 +1,12 @@
 # ============================================================
 # EmakiAccessory 饰品栏界面布局
 # ============================================================
-# accessory_slot 必须显式声明；键名为 <部位ID>_<从1开始的序号>，并对应 parts.yml 的 count。
-# 未声明 type 的格子仅作装饰；同一 accessory_slot 占多格时仅首格生效。
-# orphan_slot 只接收当前页已移除槽位的饰品，且只能取出；其他页不参与判定。
-# 缺少 orphan_slot 不会删除数据，但玩家只能通过 /eacc retrieve 或恢复配置取回。
-# page_enable 将当前页设为唯一生效页；page_switch 的键名必须是目标 page_id。
-# parts.yml 中未摆放的槽位不可用并记录警告。
+# accessory_slot 必须显式声明; 键名为 <部位ID>_<从1开始的序号>, 并对应 parts.yml 的 count
+# 未声明 type 的格子仅作装饰; 同一 accessory_slot 占多格时仅首格生效
+# orphan_slot 只接收当前页已移除槽位的饰品, 且只能取出; 其他页不参与判定
+# 缺少 orphan_slot 不会删除数据, 但玩家只能通过 /eacc retrieve 或恢复配置取回
+# page_enable 将当前页设为唯一生效页; page_switch 的键名必须是目标 page_id
+# parts.yml 中未摆放的槽位不可用并记录警告
 # ============================================================
 id: "accessory_gui"
 gui_type: CHEST
@@ -110,7 +110,7 @@ slots:
     item:
       source: "iron_ingot"
 
-  # 新增页面示例的切页入口；键名必须与 pages/*.yml 的 page_id 一致。
+  # 新增页面示例的切页入口; 键名必须与 pages/*.yml 的 page_id 一致
   example_battle:
     slots:
       - 9
