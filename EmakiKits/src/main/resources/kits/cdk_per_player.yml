@@ -1,0 +1,18 @@
+# 每玩家 CDK: 兑换码按玩家分别一次性
+id: "cdk_per_player"
+type: "cdk"
+enabled: true
+display_name: "每玩家 CDK"
+permission: "emakikits.claim"
+cdk:
+  mode: "per_player_once"
+  codes:
+    - "NEWPLAYER"
+  per_player_limit: 1
+rewards:
+  weighted: false
+  fixed:
+    - type: "action"
+      id: "cdk_exp"
+      action: 'give_exp amount=30'
+  random: []

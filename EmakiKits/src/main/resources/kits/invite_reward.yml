@@ -1,0 +1,18 @@
+# 邀新礼包: 奖励对象由 reward_target 决定
+id: "invite_reward"
+type: "invite"
+enabled: true
+display_name: "邀新礼包"
+permission: "emakikits.claim"
+invite:
+  reward_target: "INVITER"
+  require_new_player: true
+  allow_mutual: false
+  max_binds_per_invitee: 1
+rewards:
+  weighted: false
+  fixed:
+    - type: "money"
+      id: "invite_money"
+      amount: 100
+  random: []

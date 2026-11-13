@@ -1,0 +1,24 @@
+# 入服礼包: 新玩家首次进服, 需输入老玩家邀请码触发
+id: "join_welcome"
+type: "join"
+enabled: true
+display_name: "入服礼包"
+permission: "emakikits.claim"
+join:
+  on_first_join: true
+  on_every_specified_join: false
+  require_invite_code: true
+  invite_code_type: "uuid"
+  missed_window_seconds: 7200
+  worlds: []
+rewards:
+  weighted: false
+  fixed:
+    - type: "item"
+      id: "welcome_bread"
+      source: "minecraft-bread"
+      amount: 8
+    - type: "action"
+      id: "welcome_msg"
+      action: 'send_message text="<green>欢迎加入服务器!</green>"'
+  random: []

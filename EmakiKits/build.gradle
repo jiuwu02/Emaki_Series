@@ -1,5 +1,5 @@
 // EmakiKits (礼包模块)
-version = '1.0.0'
+version = '1.0.1'
 
 dependencies {
     shadeBundle project(':EmakiKitsApi')

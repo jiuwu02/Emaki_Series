@@ -1,0 +1,16 @@
+# 每日礼包: 按 cycle.timezone 的日边界生成周期键
+id: "daily_login"
+type: "daily"
+enabled: true
+display_name: "每日礼包"
+permission: "emakikits.claim"
+cycle:
+  timezone: "Asia/Shanghai"
+  allow_makeup: false
+rewards:
+  weighted: false
+  fixed:
+    - type: "action"
+      id: "daily_heal"
+      action: 'heal amount=4'
+  random: []

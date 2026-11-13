@@ -16,6 +16,7 @@ public record AppConfig(String version,
                         NestedSettings nested,
                         JoinSettings join,
                         Map<String, KitDefinition> kits,
+                        boolean releaseDefaultData,
                         List<ConfigIssue> issues) {
 
     public record StorageSettings(String backend, int saveDelayTicks, boolean atomicWrites) {}
@@ -32,7 +33,7 @@ public record AppConfig(String version,
     public record JoinSettings(long missedWindowSeconds, String inviteCodeType) {}
     public record ConfigIssue(String path, String reasonKey) {}
 
-    public static final String CURRENT_VERSION = "1.0.0";
+    public static final String CURRENT_VERSION = "1.0.1";
 
     public static AppConfig defaults() {
         Map<String, KitDefinition> empty = new LinkedHashMap<>();
@@ -43,12 +44,12 @@ public record AppConfig(String version,
                 new CdkSettings(false, 10000),
                 new NestedSettings(4, false),
                 new JoinSettings(7200L, "uuid"),
-                empty, List.of());
+                empty, true, List.of());
     }
 
     public AppConfig withKits(Map<String, KitDefinition> parsed, List<ConfigIssue> recorded) {
         return new AppConfig(version, language, timeZone, storage, economy, invite, cdk, nested, join,
-                parsed == null ? Map.of() : Map.copyOf(parsed),
+                parsed == null ? Map.of() : Map.copyOf(parsed), releaseDefaultData,
                 recorded == null ? List.of() : List.copyOf(recorded));
     }
 

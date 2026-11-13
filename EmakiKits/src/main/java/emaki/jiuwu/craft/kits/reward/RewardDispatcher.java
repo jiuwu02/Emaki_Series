@@ -1,7 +1,11 @@
 package emaki.jiuwu.craft.kits.reward;
 
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionContext;
+import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionResult;
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.kits.config.AppConfig;
-import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.kits.config.KitIds;
 import emaki.jiuwu.craft.kits.model.ChoiceOption;
 import emaki.jiuwu.craft.kits.model.KitDefinition;
@@ -9,20 +13,15 @@ import emaki.jiuwu.craft.kits.model.RewardEntry;
 import emaki.jiuwu.craft.kits.model.RewardGroup;
 import emaki.jiuwu.craft.kits.store.KitState;
 import emaki.jiuwu.craft.kits.store.KitStore;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.logging.Level;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -89,45 +88,27 @@ public final class RewardDispatcher {
     private void dispatchOne(UUID playerId, Player player, String kitId, RewardEntry entry,
                              String transactionId, int depth, List<String> auditIds) {
         switch (entry.kind()) {
-            case COMMAND -> {
-                String line = entry.command().replace("%player%",
-                        player == null ? playerId.toString() : player.getName())
-                        .replace("%uuid%", playerId.toString())
-                        .replace("%amount%", String.valueOf(entry.amount()));
-                if (line.isBlank()) {
-                    throw new RewardDeliveryException("empty command for " + entry.id());
-                }
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), line);
-                audit(playerId, kitId, "command", "transaction=" + transactionId
-                        + ", entry=" + entry.id() + ", command=" + line, auditIds);
-            }
             case ITEM -> {
                 if (player == null) {
                     audit(playerId, kitId, "item_offline", "transaction=" + transactionId
                             + ", entry=" + entry.id(), auditIds);
                     throw new RewardDeliveryException("player offline for item " + entry.id());
                 }
-                Material material = Material.matchMaterial(entry.itemMaterial().trim().toUpperCase(Locale.ROOT));
-                if (material == null || material.isAir()) {
-                    throw new RewardDeliveryException("invalid material " + entry.itemMaterial());
-                }
-                ItemStack stack = new ItemStack(material, entry.amount());
-                ItemMeta meta = stack.getItemMeta();
-                if (meta != null) {
-                    if (!entry.itemName().isBlank()) {
-                        meta.displayName(MiniMessages.parse(entry.itemName()));
-                    }
-                    if (!entry.itemLore().isEmpty()) {
-                        meta.lore(entry.itemLore().stream().map(MiniMessages::parse).toList());
-                    }
-                    stack.setItemMeta(meta);
+                ConfiguredItemDefinition definition = new ConfiguredItemDefinition(
+                        entry.source(), entry.amount(), Map.of());
+                ItemBuildResult result = EmakiCoreLibApi.createConfiguredItem(definition);
+                ItemStack stack = result.itemStack();
+                if (!result.success() || stack == null || stack.getType().isAir()) {
+                    throw new RewardDeliveryException("item source failed for " + entry.id()
+                            + ": " + result.issues());
                 }
                 Map<Integer, ItemStack> overflow = player.getInventory().addItem(stack);
                 for (ItemStack leftover : overflow.values()) {
                     player.getWorld().dropItemNaturally(player.getLocation(), leftover);
                 }
                 audit(playerId, kitId, "item", "transaction=" + transactionId
-                        + ", entry=" + entry.id() + ", material=" + material + ", amount=" + entry.amount(), auditIds);
+                        + ", entry=" + entry.id() + ", source=" + entry.source()
+                        + ", amount=" + entry.amount(), auditIds);
             }
             case MONEY -> {
                 if (!economy.available()) {
@@ -139,13 +120,32 @@ public final class RewardDispatcher {
                 audit(playerId, kitId, "money", "transaction=" + transactionId
                         + ", entry=" + entry.id() + ", amount=" + entry.amount(), auditIds);
             }
-            case EXP -> {
-                if (player == null) {
-                    throw new RewardDeliveryException("player offline for exp " + entry.id());
-                }
-                player.giveExp(entry.amount());
-                audit(playerId, kitId, "exp", "transaction=" + transactionId
-                        + ", entry=" + entry.id() + ", amount=" + entry.amount(), auditIds);
+            case ACTION -> {
+                CoreActionExecutionContext context = CoreActionExecutionContext.builder()
+                        .caster(player)
+                        .phase("emakikits_reward")
+                        .variable("kit", kitId)
+                        .variable("player", player == null ? playerId.toString() : player.getName())
+                        .variable("uuid", playerId.toString())
+                        .variable("amount", entry.amount())
+                        .build();
+                String line = entry.action();
+                EmakiCoreLibApi.executeActionLineAsync(plugin, line, context)
+                        .whenComplete((result, error) -> {
+                            String outcome = error != null ? "error=" + error
+                                    : result == null ? "no result" : result.status().name();
+                            if (error != null || failed(result)) {
+                                plugin.getLogger().warning("[EmakiKits] 礼包动作执行失败: kit=" + kitId
+                                        + ", entry=" + entry.id() + ", outcome=" + outcome
+                                        + ", line=" + line);
+                            }
+                            store.recordAudit(new KitState.AuditRecord(
+                                    store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
+                                    playerId, kitId, "action", "transaction=" + transactionId
+                                    + ", entry=" + entry.id() + ", outcome=" + outcome
+                                    + ", line=" + line));
+                        });
+                auditIds.add("action:" + entry.id());
             }
             case NESTED_KIT -> {
                 String childId = KitIds.normalize(entry.nestedKitId());
@@ -162,6 +162,16 @@ public final class RewardDispatcher {
                         + ", entry=" + entry.id() + ", child=" + childId + ", depth=" + (depth + 1), auditIds);
             }
         }
+    }
+
+    private static boolean failed(CoreActionExecutionResult result) {
+        if (result == null) {
+            return true;
+        }
+        return switch (result.status()) {
+            case EXECUTION_FAILED, COMPILE_FAILED, UNAVAILABLE, INVALID_REQUEST -> true;
+            default -> false;
+        };
     }
 
     public List<RewardEntry> optionRewards(ChoiceOption option) {

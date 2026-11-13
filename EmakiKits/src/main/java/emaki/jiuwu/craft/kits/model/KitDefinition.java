@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.kits.model;
 
+import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
+
 import java.util.List;
 
 public record KitDefinition(String id,
@@ -52,12 +54,19 @@ public record KitDefinition(String id,
     }
 
     public record ChoiceRule(int minSelect, int maxSelect, String guiTemplate,
-                             List<ChoiceOption> options) {
+                             List<ChoiceOption> options, GuiTemplate inlineGui) {
         public ChoiceRule {
             options = options == null ? List.of() : List.copyOf(options);
+            guiTemplate = guiTemplate == null ? "" : guiTemplate;
         }
         public boolean valid() {
             return minSelect >= 0 && maxSelect >= minSelect && !options.isEmpty();
+        }
+        public boolean hasGui() {
+            return inlineGui != null || !guiTemplate.isBlank();
+        }
+        public boolean usesInlineGui() {
+            return inlineGui != null;
         }
     }
 
@@ -98,7 +107,7 @@ public record KitDefinition(String id,
         permission = permission == null ? "emakikits.claim" : permission;
         displayName = displayName == null ? id : displayName;
         limit = limit == null ? new LimitRule(false, "always", "", "", "", 0L, "Asia/Shanghai") : limit;
-        choice = choice == null ? new ChoiceRule(0, 0, "", List.of()) : choice;
+        choice = choice == null ? new ChoiceRule(0, 0, "", List.of(), null) : choice;
     }
 
     public boolean hasTimeLimit() {

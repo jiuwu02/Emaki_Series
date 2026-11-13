@@ -1,0 +1,13 @@
+# 嵌套子礼包: 被其他礼包的 nested_kit / 选项 kit_id 引用
+id: "nested_child"
+type: "generic"
+enabled: true
+display_name: "嵌套子礼包"
+permission: "emakikits.claim"
+rewards:
+  weighted: false
+  fixed:
+    - type: "action"
+      id: "child_cmd"
+      action: 'send_message text="<gray>子礼包奖励已发放</gray>"'
+  random: []

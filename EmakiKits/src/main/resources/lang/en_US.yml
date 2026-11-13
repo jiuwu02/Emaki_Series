@@ -2,7 +2,7 @@
 # Messages use MiniMessage, placeholders are noted beside each group
 # version is maintained by the resource sync flow
 
-version: "1.0.0"
+version: "1.0.1"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#F97316>EmakiKits</gradient> ]</gray> "
@@ -70,6 +70,7 @@ console:
   versioned_file_updated: "[loader] <green>Default file version updated: <yellow>%path%</yellow> (%old_version% -> %new_version%)</green>"
   loader_config_load_error: "[loader] <yellow>Failed to load Kits config: <red>%path%</red> (%error%)</yellow>"
 
+
 error:
   permission:
     denied: "<red>You lack permission for this action (%sub%)</red>"
@@ -112,7 +113,7 @@ error:
   reward:
     delivery_failed: "<red>Reward delivery failed, claim rolled back</red>"
   config:
-    kits_missing: "kits section missing"
+    kits_missing: "kits directory missing or empty"
     invalid_id: "invalid kit id"
     duplicate_id: "duplicate kit id"
     section_missing: "kit section missing"
@@ -122,10 +123,13 @@ error:
     cdk_codes_empty: "CDK kit has no codes"
     cdk_codes_overflow: "CDK code count overflow"
     choice_invalid: "choice count or options invalid"
+    choice_gui_missing: "choice kit needs inline choice.gui or external gui_template"
+    choice_gui_invalid: "inline choice GUI cannot be parsed"
     purchase_limit_missing: "paid kit missing purchase limit"
     milestone_invalid: "open milestone invalid"
-    reward_type: "unknown reward type"
-    command_empty: "empty command reward"
+    reward_type: "unknown reward type, use item/money/nested_kit/action"
+    item_source_missing: "item reward missing source (CoreLib item-source shorthand)"
+    action_empty: "action reward missing action (CoreLib action line)"
     invalid_weight: "invalid random weight"
     nested_kit_missing: "nested kit missing kit_id"
     nested_missing: "nested kit reference missing"

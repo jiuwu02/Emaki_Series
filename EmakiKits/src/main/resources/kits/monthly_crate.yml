@@ -1,0 +1,17 @@
+# 每月礼包
+id: "monthly_crate"
+type: "monthly"
+enabled: true
+display_name: "每月礼包"
+permission: "emakikits.claim"
+cycle:
+  timezone: "Asia/Shanghai"
+  allow_makeup: false
+rewards:
+  weighted: false
+  fixed:
+    - type: "item"
+      id: "monthly_diamond"
+      source: "minecraft-diamond"
+      amount: 3
+  random: []

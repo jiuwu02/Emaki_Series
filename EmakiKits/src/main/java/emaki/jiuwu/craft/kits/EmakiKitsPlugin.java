@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.kits;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.bootstrap.BootstrapAssemblies;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -42,8 +44,12 @@ public final class EmakiKitsPlugin extends JavaPlugin {
     private static final int STARTUP_ASCII_END_COLOR = 0xF97316;
     private static final List<String> VERSIONED_FILES = List.of("config.yml");
     private static final List<String> STATIC_FILES = List.of("lang/zh_CN.yml", "lang/en_US.yml");
-    private static final List<String> DEFAULT_DATA_FILES = List.of("kits.yml", "gui/choice.yml");
-    private static final List<String> EXTRA_DIRECTORIES = List.of("data", "gui");
+    private static final List<String> DEFAULT_DATA_FILES = List.of(
+            "kits/join_welcome.yml", "kits/invite_reward.yml", "kits/daily_login.yml",
+            "kits/weekly_supply.yml", "kits/monthly_crate.yml", "kits/cdk_global.yml",
+            "kits/cdk_per_player.yml", "kits/choice_starter.yml", "kits/generic_crate.yml",
+            "kits/nested_child.yml");
+    private static final List<String> EXTRA_DIRECTORIES = List.of("data", "gui", "kits");
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  __  __   __  ______  ______
@@ -87,7 +93,8 @@ public final class EmakiKitsPlugin extends JavaPlugin {
         messages = new MessageService(this, languageLoader, DEFAULT_PREFIX, true);
         languageLoader.load();
         bootstrapService = new BootstrapService(this, messages, VERSIONED_FILES,
-                STATIC_FILES, DEFAULT_DATA_FILES, EXTRA_DIRECTORIES, null);
+                STATIC_FILES, DEFAULT_DATA_FILES, EXTRA_DIRECTORIES,
+                BootstrapAssemblies.hooks(this::releaseDefaultData, null, null));
         bootstrapService.bootstrap();
 
         store = new KitStore(getDataFolder(), getLogger());
@@ -159,7 +166,7 @@ public final class EmakiKitsPlugin extends JavaPlugin {
     }
 
     public int reloadContent() {
-        KitsConfigLoader loader = new KitsConfigLoader(getDataFolder());
+        KitsConfigLoader loader = new KitsConfigLoader(this);
         KitsConfigLoader.LoadResult result = loader.loadAll();
         config = result.config();
         if (languageLoader != null) {
@@ -204,6 +211,12 @@ public final class EmakiKitsPlugin extends JavaPlugin {
 
     public AppConfig appConfig() {
         return config;
+    }
+
+    public boolean releaseDefaultData() {
+        Object raw = YamlFiles.load(new java.io.File(getDataFolder(), "config.yml"))
+                .get("release_default_data");
+        return !(raw instanceof Boolean booleanValue) || booleanValue;
     }
 
     public MessageService messageService() {

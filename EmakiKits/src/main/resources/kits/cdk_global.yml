@@ -1,0 +1,20 @@
+# 全局 CDK: 兑换码全局一次性
+id: "cdk_global"
+type: "cdk"
+enabled: true
+display_name: "全局 CDK"
+permission: "emakikits.claim"
+cdk:
+  mode: "global_once"
+  codes:
+    - "WELCOME-2026"
+    - "EMAKI-ONLY"
+  per_player_limit: 1
+rewards:
+  weighted: false
+  fixed:
+    - type: "item"
+      id: "cdk_global_gold"
+      source: "minecraft-gold_ingot"
+      amount: 8
+  random: []

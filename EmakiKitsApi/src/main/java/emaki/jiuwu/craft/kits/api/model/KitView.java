@@ -11,7 +11,7 @@ import java.util.List;
  * economy state or stored idempotency keys. It is a projection of the configuration as currently
  * loaded by the runtime, so a reload can change the answer of a later {@code kit(id)} call.
  *
- * @param id              normalized kit id, matching the top-level key in {@code kits.yml}
+ * @param id              normalized kit id, matching the {@code id} field in {@code kits/*.yml}
  * @param type            the kit category
  * @param enabled         whether the kit passed configuration validation and is active
  * @param displayName     configured display name used in player-facing messages

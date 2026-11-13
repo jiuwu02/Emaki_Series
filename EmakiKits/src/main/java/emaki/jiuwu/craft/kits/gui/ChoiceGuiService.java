@@ -54,10 +54,12 @@ public final class ChoiceGuiService {
             messages.send(player, "error.kit.unknown", Map.of("kit", kitId));
             return false;
         }
-        String templateId = def.choice().guiTemplate();
-        GuiTemplate template = templates.get(templateId);
+        GuiTemplate template = def.choice().usesInlineGui()
+                ? def.choice().inlineGui()
+                : templates.get(def.choice().guiTemplate());
         if (template == null) {
-            messages.send(player, "error.choice.gui_missing", Map.of("template", templateId));
+            messages.send(player, "error.choice.gui_missing",
+                    Map.of("template", def.choice().guiTemplate()));
             return false;
         }
         SelectionState state = new SelectionState(def);

@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.kits.api.model;
 /**
  * The eight kit categories exposed by EmakiKits.
  *
- * <p>The enum mirrors the {@code type} values accepted in {@code kits.yml}. Each category
+ * <p>The enum mirrors the {@code type} values accepted in {@code kits/*.yml}. Each category
  * differs only in trigger, eligibility and persistence shape; all of them share the same
  * reward, audit and idempotency core.
  */

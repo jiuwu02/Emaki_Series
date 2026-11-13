@@ -1,0 +1,17 @@
+# 每周礼包
+id: "weekly_supply"
+type: "weekly"
+enabled: true
+display_name: "每周礼包"
+permission: "emakikits.claim"
+cycle:
+  timezone: "Asia/Shanghai"
+  allow_makeup: false
+rewards:
+  weighted: false
+  fixed:
+    - type: "item"
+      id: "weekly_iron"
+      source: "minecraft-iron_ingot"
+      amount: 16
+  random: []

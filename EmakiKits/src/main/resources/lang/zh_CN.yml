@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage, 占位符见各分组旁注释
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.0"
+version: "1.0.1"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#F97316>EmakiKits</gradient> ]</gray> "
@@ -46,27 +46,20 @@ choice:
   deselected: "<gray>已取消选择 %option%</gray>"
 
 join:
-  # 占位符: %seconds%, %kit%
   invite_prompt: "<gold>请输入老玩家的邀请码领取入服礼包 %kit%, 窗口 %seconds% 秒内有效, 输入 cancel 取消</gold>"
   invite_cancelled: "<gray>邀请码输入已取消, 本次不发放</gray>"
-  # 占位符: %seconds%
   missed_window: "<red>已超过 %seconds% 秒窗口, 错过入服礼包, 不补领</red>"
-  # 占位符: %code%
   invalid_invite_code: "<red>邀请码 %code% 无效</red>"
   invite_self: "<red>不能填写自己的邀请码</red>"
   already_bound: "<red>该新玩家已被绑定</red>"
-  # 占位符: %kit%
   invite_accepted: "<green>邀请码已确认, 入服礼包 %kit% 已发放</green>"
 
 console:
   plugin_started: "[startup] <green>启用完成, 已加载 <white>%count%</white> 个礼包</green>"
   plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
   reload_complete: "[reload] <green>重载完成</green>"
-  # 占位符: %path%, %reason%
   config_issue: "[配置] <yellow>%path% 校验失败: %reason%</yellow>"
-  # 占位符: %kit%
   time_window_opened: "[limit] <gray>礼包 <white>%kit%</white> 限时窗口已开启</gray>"
-  # 占位符: %kit%, %reason%
   time_window_cron_failed: "[limit] <yellow>礼包 %kit% cron 注册失败: %reason%</yellow>"
   bootstrap_start: "[loader] <gray>正在同步默认资源...</gray>"
   bootstrap_skip: "[loader] 已按配置跳过默认数据释放"
@@ -77,6 +70,7 @@ console:
   directory_create_failed: "[loader] <red>创建目录失败: <white>%path%</white> (%error%)</red>"
   versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> (%old_version% -> %new_version%)</green>"
   loader_config_load_error: "[loader] <yellow>读取 Kits 配置失败: <red>%path%</red> (%error%)</yellow>"
+
 
 error:
   permission:
@@ -120,7 +114,7 @@ error:
   reward:
     delivery_failed: "<red>奖励发放失败, 本次领取已回滚</red>"
   config:
-    kits_missing: "kits 节缺失"
+    kits_missing: "kits 目录缺失或为空"
     invalid_id: "礼包 id 非法"
     duplicate_id: "礼包 id 重复"
     section_missing: "礼包定义节缺失"
@@ -130,10 +124,13 @@ error:
     cdk_codes_empty: "CDK 礼包未配置兑换码"
     cdk_codes_overflow: "CDK 兑换码数量超限"
     choice_invalid: "自选数量或选项非法"
+    choice_gui_missing: "自选礼包缺少内联 choice.gui 或外部 gui_template"
+    choice_gui_invalid: "自选礼包内联 GUI 无法解析"
     purchase_limit_missing: "收费礼包未配置购买次数上限"
     milestone_invalid: "开启次数档位非法"
-    reward_type: "奖励类型未知"
-    command_empty: "命令奖励为空"
+    reward_type: "奖励类型未知, 可用 item/money/nested_kit/action"
+    item_source_missing: "物品奖励缺少 source (CoreLib 物品库简写)"
+    action_empty: "动作奖励缺少 action (CoreLib action 行)"
     invalid_weight: "随机权重非法"
     nested_kit_missing: "嵌套礼包缺少 kit_id"
     nested_missing: "嵌套礼包引用不存在"

@@ -1,5 +1,5 @@
 // EmakiKitsApi (礼包模块公开契约)
-version = '1.0.0'
+version = '1.0.1'
 
 dependencies {
     provided project(':EmakiCoreLibApi')

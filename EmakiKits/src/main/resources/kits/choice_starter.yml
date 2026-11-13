@@ -1,0 +1,97 @@
+# 自选礼包: 每个选项是一个小礼包(多条奖励), 只能选一个
+# GUI 布局内联在本文件 choice.gui 段, 不同礼包可写不同布局
+id: "choice_starter"
+type: "choice"
+enabled: true
+display_name: "新手自选礼包"
+permission: "emakikits.claim"
+choice:
+  min_select: 1
+  max_select: 1
+  gui:
+    id: "choice_starter_gui"
+    gui_type: CHEST
+    title: "<dark_gray>新手自选 - <gold>%kit%</gold></dark_gray>"
+    rows: 3
+    slots:
+      sword:
+        type: "choice_option"
+        slots: [10]
+        item:
+          source: "minecraft-iron_sword"
+          components:
+            custom_name: "<aqua>战士小礼包</aqua>"
+            lore:
+              - "<gray>铁剑 + 面包 + 治疗</gray>"
+      bow:
+        type: "choice_option"
+        slots: [13]
+        item:
+          source: "minecraft-bow"
+          components:
+            custom_name: "<green>弓手小礼包</green>"
+            lore:
+              - "<gray>弓 + 箭 + 金币</gray>"
+      vip:
+        type: "choice_option"
+        slots: [16]
+        item:
+          source: "minecraft-diamond"
+          components:
+            custom_name: "<gold>VIP 小礼包</gold>"
+            lore:
+              - "<gray>钻石 + 大额金币</gray>"
+      confirm:
+        type: "confirm"
+        slots: [22]
+        item:
+          source: "minecraft-emerald_block"
+          components:
+            custom_name: "<green>确认领取</green>"
+  options:
+    sword:
+      display: "战士小礼包"
+      rewards:
+        - type: "item"
+          id: "sword_blade"
+          source: "minecraft-iron_sword"
+          amount: 1
+        - type: "item"
+          id: "sword_bread"
+          source: "minecraft-bread"
+          amount: 4
+        - type: "action"
+          id: "sword_heal"
+          action: 'heal amount=2'
+    bow:
+      display: "弓手小礼包"
+      rewards:
+        - type: "item"
+          id: "bow_item"
+          source: "minecraft-bow"
+          amount: 1
+        - type: "item"
+          id: "bow_arrow"
+          source: "minecraft-arrow"
+          amount: 16
+        - type: "money"
+          id: "bow_money"
+          amount: 50
+    vip:
+      display: "VIP 小礼包"
+      permission: "emakikits.admin"
+      rewards:
+        - type: "item"
+          id: "vip_diamond"
+          source: "minecraft-diamond"
+          amount: 2
+        - type: "money"
+          id: "vip_money"
+          amount: 500
+        - type: "nested_kit"
+          id: "vip_nested"
+          kit_id: "nested_child"
+rewards:
+  weighted: false
+  fixed: []
+  random: []

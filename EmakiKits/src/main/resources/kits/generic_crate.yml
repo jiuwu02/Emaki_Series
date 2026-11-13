@@ -1,0 +1,57 @@
+# 通用礼包: 加权随机 + 限时窗口 + 购买 + 累计开启里程碑
+id: "generic_crate"
+type: "generic"
+enabled: true
+display_name: "通用礼包"
+permission: "emakikits.claim"
+limit:
+  enabled: false
+  mode: "cron"
+  start: ""
+  end: ""
+  cron: "0 0 20 * * *"
+  duration_seconds: 3600
+  timezone: "Asia/Shanghai"
+purchase:
+  enabled: true
+  price: 100.0
+  economy_provider: "auto"
+  currency_id: ""
+  max_purchases: 3
+  count_pass_to_nested: false
+open:
+  enabled: true
+  max_opens: 10
+  milestones:
+    3:
+      rewards:
+        - type: "action"
+          id: "milestone_3"
+          action: 'send_message text="<gold>累计开启 3 次, 额外奖励!</gold>"'
+    5:
+      rewards:
+        - type: "item"
+          id: "milestone_5"
+          source: "minecraft-golden_apple"
+          amount: 1
+rewards:
+  weighted: true
+  fixed:
+    - type: "action"
+      id: "crate_open_msg"
+      action: 'send_message text="<green>礼包已开启</green>"'
+  random:
+    - type: "item"
+      id: "roll_common"
+      source: "minecraft-cobblestone"
+      amount: 16
+      weight: 70
+    - type: "item"
+      id: "roll_rare"
+      source: "minecraft-diamond"
+      amount: 1
+      weight: 25
+    - type: "money"
+      id: "roll_money"
+      amount: 200
+      weight: 5
