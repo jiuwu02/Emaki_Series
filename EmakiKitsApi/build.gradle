@@ -1,0 +1,9 @@
+// EmakiKitsApi (礼包模块公开契约)
+version = '1.0.0'
+
+dependencies {
+    provided project(':EmakiCoreLibApi')
+    provided libs.paper.api
+    provided libs.jetbrains.annotations
+}
+

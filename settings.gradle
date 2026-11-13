@@ -43,7 +43,7 @@ def defaultModules = [
         'EmakiForge', 'EmakiStrengthen', 'EmakiCooking', 'EmakiAttribute',
         'EmakiLevel', 'EmakiCodex', 'EmakiStation', 'EmakiMobs',
         'EmakiDungeonApi', 'EmakiDungeon',
-        'EmakiDummy',
+        'EmakiDummy', 'EmakiKitsApi', 'EmakiKits',
 ]
 defaultModules.each { include it }
 

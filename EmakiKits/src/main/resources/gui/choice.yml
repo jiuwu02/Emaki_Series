@@ -1,0 +1,57 @@
+# EmakiKits 自选礼包 GUI 模板
+#
+# 由 CoreLib GuiTemplateLoader 加载, 槽位键必须与 kits.yml 的 choice.options 键一致
+# 默认模板服务 choice_starter 礼包 (sword / bow / vip 三个选项)
+# 文件位置: plugins/EmakiKits/gui/choice.yml
+
+id: "choice"
+
+gui_type: CHEST
+title: "<dark_gray>自选礼包 - <gold>%kit%</gold></dark_gray>"
+
+rows: 3
+
+slots:
+  sword:
+    type: "choice_option"
+    slots:
+      - 10
+    item:
+      source: "minecraft-iron_sword"
+      components:
+        custom_name: "<aqua>新手剑</aqua>"
+        lore:
+          - "<gray>点击选择, 再次点击取消</gray>"
+
+  bow:
+    type: "choice_option"
+    slots:
+      - 12
+    item:
+      source: "minecraft-bow"
+      components:
+        custom_name: "<aqua>新手弓</aqua>"
+        lore:
+          - "<gray>点击选择, 再次点击取消</gray>"
+
+  vip:
+    type: "choice_option"
+    slots:
+      - 14
+    item:
+      source: "minecraft-diamond"
+      components:
+        custom_name: "<gold>VIP 专属</gold>"
+        lore:
+          - "<gray>需要 emakikits.admin 权限</gray>"
+
+  confirm:
+    type: "confirm"
+    slots:
+      - 16
+    item:
+      source: "minecraft-emerald_block"
+      components:
+        custom_name: "<green>确认领取</green>"
+        lore:
+          - "<gray>按配置数量提交所选选项</gray>"

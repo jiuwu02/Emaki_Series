@@ -1,0 +1,58 @@
+name: EmakiKits
+main: emaki.jiuwu.craft.kits.EmakiKitsPlugin
+version: ${project.version}
+api-version: "26.1"
+folia-supported: true
+author: JiuWu
+description: Config-driven kit, reward, CDK and purchase plugin for the Emaki Series
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+permissions:
+  emakikits.use:
+    description: Allows using EmakiKits player commands and kit claiming
+    default: true
+  emakikits.claim:
+    description: Allows claiming kits
+    default: true
+  emakikits.open:
+    description: Allows opening purchased kits and selecting reward options
+    default: true
+  emakikits.buy:
+    description: Allows buying kits
+    default: true
+  emakikits.redeem:
+    description: Allows redeeming CDK codes
+    default: true
+  emakikits.invite:
+    description: Allows binding an invite relationship
+    default: true
+  emakikits.admin:
+    description: Allows EmakiKits administrative commands
+    default: op
+    children:
+      emakikits.use: true
+      emakikits.claim: true
+      emakikits.open: true
+      emakikits.buy: true
+      emakikits.redeem: true
+      emakikits.invite: true
+      emakikits.reload: true
+      emakikits.grant: true
+      emakikits.inspect: true
+      emakikits.cdk: true
+  emakikits.reload:
+    description: Allows reloading EmakiKits configuration
+    default: op
+  emakikits.grant:
+    description: Allows granting kits and purchase counts to players
+    default: op
+  emakikits.inspect:
+    description: Allows inspecting kit state and audit records
+    default: op
+  emakikits.cdk:
+    description: Allows creating, listing and disabling CDK codes
+    default: op

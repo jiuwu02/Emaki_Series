@@ -1,0 +1,138 @@
+# EmakiKits English language resource
+# Messages use MiniMessage, placeholders are noted beside each group
+# version is maintained by the resource sync flow
+
+version: "1.0.0"
+
+general:
+  prefix: "<gray>[ <gradient:#F59E0B:#F97316>EmakiKits</gradient> ]</gray> "
+  usage: "<yellow>Usage: /emakikits help</yellow>"
+  usage_claim: "<yellow>Usage: /emakikits claim <kit></yellow>"
+  usage_choose: "<yellow>Usage: /emakikits choose <kit> [option...]</yellow>"
+  usage_buy: "<yellow>Usage: /emakikits buy <kit></yellow>"
+  usage_redeem: "<yellow>Usage: /emakikits redeem <kit> <code></yellow>"
+  usage_invite: "<yellow>Usage: /emakikits invite <player></yellow>"
+  usage_open: "<yellow>Usage: /emakikits open <kit></yellow>"
+  usage_inspect: "<yellow>Usage: /emakikits inspect <player></yellow>"
+  usage_grant: "<yellow>Usage: /emakikits grant <player> <kit></yellow>"
+  usage_cdk: "<yellow>Usage: /emakikits cdk list|disable <code></yellow>"
+  unknown_command: "<red>Unknown command, use /emakikits help</red>"
+  player_only: "<red>This command is player-only</red>"
+
+help:
+  lines: "<yellow>/emakikits claim|choose|buy|redeem|invite|open|list|inspect|grant|cdk|reload</yellow>"
+
+claim:
+  success: "<green>Claimed kit %kit% (period %period%)</green>"
+
+list:
+  empty: "<yellow>No kits loaded</yellow>"
+  entry: "<gray>[%type%] %id% - %display% (enabled: %enabled%)</gray>"
+
+inspect:
+  summary: "<yellow>Audit records for %player%: %audits%</yellow>"
+  line: "<gray>#%id% %action% %detail%</gray>"
+
+grant:
+  success: "<green>Granted one claim of %kit% to %player%</green>"
+
+cdk:
+  list_line: "<gray>CDK kit %kit% mode %mode% has %codes% codes</gray>"
+  disabled: "<yellow>Code %code% disabled</yellow>"
+
+choice:
+  selected: "<green>Selected %option% (%count%/%max%)</green>"
+  deselected: "<gray>Deselected %option%</gray>"
+
+join:
+  invite_prompt: "<gold>Enter an existing player's invite code to claim %kit%, valid for %seconds% seconds, type cancel to abort</gold>"
+  invite_cancelled: "<gray>Invite code input cancelled, no kit granted</gray>"
+  missed_window: "<red>Missed the %seconds% second window, no makeup claim granted</red>"
+  invalid_invite_code: "<red>Invalid invite code %code%</red>"
+  invite_self: "<red>Cannot use your own invite code</red>"
+  already_bound: "<red>This newcomer is already bound</red>"
+  invite_accepted: "<green>Invite code confirmed, join kit %kit% granted</green>"
+
+console:
+  plugin_started: "[startup] <green>Enabled, loaded <white>%count%</white> kits</green>"
+  plugin_stopped: "[shutdown] <yellow>Disabled</yellow>"
+  reload_complete: "[reload] <green>Reload complete</green>"
+  config_issue: "[config] <yellow>%path% validation failed: %reason%</yellow>"
+  time_window_opened: "[limit] <gray>Time window opened for kit <white>%kit%</white></gray>"
+  time_window_cron_failed: "[limit] <yellow>cron registration failed for %kit%: %reason%</yellow>"
+  bootstrap_start: "[loader] <gray>Syncing default resources...</gray>"
+  bootstrap_skip: "[loader] Default data release skipped by config"
+  bootstrap_complete: "[loader] <green>Default resources synced</green>"
+  bootstrap_copy_failed: "[loader] Failed to copy default resource: %path% (%error%)"
+  bootstrap_save_failed: "[loader] Failed to save versioned resource: %path% (%error%)"
+  default_file_missing: "[loader] <yellow>Bundled resource missing, released: <white>%path%</white></yellow>"
+  directory_create_failed: "[loader] <red>Failed to create directory: <white>%path%</white> (%error%)</red>"
+  versioned_file_updated: "[loader] <green>Default file version updated: <yellow>%path%</yellow> (%old_version% -> %new_version%)</green>"
+  loader_config_load_error: "[loader] <yellow>Failed to load Kits config: <red>%path%</red> (%error%)</yellow>"
+
+error:
+  permission:
+    denied: "<red>You lack permission for this action (%sub%)</red>"
+  player:
+    offline: "<red>Player %player% is offline</red>"
+  kit:
+    unknown: "<red>Kit %kit% is unknown or disabled</red>"
+    already_claimed: "<red>Kit %kit% already claimed in period %period%</red>"
+    total_limit: "<red>Kit %kit% reached its total claim limit</red>"
+    not_purchased: "<red>Kit %kit% is not purchased or has no available claims</red>"
+    purchase_disabled: "<red>Kit %kit% has purchase disabled</red>"
+    purchase_limit: "<red>Kit %kit% reached its purchase limit</red>"
+    cdk_use_redeem: "<red>Use /emakikits redeem for CDK kits</red>"
+    invite_use_bind: "<red>Use the join invite-code flow for invite kits</red>"
+    outside_time_window: "<red>Kit %kit% is outside its time window</red>"
+  cdk:
+    invalid: "<red>Invalid CDK code</red>"
+    exhausted: "<red>CDK code already used</red>"
+    disabled: "<red>CDK code disabled</red>"
+  choice:
+    count: "<red>Selection count out of range</red>"
+    unknown: "<red>Unknown selection option</red>"
+    duplicate: "<red>Duplicate selection option</red>"
+    permission: "<red>No permission for that option</red>"
+    config: "<red>Choice kit config invalid</red>"
+    gui_missing: "<red>Choice GUI template %template% not loaded</red>"
+  invite:
+    disabled: "<red>Invite feature disabled</red>"
+    self: "<red>Cannot invite yourself</red>"
+    not_new: "<red>Invitee is not a new player</red>"
+    mutual: "<red>Mutual invite chain forbidden</red>"
+    already_bound: "<red>Invitee already bound</red>"
+    offline: "<red>Invitee %player% is offline</red>"
+  economy:
+    unavailable: "<red>Economy bridge unavailable, cannot debit</red>"
+    insufficient: "<red>Insufficient balance</red>"
+    debit_failed: "<red>Debit failed, purchase count not increased</red>"
+  purchase:
+    duplicate: "<red>Duplicate purchase request</red>"
+  reward:
+    delivery_failed: "<red>Reward delivery failed, claim rolled back</red>"
+  config:
+    kits_missing: "kits section missing"
+    invalid_id: "invalid kit id"
+    duplicate_id: "duplicate kit id"
+    section_missing: "kit section missing"
+    unknown_type: "unknown kit type"
+    permission_prefix: "permission must use emakikits prefix"
+    invalid_timezone: "invalid timezone"
+    cdk_codes_empty: "CDK kit has no codes"
+    cdk_codes_overflow: "CDK code count overflow"
+    choice_invalid: "choice count or options invalid"
+    purchase_limit_missing: "paid kit missing purchase limit"
+    milestone_invalid: "open milestone invalid"
+    reward_type: "unknown reward type"
+    command_empty: "empty command reward"
+    invalid_weight: "invalid random weight"
+    nested_kit_missing: "nested kit missing kit_id"
+    nested_missing: "nested kit reference missing"
+    nested_self: "nested kit self reference"
+    nested_cycle: "nested kit cycle"
+    rewards_empty: "kit has no rewards"
+    limit_mode: "limit mode must be always/range/cron"
+    limit_range: "range start/end must be valid ordered ISO-8601 timestamps"
+    limit_cron: "invalid cron expression, CoreLib 6-field format required"
+    limit_duration: "cron mode requires duration_seconds > 0"

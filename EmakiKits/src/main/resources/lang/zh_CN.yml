@@ -1,0 +1,146 @@
+# EmakiKits 简体中文语言资源
+# 消息使用 MiniMessage, 占位符见各分组旁注释
+# version 由资源同步流程维护, 用于合并新增默认键
+
+version: "1.0.0"
+
+general:
+  prefix: "<gray>[ <gradient:#F59E0B:#F97316>EmakiKits</gradient> ]</gray> "
+  usage: "<yellow>用法: /emakikits help</yellow>"
+  usage_claim: "<yellow>用法: /emakikits claim <kit></yellow>"
+  usage_choose: "<yellow>用法: /emakikits choose <kit> [option...]</yellow>"
+  usage_buy: "<yellow>用法: /emakikits buy <kit></yellow>"
+  usage_redeem: "<yellow>用法: /emakikits redeem <kit> <code></yellow>"
+  usage_invite: "<yellow>用法: /emakikits invite <player></yellow>"
+  usage_open: "<yellow>用法: /emakikits open <kit></yellow>"
+  usage_inspect: "<yellow>用法: /emakikits inspect <player></yellow>"
+  usage_grant: "<yellow>用法: /emakikits grant <player> <kit></yellow>"
+  usage_cdk: "<yellow>用法: /emakikits cdk list|disable <code></yellow>"
+  unknown_command: "<red>未知命令, 请使用 /emakikits help</red>"
+  player_only: "<red>此命令只能由玩家执行</red>"
+
+help:
+  lines: "<yellow>/emakikits claim|choose|buy|redeem|invite|open|list|inspect|grant|cdk|reload</yellow>"
+
+claim:
+  success: "<green>已领取礼包 %kit% (周期 %period%)</green>"
+
+list:
+  empty: "<yellow>当前没有已加载的礼包</yellow>"
+  entry: "<gray>[%type%] %id% - %display% (启用: %enabled%)</gray>"
+
+inspect:
+  summary: "<yellow>玩家 %player% 的审计记录: %audits% 条</yellow>"
+  line: "<gray>#%id% %action% %detail%</gray>"
+
+grant:
+  success: "<green>已给 %player% 增加一次 %kit% 可领取次数</green>"
+
+cdk:
+  list_line: "<gray>CDK 礼包 %kit% 模式 %mode% 共 %codes% 个兑换码</gray>"
+  disabled: "<yellow>兑换码 %code% 已停用</yellow>"
+
+choice:
+  # 占位符: %option%, %count%, %max%
+  selected: "<green>已选择 %option% (%count%/%max%)</green>"
+  deselected: "<gray>已取消选择 %option%</gray>"
+
+join:
+  # 占位符: %seconds%, %kit%
+  invite_prompt: "<gold>请输入老玩家的邀请码领取入服礼包 %kit%, 窗口 %seconds% 秒内有效, 输入 cancel 取消</gold>"
+  invite_cancelled: "<gray>邀请码输入已取消, 本次不发放</gray>"
+  # 占位符: %seconds%
+  missed_window: "<red>已超过 %seconds% 秒窗口, 错过入服礼包, 不补领</red>"
+  # 占位符: %code%
+  invalid_invite_code: "<red>邀请码 %code% 无效</red>"
+  invite_self: "<red>不能填写自己的邀请码</red>"
+  already_bound: "<red>该新玩家已被绑定</red>"
+  # 占位符: %kit%
+  invite_accepted: "<green>邀请码已确认, 入服礼包 %kit% 已发放</green>"
+
+console:
+  plugin_started: "[startup] <green>启用完成, 已加载 <white>%count%</white> 个礼包</green>"
+  plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
+  reload_complete: "[reload] <green>重载完成</green>"
+  # 占位符: %path%, %reason%
+  config_issue: "[配置] <yellow>%path% 校验失败: %reason%</yellow>"
+  # 占位符: %kit%
+  time_window_opened: "[limit] <gray>礼包 <white>%kit%</white> 限时窗口已开启</gray>"
+  # 占位符: %kit%, %reason%
+  time_window_cron_failed: "[limit] <yellow>礼包 %kit% cron 注册失败: %reason%</yellow>"
+  bootstrap_start: "[loader] <gray>正在同步默认资源...</gray>"
+  bootstrap_skip: "[loader] 已按配置跳过默认数据释放"
+  bootstrap_complete: "[loader] <green>默认资源同步完成</green>"
+  bootstrap_copy_failed: "[loader] 复制默认资源失败: %path% (%error%)"
+  bootstrap_save_failed: "[loader] 保存版本化资源失败: %path% (%error%)"
+  default_file_missing: "[loader] <yellow>默认资源缺失, 已重新释放: <white>%path%</white></yellow>"
+  directory_create_failed: "[loader] <red>创建目录失败: <white>%path%</white> (%error%)</red>"
+  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> (%old_version% -> %new_version%)</green>"
+  loader_config_load_error: "[loader] <yellow>读取 Kits 配置失败: <red>%path%</red> (%error%)</yellow>"
+
+error:
+  permission:
+    denied: "<red>你没有权限执行此操作 (%sub%)</red>"
+  player:
+    offline: "<red>玩家 %player% 不在线</red>"
+  kit:
+    unknown: "<red>礼包 %kit% 不存在或未启用</red>"
+    already_claimed: "<red>礼包 %kit% 在本周期 %period% 已领取</red>"
+    total_limit: "<red>礼包 %kit% 累计领取次数已达上限</red>"
+    not_purchased: "<red>礼包 %kit% 尚未购买或可领取次数已耗尽</red>"
+    purchase_disabled: "<red>礼包 %kit% 未开启购买</red>"
+    purchase_limit: "<red>礼包 %kit% 购买次数已达上限</red>"
+    cdk_use_redeem: "<red>CDK 礼包请使用 /emakikits redeem</red>"
+    invite_use_bind: "<red>邀新礼包请使用入服邀请码流程</red>"
+    outside_time_window: "<red>礼包 %kit% 当前不在限时窗口内</red>"
+  cdk:
+    invalid: "<red>兑换码无效</red>"
+    exhausted: "<red>兑换码已被使用</red>"
+    disabled: "<red>兑换码已停用</red>"
+  choice:
+    count: "<red>自选数量不在允许范围内</red>"
+    unknown: "<red>选择了未配置的选项</red>"
+    duplicate: "<red>选项重复</red>"
+    permission: "<red>没有权限选择该选项</red>"
+    config: "<red>自选礼包配置无效</red>"
+    gui_missing: "<red>自选礼包 GUI 模板 %template% 未加载</red>"
+  invite:
+    disabled: "<red>邀新功能已关闭</red>"
+    self: "<red>不能邀请自己</red>"
+    not_new: "<red>被邀请人不是新玩家</red>"
+    mutual: "<red>互邀链被禁止</red>"
+    already_bound: "<red>被邀请人已被绑定</red>"
+    offline: "<red>被邀请人 %player% 不在线</red>"
+  economy:
+    unavailable: "<red>经济桥不可用, 无法扣款</red>"
+    insufficient: "<red>余额不足</red>"
+    debit_failed: "<red>扣款失败, 购买次数未增加</red>"
+  purchase:
+    duplicate: "<red>重复购买请求</red>"
+  reward:
+    delivery_failed: "<red>奖励发放失败, 本次领取已回滚</red>"
+  config:
+    kits_missing: "kits 节缺失"
+    invalid_id: "礼包 id 非法"
+    duplicate_id: "礼包 id 重复"
+    section_missing: "礼包定义节缺失"
+    unknown_type: "礼包类型未知"
+    permission_prefix: "权限节点必须使用 emakikits 前缀"
+    invalid_timezone: "时区非法"
+    cdk_codes_empty: "CDK 礼包未配置兑换码"
+    cdk_codes_overflow: "CDK 兑换码数量超限"
+    choice_invalid: "自选数量或选项非法"
+    purchase_limit_missing: "收费礼包未配置购买次数上限"
+    milestone_invalid: "开启次数档位非法"
+    reward_type: "奖励类型未知"
+    command_empty: "命令奖励为空"
+    invalid_weight: "随机权重非法"
+    nested_kit_missing: "嵌套礼包缺少 kit_id"
+    nested_missing: "嵌套礼包引用不存在"
+    nested_self: "嵌套礼包自引用"
+    nested_cycle: "嵌套礼包循环引用"
+    rewards_empty: "礼包未配置任何奖励"
+    limit_mode: "限时模式只能是 always/range/cron"
+    limit_range: "range 模式的 start/end 必须是合法且有序的 ISO-8601 时间戳"
+    limit_cron: "cron 模式表达式非法, 需 CoreLib 6 字段格式"
+    limit_duration: "cron 模式必须配置 duration_seconds > 0"
