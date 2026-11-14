@@ -10,7 +10,6 @@ import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
-import emaki.jiuwu.craft.corelib.legacy.LegacyContentMigrator;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
@@ -32,7 +31,6 @@ import emaki.jiuwu.craft.mobs.listener.MobTriggerListener;
 import emaki.jiuwu.craft.mobs.loader.MobDefinitionYamlLoader;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.loot.LootTableDefinition;
-import emaki.jiuwu.craft.mobs.migration.MobDefinitionMigrationRule;
 import emaki.jiuwu.craft.mobs.loot.LootTableYamlLoader;
 import emaki.jiuwu.craft.mobs.service.ComponentMapper;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
@@ -100,9 +98,7 @@ final class MobsLifecycleCoordinator
         languageLoader.load();
         var bootstrapService = new BootstrapService(plugin, messageService,
                 VERSIONED_FILES, STATIC_FILES, DEFAULT_DATA_FILES, EXTRA_DIRECTORIES,
-                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData), null,
-                        () -> new LegacyContentMigrator(plugin.getDataFolder().toPath(), "mobs", "生物定义",
-                                new MobDefinitionMigrationRule(), messageService, plugin.getLogger()).run(true)));
+                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData), null, null));
         var executionDispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);
         var mobIdentifier = new MobIdentifier(plugin);
         var componentMapper = new ComponentMapper(mobIdentifier);

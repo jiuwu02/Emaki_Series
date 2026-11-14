@@ -9,7 +9,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
-import emaki.jiuwu.craft.corelib.api.pdc.PdcKeyMigration;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class AccessorySkillPayloadCodec {
@@ -28,13 +27,6 @@ public final class AccessorySkillPayloadCodec {
     private static final NamespacedKey SKILL_ACTIVE_SLOT_KEY =
             new NamespacedKey(NAMESPACE, "item_skills_active_slot");
     private static final NamespacedKey SKILL_TRIGGERS_KEY = new NamespacedKey(NAMESPACE, "item_skills_triggers");
-    private static final NamespacedKey LEGACY_SKILL_IDS_KEY =
-            new NamespacedKey(NAMESPACE, "item.skills.ids");
-    private static final NamespacedKey LEGACY_SKILL_ACTIVE_SLOT_KEY =
-            new NamespacedKey(NAMESPACE, "item.skills.active_slot");
-    private static final NamespacedKey LEGACY_SKILL_TRIGGERS_KEY =
-            new NamespacedKey(NAMESPACE, "item.skills.triggers");
-
     private AccessorySkillPayloadCodec() {
     }
 
@@ -44,16 +36,8 @@ public final class AccessorySkillPayloadCodec {
             return Payload.empty();
         }
         PersistentDataContainer container = itemMeta.getPersistentDataContainer();
-        boolean hadLegacy = hasLegacyPayload(container);
-        String skillIds = PdcKeyMigration.readWithMigration(
-                container, SKILL_IDS_KEY, LEGACY_SKILL_IDS_KEY, PersistentDataType.STRING);
-        String activeSlot = PdcKeyMigration.readWithMigration(
-                container, SKILL_ACTIVE_SLOT_KEY, LEGACY_SKILL_ACTIVE_SLOT_KEY, PersistentDataType.STRING);
-        PdcKeyMigration.readWithMigration(
-                container, SKILL_TRIGGERS_KEY, LEGACY_SKILL_TRIGGERS_KEY, PersistentDataType.STRING);
-        if (hadLegacy && itemStack != null) {
-            itemStack.setItemMeta(itemMeta);
-        }
+        String skillIds = container.get(SKILL_IDS_KEY, PersistentDataType.STRING);
+        String activeSlot = container.get(SKILL_ACTIVE_SLOT_KEY, PersistentDataType.STRING);
         return new Payload(
                 decodeSkillIds(skillIds),
                 normalizeRequiredSlot(activeSlot),
@@ -70,19 +54,10 @@ public final class AccessorySkillPayloadCodec {
         return Texts.isBlank(normalized) ? SLOT_ALL : normalized;
     }
 
-    private static boolean hasLegacyPayload(PersistentDataContainer container) {
-        return container != null && (has(container, LEGACY_SKILL_IDS_KEY)
-                || has(container, LEGACY_SKILL_ACTIVE_SLOT_KEY)
-                || has(container, LEGACY_SKILL_TRIGGERS_KEY));
-    }
-
     private static boolean hasPayload(PersistentDataContainer container) {
         return container != null && (has(container, SKILL_IDS_KEY)
                 || has(container, SKILL_ACTIVE_SLOT_KEY)
-                || has(container, SKILL_TRIGGERS_KEY)
-                || has(container, LEGACY_SKILL_IDS_KEY)
-                || has(container, LEGACY_SKILL_ACTIVE_SLOT_KEY)
-                || has(container, LEGACY_SKILL_TRIGGERS_KEY));
+                || has(container, SKILL_TRIGGERS_KEY));
     }
 
     private static boolean has(PersistentDataContainer container, NamespacedKey key) {

@@ -114,7 +114,6 @@ import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.metrics.BStatsService;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
-import emaki.jiuwu.craft.corelib.pdc.PdcMigrationJoinListener;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.placeholder.ActionContextPlaceholderResolver;
 import emaki.jiuwu.craft.corelib.placeholder.ActionInlineTokenResolver;
@@ -375,8 +374,6 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                 }
             }, this);
 
-            getServer().getPluginManager().registerEvents(
-                    new PdcMigrationJoinListener(this::debugLogger), this);
         }
         StageRegistry candidateStageRegistry = new StageRegistry();
         BuiltinStages.Report stageReport = BuiltinStages.registerAll(

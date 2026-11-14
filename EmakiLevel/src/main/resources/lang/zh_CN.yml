@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "2.0.1"
+version: "2.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>"
@@ -40,9 +40,6 @@ console:
   bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
   bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
   versioned_file_updated: "[配置] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  legacy_file_migrated: "[migrate] <green>已自动迁移旧格式配置: <yellow>%path%</yellow> <gray> (%detail%)</gray></green>"
-  legacy_migration_failed: "[migrate] <red>自动迁移失败, 原文件保持不变: <yellow>%path%</yellow> <gray> (%error%)</gray></red>"
-  legacy_migration_summary: "[migrate] <green>%scope% 自动迁移完成, 共改写 <yellow>%count%</yellow> 份文件</green>"
   bootstrap_skip: "[loader] <gray>release_default_data=false, 跳过默认数据文件生成</gray>"
   default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
   bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
@@ -95,7 +92,6 @@ command:
       level: "增加, 扣除或设置玩家等级"
       reset: "重置玩家的等级进度"
       reload: "重载配置与语言"
-      convert_legacy: "迁移旧版配置"
       debug: "管理 Debug 模式与诊断输出"
   # 命令: 排行榜标题; 占位符: %type%
   top_header: "<gold>===== EmakiLevel 排行榜: %type% =====</gold>"
@@ -117,25 +113,6 @@ command:
   operation_success: "<green>操作成功: %type% %old_level% 级 → %new_level% 级, 经验 %old_exp% → %new_exp%</green>"
   # 命令: 操作失败反馈; 占位符: %reason%
   operation_failed: "<red>操作失败: %reason%</red>"
-  convert_legacy:
-    header: "<gold>========== 旧 item_sources 转换 (%mode%, 共 %files% 个文件) ==========</gold>"
-    mode:
-      dry_run: "预演"
-      apply: "写入"
-    file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
-    backup: "<gray>  已备份为 <white>%backup%</white></gray>"
-    diff_line: "<gray>  %line%</gray>"
-    summary: "<gray>转换 %converted% 个, 无旧键 %skipped% 个, 键冲突 %conflict% 个, 无法转换 %unconvertible% 个, 失败 %failed% 个</gray>"
-    breakdown: "<gray>其中: 直接转为 matcher 并移除旧键 <white>%plain%</white> 处, 与原有 matcher 合并为 all_of 以保持判定等价 <white>%merged%</white> 处, 补写 matcher 但保留旧键 (仍用于取物, 扣除或计数)<white>%duplicated%</white> 处</gray>"
-    file_merged: "<gray>  合并为 all_of <white>%merged%</white> 处, 保留旧键 <white>%duplicated%</white> 处, 直接转换 <white>%plain%</white> 处</gray>"
-    dry_run_hint: "<yellow>以上为预演结果, 未写入任何文件. 执行 <white>/emakilevel convert-legacy confirm</white> 才会写入并备份原文件</yellow>"
-    nothing_to_do: "<gray>没有需要转换的配置</gray>"
-    status:
-      converted: "可转换"
-      no_legacy_block: "无旧键"
-      conflict: "键冲突, 已保留原样"
-      unconvertible: "无等价写法, 已保留原样"
-      failed: "转换失败, 已保留原样"
 level:
   info_line: "%prefix%%type_display_name% <gray>%level% 级 %exp%/%required_exp%  (%progress_percent%%)</gray>"
   exp_gain: "%prefix%<green>%type_display_name% 经验 +%amount%</green>"

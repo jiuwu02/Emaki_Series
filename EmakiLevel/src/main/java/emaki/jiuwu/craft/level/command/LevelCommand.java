@@ -14,7 +14,6 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
-import emaki.jiuwu.craft.level.legacy.LevelLegacyEntry;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.LevelPermissions;
 
@@ -25,7 +24,6 @@ import emaki.jiuwu.craft.level.model.PlayerLevelData;
 import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
 import emaki.jiuwu.craft.level.service.LevelTopService;
 import emaki.jiuwu.craft.level.service.PlayerLevelService;
-import emaki.jiuwu.craft.corelib.legacy.ConvertCommands;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
 
@@ -62,7 +60,6 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             case "setlevel" -> handleLevel(sender, tail(args), "set");
             case "reset" -> handleReset(sender, tail(args));
             case "reload" -> handleReload(sender);
-            case ConvertCommands.TOKEN -> LevelLegacyEntry.handle(plugin, sender, tail(args), LevelPermissions.ADMIN);
             case "debug" -> handleDebug(sender, tail(args));
             default -> {
                 plugin.messages().send(sender, "command.usage");
@@ -87,7 +84,6 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
                 messages.message("command.help.commands.level"));
         lines.put("reset <player> <type>", messages.message("command.help.commands.reset"));
         lines.put("reload", messages.message("command.help.commands.reload"));
-        lines.put(ConvertCommands.TOKEN, messages.message("command.help.commands.convert_legacy"));
         lines.put("debug", messages.message("command.help.commands.debug"));
         lines.forEach((usage, description) -> messages.sendRaw(sender,
                 messages.message("command.help.line", Map.of("cmd", usage, "desc", description))));
@@ -387,7 +383,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             return CommandTabHelper.completeSubcommands(
                     List.of("help", "info", "gui", "edit", "levelup", "top", "topgui", "giveexp", "takeexp",
-                            "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", ConvertCommands.TOKEN, "debug"),
+                            "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "debug"),
                     args[0]);
         }
         String sub = args[0].toLowerCase(Locale.ROOT);

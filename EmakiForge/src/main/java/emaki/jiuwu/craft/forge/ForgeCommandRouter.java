@@ -15,8 +15,6 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.forge.legacy.ForgeLegacyEntry;
-import emaki.jiuwu.craft.corelib.legacy.ConvertCommands;
 import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
@@ -59,7 +57,6 @@ final class ForgeCommandRouter implements TabExecutor {
             case "reload" -> handleReload(sender);
             case "list" -> handleList(sender, args);
             case "edit" -> handleEdit(sender, args);
-            case ConvertCommands.TOKEN -> ForgeLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -73,7 +70,7 @@ final class ForgeCommandRouter implements TabExecutor {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
             return CommandTabHelper.completeSubcommands(
-                    List.of("help", "forge", "book", "reload", "list", "edit", ConvertCommands.TOKEN, "debug"),
+                    List.of("help", "forge", "book", "reload", "list", "edit", "debug"),
                     args[0]);
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {

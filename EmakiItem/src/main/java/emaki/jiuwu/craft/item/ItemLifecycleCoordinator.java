@@ -23,11 +23,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRegistration;
-import emaki.jiuwu.craft.corelib.legacy.LegacyContentMigrator;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
-import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.item.migration.ItemDefinitionMigrationRule;
-import emaki.jiuwu.craft.item.migration.ItemSetMigrationRule;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
@@ -100,13 +96,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
 
     private ItemSourceRegistration itemSourceResolverRegistration;
 
-    private static void migrateLegacyContent(EmakiItemPlugin plugin, LogMessages messages) {
-        Path root = plugin.getDataFolder().toPath();
-        new LegacyContentMigrator(root, "items", "物品定义", new ItemDefinitionMigrationRule(),
-                messages, plugin.getLogger(), Set.of(ItemPackLoader.PACK_FILE_NAME)).run(true);
-        new LegacyContentMigrator(root, "sets", "套装定义", new ItemSetMigrationRule(),
-                messages, plugin.getLogger()).run(true);
-    }
+
 
     @Override
     public ItemRuntimeComponents initialize(EmakiItemPlugin plugin) {
@@ -137,7 +127,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                                 runtime.set("item_update", null);
                             }
                         },
-                        () -> migrateLegacyContent(plugin, messageService))
+                        null)
         );
         EmakiItemLoader itemLoader = new EmakiItemLoader(plugin, appConfigLoader::current);
         EmakiItemSetLoader setLoader = new EmakiItemSetLoader(plugin, appConfigLoader::current);

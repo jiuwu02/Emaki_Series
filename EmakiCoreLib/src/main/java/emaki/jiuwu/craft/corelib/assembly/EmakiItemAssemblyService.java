@@ -31,7 +31,6 @@ import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
-import emaki.jiuwu.craft.corelib.api.pdc.PdcKeyMigration;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -738,11 +737,7 @@ public final class EmakiItemAssemblyService {
             return null;
         }
         PersistentDataContainer container = itemMeta.getPersistentDataContainer();
-        return PdcKeyMigration.readWithMigration(
-                container,
-                ITEM_SET_PARTITION.key(field),
-                PdcKeyMigration.legacyKey(ITEM_SET_PARTITION.namespace(), LEGACY_ITEM_SET_PARTITION, field),
-                PersistentDataType.INTEGER);
+        return container.get(ITEM_SET_PARTITION.key(field), PersistentDataType.INTEGER);
     }
 
     <T> T measure(String metricKey, SupplierWithException<T> supplier) { return new EmakiItemAssemblyServiceDelegate(this).measure(metricKey, supplier); }

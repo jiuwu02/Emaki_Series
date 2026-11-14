@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "3.0.1"
+version: "3.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -45,9 +45,6 @@ console:
     generation</gray>"
   bootstrap_complete: "[loader] <green>Default file check complete</green>"
   versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  legacy_file_migrated: "[migrate] <green>Auto-migrated legacy configuration: <yellow>%path%</yellow> <gray> (%detail%)</gray></green>"
-  legacy_migration_failed: "[migrate] <red>Auto-migration failed, original file kept unchanged: <yellow>%path%</yellow> <gray> (%error%)</gray></red>"
-  legacy_migration_summary: "[migrate] <green>%scope% auto-migration finished, <yellow>%count%</yellow> file(s) rewritten</green>"
   default_file_missing: "[loader] <yellow>Missing built-in default resource, skipped:
     <red>%path%</red></yellow>"
   bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource:
@@ -135,28 +132,7 @@ command:
       # Command: reroll subcommand help description
       reroll: "Generate or accept a reroll candidate for the held gem"
       clearstate: "Remove gem layer from main hand item"
-      convert_legacy: "Convert legacy match blocks in items/ to matcher and top-level fields"
       debug: "Manage debug mode"
-
-  convert_legacy:
-    header: "<gold>========== Legacy match conversion  (%mode%, %files% files) ==========</gold>"
-    mode:
-      dry_run: "dry run"
-      apply: "apply"
-    file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
-    backup: "<gray>  Backed up as <white>%backup%</white></gray>"
-    diff_line: "<gray>  %line%</gray>"
-    summary: "<gray>Converted %converted%, no legacy block %skipped%, key conflict %conflict%, unconvertible %unconvertible%, failed %failed%</gray>"
-    breakdown: "<gray>Of those: <white>%plain%</white> turned straight into a matcher with the legacy key removed, <white>%merged%</white> folded together with an existing matcher into one all_of so the decision stays equivalent, <white>%duplicated%</white> given a matcher while keeping the legacy key it still needs for building, deducting or counting items</gray>"
-    file_merged: "<gray>  <white>%merged%</white> merged into all_of, <white>%duplicated%</white> kept the legacy key, <white>%plain%</white> converted directly</gray>"
-    dry_run_hint: "<yellow>The above is a dry run; no file was written. Run <white>/emakigem convert-legacy confirm</white> to write and back up the originals</yellow>"
-    nothing_to_do: "<gray>No configuration needs conversion</gray>"
-    status:
-      converted: "convertible"
-      no_legacy_block: "no legacy block"
-      conflict: "key conflict, left unchanged"
-      unconvertible: "field has no equivalent, left unchanged"
-      failed: "conversion failed, left unchanged"
 
   inspect:
     header: "<gold>Gem Status Check - %player%</gold>"

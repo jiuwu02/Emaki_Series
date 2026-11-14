@@ -16,7 +16,6 @@ import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshotCodecs;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
-import emaki.jiuwu.craft.corelib.api.pdc.PdcKeyMigration;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -216,17 +215,6 @@ final class AttributeStateRepository {
         pdcService.set(player, resourcePartition, "current_value", PersistentDataType.DOUBLE, state.currentValue());
         pdcService.set(player, resourcePartition, "source_signature", PersistentDataType.STRING, state.sourceSignature());
 
-        removeLegacyResourceState(player, state.resourceId());
-    }
-
-    private void removeLegacyResourceState(Player player, String resourceId) {
-        String legacyPath = legacyResourcePartitionPath(resourceId);
-        for (String field : RESOURCE_FIELDS) {
-            NamespacedKey legacyKey = PdcKeyMigration.legacyKey(pdcService.namespace(), legacyPath, field);
-            if (legacyKey != null) {
-                player.getPersistentDataContainer().remove(legacyKey);
-            }
-        }
     }
 
     private String legacyResourcePartitionPath(String resourceId) {

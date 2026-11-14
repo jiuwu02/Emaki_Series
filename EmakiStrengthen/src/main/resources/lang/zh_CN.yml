@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.1"
+version: "5.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -37,32 +37,12 @@ command:
       givecatalyst: "发放强化材料"
       operation: "查询强化操作号与补偿状态"
       pity: "查询, 设置, 清除与诊断保底计数"
-      convert_legacy: "把 recipes/ 的旧 match 块转换为 matcher 与顶层字段"
       debug: "管理 Debug 追踪"
   branch:
     options: "<gold>该物品已到达分叉点, 请选择一条强化路线:</gold>"
     invalid: "<red>没有这条分支. 可选路线如下:</red>"
     option: "<yellow>%id%</yellow> <gray>- %name%</gray>"
     success: "<green>已选择 <yellow>%name%</yellow> 路线 (路径 <gray>%path%</gray>)</green>"
-  convert_legacy:
-    header: "<gold>========== 旧 match 块转换 (%mode%, 共 %files% 个文件) ==========</gold>"
-    mode:
-      dry_run: "预演"
-      apply: "写入"
-    file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
-    backup: "<gray>  已备份为 <white>%backup%</white></gray>"
-    diff_line: "<gray>  %line%</gray>"
-    summary: "<gray>转换 %converted% 个, 无旧块 %skipped% 个, 键冲突 %conflict% 个, 无法转换 %unconvertible% 个, 失败 %failed% 个</gray>"
-    breakdown: "<gray>其中: 直接转为 matcher 并移除旧键 <white>%plain%</white> 处, 与原有 matcher 合并为 all_of 以保持判定等价 <white>%merged%</white> 处, 补写 matcher 但保留旧键 (仍用于取物, 扣除或计数)<white>%duplicated%</white> 处</gray>"
-    file_merged: "<gray>  合并为 all_of <white>%merged%</white> 处, 保留旧键 <white>%duplicated%</white> 处, 直接转换 <white>%plain%</white> 处</gray>"
-    dry_run_hint: "<yellow>以上为预演结果, 未写入任何文件. 执行 <white>/emakistrengthen convert-legacy confirm</white> 才会写入并备份原文件</yellow>"
-    nothing_to_do: "<gray>没有需要转换的配置</gray>"
-    status:
-      converted: "可转换"
-      no_legacy_block: "无旧块"
-      conflict: "键冲突, 已保留原样"
-      unconvertible: "字段无等价写法, 已保留原样"
-      failed: "转换失败, 已保留原样"
   pity:
     header: "<gold>========== 保底计数 (%count% 条) ==========</gold>"
     line: "<yellow>%group%</yellow> <gray>作用域=%scope% 键=%key% 计数=%counter% 已触发=%triggered%</gray>"
@@ -153,9 +133,6 @@ console:
   bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
   bootstrap_skip: "[loader] <yellow>release_default_data=false, 已跳过默认数据生成</yellow>"
   versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  legacy_file_migrated: "[migrate] <green>已自动迁移旧格式配置: <yellow>%path%</yellow> <gray> (%detail%)</gray></green>"
-  legacy_migration_failed: "[migrate] <red>自动迁移失败, 原文件保持不变: <yellow>%path%</yellow> <gray> (%error%)</gray></red>"
-  legacy_migration_summary: "[migrate] <green>%scope% 自动迁移完成, 共改写 <yellow>%count%</yellow> 份文件</green>"
   bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"

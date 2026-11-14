@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.1"
+version: "5.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#EF4444>EmakiForge</gradient> ]</gray>"
@@ -27,7 +27,6 @@ command:
       reload: "重载配置文件"
       "list <type>": "列出指定类型配置"
       debug: "管理 Debug 模式"
-      "convert-legacy [confirm]": "把 recipes/ 的旧 item_sources 转换为 matcher"
       editor: "打开锻造资源编辑器"
       "edit recipe <id>": "编辑指定配方, 省略 ID 打开定义浏览器"
       "create recipe [id]": "在定义浏览器中创建新配方"
@@ -37,25 +36,6 @@ command:
     runtime: "<gray>EmakiForge 运行状态:</gray> <white>status=%status% generation=%generation% gui=%gui% recipes=%recipes% issues=%issues% source_states=%source_states% reload_candidates=%reload_candidates% reload_installed=%reload_installed% reload_failed=%reload_failed% reload_stale=%reload_stale% gui_stale=%gui_stale% execution_stale=%execution_stale% settlement_failures=%settlement_failures% last_ms=%last_ms%</white>"
     # 命令: 配方加载报告调试输出; 占位符: %generation%, %files%, %parsed%, %skipped%, %registered%, %duplicates%, %executable%, %gui_visible%, %issues%, %warnings%, %hash%, %duration_ms%, %source_statuses%
     recipe_load: "<gray>EmakiForge 配方加载:</gray> <white>generation=%generation% files=%files% parsed=%parsed% skipped=%skipped% registered=%registered% duplicates=%duplicates% executable=%executable% gui_visible=%gui_visible% issues=%issues% warnings=%warnings% hash=%hash% duration_ms=%duration_ms% source_statuses=%source_statuses%</white>"
-  convert_legacy:
-    header: "<gold>========== 旧 item_sources 转换 (%mode%, 共 %files% 个文件) ==========</gold>"
-    mode:
-      dry_run: "预演"
-      apply: "写入"
-    file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
-    backup: "<gray>  已备份为 <white>%backup%</white></gray>"
-    diff_line: "<gray>  %line%</gray>"
-    summary: "<gray>转换 %converted% 个, 无旧键 %skipped% 个, 键冲突 %conflict% 个, 无法转换 %unconvertible% 个, 失败 %failed% 个</gray>"
-    breakdown: "<gray>其中: 直接转为 matcher 并移除旧键 <white>%plain%</white> 处, 与原有 matcher 合并为 all_of 以保持判定等价 <white>%merged%</white> 处, 补写 matcher 但保留旧键 (仍用于取物, 扣除或计数)<white>%duplicated%</white> 处</gray>"
-    file_merged: "<gray>  合并为 all_of <white>%merged%</white> 处, 保留旧键 <white>%duplicated%</white> 处, 直接转换 <white>%plain%</white> 处</gray>"
-    dry_run_hint: "<yellow>以上为预演结果, 未写入任何文件. 执行 <white>/emakiforge convert-legacy confirm</white> 才会写入并备份原文件</yellow>"
-    nothing_to_do: "<gray>没有需要转换的配置</gray>"
-    status:
-      converted: "可转换"
-      no_legacy_block: "无旧键"
-      conflict: "键冲突, 已保留原样"
-      unconvertible: "无等价写法, 已保留原样"
-      failed: "转换失败, 已保留原样"
   list:
     header: "<gold>========== %type% 列表 ==========</gold>"
     recipes_header: "<gold>========== 配方列表  (共 %count% 条) ==========</gold>"
@@ -110,9 +90,6 @@ console:
   bootstrap_skip: "[loader] <gray>release_default_data=false, 已跳过默认数据生成</gray>"
   bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
   versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  legacy_file_migrated: "[migrate] <green>已自动迁移旧格式配置: <yellow>%path%</yellow> <gray> (%detail%)</gray></green>"
-  legacy_migration_failed: "[migrate] <red>自动迁移失败, 原文件保持不变: <yellow>%path%</yellow> <gray> (%error%)</gray></red>"
-  legacy_migration_summary: "[migrate] <green>%scope% 自动迁移完成, 共改写 <yellow>%count%</yellow> 份文件</green>"
   bootstrap_config_read_error: "[loader] <yellow>读取或更新配置失败, 将使用默认值: <red>%error%</red>"
   directory_created: "[loader] <green>创建目录 <yellow>%path%</yellow>"
   directory_create_failed: "[loader] <yellow>创建目录失败 <red>%path%</red>"

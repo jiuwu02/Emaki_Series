@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "2.0.1"
+version: "2.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -22,9 +22,6 @@ console:
   bootstrap_complete: "[loader] Default resource sync complete"
   versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
   loader_config_load_error: "[loader] <yellow>Failed to load Mobs config: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  legacy_file_migrated: "[migrate] <green>Auto-migrated legacy configuration: <yellow>%path%</yellow> <gray> (%detail%)</gray></green>"
-  legacy_migration_failed: "[migrate] <red>Auto-migration failed, the original file is unchanged: <yellow>%path%</yellow> <gray> (%error%)</gray></red>"
-  legacy_migration_summary: "[migrate] <green>%scope% auto-migration finished, <yellow>%count%</yellow> file (s) rewritten</green>"
   bootstrap_skip: "[loader] Default data release skipped by configuration"
   default_file_missing: "[loader] Bundled resource not found: %path%"
   bootstrap_copy_failed: "[loader] Failed to copy default resource: %path%  (%error%)"

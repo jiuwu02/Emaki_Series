@@ -17,12 +17,10 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.gem.legacy.GemLegacyEntry;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.service.GemGuiMode;
 import emaki.jiuwu.craft.gem.service.GemRerollSessionService;
-import emaki.jiuwu.craft.corelib.legacy.ConvertCommands;
 import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
@@ -59,7 +57,6 @@ final class GemCommandRouter implements TabExecutor {
             case "inspect" -> handleInspect(sender, args);
             case "reroll" -> handleReroll(sender, args);
             case "clearstate" -> handleClearState(sender);
-            case ConvertCommands.TOKEN -> GemLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -73,7 +70,7 @@ final class GemCommandRouter implements TabExecutor {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
             return CommandTabHelper.completeSubcommands(
-                    List.of("help", "gui", "reload", "edit", "inspect", "reroll", "clearstate", ConvertCommands.TOKEN, "debug"),
+                    List.of("help", "gui", "reload", "edit", "inspect", "reroll", "clearstate", "debug"),
                     args[0]);
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
@@ -101,13 +98,6 @@ final class GemCommandRouter implements TabExecutor {
                 }
                 case "reroll" -> {
                     for (String sub : List.of("full", "value", "confirm", "cancel", "status")) {
-                        if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
-                            result.add(sub);
-                        }
-                    }
-                }
-                case ConvertCommands.TOKEN -> {
-                    for (String sub : List.of("confirm", "--apply")) {
                         if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                             result.add(sub);
                         }
@@ -347,7 +337,6 @@ final class GemCommandRouter implements TabExecutor {
         lines.put("inspect [player]", ms.message("command.help.desc.inspect"));
         lines.put("reroll <full|value|confirm|cancel|status>", ms.message("command.help.desc.reroll"));
         lines.put("clearstate", ms.message("command.help.desc.clearstate"));
-        lines.put(ConvertCommands.TOKEN + " [confirm]", ms.message("command.help.desc.convert_legacy"));
         lines.put("debug [player|module|on|off]", ms.message("command.help.desc.debug"));
         lines.forEach((name, description) -> ms.sendRaw(sender,
                 ms.message("command.help.line", Map.of("cmd", name, "desc", description))));

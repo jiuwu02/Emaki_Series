@@ -14,7 +14,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
-import emaki.jiuwu.craft.corelib.api.pdc.PdcKeyMigration;
 
 /**
  * 装备技能 PDC 的读写编解码器, 是 EmakiSkills 与其他模块之间的 wire protocol
@@ -74,11 +73,6 @@ public final class EquipmentSkillPdcCodec {
     private static final NamespacedKey SKILL_TRIGGERS_KEY = new NamespacedKey(NAMESPACE, "item_skills_triggers");
 
     // 历史带点键, 仅供懒转换回落读取
-    private static final NamespacedKey LEGACY_SKILL_IDS_KEY = new NamespacedKey(NAMESPACE, "item.skills.ids");
-    private static final NamespacedKey LEGACY_SKILL_ACTIVE_SLOT_KEY =
-            new NamespacedKey(NAMESPACE, "item.skills.active_slot");
-    private static final NamespacedKey LEGACY_SKILL_TRIGGERS_KEY =
-            new NamespacedKey(NAMESPACE, "item.skills.triggers");
 
     private EquipmentSkillPdcCodec() {
     }
@@ -135,14 +129,7 @@ public final class EquipmentSkillPdcCodec {
             return RawSnapshot.empty();
         }
         PersistentDataContainer container = itemMeta.getPersistentDataContainer();
-        boolean hadLegacy = container.has(LEGACY_SKILL_IDS_KEY, PersistentDataType.STRING)
-                || container.has(LEGACY_SKILL_ACTIVE_SLOT_KEY, PersistentDataType.STRING)
-                || container.has(LEGACY_SKILL_TRIGGERS_KEY, PersistentDataType.STRING);
-        RawSnapshot snapshot = readRaw(container);
-        if (hadLegacy) {
-            itemStack.setItemMeta(itemMeta);
-        }
-        return snapshot;
+        return readRaw(container);
     }
 
     public static SkillPdcMutation write(ItemStack itemStack, Iterable<String> skillIds) {
@@ -181,7 +168,6 @@ public final class EquipmentSkillPdcCodec {
         } else {
             container.set(SKILL_TRIGGERS_KEY, PersistentDataType.STRING, encodeTriggers(normalized.boundTriggers()));
         }
-        removeLegacyKeys(container);
         boolean committed = itemStack.setItemMeta(itemMeta);
         return mutation("skill_write", before, readRaw(itemStack), committed, "");
     }
@@ -221,7 +207,6 @@ public final class EquipmentSkillPdcCodec {
         } else {
             container.set(SKILL_TRIGGERS_KEY, PersistentDataType.STRING, source.boundTriggers());
         }
-        removeLegacyKeys(container);
         boolean committed = rebuilt.setItemMeta(rebuiltMeta);
         return mutation("skill_copy", before, readRaw(rebuilt), committed, "");
     }
@@ -280,7 +265,6 @@ public final class EquipmentSkillPdcCodec {
         container.remove(SKILL_IDS_KEY);
         container.remove(SKILL_ACTIVE_SLOT_KEY);
         container.remove(SKILL_TRIGGERS_KEY);
-        removeLegacyKeys(container);
         boolean committed = itemStack.setItemMeta(itemMeta);
         return mutation(operation, before, readRaw(itemStack), committed, "");
     }
@@ -296,12 +280,9 @@ public final class EquipmentSkillPdcCodec {
             return RawSnapshot.empty();
         }
         return new RawSnapshot(
-                PdcKeyMigration.readWithMigration(container, SKILL_IDS_KEY,
-                        LEGACY_SKILL_IDS_KEY, PersistentDataType.STRING),
-                PdcKeyMigration.readWithMigration(container, SKILL_ACTIVE_SLOT_KEY,
-                        LEGACY_SKILL_ACTIVE_SLOT_KEY, PersistentDataType.STRING),
-                PdcKeyMigration.readWithMigration(container, SKILL_TRIGGERS_KEY,
-                        LEGACY_SKILL_TRIGGERS_KEY, PersistentDataType.STRING)
+                container.get(SKILL_IDS_KEY, PersistentDataType.STRING),
+                container.get(SKILL_ACTIVE_SLOT_KEY, PersistentDataType.STRING),
+                container.get(SKILL_TRIGGERS_KEY, PersistentDataType.STRING)
         );
     }
 
@@ -309,32 +290,9 @@ public final class EquipmentSkillPdcCodec {
         if (container == null) {
             return false;
         }
-        return hasEither(container, SKILL_IDS_KEY, LEGACY_SKILL_IDS_KEY)
-                || hasEither(container, SKILL_ACTIVE_SLOT_KEY, LEGACY_SKILL_ACTIVE_SLOT_KEY)
-                || hasEither(container, SKILL_TRIGGERS_KEY, LEGACY_SKILL_TRIGGERS_KEY);
-    }
-
-    /** {@return 新键或历史键任一存在}.只判存在, 不触发迁移. */
-    private static boolean hasEither(PersistentDataContainer container,
-            NamespacedKey newKey,
-            NamespacedKey legacyKey) {
-        return container.has(newKey, PersistentDataType.STRING)
-                || container.has(legacyKey, PersistentDataType.STRING);
-    }
-
-    /**
-     * 删除三个历史带点键
-     *
-     * <p>每次写入与清理都要调: 只写新键而留下老键, 会让老键成为再也读不到的
-     * 孤儿残留 ({@link #readRaw} 优先读新键), 永久占用物品 NBT
-     */
-    private static void removeLegacyKeys(PersistentDataContainer container) {
-        if (container == null) {
-            return;
-        }
-        container.remove(LEGACY_SKILL_IDS_KEY);
-        container.remove(LEGACY_SKILL_ACTIVE_SLOT_KEY);
-        container.remove(LEGACY_SKILL_TRIGGERS_KEY);
+        return container.has(SKILL_IDS_KEY, PersistentDataType.STRING)
+                || container.has(SKILL_ACTIVE_SLOT_KEY, PersistentDataType.STRING)
+                || container.has(SKILL_TRIGGERS_KEY, PersistentDataType.STRING);
     }
 
     private static void addNormalizedIds(Set<String> sink, Iterable<String> values) {

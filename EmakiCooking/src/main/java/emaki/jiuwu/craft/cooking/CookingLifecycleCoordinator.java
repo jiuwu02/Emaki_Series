@@ -18,8 +18,6 @@ import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter;
-import emaki.jiuwu.craft.corelib.legacy.LegacyStartupMigration;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -32,7 +30,6 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.editor.CookingEditorModule;
-import emaki.jiuwu.craft.cooking.legacy.CookingLegacyTargets;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.GrinderRecipeLoader;
@@ -114,11 +111,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 staticFiles(plugin),
                 defaultDataFiles(plugin),
                 EXTRA_DIRECTORIES,
-                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData), null,
-                        () -> LegacyStartupMigration.run("烹饪配方", messageService, plugin.getLogger(),
-                                () -> LegacyStartupMigration.fromItemSourceReport(
-                                        new LegacyItemSourceRewriter(plugin.getDataFolder().toPath(),
-                                                CookingLegacyTargets.specs(), plugin.getLogger()).run(true))))
+                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData), null, null)
         );
         CraftEngineBlockBridge craftEngineBlockBridge = coreLibPlugin.craftEngineBlockBridge();
         CustomBlockBridge itemsAdderBlockBridge = coreLibPlugin.itemsAdderBlockBridge();

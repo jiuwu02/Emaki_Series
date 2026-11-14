@@ -2,26 +2,30 @@
 
 Emaki Series 是一组面向 Minecraft Paper 系服务端的 Java 插件, 采用多模块 Gradle 工程组织.项目以 `EmakiCoreLib` 为共享基础库, 向上承载属性战斗, 装备成长, 技能, 烹饪, 制作, 图鉴, 仓库与自定义生物等 RPG 玩法模块
 
-当前源码版本线为: `EmakiCoreLib 5.0.0`, `EmakiAttribute 5.0.0`, `EmakiForge 5.0.0`, `EmakiStrengthen 5.0.0`, `EmakiCooking 5.0.0`, `EmakiGem 3.0.0`, `EmakiSkills 3.0.0`, `EmakiItem 3.0.0`, `EmakiLevel 2.0.0`, `EmakiCodex 2.0.0`, `EmakiStorage 2.0.0`, `EmakiStation 2.0.0`, `EmakiAccessory 2.0.0`, `EmakiMobs 2.0.0`
+当前源码版本线为: `EmakiCoreLib 5.0.2`, `EmakiAttribute 5.0.5`, `EmakiForge 5.0.1`, `EmakiStrengthen 5.0.1`, `EmakiCooking 5.0.1`, `EmakiGem 3.0.1`, `EmakiSkills 3.0.1`, `EmakiItem 3.0.4`, `EmakiLevel 2.0.1`, `EmakiCodex 2.0.1`, `EmakiStorage 2.0.1`, `EmakiStation 2.0.1`, `EmakiAccessory 2.0.1`, `EmakiMobs 2.0.1`, `EmakiStructure 1.0.9`, `EmakiDungeon 1.0.17`, `EmakiKits 1.0.1`, `EmakiDummy 1.0.4`
 
 ## 模块概览
 
 | 模块              | 当前版本 | 角色       | 说明                                                                                  |
 | ----------------- | -------- | ---------- | ------------------------------------------------------------------------------------- |
-| `EmakiCoreLib`    | `5.0.0`   | 核心基础库 | 提供 GUI, 动作系统, 物品源桥接, 物品装配, 表达式, YAML, PDC, 经济桥接与共享运行时能力 |
-| `EmakiAttribute`  | `5.0.0`  | 属性系统   | 提供 RPG 属性, 三系伤害, 资源状态, PDC 属性接入, 条件检查, 快照调试与战斗反馈能力     |
-| `EmakiForge`      | `5.0.0`  | 锻造系统   | 提供配方驱动锻造, 品质随机, 材料贡献, 图鉴, 编辑器, 结果组装与 PDC 属性写入能力       |
-| `EmakiStrengthen` | `5.0.0`  | 强化系统   | 提供星级强化, 成功率配置, 锻印 / 里程碑, 强化 GUI, 材料消耗与强化层刷新能力           |
-| `EmakiCooking`    | `5.0.0`  | 烹饪系统   | 提供多类世界工位运行时, 配方判定, 输入限制, 展示与状态持久化能力                      |
-| `EmakiGem`        | `3.0.0`  | 宝石系统   | 提供装备开孔, 宝石镶嵌, 取出, 升级, 装备模板, 宝石定义与可选属性系统接入能力          |
-| `EmakiSkills`     | `3.0.0`  | 技能系统   | 提供主动技能槽位, 被动触发器, 施法模式, 冷却与 MythicMobs / Attribute 桥接能力        |
-| `EmakiItem`       | `3.0.0`   | 物品系统   | 提供自定义物品定义, 原版组件, 修复, 自动更新, 套装, 触发器与物品状态管理能力          |
-| `EmakiLevel`      | `2.0.0`  | 等级系统   | 提供多等级类型, 经验来源, 升级需求, PDC, 占位符与跨模块成长桥接                       |
-| `EmakiCodex`      | `2.0.0`  | 图鉴系统   | 提供图鉴, 进度追踪, Gameplay Event 条件, 奖励与客户端成就提示桥接                     |
-| `EmakiStorage`    | `2.0.0`  | 仓库系统   | 提供分页 GUI 仓库, 单槽大额存量, 容量档位与权限, 付费解锁与存取事件                   |
-| `EmakiStation`    | `2.0.0`  | 制作工位   | 提供世界制作工位, 制作队列与开销, 配方与材料清单, 装备拆解与产出回收                  |
-| `EmakiAccessory`  | `2.0.0`  | 饰品系统   | 提供饰品部位与槽位展开, 饰品套装, 唯一性与死亡掉落策略, 属性系统接入                  |
-| `EmakiMobs`       | `2.0.0`  | 生物系统   | 提供自定义生物, 刷新规则, 掉落表, 技能行为与 Attribute / Skills / Item 集成            |
+| `EmakiCoreLib`    | `5.0.2`   | 核心基础库 | 提供 GUI, 动作系统, 物品源桥接, 物品装配, 表达式, YAML, PDC, 经济桥接与共享运行时能力 |
+| `EmakiAttribute`  | `5.0.5`  | 属性系统   | 提供 RPG 属性, 三系伤害, 资源状态, PDC 属性接入, 条件检查, 快照调试与战斗反馈能力     |
+| `EmakiForge`      | `5.0.1`  | 锻造系统   | 提供配方驱动锻造, 品质随机, 材料贡献, 图鉴, 编辑器, 结果组装与 PDC 属性写入能力       |
+| `EmakiStrengthen` | `5.0.1`  | 强化系统   | 提供星级强化, 成功率配置, 锻印 / 里程碑, 强化 GUI, 材料消耗与强化层刷新能力           |
+| `EmakiCooking`    | `5.0.1`  | 烹饪系统   | 提供多类世界工位运行时, 配方判定, 输入限制, 展示与状态持久化能力                      |
+| `EmakiGem`        | `3.0.1`  | 宝石系统   | 提供装备开孔, 宝石镶嵌, 取出, 升级, 装备模板, 宝石定义与可选属性系统接入能力          |
+| `EmakiSkills`     | `3.0.1`  | 技能系统   | 提供主动技能槽位, 被动触发器, 施法模式, 冷却与 MythicMobs / Attribute 桥接能力        |
+| `EmakiItem`       | `3.0.4`   | 物品系统   | 提供自定义物品定义, 原版组件, 修复, 自动更新, 套装, 触发器与物品状态管理能力          |
+| `EmakiLevel`      | `2.0.1`  | 等级系统   | 提供多等级类型, 经验来源, 升级需求, PDC, 占位符与跨模块成长桥接                       |
+| `EmakiCodex`      | `2.0.1`  | 图鉴系统   | 提供图鉴, 进度追踪, Gameplay Event 条件, 奖励与客户端成就提示桥接                     |
+| `EmakiStorage`    | `2.0.1`  | 仓库系统   | 提供分页 GUI 仓库, 单槽大额存量, 容量档位与权限, 付费解锁与存取事件                   |
+| `EmakiStation`    | `2.0.1`  | 制作工位   | 提供世界制作工位, 制作队列与开销, 配方与材料清单, 装备拆解与产出回收                  |
+| `EmakiAccessory`  | `2.0.1`  | 饰品系统   | 提供饰品部位与槽位展开, 饰品套装, 唯一性与死亡掉落策略, 属性系统接入                  |
+| `EmakiMobs`       | `2.0.1`  | 生物系统   | 提供自定义生物, 刷新规则, 掉落表, 技能行为与 Attribute / Skills / Item 集成            |
+| `EmakiStructure`  | `1.0.9`  | 结构系统   | 提供结构框选导出, 模板按朝向放置, 多方块交互定义与原版结构替换能力                    |
+| `EmakiDungeon`    | `1.0.17` | 组队副本   | 提供模板克隆副本世界, 队伍挑战流程, 次数限制, 奖励暂存与评分结算能力                  |
+| `EmakiKits`       | `1.0.1`  | 礼包系统   | 提供配置驱动的礼包定义, 奖励发放, CDK, 自选礼包与购买能力                            |
+| `EmakiDummy`      | `1.0.4`  | 假人测试   | 提供基于 MCProtocolLib 的协议假人与场景脚本测试能力                                  |
 
 除上述运行时模块外, 仓库还包含各模块对应的 `Emaki*Api` 编译期契约模块.装备技能 PDC 协议不是独立模块, 而是 `EmakiSkillsApi` 的 `emaki.jiuwu.craft.skills.api.pdc` 包, 由需要它的运行时模块在 shade 时嵌入并 relocate.这些 Api 模块不是服务器插件, 不要放入 `plugins/`
 
@@ -32,9 +36,9 @@ Emaki Series 是一组面向 Minecraft Paper 系服务端的 Java 插件, 采用
 | Java       | `25`                                       |
 | 服务端 API | `Paper API 26.1.2.build.74-stable`           |
 | 描述符基线 | `api-version: "26.1"`                       |
-| Folia      | 14 个运行时插件均声明 `folia-supported: true` (声明值, 尚未有实机验证记录)|
+| Folia      | 18 个运行时插件均声明 `folia-supported: true` (声明值, 尚未有实机验证记录)|
 | 文本组件   | `Adventure 4.26.1`                         |
-| 构建工具   | 多模块 Gradle 工程 (wrapper 固定 Gradle 9.1.0)      |
+| 构建工具   | 多模块 Gradle 工程 (wrapper 固定 Gradle 9.8.0)      |
 | 许可证     | `GPL-3.0-only`                             |
 
 ## 模块关系
@@ -53,12 +57,16 @@ EmakiCoreLib
 ├── EmakiStorage
 ├── EmakiStation
 ├── EmakiAccessory
-└── EmakiMobs
+├── EmakiMobs
+├── EmakiStructure
+├── EmakiDungeon
+├── EmakiKits
+└── EmakiDummy
 ```
 
 - `EmakiCoreLib` 是所有业务模块的强依赖, 负责共享 GUI, 动作, 物品源, 配置, 经济, PDC 与运行时服务
 - `EmakiAttribute` 可独立提供属性与战斗计算, 也可接收 Item / Forge / Strengthen / Gem 通过 PDC 写入的属性
-- `EmakiItem` 负责稳定物品 ID, 原版数据组件, 修复, 更新, 套装与触发器; 旧版 configured-item 定义不再由运行时自动转换
+- `EmakiItem` 负责稳定物品 ID, 原版数据组件, 修复, 更新, 套装与触发器
 - `EmakiForge` 通过 CoreLib 装配物品, 读取材料来源, 并可选写入 EmakiAttribute 属性数据
 - `EmakiStrengthen` 通过配方系统为装备附加强化层, 并可选把强化属性接入 EmakiAttribute
 - `EmakiGem` 通过装备模板, 开孔器和宝石定义提供可组合装备成长, 可选把宝石属性接入 EmakiAttribute
@@ -70,6 +78,10 @@ EmakiCoreLib
 - `EmakiStation` 通过 CoreLib 的物品源与方块桥接承载世界制作工位, 支持制作队列与装备拆解回收, 可选接入 EmakiStorage 存取产物
 - `EmakiAccessory` 把饰品部位展开成槽位并管理穿戴状态, 可选把饰品与套装属性接入 EmakiAttribute
 - `EmakiMobs` 通过 YAML 定义自定义生物, 刷新规则, 掉落表与技能行为, 并可接入 Attribute, Skills 和 Item
+- `EmakiStructure` 提供结构模板导出与放置, 多方块交互定义, 并可桥接 MythicMobs 生物点位与第三方方块物品插件
+- `EmakiDungeon` 提供组队副本世界与挑战流程, 桥接 MythicMobs, PlaceholderAPI 与 BetterHUD
+- `EmakiKits` 通过 CoreLib 物品源与动作系统发放礼包奖励, 覆盖入服, 周期, CDK, 自选与购买场景
+- `EmakiDummy` 基于 MCProtocolLib 登录协议假人, 用于场景脚本与压力测试
 
 ## 仓库结构
 
@@ -89,19 +101,23 @@ Project/
 ├── EmakiStation/          # 制作工位与拆解系统
 ├── EmakiAccessory/        # 饰品系统 (私有模块,.key 门控)
 ├── EmakiMobs/             # 自定义生物系统
+├── EmakiStructure/        # 结构生成与多方块交互 (私有模块,.key 门控)
+├── EmakiDungeon/          # 组队副本系统
+├── EmakiKits/             # 礼包系统
+├── EmakiDummy/            # 协议假人与场景测试
 ├── Emaki*Api/             # 各模块编译期 API 契约 (不部署到服务器)
 │                          #   装备技能 PDC 协议在 EmakiSkillsApi 的 api.pdc 包内
-├── settings.gradle        # 模块清单 (默认 23 个 + .key 门控的 5 个私有模块)
+├── settings.gradle        # 模块清单 (默认 29 个 + .key 门控的 6 个私有模块)
 ├── build.gradle           # 根构建脚本: 共享编译 / javadoc / shade 约定
 ├── gradle/libs.versions.toml  # 版本目录: 依赖版本的唯一来源
-└── gradlew, gradlew.bat   # Gradle wrapper (固定 Gradle 9.1.0)
+└── gradlew, gradlew.bat   # Gradle wrapper (固定 Gradle 9.8.0)
 ```
 
-私有模块由根目录的 `.key` 标记门控 (而非 Maven profile): `settings.gradle` 仅在仓库根目录存在 `.key` 文件时纳入 `EmakiSkills`, `EmakiGem`, `EmakiItem`, `EmakiStorage`, `EmakiAccessory` 五个模块.`.key` 被 `.gitignore` 忽略且不受 git 跟踪, 因此新克隆的仓库默认不存在该文件, 此时构建默认的 23 个项目模块而不报错; 这是受支持的合法状态, 需要私有模块时在仓库根目录创建空文件 `.key` 即可
+私有模块由根目录的 `.key` 标记门控 (而非 Maven profile): `settings.gradle` 仅在仓库根目录存在 `.key` 文件时纳入 `EmakiSkills`, `EmakiGem`, `EmakiItem`, `EmakiStorage`, `EmakiStructure`, `EmakiAccessory` 六个模块.`.key` 被 `.gitignore` 忽略且不受 git 跟踪, 因此新克隆的仓库默认不存在该文件, 此时构建默认的 29 个项目模块而不报错; 这是受支持的合法状态, 需要私有模块时在仓库根目录创建空文件 `.key` 即可
 
 ## 默认资源定位
 
-- `EmakiCoreLib`: 共享配置位于 `EmakiCoreLib/src/main/resources/config.yml`; 各业务插件的共享 GUI 位于自己的 `gui/` 目录.旧版 configured-item 转换器已移除, 当前配置应使用 canonical `item.source` / `item.amount` / `item.components` 结构
+- `EmakiCoreLib`: 共享配置位于 `EmakiCoreLib/src/main/resources/config.yml`; 各业务插件的共享 GUI 位于自己的 `gui/` 目录, 物品定义统一使用 canonical `item.source` / `item.amount` / `item.components` 结构
 - `EmakiAttribute`: 属性, 伤害类型, 条件与 Lore 格式配置位于 `attributes/*.yml`, `damage_types/*.yml`, `conditions/*.yml`, `lore_formats/*.yml`, 默认档案位于 `config.yml > default_profile`
 - `EmakiItem`: 物品与套装定义位于 `items/`, `sets/`, ID 别名位于 `id_aliases.yml`; 物品定义使用 `item.source` / `item.amount` / `item.components`
 - `EmakiForge`: 锻造配方, GUI 与语言资源位于 `recipes/`, `gui/`, `lang/` 等目录, 当前重点围绕材料批次, 容量与结果装配链路
@@ -113,9 +129,9 @@ Project/
 - `EmakiCodex`: 图鉴, 分类, 进度规则与奖励资源位于模块配置目录及对应 definitions 文件中
 - `EmakiMobs`: 生物定义, 掉落表与刷新规则分别位于 `mobs/`, `loot_tables/`, `spawn_rules/`, 技能行为与目标选择器配置位于模块资源目录中
 
-## 物品配置格式与迁移边界
+## 物品配置格式与 ID 迁移
 
-当前 `EmakiItem` 物品定义使用 canonical `item.source`, `item.amount`, `item.components` 结构.旧版 configured-item 定义转换器已从 CoreLib 与 EmakiItem 移除, 历史 `material`, `display_name`, `lore` 等字段不会由运行时自动转换; 升级前请显式改写为当前格式
+当前 `EmakiItem` 物品定义使用 canonical `item.source`, `item.amount`, `item.components` 结构: 来源写在 `item.source`, 数量写在 `item.amount`, 名称, Lore, 模型数据与组件写在 `item.components`
 
 物品 ID 改名与玩家背包迁移是独立能力:
 
@@ -168,15 +184,15 @@ Project/
 
 各模块 API 构件发布在 CrypticLib Maven 仓库中.仓库浏览目录:
 
-[Emaki API artifacts](https://repo.crypticlib.com/service/rest/repository/browse/maven-public/emaki/jiuwu/craft/)
+[Emaki API artifacts](https://repo2.crypticlib.com/releases/emaki/jiuwu/craft/)
 
 Maven 配置使用以下仓库地址:
 
 ```xml
 <repositories>
   <repository>
-    <id>emaki-public</id>
-    <url>https://repo.crypticlib.com/repository/maven-public/</url>
+    <id>jiuwu-releases</id>
+    <url>https://repo2.crypticlib.com/releases/</url>
   </repository>
 </repositories>
 ```
@@ -187,7 +203,7 @@ Maven 配置使用以下仓库地址:
 <dependency>
   <groupId>emaki.jiuwu.craft</groupId>
   <artifactId>emaki-corelib-api</artifactId>
-  <version>5.0.0</version>
+  <version>5.0.2</version>
   <scope>provided</scope>
 </dependency>
 ```

@@ -17,7 +17,6 @@ import org.bukkit.persistence.PersistentDataType;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.api.pdc.PdcKeyMigration;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
@@ -653,8 +652,7 @@ public final class ItemOperationLedger {
     }
 
     private boolean containsLegacy(ItemMeta itemMeta, String field) {
-        NamespacedKey legacyKey = PdcKeyMigration.legacyKey(partition.namespace(), LEGACY_PARTITION, field);
-        return legacyKey != null && itemMeta.getPersistentDataContainer().getKeys().contains(legacyKey);
+        return false;
     }
 
     private ItemPresentationSnapshot readPresentationSnapshot(ItemStack itemStack) {

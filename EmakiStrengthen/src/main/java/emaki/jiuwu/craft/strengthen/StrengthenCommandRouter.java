@@ -30,8 +30,6 @@ import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityPersistenceRetryScheduler;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
-import emaki.jiuwu.craft.strengthen.legacy.StrengthenLegacyEntry;
-import emaki.jiuwu.craft.corelib.legacy.ConvertCommands;
 import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
@@ -75,7 +73,6 @@ final class StrengthenCommandRouter implements TabExecutor {
             case "givecatalyst" -> handleGiveCatalyst(sender, args);
             case "operation" -> handleOperation(sender, args);
             case "pity" -> handlePity(sender, args);
-            case ConvertCommands.TOKEN -> StrengthenLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -91,7 +88,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             return CommandTabHelper.completeSubcommands(
                     List.of("help", "open", "affix", "edit", "reload", "inspect", "refresh", "setstar",
                             "branch", "clearstate", "clearcrack", "givecatalyst", "operation", "pity",
-                            ConvertCommands.TOKEN, "debug"), args[0]);
+                            "debug"), args[0]);
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
@@ -127,13 +124,6 @@ final class StrengthenCommandRouter implements TabExecutor {
                 }
                 case "pity" -> {
                     for (String sub : List.of("list", "set", "clear", "diagnose")) {
-                        if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
-                            result.add(sub);
-                        }
-                    }
-                }
-                case ConvertCommands.TOKEN -> {
-                    for (String sub : List.of("confirm", "--apply")) {
                         if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                             result.add(sub);
                         }
@@ -654,7 +644,6 @@ final class StrengthenCommandRouter implements TabExecutor {
         lines.put("givecatalyst <id> [amount] [player]", plugin.messageService().message("command.help.desc.givecatalyst"));
         lines.put("operation [list|<id>]", plugin.messageService().message("command.help.desc.operation"));
         lines.put("pity [list|set|clear|diagnose] [...]", plugin.messageService().message("command.help.desc.pity"));
-        lines.put(ConvertCommands.TOKEN + " [confirm]", plugin.messageService().message("command.help.desc.convert_legacy"));
         lines.put("debug <status|player|module|all> [...]", plugin.messageService().message("command.help.desc.debug"));
         lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,
                 plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))));

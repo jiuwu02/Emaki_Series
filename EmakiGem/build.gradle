@@ -1,5 +1,5 @@
 // EmakiGem (原 EmakiGem/pom.xml, private-modules profile 模块)
-version = '3.0.1'
+version = '3.0.2'
 
 dependencies {
     // 原 shade artifactSet 白名单

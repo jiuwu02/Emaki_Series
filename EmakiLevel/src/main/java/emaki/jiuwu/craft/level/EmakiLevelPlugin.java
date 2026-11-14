@@ -34,9 +34,6 @@ import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
-import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter;
-import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceScanner;
-import emaki.jiuwu.craft.corelib.legacy.LegacyStartupMigration;
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.level.action.LevelStageRegistrar;
 import emaki.jiuwu.craft.level.api.EmakiLevelApi;
@@ -48,7 +45,6 @@ import emaki.jiuwu.craft.level.config.LevelConfigPrecheckContributor;
 import emaki.jiuwu.craft.level.editor.LevelEditorModule;
 import emaki.jiuwu.craft.level.listener.LevelGameplaySubscriber;
 import emaki.jiuwu.craft.level.listener.PlayerDataListener;
-import emaki.jiuwu.craft.level.legacy.LevelLegacyTargets;
 import emaki.jiuwu.craft.level.loader.LevelTypeLoader;
 import emaki.jiuwu.craft.level.loader.RequirementLoader;
 import emaki.jiuwu.craft.level.loader.SourceRuleLoader;
@@ -179,7 +175,6 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
         messages.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState();
-        reportLegacyItemSources();
         registerCommand();
         registerListeners();
         registerApi();
@@ -349,10 +344,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
                                 runtime.set("console", consoleDefaults.asMap());
                             }
                         },
-                        () -> LegacyStartupMigration.run("等级配置", messages, getLogger(),
-                                () -> LegacyStartupMigration.fromItemSourceReport(
-                                        new LegacyItemSourceRewriter(getDataFolder().toPath(),
-                                                LevelLegacyTargets.specs(), getLogger()).run(true))))
+                        null)
         );
         typeLoader = new LevelTypeLoader(this);
         requirementLoader = new RequirementLoader(this);
@@ -408,14 +400,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
         );
     }
 
-    private void reportLegacyItemSources() {
-        LegacyItemSourceScanner.report(
-                getDataFolder().toPath(),
-                LevelLegacyTargets.specs(),
-                getLogger(),
-                "emakilevel"
-        );
-    }
+
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(guiService, this);

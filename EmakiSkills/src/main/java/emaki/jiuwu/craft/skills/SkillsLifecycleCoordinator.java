@@ -21,7 +21,6 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.legacy.LegacyContentMigrator;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -36,7 +35,6 @@ import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.gui.SkillsGuiService;
 import emaki.jiuwu.craft.skills.loader.LocalResourceDefinitionLoader;
 import emaki.jiuwu.craft.skills.loader.SkillDefinitionLoader;
-import emaki.jiuwu.craft.skills.migration.SkillDefinitionMigrationRule;
 import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
 import emaki.jiuwu.craft.skills.provider.EquipmentSkillCollector;
 import emaki.jiuwu.craft.skills.provider.ExternalSkillDefinitionRegistry;
@@ -98,8 +96,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 defaultDataFiles(plugin),
                 EXTRA_DIRECTORIES,
                 bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData), null,
-                        () -> new LegacyContentMigrator(plugin.getDataFolder().toPath(), "skills", "技能定义",
-                                new SkillDefinitionMigrationRule(), messageService, plugin.getLogger()).run(true))
+                        null)
         );
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         ExternalSkillDefinitionRegistry externalSkillDefinitionRegistry = new ExternalSkillDefinitionRegistry(() -> {

@@ -18,8 +18,6 @@ import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
-import emaki.jiuwu.craft.cooking.legacy.CookingLegacyEntry;
-import emaki.jiuwu.craft.corelib.legacy.ConvertCommands;
 import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
@@ -55,7 +53,6 @@ final class CookingCommandRouter implements TabExecutor {
             case "inspect" -> handleInspect(sender, args);
             case "station" -> handleStation(sender, args);
             case "nutrition" -> handleNutrition(sender, args);
-            case ConvertCommands.TOKEN -> CookingLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -70,7 +67,7 @@ final class CookingCommandRouter implements TabExecutor {
         if (args.length == 1) {
             return CommandTabHelper.completeSubcommands(
                     List.of("help", "edit", "reload", "inspect", "station", "nutrition",
-                            ConvertCommands.TOKEN, "debug"), args[0]);
+                            "debug"), args[0]);
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));

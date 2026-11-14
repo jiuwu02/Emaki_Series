@@ -32,7 +32,6 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
-import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceScanner;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.forge.action.ForgeStageRegistrar;
@@ -40,7 +39,6 @@ import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.config.ForgeConfigPrecheckContributor;
 import emaki.jiuwu.craft.forge.editor.ForgeEditorModule;
-import emaki.jiuwu.craft.forge.legacy.ForgeLegacyTargets;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.papi.ForgePlaceholderExpansion;
@@ -79,14 +77,7 @@ final class EmakiForgePluginDelegate {
         ConfigPrecheckLifecycleSupport.register(new ForgeConfigPrecheckContributor(ownerRef));
     }
 
-    void reportLegacyItemSources() {
-        LegacyItemSourceScanner.report(
-                ownerRef.getDataFolder().toPath(),
-                ForgeLegacyTargets.specs(),
-                ownerRef.getLogger(),
-                "emakiforge"
-        );
-    }
+
 
     EmakiCoreLibPlugin coreLib() {
         return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);

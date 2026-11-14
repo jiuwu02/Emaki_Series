@@ -17,7 +17,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.api.pdc.PdcKeyMigration;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 
 public final class PdcService {
@@ -101,15 +100,7 @@ public final class PdcService {
             @Nullable PdcPartition partition,
             @Nullable String legacyPartitionPath,
             @Nullable String field) {
-        if (holder == null || partition == null || field == null) {
-            return;
-        }
-        PersistentDataContainer container = holder.getPersistentDataContainer();
-        container.remove(partition.key(field));
-        NamespacedKey legacyKey = PdcKeyMigration.legacyKey(partition.namespace(), legacyPartitionPath, field);
-        if (legacyKey != null) {
-            container.remove(legacyKey);
-        }
+        remove(holder, partition, field);
     }
 
     public <T> boolean writeBlob(@Nullable PersistentDataHolder holder,
@@ -194,18 +185,7 @@ public final class PdcService {
             @Nullable PdcPartition partition,
             @Nullable String legacyPartitionPath,
             @Nullable String field) {
-        if (partition == null || field == null) {
-            logSkipped(itemStack, "remove_migrating", "", "", "invalid_arguments");
-            return;
-        }
-        NamespacedKey key = partition.key(field);
-        NamespacedKey legacyKey = PdcKeyMigration.legacyKey(partition.namespace(), legacyPartitionPath, field);
-        mutateItemStack(itemStack, "remove_migrating", key, "", container -> {
-            container.remove(key);
-            if (legacyKey != null) {
-                container.remove(legacyKey);
-            }
-        });
+        remove(itemStack, partition, field);
     }
 
     public <T> boolean writeBlob(@Nullable ItemStack itemStack,
@@ -245,32 +225,7 @@ public final class PdcService {
             @Nullable String legacyPartitionPath,
             @Nullable String field,
             @Nullable PersistentDataType<P, C> type) {
-        if (partition == null || type == null || field == null) {
-            return null;
-        }
-        ItemMeta itemMeta = itemMeta(itemStack);
-        if (itemMeta == null) {
-            return null;
-        }
-        NamespacedKey newKey = partition.key(field);
-        PersistentDataContainer container = itemMeta.getPersistentDataContainer();
-        if (container.has(newKey, type)) {
-            return container.get(newKey, type);
-        }
-        NamespacedKey legacyKey = PdcKeyMigration.legacyKey(partition.namespace(), legacyPartitionPath, field);
-        if (legacyKey == null || !container.has(legacyKey, type)) {
-            return null;
-        }
-        C value = container.get(legacyKey, type);
-        if (value == null) {
-            return null;
-        }
-
-        mutateItemStack(itemStack, "migrate_key", newKey, value, target -> {
-            target.set(newKey, type, value);
-            target.remove(legacyKey);
-        });
-        return value;
+        return get(itemStack, partition, field, type);
     }
 
     @Nullable
@@ -295,25 +250,11 @@ public final class PdcService {
         if (holder == null || partition == null || type == null || field == null) {
             return null;
         }
-        return PdcKeyMigration.readWithMigration(
-                holder.getPersistentDataContainer(),
-                partition.key(field),
-                PdcKeyMigration.legacyKey(partition.namespace(), legacyPartitionPath, field),
-                type
-        );
+        return get(holder, partition, field, type);
     }
 
     public void purgeLegacyKeys(@Nullable ItemStack itemStack) {
-        if (itemStack == null) {
-            return;
-        }
-        ItemMeta itemMeta = itemMeta(itemStack);
-        if (itemMeta == null) {
-            return;
-        }
-        if (PdcKeyMigration.purgeLegacyKeys(itemMeta.getPersistentDataContainer()) > 0) {
-            itemStack.setItemMeta(itemMeta);
-        }
+        // 旧键兼容层已移除, 无需处理
     }
 
     public void batchMutate(@Nullable ItemStack itemStack, @Nullable Consumer<PersistentDataContainer> consumer) {

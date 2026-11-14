@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "5.0.1"
+version: "5.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#EF4444>EmakiForge</gradient> ]</gray>"
@@ -27,7 +27,6 @@ command:
       reload: "Reload configuration"
       "list <type>": "List configs of specified type"
       debug: "Manage debug mode"
-      "convert-legacy [confirm]": "Convert legacy item_sources in recipes/ to matcher"
       editor: "Open forge resource editor"
       "edit recipe <id>": "Edit a recipe; omit the ID to open the definition browser"
       "create recipe [id]": "Create a new recipe in the definition browser"
@@ -37,25 +36,6 @@ command:
     runtime: "<gray>EmakiForge runtime status:</gray> <white>status=%status% generation=%generation% gui=%gui% recipes=%recipes% issues=%issues% source_states=%source_states% reload_candidates=%reload_candidates% reload_installed=%reload_installed% reload_failed=%reload_failed% reload_stale=%reload_stale% gui_stale=%gui_stale% execution_stale=%execution_stale% settlement_failures=%settlement_failures% last_ms=%last_ms%</white>"
     # Command: recipe load report debug output; placeholders: %generation%, %files%, %parsed%, %skipped%, %registered%, %duplicates%, %executable%, %gui_visible%, %issues%, %warnings%, %hash%, %duration_ms%, %source_statuses%
     recipe_load: "<gray>EmakiForge recipe load:</gray> <white>generation=%generation% files=%files% parsed=%parsed% skipped=%skipped% registered=%registered% duplicates=%duplicates% executable=%executable% gui_visible=%gui_visible% issues=%issues% warnings=%warnings% hash=%hash% duration_ms=%duration_ms% source_statuses=%source_statuses%</white>"
-  convert_legacy:
-    header: "<gold>========== Legacy item_sources conversion  (%mode%, %files% files) ==========</gold>"
-    mode:
-      dry_run: "dry run"
-      apply: "apply"
-    file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
-    backup: "<gray>  Backed up as <white>%backup%</white></gray>"
-    diff_line: "<gray>  %line%</gray>"
-    summary: "<gray>Converted %converted%, no legacy key %skipped%, conflict %conflict%, unconvertible %unconvertible%, failed %failed%</gray>"
-    breakdown: "<gray>Of those: <white>%plain%</white> turned straight into a matcher with the legacy key removed, <white>%merged%</white> folded together with an existing matcher into one all_of so the decision stays equivalent, <white>%duplicated%</white> given a matcher while keeping the legacy key it still needs for building, deducting or counting items</gray>"
-    file_merged: "<gray>  <white>%merged%</white> merged into all_of, <white>%duplicated%</white> kept the legacy key, <white>%plain%</white> converted directly</gray>"
-    dry_run_hint: "<yellow>Dry run only, nothing was written. Run <white>/emakiforge convert-legacy confirm</white> to apply and back up the originals</yellow>"
-    nothing_to_do: "<gray>Nothing to convert</gray>"
-    status:
-      converted: "convertible"
-      no_legacy_block: "no legacy key"
-      conflict: "key conflict, left unchanged"
-      unconvertible: "no equivalent form, left unchanged"
-      failed: "conversion failed, left unchanged"
   list:
     header: "<gold>========== %type% List ==========</gold>"
     recipes_header: "<gold>========== Recipe List  (%count% total) ==========</gold>"
@@ -111,9 +91,6 @@ console:
   bootstrap_skip: "[loader] <gray>release_default_data=false, skipped default data generation</gray>"
   bootstrap_complete: "[loader] <green>Default file check complete</green>"
   versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  legacy_file_migrated: "[migrate] <green>Auto-migrated legacy configuration: <yellow>%path%</yellow> <gray> (%detail%)</gray></green>"
-  legacy_migration_failed: "[migrate] <red>Auto-migration failed, original file kept unchanged: <yellow>%path%</yellow> <gray> (%error%)</gray></red>"
-  legacy_migration_summary: "[migrate] <green>%scope% auto-migration finished, <yellow>%count%</yellow> file(s) rewritten</green>"
   bootstrap_config_read_error: "[loader] <yellow>Failed to read or update config, using defaults: <red>%error%</red>"
   directory_created: "[loader] <green>Created directory <yellow>%path%</yellow>"
   directory_create_failed: "[loader] <yellow>Failed to create directory <red>%path%</red>"
