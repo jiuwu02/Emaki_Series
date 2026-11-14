@@ -445,6 +445,8 @@ final class ItemSetListenerScopeRefresher {
             if (plan.action() == ItemSetRefreshPlanner.SlotAction.APPLY) {
                 CompiledSetState compiledState = plan.compiledState();
                 target = calculator.buildPresentationTarget(facts.definition(), compiledState);
+                debugLoreReplay(player, trigger, plan.slot(), facts, target, "input",
+                        null, null, expected, inventory, false, false);
                 before = calculator.inspectSetPresentation(
                         facts.expected(),
                         facts.ledgerRead(),
@@ -456,7 +458,11 @@ final class ItemSetListenerScopeRefresher {
                         target,
                         context
                 );
+                debugLoreReplay(player, trigger, plan.slot(), facts, target, "inspect",
+                        before, null, expected, inventory, false, false);
                 if (before.current()) {
+                    debugLoreReplay(player, trigger, plan.slot(), facts, target, "skip_current",
+                            before, null, expected, inventory, false, false);
                     continue;
                 }
                 mutation = calculator.renderSetItem(
@@ -472,6 +478,8 @@ final class ItemSetListenerScopeRefresher {
                         context
                 );
                 operation = "apply";
+                debugLoreReplay(player, trigger, plan.slot(), facts, target, "render",
+                        before, mutation, expected, inventory, false, false);
             } else {
                 mutation = calculator.clearSetPresentation(
                         expected.clone(), facts.definition(), facts.ledgerRead(), facts.identity());
@@ -479,9 +487,17 @@ final class ItemSetListenerScopeRefresher {
             }
             ItemStack updated = mutation.itemStack();
             if (!mutation.success() || ItemSetListenerScopeRefresherSupport.sameItem(expected, updated)) {
+                if (plan.action() == ItemSetRefreshPlanner.SlotAction.APPLY) {
+                    debugLoreReplay(player, trigger, plan.slot(), facts, target, "mutation_noop",
+                            before, mutation, expected, inventory, false, false);
+                }
                 continue;
             }
             boolean committed = writeInventoryIfUnchanged(inventory, plan.slot(), expected, updated);
+            if (plan.action() == ItemSetRefreshPlanner.SlotAction.APPLY) {
+                debugLoreReplay(player, trigger, plan.slot(), facts, target, "commit",
+                        before, mutation, updated, inventory, true, committed);
+            }
             if (!committed) {
                 conflicts++;
                 if (plan.action() == ItemSetRefreshPlanner.SlotAction.APPLY) {
@@ -652,6 +668,66 @@ final class ItemSetListenerScopeRefresher {
                 Map.entry("owner", scheduling != null && scheduling.ownsEntity(player)),
                 Map.entry("thread", Thread.currentThread().getName())
         ));
+    }
+
+    private void debugLoreReplay(Player player,
+                                String trigger,
+                                int slot,
+                                SlotFacts facts,
+                                SetPresentationTarget target,
+                                String step,
+                                SetPresentationInspection inspection,
+                                SetItemMutation mutation,
+                                ItemStack observed,
+                                PlayerInventory inventory,
+                                boolean commitStep,
+                                boolean committed) {
+        DebugLogger debugLogger = debugLoggerSupplier.get();
+        if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
+            return;
+        }
+        List<String> targetLore = target == null ? List.of() : target.setLore();
+        int targetSize = targetLore.size();
+        List<String> observedLore = loreLines(observed);
+        List<String> stripped = targetSize == 0
+                ? observedLore
+                : ItemSetPresentationCalculator.stripTrailingSetLoreBlocks(observedLore, targetLore);
+        int staleLines = Math.max(0, observedLore.size() - stripped.size());
+        int staleBlocks = targetSize == 0 ? 0 : staleLines / targetSize;
+        ItemOperationLedger.ReadResult ledgerRead = facts.ledgerRead();
+        ItemOperationLedger.ReadResult committedRead = mutation == null ? null : mutation.readResult();
+        ItemStack rendered = mutation == null ? null : mutation.itemStack();
+        String readbackStatus = "";
+        if (commitStep && committed && inventory != null) {
+            ItemOperationLedger.ReadResult readback = itemOperationLedger.read(inventory.getItem(slot));
+            readbackStatus = readback.status().name() + "/" + readback.entries().size();
+        }
+        debugLogger.log("set", player, "set.lore_replay", Map.ofEntries(
+                Map.entry("step", Texts.toStringSafe(step)),
+                Map.entry("slot", "slot_" + slot),
+                Map.entry("item", Texts.toStringSafe(facts.definition() == null ? "" : facts.definition().id())),
+                Map.entry("set", Texts.toStringSafe(facts.membership() == null ? "" : facts.membership().setId())),
+                Map.entry("trigger", Texts.toStringSafe(trigger)),
+                Map.entry("ledger_status", ledgerRead == null ? "null" : ledgerRead.status().name()),
+                Map.entry("ledger_entries", String.valueOf(ledgerRead == null ? 0 : ledgerRead.entries().size())),
+                Map.entry("static_op", inspection == null ? "" : String.valueOf(inspection.staticOperationPresent())),
+                Map.entry("threshold_op", inspection == null ? "" : String.valueOf(inspection.thresholdOperationPresent())),
+                Map.entry("current", inspection == null ? "" : String.valueOf(inspection.current())),
+                Map.entry("actual_lore", String.valueOf(observedLore.size())),
+                Map.entry("target_lore", String.valueOf(targetSize)),
+                Map.entry("stale_blocks", String.valueOf(staleBlocks)),
+                Map.entry("rendered_lore", rendered == null ? "" : String.valueOf(loreLines(rendered).size())),
+                Map.entry("committed_ledger", committedRead == null ? "" : String.valueOf(committedRead.entries().size())),
+                Map.entry("readback_status", readbackStatus),
+                Map.entry("committed", commitStep ? String.valueOf(committed) : ""),
+                Map.entry("thread", Thread.currentThread().getName())
+        ));
+    }
+
+    private List<String> loreLines(ItemStack itemStack) {
+        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
+        List<String> lore = itemMeta == null ? null : ItemTextBridge.loreLines(itemMeta);
+        return lore == null || lore.isEmpty() ? List.of() : List.copyOf(lore);
     }
 
     private void debugSetWrite(Player player,

@@ -15,7 +15,6 @@ import emaki.jiuwu.craft.corelib.api.assembly.ItemOperationEntry;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
-import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
@@ -32,6 +31,7 @@ final class ItemSetPresentationCalculator {
     private final EmakiItemPdcWriter pdcWriter;
     private final ItemSetLoreRenderer loreRenderer;
     private final ItemOperationLedger itemOperationLedger;
+    private final ItemSetPresentationProjector projector;
 
     ItemSetPresentationCalculator(EmakiItemIdentifier identifier,
                                   EmakiItemPdcWriter pdcWriter,
@@ -41,6 +41,7 @@ final class ItemSetPresentationCalculator {
         this.pdcWriter = pdcWriter;
         this.loreRenderer = loreRenderer;
         this.itemOperationLedger = itemOperationLedger;
+        this.projector = new ItemSetPresentationProjector(identifier);
     }
 
     CompileResult compileStates(Set<String> setIds,
@@ -140,74 +141,13 @@ final class ItemSetPresentationCalculator {
                                          ItemOperationLedger.ReadResult ledgerRead,
                                          EmakiItemIdentifier.Snapshot identity) {
         ItemStack original = itemStack == null ? null : itemStack.clone();
-        if (itemStack == null || ledgerRead == null || ledgerRead.corrupt()) {
+        if (itemStack == null || ledgerRead == null) {
             return SetItemMutation.failure(original, ledgerRead);
         }
-        Integer legacyLoreLines = identity.setLoreLines();
-        boolean staticOperationPresent = ledgerRead.entries().stream().anyMatch(entry -> entry != null
-                && SET_DISPLAY_NAMESPACE.equals(entry.sourceNamespace())
-                && entry.operationId().startsWith("emakiitem:set_static_lore:"));
-        ItemOperationLedger.UpdateResult reverted = revertNamespaceOperations(
-                itemStack, ledgerRead, SET_DISPLAY_NAMESPACE);
-        if (!reverted.success() || hasNamespaceOperation(reverted.entries(), SET_DISPLAY_NAMESPACE)) {
-            return SetItemMutation.failure(original, ledgerRead);
-        }
-        if (legacyLoreLines != null && !staticOperationPresent
-                && !migrateLegacyStaticLore(itemStack, List.of(), legacyLoreLines)) {
-            return SetItemMutation.failure(original, ledgerRead);
-        }
+        List<String> baseLore = projector.storedBaseLore(itemStack);
+        projector.commit(itemStack, baseLore, baseLore);
         pdcWriter.clearDynamicSet(itemStack, definition);
-        return SetItemMutation.success(itemStack, reverted.readResult());
-    }
-
-    private boolean clearLegacyLoreMarker(ItemStack itemStack) {
-        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
-        if (itemMeta == null) {
-            return false;
-        }
-        identifier.clearSetLoreLines(itemMeta);
-        itemStack.setItemMeta(itemMeta);
-        return true;
-    }
-
-    private boolean migrateLegacyStaticLore(ItemStack itemStack,
-                                            List<String> expectedSetLore,
-                                            Integer legacyLoreLines) {
-        if (legacyLoreLines == null) {
-            return true;
-        }
-        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
-        if (itemMeta == null) {
-            return false;
-        }
-        int markerLines = Math.max(0, legacyLoreLines);
-        List<String> currentLore = loreLines(itemStack);
-        List<String> canonicalSetLore = canonicalLoreLines(expectedSetLore);
-        List<String> migratedLore = new ArrayList<>(currentLore);
-        if (markerLines > 0) {
-            if (canonicalSetLore.isEmpty()) {
-                return false;
-            }
-            List<String> expectedBlock;
-            if (markerLines == canonicalSetLore.size()) {
-                expectedBlock = canonicalSetLore;
-            } else if (markerLines == canonicalSetLore.size() + 1) {
-                expectedBlock = new ArrayList<>(canonicalSetLore.size() + 1);
-                expectedBlock.add("");
-                expectedBlock.addAll(canonicalSetLore);
-            } else {
-                return false;
-            }
-            int matchedStart = ItemSetPresentationCalculatorSupport.uniqueBlockStart(migratedLore, expectedBlock);
-            if (matchedStart < 0) {
-                return false;
-            }
-            migratedLore.subList(matchedStart, matchedStart + expectedBlock.size()).clear();
-        }
-        ItemTextBridge.setLoreLines(itemMeta, migratedLore);
-        identifier.clearSetLoreLines(itemMeta);
-        itemStack.setItemMeta(itemMeta);
-        return true;
+        return SetItemMutation.success(itemStack, ledgerRead);
     }
 
     static List<String> stripTrailingSetLoreBlocks(List<String> lore, List<String> setLore) {
@@ -302,87 +242,29 @@ final class ItemSetPresentationCalculator {
             return SetItemMutation.success(itemStack, ledgerRead);
         }
         ItemStack original = itemStack.clone();
-        if (ledgerRead == null || ledgerRead.corrupt()) {
+        if (ledgerRead == null) {
             return SetItemMutation.failure(original, ledgerRead);
         }
         String setId = membership.setId();
-        String previousSetId = identity.setId();
-        Integer legacyLoreLines = identity.setLoreLines();
-        ItemOperationLedger.ReadResult currentReadResult = ledgerRead;
-        boolean previousStaticPresent = Texts.isNotBlank(previousSetId)
-                && operation(currentReadResult.entries(), staticLoreOperationId(previousSetId)) != null;
-        if (legacyLoreLines != null && legacyLoreLines > 0
-                && Texts.isNotBlank(previousSetId)
-                && !previousSetId.equals(setId)
-                && !previousStaticPresent) {
-            return SetItemMutation.failure(original, currentReadResult);
-        }
-
-        boolean currentStaticPresent = operation(currentReadResult.entries(), staticLoreOperationId(setId)) != null;
-        ItemOperationLedger.UpdateResult reverted = revertNamespaceOperations(
-                itemStack, currentReadResult, SET_DISPLAY_NAMESPACE);
-        if (!reverted.success() || hasNamespaceOperation(reverted.entries(), SET_DISPLAY_NAMESPACE)) {
-            return SetItemMutation.failure(original, currentReadResult);
-        }
-        currentReadResult = reverted.readResult();
-        if (Texts.isNotBlank(previousSetId) && !previousSetId.equals(setId)) {
-            if (legacyLoreLines != null && !clearLegacyLoreMarker(itemStack)) {
-                return SetItemMutation.failure(original, ledgerRead);
-            }
-            legacyLoreLines = null;
-        }
-        if (legacyLoreLines != null && !currentStaticPresent
-                && !migrateLegacyStaticLore(itemStack, target.setLore(), legacyLoreLines)) {
-            return SetItemMutation.failure(original, ledgerRead);
-        }
-
-        List<String> staticBlock = staticLoreBlock(loreLines(itemStack), target.setLore());
-        if (!staticBlock.isEmpty()) {
-            ItemOperationLedger.UpdateResult staticApply = itemOperationLedger.apply(
-                    context,
-                    itemStack,
-                    currentReadResult,
-                    staticLoreOperationId(setId),
-                    SET_DISPLAY_NAMESPACE,
-                    List.of(),
-                    List.of(Map.of("action", "append", "content", staticBlock)),
-                    Map.of()
-            );
-            if (!staticApply.success()) {
-                return SetItemMutation.failure(original, currentReadResult);
-            }
-            currentReadResult = staticApply.readResult();
-        }
+        List<String> baseLore = projector.baseLore(itemStack, state.definition());
+        List<String> projected = projector.render(baseLore, target.setLore());
+        projector.commit(itemStack, projected, baseLore);
         if (target.expectsThresholdOperation()) {
-            ItemOperationLedger.UpdateResult thresholdApply = itemOperationLedger.apply(
-                    context,
+            pdcWriter.writeDynamicSet(
                     itemStack,
-                    currentReadResult,
-                    thresholdOperationId(setId),
-                    SET_DISPLAY_NAMESPACE,
-                    target.nameActions(),
-                    target.loreActions(),
-                    target.actionVariables()
+                    definition,
+                    setId,
+                    membership.effectivePieceId(definition.id()),
+                    state.activeCount(),
+                    state.definition().totalPieces(),
+                    target.activeThresholdNumbers(),
+                    0,
+                    target.attributes(),
+                    target.skills(),
+                    target.signature()
             );
-            if (!thresholdApply.success()) {
-                return SetItemMutation.failure(original, currentReadResult);
-            }
-            currentReadResult = thresholdApply.readResult();
         }
-        pdcWriter.writeDynamicSet(
-                itemStack,
-                definition,
-                membership.setId(),
-                membership.effectivePieceId(definition.id()),
-                state.activeCount(),
-                state.definition().totalPieces(),
-                target.activeThresholdNumbers(),
-                0,
-                target.attributes(),
-                target.skills(),
-                target.signature()
-        );
-        return SetItemMutation.success(itemStack, currentReadResult);
+        return SetItemMutation.success(itemStack, ledgerRead);
     }
 
     SetPresentationTarget buildPresentationTarget(EmakiItemDefinition definition, CompiledSetState compiledState) {
@@ -432,23 +314,14 @@ final class ItemSetPresentationCalculator {
                                                      EquippedSetState state,
                                                      SetPresentationTarget target,
                                                      ActionContext context) {
-        String setId = membership.setId();
-        boolean staticOperationPresent = ledgerFacts.hasOperation(staticLoreOperationId(setId));
-        boolean thresholdOperationPresent = ledgerFacts.hasOperation(thresholdOperationId(setId));
-        ExpectedPresentationEntries expected = expectedPresentationEntries(itemStack, ledgerRead, setId, target, context);
-        int expectedOperationCount = (expected.staticEntry() == null ? 0 : 1)
-                + (expected.thresholdEntry() == null ? 0 : 1);
-        boolean operationsCurrent = expected.success()
-                && ledgerFacts.setDisplayOperationCount() == expectedOperationCount
-                && sameOperationContent(
-                        ledgerFacts.operation(staticLoreOperationId(setId)), expected.staticEntry())
-                && sameOperationContent(
-                        ledgerFacts.operation(thresholdOperationId(setId)), expected.thresholdEntry());
+        List<String> baseLore = projector.baseLore(itemStack, state.definition());
+        List<String> projected = projector.render(baseLore, target.setLore());
+        boolean presentationCurrent = projected.equals(loreLines(itemStack));
         boolean dynamicStateCurrent = pdcWriter.isDynamicSetCurrent(
                 itemStack,
                 definition,
                 identity,
-                setId,
+                membership.setId(),
                 membership.effectivePieceId(definition.id()),
                 state.activeCount(),
                 state.definition().totalPieces(),
@@ -457,132 +330,8 @@ final class ItemSetPresentationCalculator {
                 target.skills(),
                 target.signature()
         );
-        boolean current = !ledgerFacts.corrupt()
-                && dynamicStateCurrent
-                && identity.setLoreLines() == null
-                && staticOperationPresent == (expected.staticEntry() != null)
-                && thresholdOperationPresent == (expected.thresholdEntry() != null)
-                && operationsCurrent;
-        return new SetPresentationInspection(staticOperationPresent, thresholdOperationPresent, current);
-    }
-
-    private ExpectedPresentationEntries expectedPresentationEntries(ItemStack itemStack,
-                                                                     ItemOperationLedger.ReadResult ledgerRead,
-                                                                     String setId,
-                                                                     SetPresentationTarget target,
-                                                                     ActionContext context) {
-        if (itemStack == null || ledgerRead == null || ledgerRead.corrupt()) {
-            return ExpectedPresentationEntries.failure();
-        }
-        ItemStack projection = itemStack.clone();
-        ItemOperationLedger.UpdateResult reverted = revertNamespaceOperations(
-                projection, ledgerRead, SET_DISPLAY_NAMESPACE);
-        if (!reverted.success() || hasNamespaceOperation(reverted.entries(), SET_DISPLAY_NAMESPACE)) {
-            return ExpectedPresentationEntries.failure();
-        }
-        ItemOperationLedger.ReadResult currentReadResult = reverted.readResult();
-
-        ItemOperationEntry staticEntry = null;
-        List<String> staticBlock = staticLoreBlock(loreLines(projection), target.setLore());
-        if (!staticBlock.isEmpty()) {
-            ItemOperationLedger.UpdateResult staticApply = itemOperationLedger.apply(
-                    context,
-                    projection,
-                    currentReadResult,
-                    staticLoreOperationId(setId),
-                    SET_DISPLAY_NAMESPACE,
-                    List.of(),
-                    List.of(Map.of("action", "append", "content", staticBlock)),
-                    Map.of()
-            );
-            if (!staticApply.success()) {
-                return ExpectedPresentationEntries.failure();
-            }
-            currentReadResult = staticApply.readResult();
-            staticEntry = operation(currentReadResult.entries(), staticLoreOperationId(setId));
-        }
-
-        ItemOperationEntry thresholdEntry = null;
-        if (target.expectsThresholdOperation()) {
-            ItemOperationLedger.UpdateResult thresholdApply = itemOperationLedger.apply(
-                    context,
-                    projection,
-                    currentReadResult,
-                    thresholdOperationId(setId),
-                    SET_DISPLAY_NAMESPACE,
-                    target.nameActions(),
-                    target.loreActions(),
-                    target.actionVariables()
-            );
-            if (!thresholdApply.success()) {
-                return ExpectedPresentationEntries.failure();
-            }
-            currentReadResult = thresholdApply.readResult();
-            thresholdEntry = operation(currentReadResult.entries(), thresholdOperationId(setId));
-        }
-        return new ExpectedPresentationEntries(true, staticEntry, thresholdEntry);
-    }
-
-    private ItemOperationLedger.UpdateResult revertNamespaceOperations(ItemStack itemStack,
-                                                                       ItemOperationLedger.ReadResult initialReadResult,
-                                                                       String sourceNamespace) {
-        ItemOperationLedger.ReadResult currentReadResult = initialReadResult == null
-                ? ItemOperationLedger.ReadResult.corrupt(List.of())
-                : initialReadResult;
-        if (currentReadResult.corrupt()) {
-            return ItemOperationLedger.UpdateResult.failure(currentReadResult);
-        }
-        LinkedHashSet<String> operationIds = new LinkedHashSet<>();
-        List<ItemOperationEntry> entries = currentReadResult.entries();
-        for (int index = entries.size() - 1; index >= 0; index--) {
-            ItemOperationEntry entry = entries.get(index);
-            if (entry != null && sourceNamespace.equals(entry.sourceNamespace())) {
-                operationIds.add(entry.operationId());
-            }
-        }
-        for (String operationId : operationIds) {
-            ItemOperationLedger.UpdateResult reverted = itemOperationLedger.revert(
-                    itemStack, currentReadResult, operationId);
-            if (!reverted.success()) {
-                return ItemOperationLedger.UpdateResult.failure(currentReadResult);
-            }
-            currentReadResult = reverted.readResult();
-        }
-        return ItemOperationLedger.UpdateResult.success(currentReadResult);
-    }
-
-    private boolean hasNamespaceOperation(List<ItemOperationEntry> entries, String sourceNamespace) {
-        return entries != null && entries.stream().anyMatch(entry -> entry != null
-                && sourceNamespace.equals(entry.sourceNamespace()));
-    }
-
-    private ItemOperationEntry operation(List<ItemOperationEntry> entries, String operationId) {
-        if (entries == null || Texts.isBlank(operationId)) {
-            return null;
-        }
-        for (int index = entries.size() - 1; index >= 0; index--) {
-            ItemOperationEntry entry = entries.get(index);
-            if (entry != null && operationId.equals(entry.operationId())) {
-                return entry;
-            }
-        }
-        return null;
-    }
-
-    private boolean sameOperationContent(ItemOperationEntry actual, ItemOperationEntry expected) {
-        if (actual == null || expected == null) {
-            return actual == expected;
-        }
-        return operationContent(actual).equals(operationContent(expected));
-    }
-
-    private Map<String, Object> operationContent(ItemOperationEntry entry) {
-        Map<String, Object> content = new LinkedHashMap<>();
-        content.put("id", entry.operationId());
-        content.put("namespace", entry.sourceNamespace());
-        content.put("name", entry.nameRecords().stream().map(ItemOperationEntry.NameOperationRecord::toMap).toList());
-        content.put("lore", entry.loreRecords().stream().map(ItemOperationEntry.LoreOperationRecord::toMap).toList());
-        return Map.copyOf(content);
+        boolean current = presentationCurrent && dynamicStateCurrent;
+        return new SetPresentationInspection(!projected.isEmpty(), target.expectsThresholdOperation(), current);
     }
 
     private Map<String, Object> setActionVariables(EmakiItemDefinition definition, ItemSetMembership membership, EquippedSetState state) {
@@ -756,16 +505,6 @@ final class ItemSetPresentationCalculator {
             boolean staticOperationPresent,
             boolean thresholdOperationPresent,
             boolean current) {
-    }
-
-    private record ExpectedPresentationEntries(
-            boolean success,
-            ItemOperationEntry staticEntry,
-            ItemOperationEntry thresholdEntry) {
-
-        private static ExpectedPresentationEntries failure() {
-            return new ExpectedPresentationEntries(false, null, null);
-        }
     }
 
     record SetItemMutation(

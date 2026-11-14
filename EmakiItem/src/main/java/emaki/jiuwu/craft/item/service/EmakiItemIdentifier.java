@@ -5,6 +5,11 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -24,6 +29,7 @@ public final class EmakiItemIdentifier {
     static final String FIELD_SET_ACTIVE_THRESHOLDS = "set_active_thresholds";
     static final String FIELD_SET_SIGNATURE = "set_signature";
     static final String FIELD_SET_LORE_LINES = "set_lore_lines";
+    static final String FIELD_BASE_LORE = "base_lore";
     static final int SCHEMA_VERSION = 1;
 
     private final PdcService pdcService;
@@ -87,6 +93,34 @@ public final class EmakiItemIdentifier {
     public Integer setLoreLines(ItemStack itemStack) {
         Integer value = pdcService.get(itemStack, partition, FIELD_SET_LORE_LINES, PersistentDataType.INTEGER);
         return value == null ? null : Math.max(0, value);
+    }
+
+    public List<String> baseLore(ItemStack itemStack) {
+        String payload = pdcService.get(itemStack, partition, FIELD_BASE_LORE, PersistentDataType.STRING);
+        if (payload == null) {
+            return null;
+        }
+        if (Texts.isBlank(payload)) {
+            return List.of();
+        }
+        Object raw = YamlFiles.load(payload).get("lore");
+        if (!(raw instanceof List<?> lines)) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        for (Object line : lines) {
+            result.add(Texts.toStringSafe(line));
+        }
+        return List.copyOf(result);
+    }
+
+    void writeBaseLore(ItemStack itemStack, List<String> baseLore) {
+        if (itemStack == null) {
+            return;
+        }
+        List<String> safe = baseLore == null ? List.of() : List.copyOf(baseLore);
+        String payload = YamlFiles.dump(Map.of("lore", new ArrayList<>(safe)));
+        pdcService.set(itemStack, partition, FIELD_BASE_LORE, PersistentDataType.STRING, payload);
     }
 
     public Snapshot snapshot(ItemStack itemStack) {

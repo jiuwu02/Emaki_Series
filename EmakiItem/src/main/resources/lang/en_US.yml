@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "3.0.5"
+version: "3.0.6"
 
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
@@ -241,6 +241,7 @@ debug:
     slot_gate: "Set slot gate | accepted=%accepted% | actual=%actual% | item=%item% | item_match=%item_match% | item_slot=%item_slot% | piece=%piece% | set=%set% | set_match=%set_match% | set_slot=%set_slot% | trigger=%trigger%"
     lore: "Set lore write | committed=%committed% | current=%current% | global_owner=%global_owner% | item=%item% | lore_size=%lore_size% | marker=%marker% | owner=%owner% | signature=%signature% | slot=%slot% | static_ledger=%static_ledger% | thread=%thread% | threshold_ledger=%threshold_ledger% | trigger=%trigger%"
     write: "Set write | committed=%committed% | item=%item% | operation=%operation% | owner=%owner% | slot=%slot% | thread=%thread% | trigger=%trigger%"
+    lore_replay: "Set lore replay trace | step=%step% | slot=%slot% | item=%item% | set=%set% | trigger=%trigger% | ledger_status=%ledger_status% | ledger_entries=%ledger_entries% | static_op=%static_op% | threshold_op=%threshold_op% | current=%current% | actual_lore=%actual_lore% | target_lore=%target_lore% | stale_blocks=%stale_blocks% | rendered_lore=%rendered_lore% | committed_ledger=%committed_ledger% | readback_status=%readback_status% | committed=%committed% | thread=%thread%"
   identify:
     start: "Item identify | Material=%material% | PDC=%pdc%"
     result: "Identify result | ID=%id%"

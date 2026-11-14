@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "3.0.5"
+version: "3.0.6"
 
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
@@ -241,6 +241,7 @@ debug:
     slot_gate: "套装槽位门控 | 接受=%accepted% | 实际槽位=%actual% | 物品=%item% | 物品匹配=%item_match% | 物品槽位=%item_slot% | 部件=%piece% | 套装=%set% | 套装匹配=%set_match% | 套装槽位=%set_slot% | 触发器=%trigger%"
     lore: "套装 Lore 写入 | 已提交=%committed% | 当前=%current% | 全局所有者=%global_owner% | 物品=%item% | Lore 行数=%lore_size% | 标记=%marker% | 所有者=%owner% | 签名=%signature% | 槽位=%slot% | 静态账本=%static_ledger% | 线程=%thread% | 阈值账本=%threshold_ledger% | 触发器=%trigger%"
     write: "套装写入 | 已提交=%committed% | 物品=%item% | 操作=%operation% | 所有者=%owner% | 槽位=%slot% | 线程=%thread% | 触发器=%trigger%"
+    lore_replay: "套装 Lore 重建追踪 | 步骤=%step% | 槽位=%slot% | 物品=%item% | 套装=%set% | 触发器=%trigger% | 账本状态=%ledger_status% | 账本条目=%ledger_entries% | 静态操作=%static_op% | 阈值操作=%threshold_op% | 判定为最新=%current% | 实际 Lore 行数=%actual_lore% | 目标段行数=%target_lore% | 旧套装段数=%stale_blocks% | 渲染后 Lore 行数=%rendered_lore% | 提交后账本条目=%committed_ledger% | 写回后实读=%readback_status% | 提交成功=%committed% | 线程=%thread%"
   identify:
     start: "识别物品 | 材质=%material% | PDC=%pdc%"
     result: "识别结果 | ID=%id%"

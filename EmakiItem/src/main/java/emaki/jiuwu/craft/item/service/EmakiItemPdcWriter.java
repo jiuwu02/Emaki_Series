@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
@@ -55,6 +56,8 @@ public final class EmakiItemPdcWriter {
             identifier.writeIdentity(itemMeta, definition.id(), definition.definitionSignature(), updateVersion);
             writeAccessorySlots(itemMeta, definition);
             itemStack.setItemMeta(itemMeta);
+            List<String> baseLore = ItemTextBridge.loreLines(itemMeta);
+            identifier.writeBaseLore(itemStack, baseLore == null ? List.of() : List.copyOf(baseLore));
         }
         String equipSlot = EquipmentSkillPdcCodec.normalizeRequiredSlot(definition.equipSlot());
         Map<String, Double> attributes = resolveAttributes(definition.attributes());
