@@ -2,26 +2,26 @@
 
 Emaki Series is a multi-module Gradle project for Minecraft 26.1+ Paper-based RPG servers (Paper / Purpur / Folia). `EmakiCoreLib` provides shared infrastructure for item sources, GUI templates, actions, YAML, PDC, expressions, economy bridges, and runtime services, while the business modules implement equipment progression, combat, skills, cooking, crafting, codex, storage, and custom-mob systems.
 
-Current source versions: `EmakiCoreLib 5.0.2`, `EmakiAttribute 5.0.5`, `EmakiForge 5.0.1`, `EmakiStrengthen 5.0.1`, `EmakiCooking 5.0.1`, `EmakiGem 3.0.1`, `EmakiSkills 3.0.1`, `EmakiItem 3.0.4`, `EmakiLevel 2.0.1`, `EmakiCodex 2.0.1`, `EmakiStorage 2.0.1`, `EmakiStation 2.0.1`, `EmakiAccessory 2.0.1`, `EmakiMobs 2.0.1`, `EmakiStructure 1.0.9`, `EmakiDungeon 1.0.17`, `EmakiKits 1.0.1`, and `EmakiDummy 1.0.4`.
+Current source versions: `EmakiCoreLib 5.0.3`, `EmakiAttribute 5.0.6`, `EmakiForge 5.0.2`, `EmakiStrengthen 5.0.2`, `EmakiCooking 5.0.2`, `EmakiGem 3.0.2`, `EmakiSkills 3.0.2`, `EmakiItem 3.0.5`, `EmakiLevel 2.0.2`, `EmakiCodex 2.0.1`, `EmakiStorage 2.0.1`, `EmakiStation 2.0.2`, `EmakiAccessory 2.0.2`, `EmakiMobs 2.0.2`, `EmakiStructure 1.0.9`, `EmakiDungeon 1.0.17`, `EmakiKits 1.0.1`, and `EmakiDummy 1.0.4`.
 
 ## Modules
 
 | Module            | Version | Role                  | Description                                                                                                               |
 | ----------------- | ------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `EmakiCoreLib`    | `5.0.2`   | Core library          | Shared GUI, actions, item sources, assembly, expressions, YAML, PDC, economy bridges, and runtime services.               |
-| `EmakiAttribute`  | `5.0.5`  | Attributes and combat | RPG attributes, damage types, resources, PDC contributions, conditions, snapshots, and combat feedback.                   |
-| `EmakiForge`      | `5.0.1`  | Forging               | Recipe-driven forging, quality rolls, material contributions, recipe books, editors, output assembly, and attribute PDC.  |
-| `EmakiStrengthen` | `5.0.1`  | Strengthening         | Star levels, success rates, milestones, GUI flows, material consumption, and strengthening-layer refreshes.               |
-| `EmakiCooking`    | `5.0.1`  | Cooking               | World stations, recipe matching, input restrictions, displays, and persistent station state.                              |
-| `EmakiGem`        | `3.0.1`  | Gems                  | Socket opening, inlay, extraction, upgrades, equipment templates, gem definitions, and optional attribute integration.    |
-| `EmakiSkills`     | `3.0.1`  | Skills                | Active slots, passive triggers, cast modes, cooldowns, and MythicMobs / Attribute integration.                            |
-| `EmakiItem`       | `3.0.4`   | Custom items          | Stable item definitions, vanilla components, repair, automatic refresh, sets, triggers, and item-state management.       |
-| `EmakiLevel`      | `2.0.1`  | Progression           | Multiple level types, experience sources, requirements, PDC, placeholders, and cross-module progression bridges.          |
+| `EmakiCoreLib`    | `5.0.3`   | Core library          | Shared GUI, actions, item sources, assembly, expressions, YAML, PDC, economy bridges, and runtime services.               |
+| `EmakiAttribute`  | `5.0.6`  | Attributes and combat | RPG attributes, damage types, resources, PDC contributions, conditions, snapshots, and combat feedback.                   |
+| `EmakiForge`      | `5.0.2`  | Forging               | Recipe-driven forging, quality rolls, material contributions, recipe books, editors, output assembly, and attribute PDC.  |
+| `EmakiStrengthen` | `5.0.2`  | Strengthening         | Star levels, success rates, milestones, GUI flows, material consumption, and strengthening-layer refreshes.               |
+| `EmakiCooking`    | `5.0.2`  | Cooking               | World stations, recipe matching, input restrictions, displays, and persistent station state.                              |
+| `EmakiGem`        | `3.0.2`  | Gems                  | Socket opening, inlay, extraction, upgrades, equipment templates, gem definitions, and optional attribute integration.    |
+| `EmakiSkills`     | `3.0.2`  | Skills                | Active slots, passive triggers, cast modes, cooldowns, and MythicMobs / Attribute integration.                            |
+| `EmakiItem`       | `3.0.5`   | Custom items          | Stable item definitions, vanilla components, repair, automatic refresh, sets, triggers, and item-state management.       |
+| `EmakiLevel`      | `2.0.2`  | Progression           | Multiple level types, experience sources, requirements, PDC, placeholders, and cross-module progression bridges.          |
 | `EmakiCodex`      | `2.0.1`  | Collections           | Codex entries, progress tracking, Gameplay Event conditions, rewards, and advancement-toast integration.                  |
 | `EmakiStorage`    | `2.0.1`  | Storage               | Paged GUI warehouse, large per-slot quantities, capacity tiers and permissions, paid unlocks, and storage events.         |
-| `EmakiStation`    | `2.0.1`  | Crafting stations     | World crafting stations, crafting queues and costs, recipes and material lists, plus equipment dismantling and recovery.  |
-| `EmakiAccessory`  | `2.0.1`  | Accessories           | Accessory parts expanded into slots, accessory sets, uniqueness and death-drop policies, and attribute integration.       |
-| `EmakiMobs`       | `2.0.1`  | Custom mobs           | Custom mob definitions, spawn rules, loot tables, skill behavior, and Attribute / Skills / Item integration.              |
+| `EmakiStation`    | `2.0.2`  | Crafting stations     | World crafting stations, crafting queues and costs, recipes and material lists, plus equipment dismantling and recovery.  |
+| `EmakiAccessory`  | `2.0.2`  | Accessories           | Accessory parts expanded into slots, accessory sets, uniqueness and death-drop policies, and attribute integration.       |
+| `EmakiMobs`       | `2.0.2`  | Custom mobs           | Custom mob definitions, spawn rules, loot tables, skill behavior, and Attribute / Skills / Item integration.              |
 | `EmakiStructure`  | `1.0.9`  | Structures            | Structure capture and export, directional template placement, multiblock interaction definitions, and vanilla structure replacement. |
 | `EmakiDungeon`    | `1.0.17` | Party dungeons        | Template-cloned dungeon worlds, party challenge flow, entry limits, reward staging, and score settlement.                 |
 | `EmakiKits`       | `1.0.1`  | Kits                  | Config-driven kit definitions, reward delivery, CDK codes, choice kits, and purchases.                                   |
@@ -113,6 +113,20 @@ Project/
 
 The private modules are gated by the `.key` marker rather than a Maven profile: `settings.gradle` adds `EmakiSkills`, `EmakiGem`, `EmakiItem`, `EmakiStorage`, `EmakiStructure`, and `EmakiAccessory` to the build only when a `.key` file exists in the repository root. `.key` is ignored by `.gitignore` and untracked, so a fresh clone does not contain it; the build then compiles the default 29 project modules without failing, which is a supported state. Create an empty `.key` file in the repository root when you need the private modules.
 
+## Default resource locations
+
+- `EmakiCoreLib`: shared configuration lives in `EmakiCoreLib/src/main/resources/config.yml`; each business plugin's shared GUIs live in its own `gui/` directory. Item definitions uniformly use the canonical `item.source` / `item.amount` / `item.components` structure
+- `EmakiAttribute`: attribute, damage type, condition, and Lore format configs live in `attributes/*.yml`, `damage_types/*.yml`, `conditions/*.yml`, `lore_formats/*.yml`; the default profile lives in `config.yml > default_profile`
+- `EmakiItem`: item and set definitions live in `items/`, `sets/`; ID aliases live in `id_aliases.yml`; item definitions use `item.source` / `item.amount` / `item.components`
+- `EmakiForge`: forging recipes, GUI, and language resources live in `recipes/`, `gui/`, `lang/` and similar directories, currently focused on material batches, capacity, and result assembly
+- `EmakiStrengthen`: default strengthening recipes live in `recipes/*.yml` (three built-in examples: `example_recipe.yml`, `example_branch_recipe.yml`, `example_armor_recipe.yml`); enhancement definitions live in `enhancement_recipes/`; broadcasts and global success rates live in `config.yml`
+- `EmakiGem`: gems, equipment templates, socket openers, and GUI resources live in `gems/`, `items/`, `gui/gem/`, `gui/open/`, and `config.yml` (the upgrade view reuses the `gui/gem/` template)
+- `EmakiLevel`: level types, experience sources, and upgrade requirements live in `types/`, `sources/`, `requirements.yml`, and `config.yml`
+- `EmakiSkills`: skills, GUI, and active/passive trigger configs live in `skills/`, `gui/`, and `config.yml`; skill effect bodies are bridged through MythicMobs configuration; skill configs can inject MythicMobs variables via `variables` (read as `<skill.var.xxx>`) and configure skill upgrades with the same `upgrade` style as Gem / Strengthen
+- `EmakiCooking`: recipes per station live in `recipes/<station>/` (cutting board, wok, grinder, steamer, oven, juicer, fermenting barrel), plus `nutrition/`, `item_adjustments/`, and `gui/`; station runtime state is saved under the data directory's `data/stations/`
+- `EmakiCodex`: codex entries, categories, progress rules, and reward resources live in the module configuration directory and its definitions files
+- `EmakiMobs`: mob definitions, loot tables, and spawn rules live in `mobs/`, `loot_tables/`, `spawn_rules/`; skill behavior and target selector configs live in the module resource directory
+
 ## Item configuration and ID migration
 
 Current `EmakiItem` definitions use the canonical `item.source`, `item.amount`, and `item.components` structure: the source goes in `item.source`, the count in `item.amount`, and names, lore, model data, and components in `item.components`.
@@ -126,6 +140,14 @@ Item-ID renaming and online-inventory migration are separate capabilities:
 ## EmakiItem set state
 
 Set-membership visibility is calculated separately from the valid equipped-piece count. An item that declares an available set ID retains a `0/N` set state, while only pieces that resolve to a real set piece and match both the item's `equip_slot` and the piece `slot` count as active. Missing set definitions are isolated and reported through `set` DEBUG without creating empty state, activating bonuses, or performing destructive writes.
+
+## EmakiSkills skill parameters and upgrades
+
+- `variables` injects MythicMobs variables when a skill is cast. Inside MythicMobs skills, prefer `<skill.var.damage>`, `<skill.var.radius>`, `<skill.var.emaki_skill_level>` to read them
+- `upgrade` is the single configuration entry for skill upgrades, styled after `EmakiGem` / `EmakiStrengthen`: `enabled`, `max_level`, `gui_template`, `economy.currencies`, `success_rates`, `failure_penalty`, `levels`
+- `upgrade.levels.<target_level>` describes the materials, economy overrides, success-rate overrides, and success/failure actions for reaching that level
+- Player skill levels are persisted by `EmakiSkills` in the player profile as `skill_levels.<skill_id>.level`; skills without upgrades stay at level `1`
+- The player-facing upgrade command is `/eskills upgrade <skill>`; the admin commands are `/eskills level get|set|add <player> <skill> [value]`
 
 ## Build
 

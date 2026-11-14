@@ -2,26 +2,26 @@
 
 Emaki Series 是一组面向 Minecraft Paper 系服务端的 Java 插件, 采用多模块 Gradle 工程组织.项目以 `EmakiCoreLib` 为共享基础库, 向上承载属性战斗, 装备成长, 技能, 烹饪, 制作, 图鉴, 仓库与自定义生物等 RPG 玩法模块
 
-当前源码版本线为: `EmakiCoreLib 5.0.2`, `EmakiAttribute 5.0.5`, `EmakiForge 5.0.1`, `EmakiStrengthen 5.0.1`, `EmakiCooking 5.0.1`, `EmakiGem 3.0.1`, `EmakiSkills 3.0.1`, `EmakiItem 3.0.4`, `EmakiLevel 2.0.1`, `EmakiCodex 2.0.1`, `EmakiStorage 2.0.1`, `EmakiStation 2.0.1`, `EmakiAccessory 2.0.1`, `EmakiMobs 2.0.1`, `EmakiStructure 1.0.9`, `EmakiDungeon 1.0.17`, `EmakiKits 1.0.1`, `EmakiDummy 1.0.4`
+当前源码版本线为: `EmakiCoreLib 5.0.3`, `EmakiAttribute 5.0.6`, `EmakiForge 5.0.2`, `EmakiStrengthen 5.0.2`, `EmakiCooking 5.0.2`, `EmakiGem 3.0.2`, `EmakiSkills 3.0.2`, `EmakiItem 3.0.5`, `EmakiLevel 2.0.2`, `EmakiCodex 2.0.1`, `EmakiStorage 2.0.1`, `EmakiStation 2.0.2`, `EmakiAccessory 2.0.2`, `EmakiMobs 2.0.2`, `EmakiStructure 1.0.9`, `EmakiDungeon 1.0.17`, `EmakiKits 1.0.1`, `EmakiDummy 1.0.4`
 
 ## 模块概览
 
 | 模块              | 当前版本 | 角色       | 说明                                                                                  |
 | ----------------- | -------- | ---------- | ------------------------------------------------------------------------------------- |
-| `EmakiCoreLib`    | `5.0.2`   | 核心基础库 | 提供 GUI, 动作系统, 物品源桥接, 物品装配, 表达式, YAML, PDC, 经济桥接与共享运行时能力 |
-| `EmakiAttribute`  | `5.0.5`  | 属性系统   | 提供 RPG 属性, 三系伤害, 资源状态, PDC 属性接入, 条件检查, 快照调试与战斗反馈能力     |
-| `EmakiForge`      | `5.0.1`  | 锻造系统   | 提供配方驱动锻造, 品质随机, 材料贡献, 图鉴, 编辑器, 结果组装与 PDC 属性写入能力       |
-| `EmakiStrengthen` | `5.0.1`  | 强化系统   | 提供星级强化, 成功率配置, 锻印 / 里程碑, 强化 GUI, 材料消耗与强化层刷新能力           |
-| `EmakiCooking`    | `5.0.1`  | 烹饪系统   | 提供多类世界工位运行时, 配方判定, 输入限制, 展示与状态持久化能力                      |
-| `EmakiGem`        | `3.0.1`  | 宝石系统   | 提供装备开孔, 宝石镶嵌, 取出, 升级, 装备模板, 宝石定义与可选属性系统接入能力          |
-| `EmakiSkills`     | `3.0.1`  | 技能系统   | 提供主动技能槽位, 被动触发器, 施法模式, 冷却与 MythicMobs / Attribute 桥接能力        |
-| `EmakiItem`       | `3.0.4`   | 物品系统   | 提供自定义物品定义, 原版组件, 修复, 自动更新, 套装, 触发器与物品状态管理能力          |
-| `EmakiLevel`      | `2.0.1`  | 等级系统   | 提供多等级类型, 经验来源, 升级需求, PDC, 占位符与跨模块成长桥接                       |
+| `EmakiCoreLib`    | `5.0.3`   | 核心基础库 | 提供 GUI, 动作系统, 物品源桥接, 物品装配, 表达式, YAML, PDC, 经济桥接与共享运行时能力 |
+| `EmakiAttribute`  | `5.0.6`  | 属性系统   | 提供 RPG 属性, 三系伤害, 资源状态, PDC 属性接入, 条件检查, 快照调试与战斗反馈能力     |
+| `EmakiForge`      | `5.0.2`  | 锻造系统   | 提供配方驱动锻造, 品质随机, 材料贡献, 图鉴, 编辑器, 结果组装与 PDC 属性写入能力       |
+| `EmakiStrengthen` | `5.0.2`  | 强化系统   | 提供星级强化, 成功率配置, 锻印 / 里程碑, 强化 GUI, 材料消耗与强化层刷新能力           |
+| `EmakiCooking`    | `5.0.2`  | 烹饪系统   | 提供多类世界工位运行时, 配方判定, 输入限制, 展示与状态持久化能力                      |
+| `EmakiGem`        | `3.0.2`  | 宝石系统   | 提供装备开孔, 宝石镶嵌, 取出, 升级, 装备模板, 宝石定义与可选属性系统接入能力          |
+| `EmakiSkills`     | `3.0.2`  | 技能系统   | 提供主动技能槽位, 被动触发器, 施法模式, 冷却与 MythicMobs / Attribute 桥接能力        |
+| `EmakiItem`       | `3.0.5`   | 物品系统   | 提供自定义物品定义, 原版组件, 修复, 自动更新, 套装, 触发器与物品状态管理能力          |
+| `EmakiLevel`      | `2.0.2`  | 等级系统   | 提供多等级类型, 经验来源, 升级需求, PDC, 占位符与跨模块成长桥接                       |
 | `EmakiCodex`      | `2.0.1`  | 图鉴系统   | 提供图鉴, 进度追踪, Gameplay Event 条件, 奖励与客户端成就提示桥接                     |
 | `EmakiStorage`    | `2.0.1`  | 仓库系统   | 提供分页 GUI 仓库, 单槽大额存量, 容量档位与权限, 付费解锁与存取事件                   |
-| `EmakiStation`    | `2.0.1`  | 制作工位   | 提供世界制作工位, 制作队列与开销, 配方与材料清单, 装备拆解与产出回收                  |
-| `EmakiAccessory`  | `2.0.1`  | 饰品系统   | 提供饰品部位与槽位展开, 饰品套装, 唯一性与死亡掉落策略, 属性系统接入                  |
-| `EmakiMobs`       | `2.0.1`  | 生物系统   | 提供自定义生物, 刷新规则, 掉落表, 技能行为与 Attribute / Skills / Item 集成            |
+| `EmakiStation`    | `2.0.2`  | 制作工位   | 提供世界制作工位, 制作队列与开销, 配方与材料清单, 装备拆解与产出回收                  |
+| `EmakiAccessory`  | `2.0.2`  | 饰品系统   | 提供饰品部位与槽位展开, 饰品套装, 唯一性与死亡掉落策略, 属性系统接入                  |
+| `EmakiMobs`       | `2.0.2`  | 生物系统   | 提供自定义生物, 刷新规则, 掉落表, 技能行为与 Attribute / Skills / Item 集成            |
 | `EmakiStructure`  | `1.0.9`  | 结构系统   | 提供结构框选导出, 模板按朝向放置, 多方块交互定义与原版结构替换能力                    |
 | `EmakiDungeon`    | `1.0.17` | 组队副本   | 提供模板克隆副本世界, 队伍挑战流程, 次数限制, 奖励暂存与评分结算能力                  |
 | `EmakiKits`       | `1.0.1`  | 礼包系统   | 提供配置驱动的礼包定义, 奖励发放, CDK, 自选礼包与购买能力                            |
@@ -121,8 +121,8 @@ Project/
 - `EmakiAttribute`: 属性, 伤害类型, 条件与 Lore 格式配置位于 `attributes/*.yml`, `damage_types/*.yml`, `conditions/*.yml`, `lore_formats/*.yml`, 默认档案位于 `config.yml > default_profile`
 - `EmakiItem`: 物品与套装定义位于 `items/`, `sets/`, ID 别名位于 `id_aliases.yml`; 物品定义使用 `item.source` / `item.amount` / `item.components`
 - `EmakiForge`: 锻造配方, GUI 与语言资源位于 `recipes/`, `gui/`, `lang/` 等目录, 当前重点围绕材料批次, 容量与结果装配链路
-- `EmakiStrengthen`: 默认强化配方位于 `recipes/*.yml` (内置 `example_recipe.yml` 与 `example_branch_recipe.yml`), 强化定义目录为 `enhancements/`, 广播与全局成功率位于 `config.yml`
-- `EmakiGem`: 宝石, 装备模板, 开孔器与 GUI 资源位于 `gems/`, `items/`, `gui/gem/`, `gui/open/`, `gui/upgrade/` 与 `config.yml`
+- `EmakiStrengthen`: 默认强化配方位于 `recipes/*.yml` (内置 `example_recipe.yml`, `example_branch_recipe.yml` 与 `example_armor_recipe.yml`), 强化定义目录为 `enhancement_recipes/`, 广播与全局成功率位于 `config.yml`
+- `EmakiGem`: 宝石, 装备模板, 开孔器与 GUI 资源位于 `gems/`, `items/`, `gui/gem/`, `gui/open/` 与 `config.yml` (升级界面复用 `gui/gem/` 模板)
 - `EmakiLevel`: 等级类型, 经验来源与升级需求位于 `types/`, `sources/`, `requirements.yml` 与 `config.yml`
 - `EmakiSkills`: 技能, GUI, 主动/被动触发器配置位于 `skills/`, `gui/` 与 `config.yml`, 技能效果本体通过 MythicMobs 配置桥接; 技能配置可通过 `variables` 注入 `<skill.var.xxx>`, 并使用与宝石/强化一致的 `upgrade` 风格配置技能升级
 - `EmakiCooking`: 配方按工位分目录位于 `recipes/<station>/` (砧板, 炒锅, 研磨机, 蒸锅, 烤炉, 榨汁机, 发酵桶), 另有 `nutrition/`, `item_adjustments/` 与 `gui/`; 工位运行时状态保存在数据目录的 `data/stations/`
@@ -147,7 +147,7 @@ Project/
 
 - `variables` 用于配置释放技能时注入 MythicMobs 的变量, MythicMobs 技能中推荐使用 `<skill.var.damage>`, `<skill.var.radius>`, `<skill.var.emaki_skill_level>` 读取
 - `upgrade` 是技能升级的唯一配置入口, 字段风格对齐 `EmakiGem` / `EmakiStrengthen`: `enabled`, `max_level`, `gui_template`, `economy.currencies`, `success_rates`, `failure_penalty`, `levels`
-- `upgrade.levels.<target_level>` 表示升级到该等级的材料, 经济覆盖, 成功率覆盖, 成功/失败动作, 以及可选的参数覆盖
+- `upgrade.levels.<target_level>` 表示升级到该等级的材料, 经济覆盖, 成功率覆盖与成功/失败动作
 - 玩家技能等级由 `EmakiSkills` 持久化到玩家档案的 `skill_levels.<skill_id>.level`, 未开启升级的技能等级固定为 `1`
 - 第一版升级入口提供命令 `/eskills upgrade <skill>`; 管理命令为 `/eskills level get|set|add <player> <skill> [value]`
 
