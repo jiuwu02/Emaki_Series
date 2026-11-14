@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -165,7 +166,9 @@ public final class WorldPool {
             }
         } catch (Throwable throwable) {
             rollbackCreate(worldName, instance, reservation, true,
-                    "createWorld 失败: " + String.valueOf(throwable.getMessage()));
+                    "createWorld 失败: " + throwable.getClass().getName()
+                            + (throwable.getMessage() == null ? "" : ": " + throwable.getMessage()),
+                    throwable);
             return;
         }
         if (!instance.transition(InstanceState.MOUNTING, InstanceState.IDLE)) {
@@ -181,16 +184,27 @@ public final class WorldPool {
 
     private void rollbackCreate(String worldName, DungeonInstance instance, PoolReservation reservation,
             boolean retry, String reason) {
+        rollbackCreate(worldName, instance, reservation, retry, reason, null);
+    }
+
+    private void rollbackCreate(String worldName, DungeonInstance instance, PoolReservation reservation,
+            boolean retry, String reason, Throwable cause) {
         allocator.cancelPool(reservation);
         registry.unregister(worldName);
         store.remove(worldName);
         store.saveAsync();
         dispatcher.runAsync(plugin, () -> disposer.deleteResidual(worldName));
-        messages.warning("console.world_create_failed", Map.of(
+        Map<String, ?> replacements = Map.of(
                 "dungeon", instance.dungeonId(),
                 "world", worldName,
                 "error", reason
-        ));
+        );
+        if (cause == null) {
+            messages.warning("console.world_create_failed", replacements);
+        } else {
+            plugin.getLogger().log(Level.WARNING,
+                    messages.message("console.world_create_failed", replacements), cause);
+        }
         if (retry && !stopping) {
             dispatcher.runAsyncLater(plugin, () -> ensureReserve(instance.dungeonId()),
                     CREATE_RETRY_DELAY_SECONDS, TimeUnit.SECONDS);
