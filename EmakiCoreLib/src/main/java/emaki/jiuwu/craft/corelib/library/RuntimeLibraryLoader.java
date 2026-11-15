@@ -43,7 +43,11 @@ public final class RuntimeLibraryLoader {
     private static final String FOLIA_REGIONIZED_SERVER = "io.papermc.paper.threadedregions.RegionizedServer";
     private static final String CRAFT_SERVER = "org.bukkit.craftbukkit.CraftServer";
     private static final Pattern LATEST_VERSION = Pattern.compile("<(?:latest|release)>([^<]+)</(?:latest|release)>");
-    private static final Pattern SHA256_HEX = Pattern.compile("[0-9a-fA-F]{64}");
+    private static final String[][] CHECKSUM_KINDS = {
+            {".sha256", "SHA-256", "[0-9a-fA-F]{64}"},
+            {".sha1", "SHA-1", "[0-9a-fA-F]{40}"},
+            {".md5", "MD5", "[0-9a-fA-F]{32}"},
+    };
 
     private static final String ADVENTURE_VERSION = "4.26.1";
     private static final Component LOG_PREFIX = Component.text("[library_loader] ", NamedTextColor.GRAY);
@@ -161,15 +165,15 @@ public final class RuntimeLibraryLoader {
         String repository = coordinate.version().endsWith("SNAPSHOT") ? REPOSILITE_SNAPSHOTS_REPO : REPOSILITE_RELEASES_REPO;
         String downloadUrl = artifactUrl(repository, coordinate);
         info(NamedTextColor.GRAY, "正在准备副本世界桥 " + coordinate + " ...");
-        String expectedSha256 = fetchWorldMountChecksum(downloadUrl + ".sha256", coordinate, repository);
+        LibraryChecksum expected = fetchWorldMountChecksum(downloadUrl, coordinate, repository);
         Path localFile = resolveLocalPath(coordinate);
-        if (validCached(localFile, expectedSha256)) {
+        if (validCached(localFile, expected.algorithm(), expected.expected())) {
             info(NamedTextColor.GREEN, "副本世界桥 " + coordinate + " 已就绪(缓存, " + formatSize(sizeKb(localFile)) + ")");
             return localFile;
         }
         deleteIfExists(localFile);
         downloadWorldMountJar(downloadUrl, localFile, coordinate, repository);
-        if (!validCached(localFile, expectedSha256)) {
+        if (!validCached(localFile, expected.algorithm(), expected.expected())) {
             deleteIfExists(localFile);
             throw new IllegalStateException("副本世界桥校验失败: " + coordinate + " @ " + repository + ", SHA-256 不匹配或产物不可读, URL " + downloadUrl);
         }
@@ -222,13 +226,20 @@ public final class RuntimeLibraryLoader {
         }
     }
 
-    private String fetchWorldMountChecksum(String checksumUrl, LibraryCoordinate coordinate, String repository) {
-        byte[] checksumBytes = fetchWorldMountOrFail(checksumUrl, coordinate, repository, "校验和");
-        String checksum = new String(checksumBytes, StandardCharsets.UTF_8).trim();
-        if (!SHA256_HEX.matcher(checksum).matches()) {
-            throw new IllegalStateException("副本世界桥校验和不可用: " + coordinate + " @ " + repository + ", URL " + checksumUrl);
+    private LibraryChecksum fetchWorldMountChecksum(String downloadUrl, LibraryCoordinate coordinate, String repository) {
+        for (String[] kind : CHECKSUM_KINDS) {
+            byte[] checksumBytes;
+            try {
+                checksumBytes = fetchWorldMountOrFail(downloadUrl + kind[0], coordinate, repository, "校验和");
+            } catch (IllegalStateException unavailable) {
+                continue;
+            }
+            String checksum = new String(checksumBytes, StandardCharsets.UTF_8).trim().toLowerCase(Locale.ROOT);
+            if (Pattern.matches(kind[2], checksum)) {
+                return new LibraryChecksum(kind[1], checksum);
+            }
         }
-        return checksum.toLowerCase(Locale.ROOT);
+        throw new IllegalStateException("副本世界桥校验和不可用: " + coordinate + " @ " + repository + ", 依次尝试 .sha256/.sha1/.md5 均未取得有效摘要, URL " + downloadUrl);
     }
 
     private void downloadWorldMountJar(String downloadUrl, Path localFile, LibraryCoordinate coordinate, String repository) {
@@ -291,15 +302,18 @@ public final class RuntimeLibraryLoader {
         }
     }
 
-    private static boolean isFoliaRuntime() {
+    private boolean isFoliaRuntime() {
         return typePresent(FOLIA_REGIONIZED_SERVER) || createWorldIsStubbed();
     }
 
-    private static boolean typePresent(String typeName) {
+    private boolean typePresent(String typeName) {
         try {
-            Class.forName(typeName);
+            Class.forName(typeName, false, getClass().getClassLoader());
             return true;
-        } catch (ClassNotFoundException | LinkageError absent) {
+        } catch (ClassNotFoundException absent) {
+            return false;
+        } catch (LinkageError broken) {
+            warn(NamedTextColor.YELLOW, typeName + " 探测失败(类加载错误): " + broken);
             return false;
         }
     }
@@ -414,6 +428,10 @@ public final class RuntimeLibraryLoader {
     }
 
     private boolean validCached(Path path, String expectedSha256) {
+        return validCached(path, "SHA-256", expectedSha256);
+    }
+
+    private boolean validCached(Path path, String algorithm, String expected) {
         if (!Files.isRegularFile(path)) {
             return false;
         }
@@ -422,7 +440,7 @@ public final class RuntimeLibraryLoader {
                 return false;
             }
             try (JarFile ignored = new JarFile(path.toFile())) {
-                return matchesChecksum(path, expectedSha256);
+                return matchesChecksum(path, algorithm, expected);
             }
         } catch (IOException | SecurityException exception) {
             debug("运行库缓存损坏: " + path, exception);
@@ -430,20 +448,20 @@ public final class RuntimeLibraryLoader {
         }
     }
 
-    private boolean matchesChecksum(Path path, String expectedSha256) {
-        if (expectedSha256 == null || expectedSha256.isEmpty()) {
+    private boolean matchesChecksum(Path path, String algorithm, String expected) {
+        if (expected == null || expected.isEmpty()) {
             return false;
         }
         try {
-            return sha256Hex(path).equalsIgnoreCase(expectedSha256);
+            return digestHex(path, algorithm).equalsIgnoreCase(expected);
         } catch (IOException | NoSuchAlgorithmException checksumFailure) {
             debug("运行库校验和计算失败: " + path, checksumFailure);
             return false;
         }
     }
 
-    private String sha256Hex(Path path) throws IOException, NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    private String digestHex(Path path, String algorithm) throws IOException, NoSuchAlgorithmException {
+        MessageDigest digest = MessageDigest.getInstance(algorithm);
         try (InputStream inputStream = Files.newInputStream(path)) {
             byte[] buffer = new byte[8192];
             int read;
@@ -506,6 +524,10 @@ public final class RuntimeLibraryLoader {
 
     private record MetadataProbe(String version, int status) {
     }
+
+    private record LibraryChecksum(String algorithm, String expected) {
+    }
+
 
     private record RuntimeLibrary(String id, LibraryCoordinate coordinate, String expectedSha256) {
 
