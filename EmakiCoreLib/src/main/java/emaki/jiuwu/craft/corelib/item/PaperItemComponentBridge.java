@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Registry;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildIssue;
@@ -20,13 +21,11 @@ import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import io.papermc.paper.datacomponent.DataComponentType;
+import io.papermc.paper.datacomponent.DataComponentTypes;
 
 final class PaperItemComponentBridge {
 
     private static final Logger LOGGER = EmakiLog.of("EmakiCoreLib");
-
-    private static final String DATA_COMPONENT_TYPES_CLASS = "io.papermc.paper.datacomponent.DataComponentTypes";
-    private static final String DATA_COMPONENT_REGISTRY_FIELD = "DATA_COMPONENT_TYPE";
 
     private final Map<String, DataComponentType> runtimeTypes = discoverRuntimeTypes();
 
@@ -111,8 +110,7 @@ final class PaperItemComponentBridge {
 
     private void discoverStaticTypes(Map<String, DataComponentType> destination) {
         try {
-            Class<?> typesClass = Class.forName(DATA_COMPONENT_TYPES_CLASS, true, getClass().getClassLoader());
-            for (Field field : typesClass.getFields()) {
+            for (Field field : DataComponentTypes.class.getFields()) {
                 if (!Modifier.isStatic(field.getModifiers())) {
                     continue;
                 }
@@ -127,14 +125,10 @@ final class PaperItemComponentBridge {
 
     private void discoverRegistryTypes(Map<String, DataComponentType> destination) {
         try {
-            Class<?> registryClass = Class.forName("org.bukkit.Registry", true, getClass().getClassLoader());
-            Object registry = registryClass.getField(DATA_COMPONENT_REGISTRY_FIELD).get(null);
-            if (registry instanceof Iterable<?> iterable) {
-                for (Object value : iterable) {
-                    addType(destination, value);
-                }
+            for (DataComponentType value : Registry.DATA_COMPONENT_TYPE) {
+                addType(destination, value);
             }
-        } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
+        } catch (RuntimeException | LinkageError exception) {
             LOGGER.warning("[component] 基于注册表的 Paper 数据组件发现失败, 组件支持可能不完整: "
                     + message(exception));
         }

@@ -1,14 +1,12 @@
 package emaki.jiuwu.craft.corelib.metrics;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.bukkit.plugin.Plugin;
+import org.bstats.bukkit.Metrics;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.text.LogMessages;
@@ -16,13 +14,11 @@ import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 
 public final class BStatsService {
 
-    private final JavaPlugin owner;
     private final Logger logger;
     private final LogMessages messages;
     private final Map<JavaPlugin, BStatsRegistration> registrations = new ConcurrentHashMap<>();
 
     public BStatsService(JavaPlugin owner, LogMessages messages) {
-        this.owner = owner;
         this.logger = owner.getLogger();
         this.messages = messages;
     }
@@ -36,11 +32,10 @@ public final class BStatsService {
             previous.close();
         }
         try {
-            Object metrics = createMetrics(plugin, pluginId);
-            Method shutdownMethod = metrics.getClass().getMethod("shutdown");
+            Metrics metrics = new Metrics(plugin, pluginId);
             BStatsRegistration registration = BStatsRegistration.active(plugin, pluginId, () -> {
                 try {
-                    shutdownMethod.invoke(metrics);
+                    metrics.shutdown();
                     info("console.bstats_closed", replacements(plugin, pluginId, null));
                 } catch (Throwable throwable) {
                     fine("console.bstats_close_failed", replacements(plugin, pluginId, throwable), throwable);
@@ -63,21 +58,6 @@ public final class BStatsService {
             registration.close();
         }
         registrations.clear();
-    }
-
-    private Object createMetrics(JavaPlugin plugin, int pluginId) throws ReflectiveOperationException {
-        ClassLoader classLoader = owner.getClass().getClassLoader();
-        Class<?> metricsType = Class.forName("emaki.jiuwu.craft.runtime.bstats.bukkit.Metrics", true, classLoader);
-        Constructor<?> constructor = metricsConstructor(metricsType);
-        return constructor.newInstance(plugin, pluginId);
-    }
-
-    private Constructor<?> metricsConstructor(Class<?> metricsType) throws NoSuchMethodException {
-        try {
-            return metricsType.getConstructor(Plugin.class, int.class);
-        } catch (NoSuchMethodException ignored) {
-            return metricsType.getConstructor(JavaPlugin.class, int.class);
-        }
     }
 
     private Map<String, String> replacements(JavaPlugin plugin, int pluginId, Throwable throwable) {
