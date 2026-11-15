@@ -53,6 +53,8 @@ public final class WorldPool {
 
     private final Map<String, PoolState> pools = new ConcurrentHashMap<>();
     private volatile boolean stopping;
+    private final ConcurrentLinkedQueue<String> pendingPrewarm = new ConcurrentLinkedQueue<>();
+    private volatile boolean prewarmReady;
 
     public WorldPool(Plugin plugin,
             ExecutionDispatcher dispatcher,
@@ -67,6 +69,7 @@ public final class WorldPool {
             Function<String, Integer> poolMaxOf,
             Function<String, Integer> warmOf,
             Function<String, Integer> generationOf,
+            boolean folia,
             MessageService messages) {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
@@ -81,11 +84,20 @@ public final class WorldPool {
         this.poolMaxOf = poolMaxOf;
         this.warmOf = warmOf;
         this.generationOf = generationOf;
+        this.prewarmReady = !folia;
         this.messages = messages;
     }
 
     public void stopNewWork() {
         stopping = true;
+    }
+
+    public void openPrewarm() {
+        prewarmReady = true;
+        String dungeonId;
+        while ((dungeonId = pendingPrewarm.poll()) != null) {
+            ensureReserve(dungeonId);
+        }
     }
 
     private int warmReserves(String dungeonId) {
@@ -102,6 +114,10 @@ public final class WorldPool {
 
     public void ensureReserve(String dungeonId) {
         if (stopping || dungeonId == null) {
+            return;
+        }
+        if (!prewarmReady) {
+            pendingPrewarm.add(dungeonId);
             return;
         }
         PoolState state = pool(dungeonId);
@@ -160,7 +176,7 @@ public final class WorldPool {
             return;
         }
         try {
-            World world = Bukkit.createWorld(new WorldCreator(worldName));
+            World world = WorldMounts.create(new WorldCreator(worldName));
             if (world == null) {
                 throw new IllegalStateException("createWorld returned null");
             }
@@ -280,7 +296,7 @@ public final class WorldPool {
                 }
                 if (world == null && dataPresent) {
                     try {
-                        World remounted = Bukkit.createWorld(new WorldCreator(worldName));
+                        World remounted = WorldMounts.create(new WorldCreator(worldName));
                         if (remounted != null) {
                             if (audit != null) {
                                 audit.write("instance", Map.of(

@@ -57,7 +57,7 @@ public final class WorldDisposer {
             boolean unloaded;
             try {
                 World world = Bukkit.getWorld(worldName);
-                unloaded = world == null || Bukkit.unloadWorld(world, false);
+                unloaded = world == null || WorldMounts.unload(world, false);
             } catch (Throwable throwable) {
                 unloaded = false;
             }

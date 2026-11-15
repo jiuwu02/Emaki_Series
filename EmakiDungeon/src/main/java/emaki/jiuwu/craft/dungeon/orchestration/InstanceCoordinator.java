@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.dungeon.storage.InstancesStore;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
 import emaki.jiuwu.craft.dungeon.world.WorldFolders;
+import emaki.jiuwu.craft.dungeon.world.WorldMounts;
 import emaki.jiuwu.craft.dungeon.world.WorldNames;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
@@ -123,7 +124,7 @@ public final class InstanceCoordinator {
             World world = Bukkit.getWorld(worldName);
             if (world != null) {
                 try {
-                    Bukkit.unloadWorld(world, false);
+                    WorldMounts.unload(world, false);
                 } catch (Throwable ignored) {
                     FailureRecorder.recordIgnoredFailure("EmakiDungeon", "InstanceCoordinator.java#1", ignored);
                 }
@@ -324,7 +325,7 @@ public final class InstanceCoordinator {
             World world = Bukkit.getWorld(instance.instanceId());
             if (world != null) {
                 try {
-                    Bukkit.unloadWorld(world, false);
+                    WorldMounts.unload(world, false);
                 } catch (Throwable ignored) {
                     FailureRecorder.recordIgnoredFailure("EmakiDungeon", "InstanceCoordinator.java#4", ignored);
                 }
@@ -335,7 +336,7 @@ public final class InstanceCoordinator {
             World world = Bukkit.getWorld(worldName);
             if (world != null) {
                 try {
-                    Bukkit.unloadWorld(world, false);
+                    WorldMounts.unload(world, false);
                 } catch (Throwable ignored) {
                     FailureRecorder.recordIgnoredFailure("EmakiDungeon", "InstanceCoordinator.java#5", ignored);
                 }

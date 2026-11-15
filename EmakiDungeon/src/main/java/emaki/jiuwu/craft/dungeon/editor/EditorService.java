@@ -41,6 +41,7 @@ import emaki.jiuwu.craft.dungeon.world.TemplateRepository;
 import emaki.jiuwu.craft.dungeon.world.WorldCloner;
 import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
 import emaki.jiuwu.craft.dungeon.world.WorldFolders;
+import emaki.jiuwu.craft.dungeon.world.WorldMounts;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.nio.file.Path;
@@ -194,7 +195,7 @@ public final class EditorService implements Listener {
         }
         World world;
         try {
-            world = Bukkit.createWorld(new WorldCreator(session.editWorldName()));
+            world = WorldMounts.create(new WorldCreator(session.editWorldName()));
             if (world == null) {
                 throw new IllegalStateException("createWorld returned null");
             }
@@ -378,8 +379,7 @@ public final class EditorService implements Listener {
         }
         World world = session.editWorld();
         dispatcher.runGlobal(plugin, () -> {
-            world.save();
-            dispatcher.runAsync(plugin, () -> finishSave(session, copyChangedRegions(session)));
+            WorldMounts.save(world, () -> dispatcher.runAsync(plugin, () -> finishSave(session, copyChangedRegions(session))));
         });
     }
 

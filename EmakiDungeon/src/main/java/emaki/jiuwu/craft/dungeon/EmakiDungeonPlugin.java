@@ -96,8 +96,10 @@ import emaki.jiuwu.craft.dungeon.world.TemplateRepository;
 import emaki.jiuwu.craft.dungeon.world.WorldCloner;
 import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
 import emaki.jiuwu.craft.dungeon.world.WorldFolders;
+import emaki.jiuwu.craft.dungeon.world.WorldMounts;
 import emaki.jiuwu.craft.dungeon.world.WorldNames;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
+import emaki.jiuwu.craft.dungeon.world.WorldPrewarmGate;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import java.io.IOException;
 import java.util.Collection;
@@ -411,6 +413,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     }
 
     private void bootstrapInstanceRuntime() {
+        WorldMounts.requireSupport();
         AppConfig appConfig = appConfigLoader.current();
         if (appConfig.debugEnabled()) {
             debugLogger().enableAll();
@@ -477,8 +480,12 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new emaki.jiuwu.craft.dungeon.editor.EditorStateStore(this, messageService, getDataFolder());
         editorStates.loadAll(templates.discoverDungeons());
         WorldPool pool = new WorldPool(this, dispatcher, worldContainer, templates, names, cloner, disposer,
-                allocator, registry, store, poolMaxOf, warmOf, editorStates::generationOf, messageService);
+                allocator, registry, store, poolMaxOf, warmOf, editorStates::generationOf, foliaDetected(),
+                messageService);
         pool.bindAudit(auditService);
+        if (foliaDetected() && !getServer().getWorlds().isEmpty()) {
+            pool.openPrewarm();
+        }
 
         teleportGuard = new TeleportGuard(messageService, registry);
         SnapshotsStore snapshotsStore = new SnapshotsStore(this, dispatcher, getDataFolder());
@@ -643,6 +650,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         getServer().getPluginManager().registerEvents(rewardChests, this);
         getServer().getPluginManager().registerEvents(rewardBoxGui, this);
         getServer().getPluginManager().registerEvents(isolation, this);
+        if (foliaDetected()) {
+            getServer().getPluginManager().registerEvents(new WorldPrewarmGate(pool), this);
+        }
 
         actionBridge.registerAll();
 

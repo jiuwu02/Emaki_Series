@@ -39,6 +39,7 @@ import emaki.jiuwu.craft.dungeon.world.TemplateRepository;
 import emaki.jiuwu.craft.dungeon.world.WorldCloner;
 import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
 import emaki.jiuwu.craft.dungeon.world.WorldFolders;
+import emaki.jiuwu.craft.dungeon.world.WorldMounts;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.nio.file.Path;
@@ -320,7 +321,7 @@ final class EditorServiceDelegate {
             World world = Bukkit.getWorld(session.editWorldName());
             if (world != null) {
                 try {
-                    Bukkit.unloadWorld(world, false);
+                    WorldMounts.unload(world, false);
                 } catch (Throwable ignored) {
                     FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#5", ignored);
                 }
