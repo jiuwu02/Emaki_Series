@@ -46,6 +46,7 @@ import emaki.jiuwu.craft.corelib.api.readiness.ModuleReadinessListener;
 import emaki.jiuwu.craft.corelib.api.readiness.ModuleReadinessPhase;
 import emaki.jiuwu.craft.corelib.api.readiness.ReadinessRegistration;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.world.WorldMountSupport;
 
 final class EmakiCoreLibApiDelegate {
 
@@ -90,6 +91,11 @@ final class EmakiCoreLibApiDelegate {
     static @NotNull EmakiScheduling scheduling() {
         EmakiCoreLibApi.Bridge resolved = EmakiCoreLibApi.bridge.get();
         return resolved == null ? UnavailableScheduling.INSTANCE : resolved.scheduling();
+    }
+
+    static @Nullable WorldMountSupport worldMountSupport() {
+        EmakiCoreLibApi.Bridge resolved = EmakiCoreLibApi.bridge.get();
+        return resolved == null ? null : resolved.worldMountSupport();
     }
 
     static @NotNull EmakiResult<String> itemDisplayName(@Nullable String itemSource) {

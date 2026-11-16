@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import io.papermc.paper.persistence.PersistentDataContainerView;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -149,11 +150,10 @@ public final class PdcService {
         if (partition == null || type == null || field == null) {
             return null;
         }
-        ItemMeta itemMeta = itemMeta(itemStack);
-        if (itemMeta == null) {
+        PersistentDataContainerView container = pdcView(itemStack);
+        if (container == null) {
             return null;
         }
-        PersistentDataContainer container = itemMeta.getPersistentDataContainer();
         NamespacedKey key = partition.key(field);
         return container.has(key, type) ? container.get(key, type) : null;
     }
@@ -165,11 +165,8 @@ public final class PdcService {
         if (partition == null || type == null || field == null) {
             return false;
         }
-        ItemMeta itemMeta = itemMeta(itemStack);
-        if (itemMeta == null) {
-            return false;
-        }
-        return itemMeta.getPersistentDataContainer().has(partition.key(field), type);
+        PersistentDataContainerView container = pdcView(itemStack);
+        return container != null && container.has(partition.key(field), type);
     }
 
     public void remove(@Nullable ItemStack itemStack, @Nullable PdcPartition partition, @Nullable String field) {
@@ -211,11 +208,11 @@ public final class PdcService {
         if (partition == null || codec == null || field == null) {
             return null;
         }
-        ItemMeta itemMeta = itemMeta(itemStack);
-        if (itemMeta == null) {
+        PersistentDataContainerView container = pdcView(itemStack);
+        if (container == null) {
             return null;
         }
-        String payload = itemMeta.getPersistentDataContainer().get(partition.key(field), PersistentDataType.STRING);
+        String payload = container.get(partition.key(field), PersistentDataType.STRING);
         return codec.decode(payload);
     }
 
@@ -429,6 +426,14 @@ public final class PdcService {
             return null;
         }
         return itemStack.getItemMeta();
+    }
+
+    @Nullable
+    private PersistentDataContainerView pdcView(@Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return null;
+        }
+        return itemStack.getPersistentDataContainer();
     }
 
     private record Delta(Map<String, String> added, Map<String, String> removed, Map<String, String> changed) {

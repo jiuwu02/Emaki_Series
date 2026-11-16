@@ -10,11 +10,11 @@ import org.jetbrains.annotations.Nullable;
  * {@code CraftServer.createWorld} is an unsupported-operation stub (Folia), where the plain
  * Bukkit world API refuses to create worlds after startup.
  *
- * <p>Consumers obtain the implementation reflectively: load
- * {@code emaki.jiuwu.craft.nms.WorldMountSupportImpl} with {@code Class.forName}, instantiate it
- * through its no-argument constructor and cast the result to this interface. The implementation is
- * delivered by EmakiCoreLib as the runtime library {@code emaki.jiuwu.craft:emakinms}, is never
- * shaded into a plugin jar, and must not be referenced at compile time beyond this interface.</p>
+ * <p>Consumers obtain the implementation from
+ * {@link emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi#worldMountSupport()}. The implementation is
+ * delivered by EmakiCoreLib as the runtime library {@code emaki.jiuwu.craft:emakinms}, is loaded by
+ * EmakiCoreLib itself, is never shaded into a plugin jar, and must not be referenced at compile
+ * time beyond this interface.</p>
  *
  * <p><strong>Threading on Folia:</strong> {@link #create(WorldCreator)} and
  * {@link #unload(World, boolean)} must be started from the global region thread or from an async

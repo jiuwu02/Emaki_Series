@@ -48,6 +48,7 @@ import emaki.jiuwu.craft.corelib.api.readiness.ModuleReadinessListener;
 import emaki.jiuwu.craft.corelib.api.readiness.ModuleReadinessPhase;
 import emaki.jiuwu.craft.corelib.api.readiness.ReadinessRegistration;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.world.WorldMountSupport;
 
 /** Public facade for the shared EmakiCoreLib runtime.
  * <p>Check {@link #status()} before relying on results. When CoreLib is absent, accessors return no-op views and operations return {@link EmakiResult#unavailable()} or their documented empty value. Depend on {@code emaki-corelib-api} as {@code provided} or {@code compileOnly}; do not shade it.
@@ -93,6 +94,14 @@ public final class EmakiCoreLibApi {
      * {@return the Folia-safe scheduling view; never {@code null}, and a no-op implementation whose tokens are already cancelled when EmakiCoreLib is unavailable}
      */
     public static @NotNull EmakiScheduling scheduling() { return EmakiCoreLibApiDelegate.scheduling(); }
+
+    /** Resolves the shared world mount support used to create and unload worlds on Folia, where the vanilla world creation API is a stub.
+     * <p>The implementation lives in the EmakiNms runtime library that EmakiCoreLib downloads and loads itself; it is created on first use and shared by every caller. On non-Folia servers the implementation delegates to the plain Bukkit world API.</p>
+     * <p><strong>Thread:</strong> any thread.</p>
+     * @return the shared support instance, or {@code null} when EmakiCoreLib is unavailable
+     * @throws IllegalStateException when the runtime library cannot be loaded
+     */
+    public static @Nullable WorldMountSupport worldMountSupport() { return EmakiCoreLibApiDelegate.worldMountSupport(); }
 
     /** Resolves a unified display name for an item source shorthand or identifier.
      * <p>The returned value is MiniMessage text and may contain translatable components so the client renders vanilla names in its active language. When no resolver produces a name, the given identifier is echoed back as a {@code Partial} result so callers still have renderable text while knowing resolution did not really happen.
@@ -370,6 +379,14 @@ public final class EmakiCoreLibApi {
         /** {@return the Folia-safe scheduling view} */
         @NotNull
         EmakiScheduling scheduling();
+
+        /** Backs {@link EmakiCoreLibApi#worldMountSupport()}. A default {@code null} keeps a newer API facade safe when it encounters an older runtime bridge that does not implement it yet.
+         * @return the shared world mount support
+         */
+        @Nullable
+        default WorldMountSupport worldMountSupport() {
+            return null;
+        }
 
         /** Backs {@link EmakiCoreLibApi#itemDisplayName(String)} by parsing the shorthand and asking the registered item source providers to name it. A blank or unparseable input is reported as invalid input; an unresolvable but non-blank input echoes the given text as a {@code Partial}.
          * @param itemSource item source shorthand

@@ -630,25 +630,23 @@ public final class ItemOperationLedger {
         if (pdc.has(itemStack, partition, FIELD, PersistentDataType.STRING)) {
             return true;
         }
-        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
-        if (itemMeta == null) {
+        if (itemStack == null || itemStack.getType().isAir()) {
             return false;
         }
 
-        return itemMeta.getPersistentDataContainer().getKeys().contains(operationsKey)
-                || containsLegacy(itemMeta, FIELD);
+        return itemStack.getPersistentDataContainer().has(operationsKey)
+                || containsLegacy(itemStack.getItemMeta(), FIELD);
     }
 
     private boolean presentationSnapshotFieldPresent(ItemStack itemStack) {
         if (pdc.has(itemStack, partition, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING)) {
             return true;
         }
-        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
-        if (itemMeta == null) {
+        if (itemStack == null || itemStack.getType().isAir()) {
             return false;
         }
-        return itemMeta.getPersistentDataContainer().getKeys().contains(presentationSnapshotKey)
-                || containsLegacy(itemMeta, PRESENTATION_SNAPSHOT_FIELD);
+        return itemStack.getPersistentDataContainer().has(presentationSnapshotKey)
+                || containsLegacy(itemStack.getItemMeta(), PRESENTATION_SNAPSHOT_FIELD);
     }
 
     private boolean containsLegacy(ItemMeta itemMeta, String field) {

@@ -2,8 +2,6 @@ package emaki.jiuwu.craft.corelib.library;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
@@ -25,9 +23,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 
-import org.bukkit.Bukkit;
-import org.bukkit.WorldCreator;
-
 public final class RuntimeLibraryLoader {
 
     private static final String ALIYUN_REPO = "https://maven.aliyun.com/repository/central";
@@ -40,8 +35,6 @@ public final class RuntimeLibraryLoader {
     private static final String WORLD_MOUNT_MIN_VERSION = "1.0.0";
     private static final String WORLD_MOUNT_DESCRIPTOR = WORLD_MOUNT_GROUP_ID + ":" + WORLD_MOUNT_ARTIFACT_ID;
 
-    private static final String FOLIA_REGIONIZED_SERVER = "io.papermc.paper.threadedregions.RegionizedServer";
-    private static final String CRAFT_SERVER = "org.bukkit.craftbukkit.CraftServer";
     private static final Pattern LATEST_VERSION = Pattern.compile("<(?:latest|release)>([^<]+)</(?:latest|release)>");
     private static final String[][] CHECKSUM_KINDS = {
             {".sha256", "SHA-256", "[0-9a-fA-F]{64}"},
@@ -96,11 +89,8 @@ public final class RuntimeLibraryLoader {
         if (!failed.isEmpty()) {
             throw new IllegalStateException("无法准备 CoreLib 运行时库: " + failed);
         }
-        boolean foliaRuntime = isFoliaRuntime();
-        if (foliaRuntime) {
-            prepared.add(prepareWorldMountBridge());
-        }
-        info(NamedTextColor.GREEN, "CoreLib 运行库准备完成(" + prepared.size() + "/" + (libraries.size() + (foliaRuntime ? 1 : 0)) + ")");
+        prepareWorldMountBridge();
+        info(NamedTextColor.GREEN, "CoreLib 运行库准备完成(" + (prepared.size() + 1) + "/" + (libraries.size() + 1) + ")");
         return List.copyOf(prepared);
     }
 
@@ -299,38 +289,6 @@ public final class RuntimeLibraryLoader {
             return Long.compare(Long.parseLong(left), Long.parseLong(right));
         } catch (NumberFormatException notNumeric) {
             return left.compareTo(right);
-        }
-    }
-
-    private boolean isFoliaRuntime() {
-        return typePresent(FOLIA_REGIONIZED_SERVER) || createWorldIsStubbed();
-    }
-
-    private boolean typePresent(String typeName) {
-        try {
-            Class.forName(typeName, false, getClass().getClassLoader());
-            return true;
-        } catch (ClassNotFoundException absent) {
-            return false;
-        } catch (LinkageError broken) {
-            warn(NamedTextColor.YELLOW, typeName + " 探测失败(类加载错误): " + broken);
-            return false;
-        }
-    }
-
-    private static boolean createWorldIsStubbed() {
-        try {
-            if (Bukkit.getGlobalRegionScheduler() == null) {
-                return false;
-            }
-            Class<?> craftServer = Class.forName(CRAFT_SERVER);
-            Method createWorld = craftServer.getMethod("createWorld", WorldCreator.class);
-            createWorld.invoke(Bukkit.getServer(), new Object[]{null});
-            return false;
-        } catch (InvocationTargetException rejected) {
-            return rejected.getCause() instanceof UnsupportedOperationException;
-        } catch (ReflectiveOperationException | RuntimeException | LinkageError probeFailure) {
-            return false;
         }
     }
 

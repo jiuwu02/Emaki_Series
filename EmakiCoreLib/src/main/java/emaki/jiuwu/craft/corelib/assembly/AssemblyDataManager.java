@@ -170,25 +170,20 @@ final class AssemblyDataManager {
         if (existingItem == null || targetItem == null) {
             return;
         }
-        ItemMeta existingMeta = existingItem.getItemMeta();
         ItemMeta targetMeta = targetItem.getItemMeta();
-        if (existingMeta == null || targetMeta == null) {
+        if (targetMeta == null || existingItem.getType().isAir()) {
             return;
         }
-        existingMeta.getPersistentDataContainer().copyTo(targetMeta.getPersistentDataContainer(), true);
+        existingItem.getPersistentDataContainer().copyTo(targetMeta.getPersistentDataContainer(), true);
         targetItem.setItemMeta(targetMeta);
     }
 
     Set<NamespacedKey> nonOwnedKeys(ItemStack itemStack, Iterable<String> layerNamespaceIds) {
-        if (itemStack == null) {
-            return Set.of();
-        }
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (itemMeta == null) {
+        if (itemStack == null || itemStack.getType().isAir()) {
             return Set.of();
         }
         Set<NamespacedKey> result = new LinkedHashSet<>();
-        for (NamespacedKey key : itemMeta.getPersistentDataContainer().getKeys()) {
+        for (NamespacedKey key : itemStack.getPersistentDataContainer().getKeys()) {
             if (!isOwnedKey(key, layerNamespaceIds)) {
                 result.add(key);
             }
@@ -200,11 +195,15 @@ final class AssemblyDataManager {
         if (expectedKeys == null || expectedKeys.isEmpty()) {
             return true;
         }
-        if (itemStack == null) {
+        if (itemStack == null || itemStack.getType().isAir()) {
             return false;
         }
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        return itemMeta != null && itemMeta.getPersistentDataContainer().getKeys().containsAll(expectedKeys);
+        for (NamespacedKey expectedKey : expectedKeys) {
+            if (!itemStack.getPersistentDataContainer().has(expectedKey)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     void writeAssemblyData(ItemStack itemStack,

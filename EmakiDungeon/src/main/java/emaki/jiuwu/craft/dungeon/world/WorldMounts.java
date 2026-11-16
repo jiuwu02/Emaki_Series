@@ -4,12 +4,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.world.WorldMountSupport;
 
 public final class WorldMounts {
 
     private static final String FOLIA_MARKER = "io.papermc.paper.threadedregions.RegionizedServer";
-    private static final String FOLIA_IMPL = "emaki.jiuwu.craft.nms.WorldMountSupportImpl";
 
     private static final boolean FOLIA = probeFolia();
     private static volatile WorldMountSupport support;
@@ -61,14 +61,11 @@ public final class WorldMounts {
     }
 
     private static WorldMountSupport loadSupport() {
-        try {
-            Object instance = Class.forName(FOLIA_IMPL, true, WorldMounts.class.getClassLoader())
-                    .getDeclaredConstructor().newInstance();
-            return (WorldMountSupport) instance;
-        } catch (ReflectiveOperationException | LinkageError | ClassCastException exception) {
-            throw new IllegalStateException("Folia 世界桥装载失败: 无法实例化 " + FOLIA_IMPL
-                    + " 作为 WorldMountSupport 实现, EmakiNms 运行库未就绪", exception);
+        WorldMountSupport mounted = EmakiCoreLibApi.worldMountSupport();
+        if (mounted == null) {
+            throw new IllegalStateException("Folia 世界桥装载失败: EmakiCoreLib 未提供 WorldMountSupport 实现, EmakiNms 运行库未就绪");
         }
+        return mounted;
     }
 
     private static boolean probeFolia() {

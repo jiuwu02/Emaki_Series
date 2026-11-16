@@ -503,12 +503,11 @@ public final class EmakiItemUpdateService {
         if (from == null || to == null) {
             return;
         }
-        ItemMeta fromMeta = from.getItemMeta();
         ItemMeta toMeta = to.getItemMeta();
-        if (fromMeta == null || toMeta == null) {
+        if (toMeta == null || from.getType().isAir()) {
             return;
         }
-        fromMeta.getPersistentDataContainer().copyTo(toMeta.getPersistentDataContainer(), replace);
+        from.getPersistentDataContainer().copyTo(toMeta.getPersistentDataContainer(), replace);
         to.setItemMeta(toMeta);
     }
 
