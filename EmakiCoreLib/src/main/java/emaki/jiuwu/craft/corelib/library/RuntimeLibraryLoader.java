@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -16,8 +15,6 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.jar.JarFile;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -29,18 +26,6 @@ public final class RuntimeLibraryLoader {
     private static final String CENTRAL_REPO = "https://repo1.maven.org/maven2";
     private static final String REPOSILITE_RELEASES_REPO = "https://repo2.crypticlib.com/releases";
     private static final String REPOSILITE_SNAPSHOTS_REPO = "https://repo2.crypticlib.com/snapshots";
-
-    private static final String WORLD_MOUNT_GROUP_ID = "emaki.jiuwu.craft";
-    private static final String WORLD_MOUNT_ARTIFACT_ID = "emakinms";
-    private static final String WORLD_MOUNT_MIN_VERSION = "1.0.0";
-    private static final String WORLD_MOUNT_DESCRIPTOR = WORLD_MOUNT_GROUP_ID + ":" + WORLD_MOUNT_ARTIFACT_ID;
-
-    private static final Pattern LATEST_VERSION = Pattern.compile("<(?:latest|release)>([^<]+)</(?:latest|release)>");
-    private static final String[][] CHECKSUM_KINDS = {
-            {".sha256", "SHA-256", "[0-9a-fA-F]{64}"},
-            {".sha1", "SHA-1", "[0-9a-fA-F]{40}"},
-            {".md5", "MD5", "[0-9a-fA-F]{32}"},
-    };
 
     private static final String ADVENTURE_VERSION = "4.26.1";
     private static final Component LOG_PREFIX = Component.text("[library_loader] ", NamedTextColor.GRAY);
@@ -70,16 +55,21 @@ public final class RuntimeLibraryLoader {
         List<RuntimeLibrary> missing = libraries.stream()
                 .filter(library -> !validCached(resolveLocalPath(library.coordinate()), library.expectedSha256()))
                 .toList();
-        String preferredRepo = missing.isEmpty() ? ALIYUN_REPO : probePreferredRepository();
+        boolean centralMissing = missing.stream().anyMatch(library -> library.repositories().isEmpty());
+        String preferredRepo = centralMissing ? probePreferredRepository() : ALIYUN_REPO;
         String fallbackRepo = preferredRepo.equals(ALIYUN_REPO) ? CENTRAL_REPO : ALIYUN_REPO;
 
-        List<Path> prepared = new ArrayList<>(libraries.size() + 1);
+        List<Path> prepared = new ArrayList<>(libraries.size());
         List<RuntimeLibrary> failed = new ArrayList<>();
+        int ready = 0;
         info(NamedTextColor.GRAY, "正在准备 CoreLib 运行库(共 " + libraries.size() + " 个)...");
         for (RuntimeLibrary library : libraries) {
             Path localFile = resolveLocalPath(library.coordinate());
             if (prepareLibrary(library, localFile, preferredRepo, fallbackRepo)) {
-                prepared.add(localFile);
+                ready++;
+                if (library.classpath()) {
+                    prepared.add(localFile);
+                }
             } else {
                 failed.add(library);
                 error(NamedTextColor.RED, library + " 下载失败");
@@ -89,8 +79,7 @@ public final class RuntimeLibraryLoader {
         if (!failed.isEmpty()) {
             throw new IllegalStateException("无法准备 CoreLib 运行时库: " + failed);
         }
-        prepareWorldMountBridge();
-        info(NamedTextColor.GREEN, "CoreLib 运行库准备完成(" + (prepared.size() + 1) + "/" + (libraries.size() + 1) + ")");
+        info(NamedTextColor.GREEN, "CoreLib 运行库准备完成(" + ready + "/" + libraries.size() + ")");
         return List.copyOf(prepared);
     }
 
@@ -123,7 +112,9 @@ public final class RuntimeLibraryLoader {
                 RuntimeLibrary.maven("truffle-api", new LibraryCoordinate("org.graalvm.truffle", "truffle-api", GRAALVM_VERSION), "9dcc81b6890d6fcc9ab57d17bc4430335f071d82b108c0af8556a28381978da6"),
                 RuntimeLibrary.maven("truffle-runtime", new LibraryCoordinate("org.graalvm.truffle", "truffle-runtime", GRAALVM_VERSION), "25818863ef8e50fc6329a876a033055c7418f20bedb051cfbb31c3d895fad7c9"),
                 RuntimeLibrary.maven("regex", new LibraryCoordinate("org.graalvm.regex", "regex", GRAALVM_VERSION), "5b43366990bdd438c7dbd2ba0b3dba211acfaf67054275d0717bd0b8ea1d8dc9"),
-                RuntimeLibrary.maven("icu4j", new LibraryCoordinate("org.graalvm.shadowed", "icu4j", GRAALVM_VERSION), "02f9e8a76ed2f8fa80d53054ca4632c7058354010df27c8f4e7e7443543f7e1e")
+                RuntimeLibrary.maven("icu4j", new LibraryCoordinate("org.graalvm.shadowed", "icu4j", GRAALVM_VERSION), "02f9e8a76ed2f8fa80d53054ca4632c7058354010df27c8f4e7e7443543f7e1e"),
+
+                RuntimeLibrary.dedicated("emakinms", new LibraryCoordinate("emaki.jiuwu.craft", "emakinms", "1.0.0"), "f2ec5616c3e1b8241d9367a1d4b591af8e4ec41411d1c6c3d2ea6db66a33a00f", List.of(REPOSILITE_RELEASES_REPO, REPOSILITE_SNAPSHOTS_REPO))
         );
     }
 
@@ -138,9 +129,12 @@ public final class RuntimeLibraryLoader {
         }
         deleteIfExists(localFile);
         info(NamedTextColor.YELLOW, "正在下载 " + library + "...");
-        boolean success = downloadLibrary(library.coordinate(), localFile, preferredRepo);
-        if (!success) {
-            success = downloadLibrary(library.coordinate(), localFile, fallbackRepo);
+        boolean success = false;
+        for (String repository : library.repositories().isEmpty() ? List.of(preferredRepo, fallbackRepo) : library.repositories()) {
+            if (downloadLibrary(library.coordinate(), localFile, repository)) {
+                success = true;
+                break;
+            }
         }
         if (success && validCached(localFile, library.expectedSha256())) {
             info(NamedTextColor.GREEN, library + " 下载完成(" + formatSize(sizeKb(localFile)) + ")");
@@ -150,146 +144,11 @@ public final class RuntimeLibraryLoader {
         return false;
     }
 
-    private Path prepareWorldMountBridge() {
-        LibraryCoordinate coordinate = resolveWorldMountCoordinate();
-        String repository = coordinate.version().endsWith("SNAPSHOT") ? REPOSILITE_SNAPSHOTS_REPO : REPOSILITE_RELEASES_REPO;
-        String downloadUrl = artifactUrl(repository, coordinate);
-        info(NamedTextColor.GRAY, "正在准备副本世界桥 " + coordinate + " ...");
-        LibraryChecksum expected = fetchWorldMountChecksum(downloadUrl, coordinate, repository);
-        Path localFile = resolveLocalPath(coordinate);
-        if (validCached(localFile, expected.algorithm(), expected.expected())) {
-            info(NamedTextColor.GREEN, "副本世界桥 " + coordinate + " 已就绪(缓存, " + formatSize(sizeKb(localFile)) + ")");
-            return localFile;
-        }
-        deleteIfExists(localFile);
-        downloadWorldMountJar(downloadUrl, localFile, coordinate, repository);
-        if (!validCached(localFile, expected.algorithm(), expected.expected())) {
-            deleteIfExists(localFile);
-            throw new IllegalStateException("副本世界桥校验失败: " + coordinate + " @ " + repository + ", SHA-256 不匹配或产物不可读, URL " + downloadUrl);
-        }
-        info(NamedTextColor.GREEN, "副本世界桥 " + coordinate + " 下载完成(" + formatSize(sizeKb(localFile)) + ")");
-        return localFile;
-    }
-
-    private LibraryCoordinate resolveWorldMountCoordinate() {
-        String resolvedVersion = null;
-        List<String> probeSummary = new ArrayList<>();
-        for (String repository : List.of(REPOSILITE_RELEASES_REPO, REPOSILITE_SNAPSHOTS_REPO)) {
-            String metadataUrl = repository + "/" + WORLD_MOUNT_GROUP_ID.replace('.', '/') + "/" + WORLD_MOUNT_ARTIFACT_ID + "/maven-metadata.xml";
-            MetadataProbe probe = fetchWorldMountLatestVersion(metadataUrl, repository);
-            probeSummary.add(repository + " HTTP " + probe.status());
-            if (probe.version() != null && (resolvedVersion == null || compareVersions(probe.version(), resolvedVersion) > 0)) {
-                resolvedVersion = probe.version();
-            }
-        }
-        if (resolvedVersion == null) {
-            throw new IllegalStateException("副本世界桥版本解析失败: " + WORLD_MOUNT_DESCRIPTOR
-                    + " 无可用的 maven-metadata.xml, " + String.join(", ", probeSummary));
-        }
-        if (compareVersions(resolvedVersion, WORLD_MOUNT_MIN_VERSION) < 0) {
-            throw new IllegalStateException("副本世界桥版本过低: 仓库 latest " + resolvedVersion + " 低于最低要求 " + WORLD_MOUNT_MIN_VERSION + " (" + WORLD_MOUNT_DESCRIPTOR + ")");
-        }
-        return new LibraryCoordinate(WORLD_MOUNT_GROUP_ID, WORLD_MOUNT_ARTIFACT_ID, resolvedVersion);
-    }
-
-    private MetadataProbe fetchWorldMountLatestVersion(String metadataUrl, String repository) {
-        HttpURLConnection connection = null;
-        try {
-            connection = openConnection(metadataUrl);
-            connection.setRequestMethod("GET");
-            int status = connection.getResponseCode();
-            if (status != 200) {
-                return new MetadataProbe(null, status);
-            }
-            String metadata;
-            try (InputStream inputStream = connection.getInputStream()) {
-                metadata = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-            }
-            Matcher matcher = LATEST_VERSION.matcher(metadata);
-            return new MetadataProbe(matcher.find() ? matcher.group(1).trim() : null, status);
-        } catch (IOException unavailable) {
-            return new MetadataProbe(null, -1);
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
-    }
-
-    private LibraryChecksum fetchWorldMountChecksum(String downloadUrl, LibraryCoordinate coordinate, String repository) {
-        for (String[] kind : CHECKSUM_KINDS) {
-            byte[] checksumBytes;
-            try {
-                checksumBytes = fetchWorldMountOrFail(downloadUrl + kind[0], coordinate, repository, "校验和");
-            } catch (IllegalStateException unavailable) {
-                continue;
-            }
-            String checksum = new String(checksumBytes, StandardCharsets.UTF_8).trim().toLowerCase(Locale.ROOT);
-            if (Pattern.matches(kind[2], checksum)) {
-                return new LibraryChecksum(kind[1], checksum);
-            }
-        }
-        throw new IllegalStateException("副本世界桥校验和不可用: " + coordinate + " @ " + repository + ", 依次尝试 .sha256/.sha1/.md5 均未取得有效摘要, URL " + downloadUrl);
-    }
-
-    private void downloadWorldMountJar(String downloadUrl, Path localFile, LibraryCoordinate coordinate, String repository) {
-        byte[] jarBytes = fetchWorldMountOrFail(downloadUrl, coordinate, repository, "Jar");
-        try {
-            Files.createDirectories(localFile.getParent());
-            Files.write(localFile, jarBytes);
-        } catch (IOException writeFailure) {
-            deleteIfExists(localFile);
-            throw new IllegalStateException("副本世界桥写入失败: " + coordinate + " @ " + repository + ", 路径 " + localFile, writeFailure);
-        }
-    }
-
-    private byte[] fetchWorldMountOrFail(String url, LibraryCoordinate coordinate, String repository, String payload) {
-        HttpURLConnection connection = null;
-        try {
-            connection = openConnection(url);
-            connection.setRequestMethod("GET");
-            int status = connection.getResponseCode();
-            if (status != 200) {
-                throw new IllegalStateException("副本世界桥" + payload + "获取失败: " + coordinate + " @ " + repository + ", HTTP " + status + ", URL " + url);
-            }
-            try (InputStream inputStream = connection.getInputStream()) {
-                return inputStream.readAllBytes();
-            }
-        } catch (IOException networkFailure) {
-            throw new IllegalStateException("副本世界桥" + payload + "获取失败: " + coordinate + " @ " + repository + ", URL " + url, networkFailure);
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
-    }
-
     private static String artifactUrl(String repository, LibraryCoordinate coordinate) {
         return repository + "/" + coordinate.groupId().replace('.', '/')
                 + "/" + coordinate.artifactId()
                 + "/" + coordinate.version()
                 + "/" + coordinate.artifactId() + "-" + coordinate.version() + ".jar";
-    }
-
-    private static int compareVersions(String left, String right) {
-        String[] leftSegments = left.split("[.-]");
-        String[] rightSegments = right.split("[.-]");
-        int shared = Math.min(leftSegments.length, rightSegments.length);
-        for (int index = 0; index < shared; index++) {
-            int comparison = compareVersionSegment(leftSegments[index], rightSegments[index]);
-            if (comparison != 0) {
-                return comparison;
-            }
-        }
-        return Integer.compare(leftSegments.length, rightSegments.length);
-    }
-
-    private static int compareVersionSegment(String left, String right) {
-        try {
-            return Long.compare(Long.parseLong(left), Long.parseLong(right));
-        } catch (NumberFormatException notNumeric) {
-            return left.compareTo(right);
-        }
     }
 
     private String probePreferredRepository() {
@@ -334,15 +193,6 @@ public final class RuntimeLibraryLoader {
                 connection.disconnect();
             }
         }
-    }
-
-    private HttpURLConnection openConnection(String url) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) URI.create(url).toURL().openConnection();
-        connection.setConnectTimeout(DOWNLOAD_CONNECT_TIMEOUT_MS);
-        connection.setReadTimeout(DOWNLOAD_READ_TIMEOUT_MS);
-        connection.setInstanceFollowRedirects(true);
-        connection.setRequestProperty("User-Agent", "EmakiCoreLib-LibraryLoader");
-        return connection;
     }
 
     private boolean downloadLibrary(LibraryCoordinate library, Path localFile, String repoUrl) {
@@ -480,17 +330,14 @@ public final class RuntimeLibraryLoader {
     private record ProbeResult(String name, boolean reachable, long latencyMs) {
     }
 
-    private record MetadataProbe(String version, int status) {
-    }
-
-    private record LibraryChecksum(String algorithm, String expected) {
-    }
-
-
-    private record RuntimeLibrary(String id, LibraryCoordinate coordinate, String expectedSha256) {
+    private record RuntimeLibrary(String id, LibraryCoordinate coordinate, String expectedSha256, List<String> repositories, boolean classpath) {
 
         static RuntimeLibrary maven(String id, LibraryCoordinate coordinate, String expectedSha256) {
-            return new RuntimeLibrary(id, coordinate, expectedSha256);
+            return new RuntimeLibrary(id, coordinate, expectedSha256, List.of(), true);
+        }
+
+        static RuntimeLibrary dedicated(String id, LibraryCoordinate coordinate, String expectedSha256, List<String> repositories) {
+            return new RuntimeLibrary(id, coordinate, expectedSha256, repositories, false);
         }
 
         @Override
