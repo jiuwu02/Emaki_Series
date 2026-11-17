@@ -2,13 +2,13 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "3.0.3"
+version: "3.0.4"
 
 tags:
-  actionbar: '[ actionbar ]'
-  cast: '[ cast ]'
-  collector: '[ collector ]'
-  upgrade: '[ upgrade ]'
+  actionbar: "[ actionbar ]"
+  cast: "[ cast ]"
+  collector: "[ collector ]"
+  upgrade: "[ upgrade ]"
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
@@ -548,6 +548,30 @@ editor:
     delete_confirm: "<red>Click the delete entry again to confirm</red>"
     delete_success: "<green>Deleted definition %id%</green>"
     delete_failed: "<red>Delete failed, see console</red>"
+action:
+  stage:
+    common:
+      # Category: generic action-stage skip reasons; no placeholders
+      not_entity: "action target is not an entity"
+      not_player: "action target is not a player"
+    skills:
+      # Category: cast_skill/skill_level/skill_slot/skill_learn/skill_cooldown result hints; placeholders: %skill%, %slot%, %reason%
+      skill_required: "missing skill parameter"
+      unknown_skill: "skill %skill% was not found"
+      cast_failed: "skill %skill% cast failed"
+      entity_caster_needs_mythic: "non-player caster requires a Mythic mapping for skill %skill%"
+      upgrade_failed: "skill upgrade failed: %reason%"
+      slot_refused: "slot %slot% refused the binding"
+      service_unavailable: "skill service is unavailable"
+      already_learned: "skill already learned"
+      not_learned: "skill not learned"
+      nothing_learned: "no learned skill"
+    cast_mythic_skill:
+      # Category: cast_mythic_skill parameter/bridge/result hints; placeholders: %skill%, %error%
+      skill_required: "cast_mythic_skill: missing skill parameter"
+      unavailable: "cast_mythic_skill: MythicMobs bridge unavailable"
+      cast_failed: "cast_mythic_skill: Mythic skill %skill% cast failed"
+      cast_error: "cast_mythic_skill: Mythic skill %skill% cast error: %error%"
 integration:
   cast_mythic_skill_bridge_init_failed: "cast_mythic_skill: MythicMobs bridge initialization failed"
   mythic_metadata_parameters_rejected: "MythicMobs skill metadata parameters rejected: provider=MythicMobs, parameters=%parameters%, operation=apply_skill_metadata_parameters, cause=%error%"

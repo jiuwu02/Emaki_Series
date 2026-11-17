@@ -2,13 +2,13 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "3.0.3"
+version: "3.0.4"
 
 tags:
-  actionbar: '[ 动作栏 ]'
-  cast: '[ 施法 ]'
-  collector: '[ 收集 ]'
-  upgrade: '[ 升级 ]'
+  actionbar: "[ 动作栏 ]"
+  cast: "[ 施法 ]"
+  collector: "[ 收集 ]"
+  upgrade: "[ 升级 ]"
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
@@ -541,6 +541,30 @@ editor:
     delete_confirm: '<red>再次点击"删除"以确认删除</red>'
     delete_success: "<green>已删除定义 %id%</green>"
     delete_failed: "<red>删除失败, 详见控制台</red>"
+action:
+  stage:
+    common:
+      # 分类: 动作阶段通用跳过原因; 无占位符
+      not_entity: "动作目标不是实体"
+      not_player: "动作目标不是玩家"
+    skills:
+      # 分类: cast_skill/skill_level/skill_slot/skill_learn/skill_cooldown 动作结果提示; 占位符: %skill%, %slot%, %reason%
+      skill_required: "未配置 skill 参数"
+      unknown_skill: "未找到技能 %skill%"
+      cast_failed: "技能 %skill% 释放失败"
+      entity_caster_needs_mythic: "非玩家施法者需要为技能 %skill% 配置 Mythic 映射"
+      upgrade_failed: "技能升级失败: %reason%"
+      slot_refused: "槽位 %slot% 拒绝装配"
+      service_unavailable: "技能服务当前不可用"
+      already_learned: "技能已学习"
+      not_learned: "技能未学习"
+      nothing_learned: "没有已学习的技能"
+    cast_mythic_skill:
+      # 分类: cast_mythic_skill 动作参数/桥接/结果提示; 占位符: %skill%, %error%
+      skill_required: "cast_mythic_skill: 未配置 skill 参数"
+      unavailable: "cast_mythic_skill: MythicMobs 桥接不可用"
+      cast_failed: "cast_mythic_skill: Mythic 技能 %skill% 释放失败"
+      cast_error: "cast_mythic_skill: Mythic 技能 %skill% 释放出错: %error%"
 integration:
   cast_mythic_skill_bridge_init_failed: "cast_mythic_skill: MythicMobs 桥接初始化失败"
   mythic_metadata_parameters_rejected: "MythicMobs 技能元数据参数被拒绝: provider=MythicMobs, parameters=%parameters%, operation=apply_skill_metadata_parameters, cause=%error%"

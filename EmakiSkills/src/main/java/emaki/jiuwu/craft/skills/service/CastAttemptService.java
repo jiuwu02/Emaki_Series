@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.api.event.SkillPostCastEvent;
@@ -47,6 +48,7 @@ import emaki.jiuwu.craft.skills.log.SkillsLogTag;
 public final class CastAttemptService {
 
     static final String MYTHIC_MISSING_REASON = "skill.mythic_not_found";
+    static final String MYTHIC_REJECTED_REASON = "skill.mythic_rejected";
 
     public record CastBypass(boolean cooldown, boolean resourceCheck, boolean consumeResource) {
 
@@ -403,14 +405,14 @@ public final class CastAttemptService {
         return mythicCastService.cast(player, mythicSkillId, invocation, variables)
                 ? PipelineOutcome.success(List.of())
                 : PipelineOutcome.failure(CoreActionFailureKind.REJECTED,
-                        "skill.mythic_rejected", Map.of(), List.of());
+                        MYTHIC_REJECTED_REASON, Map.of(), List.of());
     }
 
     private CastAttemptResult describeCastFailure(SkillDefinition definition,
             String triggerId,
             CastOutcome outcome) {
         String skillId = definition == null ? "" : definition.id();
-        String detail = outcome.failureDetail();
+        String detail = resolveFailureDetail(outcome);
         CoreActionFailureKind kind = outcome.failureKind();
         FailureReason reason = failureReasonFor(kind, outcome.reasonKey());
         String messageKey = messageKeyFor(kind, outcome.reasonKey());
@@ -448,6 +450,10 @@ public final class CastAttemptService {
     static String messageKeyFor(CoreActionFailureKind kind, String reasonKey) {
         if (MYTHIC_MISSING_REASON.equals(reasonKey)) {
             return "cast.mythic_not_found";
+        }
+        if (MYTHIC_REJECTED_REASON.equals(reasonKey)
+                || "action.stage.cast_mythic_skill.cast_failed".equals(reasonKey)) {
+            return "cast.mythic_failed";
         }
         return switch (kind) {
 
@@ -649,6 +655,22 @@ public final class CastAttemptService {
             return new AttemptPlan(player, null, "", null, null, CastBypass.none(),
                     CastAttemptResult.fail(reason, message));
         }
+    }
+
+    private String resolveFailureDetail(CastOutcome outcome) {
+        String raw = outcome.failureDetail();
+        String reasonKey = outcome.reasonKey();
+        if (Texts.isBlank(reasonKey) || !raw.equals(reasonKey)) {
+            return Texts.toStringSafe(raw);
+        }
+        Map<String, Object> args = new java.util.LinkedHashMap<>(outcome.result().args());
+        for (Map.Entry<String, Object> entry : args.entrySet()) {
+            if (entry.getValue() instanceof String value) {
+                entry.setValue(plugin.messageService().messageOrFallback(value, Map.of(), value));
+            }
+        }
+        return MiniMessages.plainText(
+                plugin.messageService().messageOrFallback(reasonKey, args, reasonKey));
     }
 
     private record CastOutcome(PipelineOutcome result, Throwable throwable) {

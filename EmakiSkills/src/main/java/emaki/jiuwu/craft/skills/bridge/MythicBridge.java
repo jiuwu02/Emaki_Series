@@ -81,7 +81,7 @@ public final class MythicBridge {
             return false;
         }
         try {
-            return apiHelper.castSkill(caster, mythicSkillId, metadataConsumer(Map.of()));
+            return castWithSelfMetadata(caster, mythicSkillId, Map.of());
         } catch (Exception exception) {
             warning("console.mythic_bridge_cast_failed", Map.of(
                     "skill", String.valueOf(mythicSkillId),
@@ -96,7 +96,7 @@ public final class MythicBridge {
             return false;
         }
         try {
-            return apiHelper.castSkill(caster, mythicSkillId, metadataConsumer(variables));
+            return castWithSelfMetadata(caster, mythicSkillId, variables);
         } catch (Exception exception) {
             warning("console.mythic_bridge_cast_failed", Map.of(
                     "skill", String.valueOf(mythicSkillId),
@@ -135,6 +135,12 @@ public final class MythicBridge {
             ), exception);
             return false;
         }
+    }
+
+    private boolean castWithSelfMetadata(Entity caster, String mythicSkillId, Map<String, String> variables) {
+        Location origin = caster.getLocation();
+        return apiHelper.castSkill(caster, mythicSkillId, caster, origin,
+                List.of(caster), List.of(origin), 1.0F, metadataConsumer(variables));
     }
 
     private Consumer<SkillMetadata> metadataConsumer(Map<String, String> variables) {

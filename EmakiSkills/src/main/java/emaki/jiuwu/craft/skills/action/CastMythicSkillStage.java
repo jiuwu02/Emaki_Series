@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 
@@ -81,7 +82,13 @@ public final class CastMythicSkillStage implements CoreActionStage {
         }
         try {
             var helper = (BukkitAPIHelper) apiHelper;
-            return helper.castSkill(target, skillId)
+            if (MythicBukkit.inst().getSkillManager().getSkill(skillId).isEmpty()) {
+                return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
+                        "skill.mythic_not_found", Map.of("mythic_skill", skillId));
+            }
+            Location origin = target.getLocation();
+            return helper.castSkill(target, skillId, target, origin,
+                    List.of(target), List.of(origin), 1.0F)
                     ? CoreActionOutcome.success(Map.of("skill", skillId))
                     : CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
                             "action.stage.cast_mythic_skill.cast_failed", Map.of("skill", skillId));
