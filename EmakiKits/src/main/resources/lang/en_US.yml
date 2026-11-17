@@ -2,7 +2,11 @@
 # Messages use MiniMessage, placeholders are noted beside each group
 # version is maintained by the resource sync flow
 
-version: "1.0.1"
+version: "1.0.2"
+
+tags:
+  kits: '[ kits ]'
+  limit: '[ limit ]'
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#F97316>EmakiKits</gradient> ]</gray> "
@@ -54,22 +58,26 @@ join:
   invite_accepted: "<green>Invite code confirmed, join kit %kit% granted</green>"
 
 console:
-  plugin_started: "[startup] <green>Enabled, loaded <white>%count%</white> kits</green>"
-  plugin_stopped: "[shutdown] <yellow>Disabled</yellow>"
-  reload_complete: "[reload] <green>Reload complete</green>"
-  config_issue: "[config] <yellow>%path% validation failed: %reason%</yellow>"
-  time_window_opened: "[limit] <gray>Time window opened for kit <white>%kit%</white></gray>"
-  time_window_cron_failed: "[limit] <yellow>cron registration failed for %kit%: %reason%</yellow>"
-  bootstrap_start: "[loader] <gray>Syncing default resources...</gray>"
-  bootstrap_skip: "[loader] Default data release skipped by config"
-  bootstrap_complete: "[loader] <green>Default resources synced</green>"
-  bootstrap_copy_failed: "[loader] Failed to copy default resource: %path% (%error%)"
-  bootstrap_save_failed: "[loader] Failed to save versioned resource: %path% (%error%)"
-  default_file_missing: "[loader] <yellow>Bundled resource missing, released: <white>%path%</white></yellow>"
-  directory_create_failed: "[loader] <red>Failed to create directory: <white>%path%</white> (%error%)</red>"
-  versioned_file_updated: "[loader] <green>Default file version updated: <yellow>%path%</yellow> (%old_version% -> %new_version%)</green>"
-  loader_config_load_error: "[loader] <yellow>Failed to load Kits config: <red>%path%</red> (%error%)</yellow>"
-
+  plugin_started: "<green>Enabled, loaded <white>%count%</white> kits</green>"
+  plugin_stopped: "<yellow>Disabled</yellow>"
+  reload_complete: "<green>Reload complete</green>"
+  config_issue: "<yellow>%path% validation failed: %reason%</yellow>"
+  time_window_opened: "<gray>Time window opened for kit <white>%kit%</white></gray>"
+  time_window_cron_failed: "<yellow>cron registration failed for %kit%: %reason%</yellow>"
+  bootstrap_start: "<gray>Syncing default resources...</gray>"
+  bootstrap_skip: "Default data release skipped by config"
+  bootstrap_complete: "<green>Default resources synced</green>"
+  bootstrap_copy_failed: "Failed to copy default resource: %path% (%error%)"
+  bootstrap_save_failed: "Failed to save versioned resource: %path% (%error%)"
+  default_file_missing: "<yellow>Bundled resource missing, released: <white>%path%</white></yellow>"
+  directory_create_failed: "<red>Failed to create directory: <white>%path%</white> (%error%)</red>"
+  versioned_file_updated: "<green>Default file version updated: <yellow>%path%</yellow> (%old_version% -> %new_version%)</green>"
+  loader_config_load_error: "<yellow>Failed to load Kits config: <red>%path%</red> (%error%)</yellow>"
+  debit_refund_failed: "Debit compensation failed: operation=refund, player=%player%, amount=%amount%, cause=%error%"
+  debit_failed: "Debit failed: operation=debit, player=%player%, amount=%amount%, cause=%error%"
+  kit_action_execution_failed: "Kit action execution failed: kit=%kit%, entry=%entry%, outcome=%outcome%, line=%line%"
+  skip_invalid_uuid_key: "Skipped invalid UUID archive key: %key%"
+  persistence_write_failed: "Persistence write failed: operation=flush, file=%file%, cause=%error%"
 
 error:
   permission:
@@ -140,3 +148,6 @@ error:
     limit_range: "range start/end must be valid ordered ISO-8601 timestamps"
     limit_cron: "invalid cron expression, CoreLib 6-field format required"
     limit_duration: "cron mode requires duration_seconds > 0"
+kits:
+  kit_validation_failed: "%file% kit %id% failed validation at %path%: %reason%"
+  kit_id_invalid: "%file% kit id is invalid or missing: %id%"

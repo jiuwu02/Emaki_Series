@@ -12,6 +12,8 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.api.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.api.action.ActionResult;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class EconomyManager {
 
@@ -35,10 +37,7 @@ public final class EconomyManager {
         try {
             register(providerFactory.get());
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().log(Level.WARNING,
-                    "[economy] 经济提供者注册失败: dependency=" + dependencyName
-                            + ", operation=register_optional_provider, cause=" + exception,
-                    exception);
+            LogTags.send(plugin, LogTag.ECONOMY, Level.WARNING, "economy.provider_registration_failed", Map.of("dependency", dependencyName, "error", exception), exception);
         }
     }
 

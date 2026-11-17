@@ -17,6 +17,9 @@ import emaki.jiuwu.craft.codex.codex.model.CodexEntry;
 import emaki.jiuwu.craft.codex.codex.model.PlayerCodex;
 import emaki.jiuwu.craft.codex.codex.service.PlayerCodexStore;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.codex.log.CodexLogTag;
+import java.util.logging.Level;
 
 public final class CodexAttributeProvider implements AttributeContributionProvider {
 
@@ -53,8 +56,7 @@ public final class CodexAttributeProvider implements AttributeContributionProvid
         try {
             return contributionsFor(player);
         } catch (RuntimeException exception) {
-            logger.warning("[provider] 属性加成计算失败: 玩家 " + player.getName()
-                    + ", 原因: " + Texts.toStringSafe(exception.getMessage()));
+            LogTags.send(logger, CodexLogTag.PROVIDER, Level.WARNING, "provider.attribute_bonus_calc_failed", Map.of("player", player.getName(), "error", Texts.toStringSafe(exception.getMessage())));
             return List.of();
         }
     }

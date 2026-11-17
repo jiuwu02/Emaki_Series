@@ -107,6 +107,9 @@ import java.util.UUID;
 import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.plugin.PluginManager;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.dungeon.log.DungeonLogTag;
 
 public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> {
 
@@ -181,6 +184,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     public void onEnable() {
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII,
                 STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
+        LogTags.registerTags(this, DungeonLogTag.values());
         shutdownStarted.set(false);
         languageLoader = new LanguageLoader(this);
         messageService = new MessageService(this, DEFAULT_PREFIX,
@@ -210,8 +214,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         ensureBetterHudBridge();
         metrics = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         runtimeInitialized = true;
-        messageService.info("console.plugin_starting");
-        messageService.info("console.plugin_started");
+        messageService.info(LogTag.STARTUP, "console.plugin_starting");
+        messageService.info(LogTag.STARTUP, "console.plugin_started");
     }
 
     @Override
@@ -308,7 +312,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         rewardBox = null;
         rewardBoxGui = null;
         if (shutdownFailures.get() > 0) {
-            messageService.warning("console.shutdown_incomplete", Map.of(
+            messageService.warning(LogTag.SHUTDOWN, "console.shutdown_incomplete", Map.of(
                     "count", String.valueOf(shutdownFailures.get())));
         }
         recovery = null;
@@ -327,7 +331,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         debugCommand = null;
         runtimeInitialized = false;
         if (messageService != null) {
-            messageService.info("console.plugin_stopped");
+            messageService.info(LogTag.SHUTDOWN, "console.plugin_stopped");
         }
     }
 
@@ -339,7 +343,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             return Boolean.TRUE.equals(drain.get(SHUTDOWN_DRAIN_SECONDS, TimeUnit.SECONDS));
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
-            messageService.warning("console.rewardbox_drain_interrupted");
+            messageService.warning(LogTag.SHUTDOWN, "console.rewardbox_drain_interrupted");
             return false;
         } catch (ExecutionException | CancellationException failure) {
             getLogger().log(Level.WARNING,
@@ -397,7 +401,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
         placeholderExpansion = new DungeonPlaceholderExpansion(this, parties, records);
         placeholderExpansion.register();
-        messageService.info("console.papi_registered");
+        messageService.info(LogTag.INTEGRATION, "console.papi_registered");
     }
 
     private void ensureBetterHudBridge() {
@@ -424,7 +428,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         TemplateRepository templates = new TemplateRepository(this, messageService, getDataFolder());
 
         typeRegistry = new DungeonTypeRegistry((dungeon, raw) ->
-                messageService.warning("console.dungeon_type_unknown", Map.of(
+                messageService.warning(null, "console.dungeon_type_unknown", Map.of(
                         "dungeon", dungeon,
                         "type", raw)));
         Map<String, DungeonConfig> configCache = new ConcurrentHashMap<>();
@@ -437,7 +441,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 configCache.put(dungeonId, loaded.withType(resolved.id()));
                 dungeons.add(dungeonId);
             } catch (RuntimeException exception) {
-                messageService.warning("console.dungeon_config_invalid", Map.of(
+                messageService.warning(null, "console.dungeon_config_invalid", Map.of(
                         "dungeon", dungeonId,
                         "error", String.valueOf(exception.getMessage())
                 ));
@@ -660,7 +664,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             try {
                 templates.ensureFlowFile(dungeonId);
             } catch (IOException exception) {
-                messageService.warning("console.flow_file_failed", Map.of(
+                messageService.warning(null, "console.flow_file_failed", Map.of(
                         "dungeon", dungeonId,
                         "error", String.valueOf(exception.getMessage())
                 ));
@@ -683,7 +687,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 DungeonType resolved = typeRegistry.resolve(loaded.type(), dungeonId);
                 configCache.put(dungeonId, loaded.withType(resolved.id()));
             } catch (RuntimeException exception) {
-                messageService.warning("console.dungeon_config_invalid", Map.of(
+                messageService.warning(null, "console.dungeon_config_invalid", Map.of(
                         "dungeon", dungeonId,
                         "error", String.valueOf(exception.getMessage())
                 ));
@@ -733,7 +737,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         try {
             definition = flowLoader.load(flowFile.isFile() ? flowFile : templateFlow);
         } catch (RuntimeException exception) {
-            messageService.warning("console.flow_load_failed", Map.of(
+            messageService.warning(null, "console.flow_load_failed", Map.of(
                     "instance", instance.instanceId(),
                     "error", String.valueOf(exception.getMessage())
             ));

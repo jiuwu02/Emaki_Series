@@ -51,6 +51,10 @@ import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 import emaki.jiuwu.craft.forge.apiimpl.DefaultEmakiForgeApi;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.forge.log.ForgeLogTag;
+import java.util.logging.Level;
 
 public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -121,10 +125,11 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 STARTUP_ASCII_START_COLOR,
                 STARTUP_ASCII_END_COLOR
         );
+        LogTags.registerTags(this, ForgeLogTag.values());
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         runtimeInitialized = true;
         registerConfigPrecheckContributor();
-        messageService.info("console.plugin_starting");
+        messageService.info(LogTag.STARTUP, "console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
         registerCommandHandler();
@@ -133,7 +138,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         registerPublicApiService();
         ensurePlaceholderExpansion();
         metrics = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
-        messageService.info("console.plugin_started");
+        messageService.info(LogTag.STARTUP, "console.plugin_started");
     }
 
     @Override
@@ -151,8 +156,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 transitionRuntime(ForgeRuntimeStatus.CLOSED, "运行时初始化前插件已停用");
                 shutdownFuture.complete(null);
             } catch (Throwable terminalFailure) {
-                getLogger().warning("[shutdown] 早期运行时关闭失败: "
-                        + String.valueOf(terminalFailure.getMessage()));
+                LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.early_runtime_close_failed", Map.of("error", String.valueOf(terminalFailure.getMessage())));
                 shutdownFuture.completeExceptionally(terminalFailure);
             }
             return;
@@ -187,15 +191,13 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             Throwable terminalFailure = throwable;
             if (throwable != null) {
                 Throwable cause = AsyncFailures.unwrapOnce(throwable);
-                getLogger().warning("[shutdown] Forge 清理失败: "
-                        + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
+                LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.forge_cleanup_failed", Map.of("type", cause.getClass().getSimpleName(), "error", String.valueOf(cause.getMessage())));
             }
             if (metrics != null) {
                 try {
                     metrics.close();
                 } catch (Throwable metricsFailure) {
-                    getLogger().warning("[shutdown] 指标关闭失败: "
-                            + String.valueOf(metricsFailure.getMessage()));
+                    LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.metrics_close_failed", Map.of("error", String.valueOf(metricsFailure.getMessage())));
                     if (terminalFailure == null) {
                         terminalFailure = metricsFailure;
                     } else {
@@ -209,8 +211,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             try {
                 transitionRuntime(ForgeRuntimeStatus.CLOSED, "插件已停用");
             } catch (Throwable closeFailure) {
-                getLogger().warning("[shutdown] 最终运行时状态切换失败: "
-                        + String.valueOf(closeFailure.getMessage()));
+                LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.final_runtime_state_transition_failed", Map.of("error", String.valueOf(closeFailure.getMessage())));
                 if (terminalFailure == null) {
                     terminalFailure = closeFailure;
                 } else {
@@ -229,7 +230,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             return coreLib();
         } catch (Throwable throwable) {
-            getLogger().warning("[shutdown] CoreLib 查找失败: " + String.valueOf(throwable.getMessage()));
+            LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.corelib_lookup_failed", Map.of("error", String.valueOf(throwable.getMessage())));
             return null;
         }
     }
@@ -241,14 +242,13 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             playerDataListener.clearSessionsForShutdown();
         } catch (Throwable throwable) {
-            getLogger().warning("[shutdown] 玩家会话清理失败: " + String.valueOf(throwable.getMessage()));
+            LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.player_session_cleanup_failed", Map.of("error", String.valueOf(throwable.getMessage())));
         }
         if (stageRegistrar != null) {
             try {
                 stageRegistrar.unregister();
             } catch (Throwable throwable) {
-                getLogger().warning("[shutdown] Forge 阶段清理失败: "
-                        + String.valueOf(throwable.getMessage()));
+                LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.forge_stage_cleanup_failed", Map.of("error", String.valueOf(throwable.getMessage())));
             }
             stageRegistrar = null;
         }
@@ -348,7 +348,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
         placeholderExpansion = new ForgePlaceholderExpansion(this, playerDataStore);
         placeholderExpansion.register();
-        messageService.info("console.papi_registered");
+        messageService.info(LogTag.INTEGRATION, "console.papi_registered");
     }
 
     @Override
@@ -780,7 +780,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
+            LogTags.send(getLogger(), LogTag.STARTUP, Level.FINE, "startup.readiness_publish_skipped", Map.of("error", exception));
         }
     }
 }

@@ -26,6 +26,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class CodexGuiService {
 
@@ -61,7 +62,7 @@ public final class CodexGuiService {
         }
         GuiTemplate template = guiTemplateLoader.get(TEMPLATE_CODEX_GUI);
         if (template == null) {
-            messageService.warning("console.gui_template_missing", Map.of("template", TEMPLATE_CODEX_GUI));
+            messageService.warning(LogTag.GUI, "console.gui_template_missing", Map.of("template", TEMPLATE_CODEX_GUI));
             return false;
         }
         List<CodexCategory> categories = categories();

@@ -17,6 +17,9 @@ import java.util.logging.Logger;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class VanillaLanguageDownloader {
 
@@ -71,7 +74,7 @@ public final class VanillaLanguageDownloader {
             }
             return parsed;
         } catch (IOException | RuntimeException exception) {
-            logger.fine("[text] 原版语言缓存不可读, 将重新下载: " + exception.getMessage());
+            LogTags.send(logger, LogTag.TEXT, Level.FINE, "text.cache_unreadable", Map.of("error", exception.getMessage()));
             return Map.of();
         }
     }
@@ -81,7 +84,7 @@ public final class VanillaLanguageDownloader {
             Files.createDirectories(cacheFile.getParent());
             Files.writeString(cacheFile, body, StandardCharsets.UTF_8);
         } catch (IOException exception) {
-            logger.fine("[text] 缓存原版语言文件失败: " + exception.getMessage());
+            LogTags.send(logger, LogTag.TEXT, Level.FINE, "text.cache_write_failed", Map.of("error", exception.getMessage()));
         }
     }
 
@@ -92,12 +95,12 @@ public final class VanillaLanguageDownloader {
         }
         String assetIndexUrl = readStringPath(versionUrl, "assetIndex", "url");
         if (assetIndexUrl == null) {
-            logger.fine("[text] 版本元数据缺少 assetIndex.url");
+            LogTags.send(logger, LogTag.TEXT, Level.FINE, "text.missing_asset_index_url");
             return null;
         }
         String hash = resolveObjectHash(assetIndexUrl, "minecraft/lang/" + locale + ".json");
         if (hash == null) {
-            logger.fine("[text] 资源索引中没有语言 " + locale + " 的条目");
+            LogTags.send(logger, LogTag.TEXT, Level.FINE, "text.language_not_in_index", Map.of("lang", locale));
             return null;
         }
         return fetch(RESOURCE_BASE_URL + hash.substring(0, 2) + "/" + hash);
@@ -149,7 +152,7 @@ public final class VanillaLanguageDownloader {
             }
             return null;
         } catch (RuntimeException exception) {
-            logger.fine("[text] 读取版本清单失败: " + exception.getMessage());
+            LogTags.send(logger, LogTag.TEXT, Level.FINE, "text.version_manifest_read_failed", Map.of("error", exception.getMessage()));
             return null;
         }
     }
@@ -168,7 +171,7 @@ public final class VanillaLanguageDownloader {
             String hash = entry == null ? null : optionalString(entry, "hash");
             return hash != null && hash.length() >= 2 ? hash : null;
         } catch (RuntimeException exception) {
-            logger.fine("[text] 读取资源索引失败: " + exception.getMessage());
+            LogTags.send(logger, LogTag.TEXT, Level.FINE, "text.asset_index_read_failed", Map.of("error", exception.getMessage()));
             return null;
         }
     }
@@ -182,7 +185,7 @@ public final class VanillaLanguageDownloader {
             JsonObject nested = JsonParser.parseString(body).getAsJsonObject().getAsJsonObject(objectName);
             return nested == null ? null : optionalString(nested, field);
         } catch (RuntimeException exception) {
-            logger.fine("[text] 读取 " + objectName + "." + field + " 失败: " + exception.getMessage());
+            LogTags.send(logger, LogTag.TEXT, Level.FINE, "text.metadata_field_read_failed", Map.of("object", objectName, "field", field, "error", exception.getMessage()));
             return null;
         }
     }
@@ -199,7 +202,7 @@ public final class VanillaLanguageDownloader {
             }
             return table;
         } catch (RuntimeException exception) {
-            logger.fine("[text] 原版语言文件不是扁平 JSON 对象: " + exception.getMessage());
+            LogTags.send(logger, LogTag.TEXT, Level.FINE, "text.language_file_not_flat_json", Map.of("error", exception.getMessage()));
             return Map.of();
         }
     }
@@ -216,7 +219,7 @@ public final class VanillaLanguageDownloader {
             connection.setRequestProperty("User-Agent", USER_AGENT);
             int responseCode = connection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
-                logger.fine("[text] 语言下载返回 HTTP " + responseCode + ", 地址 " + url);
+                LogTags.send(logger, LogTag.TEXT, Level.FINE, "text.download_http_error", Map.of("code", responseCode, "url", url));
                 return null;
             }
             try (InputStream inputStream = connection.getInputStream()) {
@@ -224,7 +227,7 @@ public final class VanillaLanguageDownloader {
                 return new String(bytes, StandardCharsets.UTF_8);
             }
         } catch (IOException | RuntimeException exception) {
-            logger.fine("[text] 语言下载失败, 地址 " + url + ": " + exception.getMessage());
+            LogTags.send(logger, LogTag.TEXT, Level.FINE, "text.download_failed", Map.of("url", url, "error", exception.getMessage()));
             return null;
         } finally {
             if (connection != null) {

@@ -49,6 +49,7 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class ChoppingBoardRuntimeService {
 
@@ -156,7 +157,7 @@ public final class ChoppingBoardRuntimeService {
             clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
             renderedProgress.remove(coordinates);
             textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
-            plugin.messageService().warning("console.station_restore_skipped_mismatch", Map.of(
+            plugin.messageService().warning(LogTag.PERSISTENCE, "console.station_restore_skipped_mismatch", Map.of(
                     "type", "chopping_board",
                     "coordinate", coordinates.runtimeKey()));
             return false;

@@ -14,6 +14,9 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.accessory.model.PlayerAccessories;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class AccessoryDataFile {
 
@@ -75,8 +78,7 @@ public final class AccessoryDataFile {
         YamlSection legacySlots = root.getSection(LEGACY_KEY_SLOTS);
         String migratedPage = defaultPage();
         if (legacySlots != null && Texts.isBlank(migratedPage)) {
-            warn("[persistence] 无法迁移玩家 " + playerId
-                    + " 的饰品数据: 未配置任何饰品页, 文件保持原样");
+            LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.accessory_migration_no_pages", Map.of("player", playerId));
             accessories.installLoaded(Map.of(), "");
             applyName(accessories, playerName, storedName);
             return accessories;
@@ -87,12 +89,11 @@ public final class AccessoryDataFile {
                     migrated.isEmpty() ? Map.of() : Map.of(migratedPage, migrated),
                     migratedPage);
             applyName(accessories, playerName, storedName);
-            info("[persistence] 已将玩家 " + playerId + " 的饰品数据从格式 1 迁移到 " + FORMAT_VERSION
+            info(LogTags.head(logger, "persistence") + " 已将玩家 " + playerId + " 的饰品数据从格式 1 迁移到 " + FORMAT_VERSION
                     + ": 共 " + migrated.size() + " 件物品移入饰品页 " + migratedPage);
             return accessories;
         }
-        warn("[persistence] 无法识别玩家 " + playerId
-                + " 的饰品数据结构; 文件保持原样, 本次会话从空数据开始");
+        LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.accessory_structure_unrecognized", Map.of("player", playerId));
         accessories.installLoaded(Map.of(), defaultPage());
         applyName(accessories, playerName, storedName);
         return accessories;
@@ -175,8 +176,7 @@ public final class AccessoryDataFile {
         try {
             return ItemStack.deserializeBytes(Base64.getDecoder().decode(encoded));
         } catch (RuntimeException exception) {
-            warn("[persistence] 已丢弃玩家 " + playerId + " 槽位 " + slotInstanceId
-                    + " 中无法解码的饰品: " + Texts.toStringSafe(exception.getMessage()));
+            LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.accessory_slot_discarded", Map.of("player", playerId, "slot", slotInstanceId, "error", Texts.toStringSafe(exception.getMessage())));
             return null;
         }
     }

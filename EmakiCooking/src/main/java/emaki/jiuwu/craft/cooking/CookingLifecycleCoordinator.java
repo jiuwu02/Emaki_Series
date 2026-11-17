@@ -59,6 +59,9 @@ import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayServiceFactory;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayServiceFactory;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCookingPlugin, CookingRuntimeComponents> {
 
@@ -389,7 +392,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 null,
                 null,
                 failure -> rollbackReload(plugin, previousAppConfig, previousLanguage, failure),
-                (stage, ex) -> plugin.messageService().warning("console.reload_stage_failed", Map.of(
+                (stage, ex) -> plugin.messageService().warning(LogTag.RELOAD, "console.reload_stage_failed", Map.of(
                         "stage", stage,
                         "error", AsyncFailures.describe(ex))),
                 progressListener
@@ -409,7 +412,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         if (language != null && !language.isBlank()) {
             plugin.languageLoader().setLanguage(language);
         }
-        plugin.getLogger().warning("[reload] 烹饪重载失败, 已回滚到旧配置: " + AsyncFailures.describe(cause));
+        LogTags.send(plugin, LogTag.RELOAD, Level.WARNING, "reload.cooking_reload_failed_rolled_back", Map.of("error", AsyncFailures.describe(cause)));
     }
 
     private void logStationRecipeCounts(EmakiCookingPlugin plugin) {
@@ -424,7 +427,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
     }
 
     private void logStationCount(MessageService ms, String station, int count) {
-        ms.info("console.station_recipes_loaded", Map.of("station", station, "count", String.valueOf(count)));
+        ms.info(LogTag.LOADER, "console.station_recipes_loaded", Map.of("station", station, "count", String.valueOf(count)));
     }
 
     private AppConfig parseAppConfig(YamlSection configuration) {

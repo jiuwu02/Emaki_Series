@@ -15,6 +15,9 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.session.PlayerSessionMap;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipe;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class AffixGuiService {
 
@@ -84,7 +87,7 @@ public final class AffixGuiService {
 
     public void clearAllSessions() {
         clearAllSessionsAsync().exceptionally(throwable -> {
-            plugin.getLogger().warning("[gui] 关闭全部词条 GUI 会话失败: " + throwable.getMessage());
+            LogTags.send(plugin, LogTag.GUI, Level.WARNING, "gui.close_all_affix_gui_sessions_failed", Map.of("error", throwable.getMessage()));
             return null;
         });
     }

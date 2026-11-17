@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.kits.apiimpl.DefaultEmakiKitsApi;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.corelib.schedule.cron.CronScheduler;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.kits.command.KitCommandAdapter;
@@ -34,6 +35,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.kits.log.KitsLogTag;
 
 public final class EmakiKitsPlugin extends JavaPlugin {
 
@@ -83,7 +88,15 @@ public final class EmakiKitsPlugin extends JavaPlugin {
     private int flushTaskId = -1;
 
     @Override
+    public Logger getLogger() {
+        return EmakiLog.of(this);
+    }
+
+    @Override
     public void onEnable() {
+        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
+        LogTags.registerTags(this, KitsLogTag.values());
         shutdownStarted.set(false);
         EmakiCoreLibPlugin coreLib = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         ExecutionDispatcher dispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);
@@ -116,8 +129,6 @@ public final class EmakiKitsPlugin extends JavaPlugin {
         router = new KitCommandRouter(this, service, store, messages, () -> config,
                 choiceGui, inviteCodeService);
 
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII,
-                STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
         registerCommand(ROOT_COMMAND, "EmakiKits 礼包命令",
                 List.of("emakikit", "ekits"), new KitCommandAdapter(router));
         getServer().getPluginManager().registerEvents(guiService, this);
@@ -130,7 +141,7 @@ public final class EmakiKitsPlugin extends JavaPlugin {
         apiBridge = new DefaultEmakiKitsApi(this);
         EmakiKitsApi.install(apiBridge);
         runtimeReady = true;
-        messages.info("console.plugin_started", Map.of("count", config.kits().size()));
+        messages.info(LogTag.STARTUP, "console.plugin_started", Map.of("count", config.kits().size()));
     }
 
     @Override
@@ -162,7 +173,7 @@ public final class EmakiKitsPlugin extends JavaPlugin {
         if (store != null) {
             store.seal();
         }
-        messages.info("console.plugin_stopped");
+        messages.info(LogTag.SHUTDOWN, "console.plugin_stopped");
     }
 
     public int reloadContent() {
@@ -173,7 +184,7 @@ public final class EmakiKitsPlugin extends JavaPlugin {
             languageLoader.load();
         }
         for (AppConfig.ConfigIssue issue : result.issues()) {
-            messages.warning("console.config_issue", Map.of(
+            messages.warning(LogTag.CONFIG, "console.config_issue", Map.of(
                     "path", issue.path(), "reason", issue.reasonKey()));
         }
         if (guiTemplates != null) {
@@ -197,9 +208,9 @@ public final class EmakiKitsPlugin extends JavaPlugin {
             }
             try {
                 cronScheduler.schedule(this, def.limit().cron(), () ->
-                        messages.info("console.time_window_opened", Map.of("kit", def.id())));
+                        messages.info(KitsLogTag.LIMIT, "console.time_window_opened", Map.of("kit", def.id())));
             } catch (RuntimeException exception) {
-                messages.warning("console.time_window_cron_failed", Map.of(
+                messages.warning(KitsLogTag.LIMIT, "console.time_window_cron_failed", Map.of(
                         "kit", def.id(), "reason", String.valueOf(exception.getMessage())));
             }
         }

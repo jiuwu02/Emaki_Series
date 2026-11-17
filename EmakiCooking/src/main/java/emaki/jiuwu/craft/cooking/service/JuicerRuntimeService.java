@@ -41,6 +41,7 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class JuicerRuntimeService implements Listener {
 
@@ -151,7 +152,7 @@ public final class JuicerRuntimeService implements Listener {
         }
         if (!blockMatcher.matches(block, StationType.JUICER, stationSource)) {
             removeState(coordinates, false);
-            plugin.messageService().warning("console.station_restore_skipped_mismatch", Map.of(
+            plugin.messageService().warning(LogTag.PERSISTENCE, "console.station_restore_skipped_mismatch", Map.of(
                     "type", "juicer",
                     "coordinate", coordinates.runtimeKey()));
             return false;

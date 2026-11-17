@@ -17,6 +17,9 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerUp
 
 import emaki.jiuwu.craft.codex.advancement.AdvancementRegistrar;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.codex.log.CodexLogTag;
+import java.util.Map;
 
 public final class AdvancementPacketCoordinateChannel extends PacketListenerAbstract {
 
@@ -53,7 +56,7 @@ public final class AdvancementPacketCoordinateChannel extends PacketListenerAbst
             }
         } catch (Throwable throwable) {
 
-            logger.log(Level.WARNING, "[packet] 已跳过成就坐标注入: " + throwable.getMessage());
+            LogTags.send(logger, CodexLogTag.PACKET, Level.WARNING, "packet.advancement_coordinate_injection_skipped", Map.of("error", throwable.getMessage()));
         }
     }
 

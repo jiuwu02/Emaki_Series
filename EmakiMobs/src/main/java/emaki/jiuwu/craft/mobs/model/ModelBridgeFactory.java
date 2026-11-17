@@ -8,6 +8,10 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Constructor;
 import java.util.Locale;
 import java.util.logging.Logger;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class ModelBridgeFactory {
 
@@ -44,13 +48,13 @@ public final class ModelBridgeFactory {
                 return bridge;
             }
         }
-        logger.info("[integration] 未找到可用的模型后端, EmakiMobs 模型功能已禁用");
+        LogTags.send(logger, LogTag.INTEGRATION, Level.INFO, "integration.model_backend_not_found");
         return NoopModelBridge.INSTANCE;
     }
 
     private MobModelBridge createNamed(String pluginName, String bridgeClassName) {
         if (!Bukkit.getPluginManager().isPluginEnabled(pluginName)) {
-            logger.warning("[integration] 模型后端 '" + pluginName + "' 未安装, 模型功能已禁用");
+            LogTags.send(logger, LogTag.INTEGRATION, Level.WARNING, "integration.model_backend_not_installed", Map.of("name", pluginName));
             return NoopModelBridge.INSTANCE;
         }
         try {
@@ -60,11 +64,11 @@ public final class ModelBridgeFactory {
             if (value instanceof MobModelBridge bridge) {
                 return bridge;
             }
-            logger.warning("[integration] 模型后端 " + pluginName + " 的桥接实现无效");
+            LogTags.send(logger, LogTag.INTEGRATION, Level.WARNING, "integration.model_backend_bridge_invalid", Map.of("name", pluginName));
         } catch (ClassNotFoundException | LinkageError exception) {
-            logger.info("[integration] 模型后端 " + pluginName + " 的类不可用, 模型功能已禁用");
+            LogTags.send(logger, LogTag.INTEGRATION, Level.INFO, "integration.model_backend_class_unavailable", Map.of("name", pluginName));
         } catch (ReflectiveOperationException | SecurityException exception) {
-            logger.warning("[integration] 模型后端 " + pluginName + " 初始化失败: " + exception.getMessage());
+            LogTags.send(logger, LogTag.INTEGRATION, Level.WARNING, "integration.model_backend_init_failed", Map.of("name", pluginName, "error", exception.getMessage()));
         }
         return NoopModelBridge.INSTANCE;
     }

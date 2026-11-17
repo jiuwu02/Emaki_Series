@@ -18,6 +18,9 @@ import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class ConfiguredItemService {
 
@@ -221,8 +224,7 @@ public final class ConfiguredItemService {
         String issueKey = "component_version:" + componentId + "@" + server;
         if (loggedIssues.get(issueKey) == null) {
             loggedIssues.put(issueKey, Boolean.TRUE);
-            plugin.getLogger().warning("[assembly] 物品组件 " + componentId + " 需要 Minecraft " + requirement
-                    + ", 但当前服务器为 " + server + "; 该组件不会生效");
+            LogTags.send(plugin, LogTag.ASSEMBLY, Level.WARNING, "assembly.component_version_unsatisfied", Map.of("component", componentId, "version", requirement, "server", server));
         }
     }
 
@@ -330,7 +332,7 @@ public final class ConfiguredItemService {
                 continue;
             }
             loggedIssues.put(key, Boolean.TRUE);
-            String prefix = "[assembly] " + (issue.componentId() == null ? "" : "[" + issue.componentId() + "] ");
+            String prefix = LogTags.head(plugin, "assembly") + " " + (issue.componentId() == null ? "" : "[" + issue.componentId() + "] ");
             if (issue.severity() == ItemBuildIssueSeverity.ERROR) {
                 plugin.getLogger().severe(prefix + issue.message());
             } else {

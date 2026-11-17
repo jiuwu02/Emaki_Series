@@ -19,6 +19,9 @@ import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class ForgeActionCoordinator {
 
@@ -234,10 +237,9 @@ final class ForgeActionCoordinator {
 
     private void logWarning(String key, Map<String, ?> replacements) {
         try {
-            plugin.messageService().warning(key, replacements);
+            plugin.messageService().warning(LogTag.ACTION, key, replacements);
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("[action] 锻造结果动作警告无法发出 | key=" + key
-                    + " | error=" + exception.getMessage());
+            LogTags.send(plugin, LogTag.ACTION, Level.WARNING, "action.forge_result_warning_emit_failed", Map.of("key", key, "error", exception.getMessage()));
         }
     }
 

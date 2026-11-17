@@ -27,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class KitCommandRouter {
 
@@ -168,7 +169,7 @@ public final class KitCommandRouter {
             case "reload" -> {
                 if (denied(sender, "emakikits.reload", sub)) return;
                 plugin.reloadContent();
-                messages.send(sender, "console.reload_complete");
+                messages.send(sender, LogTag.RELOAD, "console.reload_complete");
             }
             default -> messages.send(sender, "general.unknown_command");
         }

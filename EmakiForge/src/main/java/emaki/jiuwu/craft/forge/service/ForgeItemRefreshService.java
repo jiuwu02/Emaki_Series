@@ -46,6 +46,7 @@ import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class ForgeItemRefreshService implements PlayerItemRefreshService {
 
@@ -672,7 +673,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                 return;
             }
         }
-        plugin.messageService().warning(messageKey, replacements);
+        plugin.messageService().warning(LogTag.REFRESH, messageKey, replacements);
     }
 
     private void applyRefreshOperations(ItemStack itemStack, RefreshPlan plan, ActionContext context) {

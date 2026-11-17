@@ -55,6 +55,8 @@ import emaki.jiuwu.craft.strengthen.enhancement.progression.EnhancementProgressi
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipe;
 import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
 import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import java.util.logging.Level;
 
 public final class EnhancementAttemptService {
 
@@ -177,7 +179,7 @@ public final class EnhancementAttemptService {
             result = attemptOnce(player, recipe, target, supplied, operation, expectedSnapshot, preparedPlan);
             return result;
         } catch (RuntimeException | LinkageError exception) {
-            warn("强化框架执行失败", exception);
+            warn(LogTags.text(plugin, "console.strengthen_framework_execution_failed", Map.of()), exception);
             result = rejectedWithOperation("strengthen.error.internal", operation);
             return result;
         } finally {
@@ -258,7 +260,7 @@ public final class EnhancementAttemptService {
             }
         } catch (RuntimeException | LinkageError exception) {
             restoreAmounts(materialAmounts);
-            warn("强化框架材料/目标提交失败", exception);
+            warn(LogTags.text(plugin, "console.strengthen_material_target_commit_failed", Map.of()), exception);
             return compensateAfterCommitFailure(player, economy, charge.appliedCosts(), operation,
                     "strengthen.error.rebuild_failed");
         }
@@ -271,7 +273,7 @@ public final class EnhancementAttemptService {
         try {
             updated = updatePityTracks(plan.pityTracks(), success);
         } catch (RuntimeException | LinkageError exception) {
-            warn("强化框架保底状态写回失败", exception);
+            warn(LogTags.text(plugin, "console.strengthen_pity_writeback_failed", Map.of()), exception);
             updated = plan.pityTracks();
         }
         int resultingLevel = success ? plan.targetLevel()
@@ -331,7 +333,7 @@ public final class EnhancementAttemptService {
             progression = progressionResolver.resolve(recipe, currentLevel,
                     evaluationLevel -> buildVariablesFromSnapshot(player, snapshot, evaluationLevel));
         } catch (RuntimeException | LinkageError exception) {
-            warn("强化进度解析失败", exception);
+            warn(LogTags.text(plugin, "console.strengthen_progression_resolve_failed", Map.of()), exception);
             return ExecutionPlan.invalid(recipe, "strengthen.error.rebuild_failed", snapshot);
         }
         int targetLevel = progression.levels().targetLevel();
@@ -435,12 +437,12 @@ public final class EnhancementAttemptService {
                 return PreparedLevel.failed(refreshError);
             }
             if (provider.readLevel(player, candidate) != level) {
-                warn("刷新阶段改变了目标等级, 已拒绝提交", null);
+                warn(LogTags.text(plugin, "console.refresh_changed_target_level_commit_rejected", Map.of()), null);
                 return PreparedLevel.failed(ERROR_REBUILD_FAILED);
             }
             return new PreparedLevel(candidate, "");
         } catch (RuntimeException | LinkageError exception) {
-            warn("目标 Provider 预写回失败", exception);
+            warn(LogTags.text(plugin, "console.target_provider_pre_writeback_failed", Map.of()), exception);
             return PreparedLevel.failed(ERROR_REBUILD_FAILED);
         }
     }

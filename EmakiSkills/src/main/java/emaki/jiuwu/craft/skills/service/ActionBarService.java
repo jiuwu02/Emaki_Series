@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
 import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
+import emaki.jiuwu.craft.skills.log.SkillsLogTag;
 
 public final class ActionBarService {
 
@@ -102,13 +103,13 @@ public final class ActionBarService {
                     try {
                         refreshPlayer(player);
                     } catch (Exception exception) {
-                        messageService.warning("console.actionbar_refresh_failed", Map.of(
+                        messageService.warning(SkillsLogTag.ACTIONBAR, "console.actionbar_refresh_failed", Map.of(
                                 "player", player.getName(),
                                 "error", Texts.toStringSafe(exception.getMessage())));
                     }
                 }, () -> { });
             } catch (Throwable throwable) {
-                messageService.warning("console.actionbar_schedule_failed", Map.of(
+                messageService.warning(SkillsLogTag.ACTIONBAR, "console.actionbar_schedule_failed", Map.of(
                         "player", player.getName(),
                         "error", Texts.toStringSafe(throwable.getMessage())));
             }

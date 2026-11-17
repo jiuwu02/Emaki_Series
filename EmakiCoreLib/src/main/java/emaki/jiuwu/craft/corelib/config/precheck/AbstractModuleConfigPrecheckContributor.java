@@ -17,6 +17,9 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public abstract class AbstractModuleConfigPrecheckContributor implements ConfigPrecheckContributor {
 
@@ -60,13 +63,12 @@ public abstract class AbstractModuleConfigPrecheckContributor implements ConfigP
         } catch (IOException | RuntimeException exception) {
             LogMessages messages = messagesSupplier.get();
             if (messages != null) {
-                messages.warning(MESSAGE_PREFIX + "fix_failed", Map.of(
+                messages.warning(LogTag.CONFIG, MESSAGE_PREFIX + "fix_failed", Map.of(
                         "path", fix.target().getPath(),
                         "kind", fix.kind().name(),
                         "error", Texts.toStringSafe(exception.getMessage())));
             } else if (plugin != null) {
-                plugin.getLogger().warning("[配置] 自动修复 " + fix.target().getPath()
-                        + " 失败: " + exception.getMessage());
+                LogTags.send(plugin, LogTag.CONFIG, Level.WARNING, "config.auto_fix_failed", Map.of("path", fix.target().getPath(), "error", exception.getMessage()));
             }
             return false;
         }
@@ -232,7 +234,7 @@ public abstract class AbstractModuleConfigPrecheckContributor implements ConfigP
             YamlSection defaults = YamlFiles.loadResource(plugin, resourcePath);
             return YamlFiles.countMissingKeys(runtime, defaults);
         } catch (RuntimeException exception) {
-            plugin.getLogger().fine("[配置] 跳过缺键检查 " + resourcePath + ": " + exception.getMessage());
+            LogTags.send(plugin, LogTag.CONFIG, Level.FINE, "config.skip_missing_key_check", Map.of("resource", resourcePath, "error", exception.getMessage()));
             return 0;
         }
     }

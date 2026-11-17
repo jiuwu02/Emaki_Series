@@ -20,6 +20,8 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGate;
 import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGateRegistration;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class ItemContributionGateRegistry implements Listener, AutoCloseable {
 
@@ -100,7 +102,7 @@ public final class ItemContributionGateRegistry implements Listener, AutoCloseab
 
     private void warnGateFailure(String id, RuntimeException exception) {
         if (logger != null) {
-            logger.log(Level.WARNING, "[registry] 物品属性贡献门控 '" + id + "' 执行失败; 按物品有效处理", exception);
+            LogTags.send(logger, LogTag.REGISTRY, Level.WARNING, "registry.item_contribution_gate_failed", Map.of("id", id), exception);
         }
     }
 

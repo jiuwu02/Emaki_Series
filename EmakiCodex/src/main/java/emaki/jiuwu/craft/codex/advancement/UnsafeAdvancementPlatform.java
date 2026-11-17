@@ -15,6 +15,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.advancement.Advancement;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.codex.log.CodexLogTag;
+import java.util.Map;
 
 @SuppressWarnings("deprecation")
 public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
@@ -52,7 +55,7 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
             }
             return loaded;
         } catch (Throwable throwable) {
-            logger.log(Level.WARNING, "[advancement] 注册成就 " + key + " 失败: " + throwable.getMessage());
+            LogTags.send(logger, CodexLogTag.ADVANCEMENT, Level.WARNING, "advancement.register_failed", Map.of("key", key, "error", throwable.getMessage()));
             return false;
         }
     }
@@ -65,7 +68,7 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
         try {
             return Bukkit.getAdvancement(key) != null;
         } catch (Throwable throwable) {
-            logger.log(Level.WARNING, "[advancement] 查询成就 " + key + " 失败: " + throwable.getMessage());
+            LogTags.send(logger, CodexLogTag.ADVANCEMENT, Level.WARNING, "advancement.query_failed", Map.of("key", key, "error", throwable.getMessage()));
             return false;
         }
     }
@@ -78,7 +81,7 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
         try {
             return Bukkit.getUnsafe().removeAdvancement(key);
         } catch (Throwable throwable) {
-            logger.log(Level.WARNING, "[advancement] 移除成就 " + key + " 失败: " + throwable.getMessage());
+            LogTags.send(logger, CodexLogTag.ADVANCEMENT, Level.WARNING, "advancement.remove_failed", Map.of("key", key, "error", throwable.getMessage()));
             return false;
         }
     }
@@ -115,8 +118,7 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
                 }
             }
         } catch (Throwable throwable) {
-            logger.log(Level.WARNING, "[advancement] 枚举命名空间 "
-                    + namespace + " 的成就失败: " + throwable.getMessage());
+            LogTags.send(logger, CodexLogTag.ADVANCEMENT, Level.WARNING, "advancement.enumerate_namespace_failed", Map.of("namespace", namespace, "error", throwable.getMessage()));
         }
         return keys;
     }
@@ -136,8 +138,7 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
                 }
                 Files.write(target.toPath(), json.getBytes(StandardCharsets.UTF_8));
             } catch (IOException | RuntimeException exception) {
-                logger.log(Level.WARNING, "[advancement] 将成就 " + key
-                        + " 镜像到世界 " + world.getName() + " 的单数目录失败: " + exception.getMessage());
+                LogTags.send(logger, CodexLogTag.ADVANCEMENT, Level.WARNING, "advancement.mirror_to_singular_dir_failed", Map.of("key", key, "world", world.getName(), "error", exception.getMessage()));
             }
         }
     }
@@ -183,7 +184,7 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
         try {
             Bukkit.reloadData();
         } catch (Throwable throwable) {
-            logger.log(Level.WARNING, "[advancement] reloadData 失败: " + throwable.getMessage());
+            LogTags.send(logger, CodexLogTag.ADVANCEMENT, Level.WARNING, "advancement.reload_data_failed", Map.of("error", throwable.getMessage()));
         }
     }
 }

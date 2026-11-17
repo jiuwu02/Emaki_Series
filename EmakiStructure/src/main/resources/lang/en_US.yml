@@ -2,7 +2,14 @@
 # Messages use MiniMessage; keep placeholders noted beside each message group
 # version is maintained by the resource sync flow to merge new default keys
 
-version: "1.0.9"
+version: "1.0.10"
+
+tags:
+  cache: '[ cache ]'
+  export: '[ export ]'
+  furniture: '[ furniture ]'
+  replace: '[ replace ]'
+  rollback: '[ rollback ]'
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#F97316>EmakiStructure</gradient> ]</gray>"
@@ -12,54 +19,54 @@ general:
   unknown_command: "<red>Unknown command, run /ems help for a list of commands</red>"
 
 console:
-  plugin_starting: "[startup] <gray>Starting...</gray>"
-  plugin_started: "[startup] <green>Startup complete</green>"
-  plugin_stopped: "[shutdown] <yellow>Disabled</yellow>"
-  bootstrap_start: "[loader] <gray>Synchronising bundled resources...</gray>"
-  bootstrap_skip: "[loader] Skipped default data installation as configured"
-  bootstrap_complete: "[loader] Bundled resource sync complete"
-  bootstrap_copy_failed: "[loader] Failed to copy bundled resource: %path%  (%error%)"
-  bootstrap_save_failed: "[loader] Failed to save versioned resource: %path%  (%error%)"
-  default_file_missing: "[loader] <yellow>Default resource missing, re-extracted: <white>%path%</white></yellow>"
-  directory_create_failed: "[loader] <red>Failed to create directory: <white>%path%</white> (%error%)</red>"
-  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  loader_config_load_error: "[loader] <yellow>Failed to load Structure config: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Startup complete</green>"
+  plugin_stopped: "<yellow>Disabled</yellow>"
+  bootstrap_start: "<gray>Synchronising bundled resources...</gray>"
+  bootstrap_skip: "Skipped default data installation as configured"
+  bootstrap_complete: "Bundled resource sync complete"
+  bootstrap_copy_failed: "Failed to copy bundled resource: %path%  (%error%)"
+  bootstrap_save_failed: "Failed to save versioned resource: %path%  (%error%)"
+  default_file_missing: "<yellow>Default resource missing, re-extracted: <white>%path%</white></yellow>"
+  directory_create_failed: "<red>Failed to create directory: <white>%path%</white> (%error%)</red>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  loader_config_load_error: "<yellow>Failed to load Structure config: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   # placeholders: %count%
-  templates_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> structure templates</gray>"
+  templates_loaded: "<gray>Loaded <yellow>%count%</yellow> structure templates</gray>"
   # placeholders: %path%, %value%, %expected%
-  config_issue: "[config] <yellow>Config key <white>%path%</white> value <white>%value%</white> is invalid  (expected <white>%expected%</white>), a valid value was applied</yellow>"
+  config_issue: "<yellow>Config key <white>%path%</white> value <white>%value%</white> is invalid  (expected <white>%expected%</white>), a valid value was applied</yellow>"
   # placeholders: %template%
-  cache_rejected: "[cache] <yellow>Template <white>%template%</white> exceeds the cache size limit, it will not be cached</yellow>"
+  cache_rejected: "<yellow>Template <white>%template%</white> exceeds the cache size limit, it will not be cached</yellow>"
   # placeholders: %count%
-  reload_complete: "[reload] <green>Reload complete, <white>%count%</white> structure templates</green>"
+  reload_complete: "<green>Reload complete, <white>%count%</white> structure templates</green>"
   # placeholders: %template%, %index%, %type%, %error%
-  spawn_entry_failed: "[spawn] <yellow>Template %template% entry #%index% failed to spawn %type%: %error%</yellow>"
+  spawn_entry_failed: "<yellow>Template %template% entry #%index% failed to spawn %type%: %error%</yellow>"
   # placeholders: %file%, %index%, %reason%
-  spawn_entry_issue: "[spawn] <yellow>Spawn point %file% entry #%index% skipped: %reason%</yellow>"
+  spawn_entry_issue: "<yellow>Spawn point %file% entry #%index% skipped: %reason%</yellow>"
   # placeholders: %file%, %error%
-  config_reload_failed: "[reload] <red>Failed to parse %file%, previous configuration kept running: %error%</red>"
+  config_reload_failed: "<red>Failed to parse %file%, previous configuration kept running: %error%</red>"
   # placeholders: %template%, %count%
-  template_legacy_skipped: "[loader] <yellow>Template <white>%template%</white> has %count% block states that cannot be parsed by the current version, skipped by legacy_policy</yellow>"
+  template_legacy_skipped: "<yellow>Template <white>%template%</white> has %count% block states that cannot be parsed by the current version, skipped by legacy_policy</yellow>"
   # placeholders: %source%
-  furniture_source_ready: "[loader] <gray>Furniture source connected: <aqua>%source%</aqua></gray>"
+  furniture_source_ready: "<gray>Furniture source connected: <aqua>%source%</aqua></gray>"
   # placeholders: %namespace%
-  custom_block_source_ready: "[loader] <gray>Custom block namespace connected: <aqua>%namespace%</aqua></gray>"
+  custom_block_source_ready: "<gray>Custom block namespace connected: <aqua>%namespace%</aqua></gray>"
   # placeholders: %template%, %structure%
-  replace_template_missing: "[replace] <yellow>Template <white>%template%</white> referenced by a replace rule does not exist  (structure %structure%), vanilla generation proceeds</yellow>"
+  replace_template_missing: "<yellow>Template <white>%template%</white> referenced by a replace rule does not exist  (structure %structure%), vanilla generation proceeds</yellow>"
   # placeholders: %count%
-  rollback_recovering: "[rollback] <yellow>Detected %count% unfinished transactions, startup rollback in progress, generation is temporarily unavailable</yellow>"
+  rollback_recovering: "<yellow>Detected %count% unfinished transactions, startup rollback in progress, generation is temporarily unavailable</yellow>"
   # placeholders: %count%
-  rollback_recovered: "[rollback] <green>Startup rollback complete, %count% transactions</green>"
+  rollback_recovered: "<green>Startup rollback complete, %count% transactions</green>"
   # placeholders: %file%
-  rollback_partial: "[rollback] <red>Transaction %file% could not be fully rolled back, marked rollback-partial  (visible via /ems debug), it will not be retried automatically</red>"
+  rollback_partial: "<red>Transaction %file% could not be fully rolled back, marked rollback-partial  (visible via /ems debug), it will not be retried automatically</red>"
   # placeholders: %template%, %index%, %id%
-  furniture_source_absent: "[furniture] <yellow>Template %template% furniture entry #%index%  (%id%) needs a furniture plugin that is not installed, skipped</yellow>"
+  furniture_source_absent: "<yellow>Template %template% furniture entry #%index%  (%id%) needs a furniture plugin that is not installed, skipped</yellow>"
   # placeholders: %template%, %index%, %id%
-  furniture_place_failed: "[furniture] <yellow>Template %template% furniture entry #%index%  (%id%) failed to place, entry skipped</yellow>"
+  furniture_place_failed: "<yellow>Template %template% furniture entry #%index%  (%id%) failed to place, entry skipped</yellow>"
   # placeholders: %file%, %index%, %reason%
-  furniture_entry_issue: "[furniture] <yellow>Furniture point %file% entry #%index% skipped: %reason%</yellow>"
+  furniture_entry_issue: "<yellow>Furniture point %file% entry #%index% skipped: %reason%</yellow>"
   # placeholders: none
-  export_furniture_absent: "[export] <gray>0 furniture captured  (no furniture plugin present), any existing furniture companion file was left untouched</gray>"
+  export_furniture_absent: "<gray>0 furniture captured  (no furniture plugin present), any existing furniture companion file was left untouched</gray>"
   # placeholders: none
 
 command:
@@ -366,3 +373,47 @@ debug:
   highlight_destroy: "Selection highlight cleared: player %player%, %edges% edges, box %box%, world %world%"
   # placeholders: %player%, %edges%, %box%, %player_position%, %view_distance%
   highlight_first_render: "Selection highlight first render: player %player%, %edges% edges, box %box%, player position %player_position%, view distance %view_distance%"
+generate:
+  post_processing_task_submit_failed: "Failed to submit post-generation task: %error%"
+  furniture_journal_write_failed: "Failed to write rollback journal for furniture %template%"
+  template_entity_generation_failed: "Template entity generation failed for %type%: %error%"
+  template_entity_journal_write_failed: "Failed to write rollback journal for template entity %type%"
+  post_processing_skipped_after_journal_failure: "Rollback journal write failed earlier; skipping post-generation processing, transaction %transaction%"
+  rollback_journal_commit_failed: "Rollback journal commit failed; transaction %transaction% aborted, template %template%"
+  write_budget_throttled: "TPS below threshold; generation write budget reduced to %limit%/%budget%"
+  batch_write_failed: "Failed to write generation batch: %error%"
+  batch_submit_failed: "Failed to submit generation batch: %error%"
+  journal_create_failed: "Failed to create journal: %error%"
+  precheck_task_submit_failed: "Failed to submit generation pre-check task: %error%"
+  precheck_callback_submit_failed: "Failed to submit generation pre-check callback: %error%"
+multiblock:
+  candidate_check_task_failed: "Multiblock candidate check task error: %error%"
+  entity_change_block_detection_error: "Multiblock entity-change-block detection error: %error%"
+  burn_detection_error: "Multiblock burn detection error: %error%"
+  explosion_detection_error: "Multiblock explosion detection error: %error%"
+  piston_detection_error: "Multiblock piston detection error: %error%"
+  break_detection_error: "Multiblock break detection error: %error%"
+  place_detection_error: "Multiblock place detection error: %error%"
+  interact_listener_error: "Multiblock interaction listener error: %error%"
+  sample_recheck_failed: "Sample recheck failed for %instance%: %error%"
+  action_execution_failed: "Multiblock action execution failed for %id%: %error%"
+  trigger_bus_event_publish_failed: "Failed to publish multiblock trigger bus event for %id%: %error%"
+  trigger_event_dispatch_failed: "Failed to dispatch multiblock trigger event for %id%: %error%"
+  trigger_failed: "Multiblock trigger failed for %instance%: %error%"
+  instance_verification_failed: "Multiblock instance verification failed for %instance%: %error%"
+rollback:
+  partial_marker_write_failed: "Failed to mark rollback-partial for %file%: %error%"
+  unfinished_transaction_rolled_back: "Rolled back unfinished transaction %transaction%"
+  journal_read_failed: "Journal read failed for %file%: %error%"
+  journal_scan_failed: "Journal scan failed: %error%"
+  journal_commit_failed_kept_and_compensated: "Rollback journal commit failed; the journal is kept and a compensating rollback runs immediately, file %file%"
+  journal_delete_failed_kept_for_startup: "Failed to delete rollback journal; the journal is kept for the next startup, file %file%"
+  journal_not_reliably_flushed: "Rollback journal was not flushed reliably; rolling back with existing content anyway, file %file%"
+selection:
+  highlight_create_failed: "Failed to create selection outline: %error%"
+spawn:
+  journal_write_failed: "Failed to write mob rollback journal for %template%"
+  execution_error: "Mob spawn exception"
+  soft_dependency_entry_unavailable: "Soft-dependency mob spawn entry point unavailable: %error%"
+  batch_submit_error: "Mob spawn batch submission threw an exception"
+  batch_submit_failed: "Failed to submit mob spawn batch at coordinates %x%,%y%,%z%"

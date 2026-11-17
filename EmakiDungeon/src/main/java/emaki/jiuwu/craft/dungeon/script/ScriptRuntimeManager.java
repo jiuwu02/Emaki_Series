@@ -40,6 +40,7 @@ import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class ScriptRuntimeManager implements AutoCloseable {
 
@@ -90,9 +91,9 @@ public final class ScriptRuntimeManager implements AutoCloseable {
     public void startup() {
         AppConfig appConfig = config.get();
         if (!appConfig.scriptEnabled()) {
-            messages.info("console.script_disabled");
+            messages.info(LogTag.SCRIPT, "console.script_disabled");
         } else if (!ScriptHost.isEngineAvailable()) {
-            messages.warning("console.script_engine_unavailable");
+            messages.warning(LogTag.SCRIPT, "console.script_engine_unavailable");
         } else {
             engine = Engine.newBuilder(LANGUAGE_ID)
                     .option("engine.WarnInterpreterOnly", "false")
@@ -135,7 +136,7 @@ public final class ScriptRuntimeManager implements AutoCloseable {
             try {
                 source = Files.readString(file.toPath());
             } catch (IOException exception) {
-                messages.warning("console.script_load_failed", Map.of(
+                messages.warning(null, "console.script_load_failed", Map.of(
                         "instance", instance.instanceId(),
                         "error", String.valueOf(exception.getMessage())));
                 return null;
@@ -147,7 +148,7 @@ public final class ScriptRuntimeManager implements AutoCloseable {
                 engine, messages, debug, watchdog,
                 appConfig.scriptTimeoutMs(), appConfig.scriptFailOnError(), scriptName, audit);
         if (!session.load(source)) {
-            messages.warning("console.script_load_failed", Map.of(
+            messages.warning(null, "console.script_load_failed", Map.of(
                     "instance", instance.instanceId(),
                     "error", session.lastError()));
             session.close();
@@ -314,7 +315,7 @@ public final class ScriptRuntimeManager implements AutoCloseable {
             try {
                 registered.handler().handle(registered.triggerId(), merged);
             } catch (RuntimeException exception) {
-                messages.warning("console.script_api_failed", Map.of(
+                messages.warning(null, "console.script_api_failed", Map.of(
                         "trigger", registered.triggerId(),
                         "error", String.valueOf(exception.getMessage())));
             }

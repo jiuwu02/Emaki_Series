@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class LanguageLoader {
 
@@ -145,7 +146,7 @@ public final class LanguageLoader {
         }
         LogMessages messages = messages();
         if (messages != null) {
-            messages.info("console.versioned_file_updated", Map.of(
+            messages.info(LogTag.LOADER, "console.versioned_file_updated", Map.of(
                     "path", languageDirectory + "/" + target.getName(),
                     "old_version", versionedFile.previousVersion().isBlank() ? "未知" : versionedFile.previousVersion(),
                     "new_version", versionedFile.updatedVersion()
@@ -245,7 +246,7 @@ public final class LanguageLoader {
     private void warning(String key, Map<String, ?> replacements) {
         LogMessages messages = messages();
         if (messages != null) {
-            messages.warning(key, replacements);
+            messages.warning(LogTag.LOADER, key, replacements);
         }
     }
 }

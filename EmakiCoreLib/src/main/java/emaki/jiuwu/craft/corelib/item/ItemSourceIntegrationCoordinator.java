@@ -25,6 +25,9 @@ import emaki.jiuwu.craft.corelib.api.itemsource.LifecycleState;
 import emaki.jiuwu.craft.corelib.api.itemsource.LifecycleStatus;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class ItemSourceIntegrationCoordinator implements Listener, AutoCloseable {
 
@@ -158,7 +161,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
                 default -> null;
             };
         } catch (LinkageError exception) {
-            messageService.warning("console.item_source_bridge_incompatible", Map.of(
+            messageService.warning(LogTag.INTEGRATION, "console.item_source_bridge_incompatible", Map.of(
                     "library", pluginName,
                     "detail", defaultIncompatibleDetail(pluginName, exception.getMessage())
             ));
@@ -185,16 +188,16 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
                 return;
             }
             case READY ->
-                messageService.info("console.item_source_bridge_ready", Map.of(
+                messageService.info(LogTag.INTEGRATION, "console.item_source_bridge_ready", Map.of(
                         "library", provider.providerPluginName()
                 ));
             case WAITING ->
-                messageService.info("console.item_source_bridge_waiting", Map.of(
+                messageService.info(LogTag.INTEGRATION, "console.item_source_bridge_waiting", Map.of(
                         "library", provider.providerPluginName(),
                         "detail", defaultWaitingDetail(provider.providerPluginName(), status.detail())
                 ));
             case INCOMPATIBLE ->
-                messageService.warning("console.item_source_bridge_incompatible", Map.of(
+                messageService.warning(LogTag.INTEGRATION, "console.item_source_bridge_incompatible", Map.of(
                         "library", provider.providerPluginName(),
                         "detail", defaultIncompatibleDetail(provider.providerPluginName(), status.detail())
                 ));
@@ -265,9 +268,9 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
 
     private void warnCloseFailed(String detail) {
         try {
-            messageService.warning("console.item_source_bridge_close_failed", Map.of("detail", detail));
+            messageService.warning(LogTag.ITEM_SOURCE, "console.item_source_bridge_close_failed", Map.of("detail", detail));
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("[item-source] 来源注册关闭失败: " + detail);
+            LogTags.send(plugin, LogTag.ITEM_SOURCE, Level.WARNING, "item-source.registration_close_failed", Map.of("detail", detail));
         }
     }
 

@@ -8,6 +8,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class ItemStageRegistrar {
 
@@ -34,8 +38,7 @@ public final class ItemStageRegistrar {
         if (registration.successful()) {
             handles.add(registration);
         } else {
-            plugin.getLogger().warning("[startup] 注册管线动作段 '" + id
-                    + "' 失败: " + registration.reasonKey());
+            LogTags.send(plugin, LogTag.STARTUP, Level.WARNING, "startup.pipeline_action_stage_registration_failed", Map.of("stage", id, "reason", registration.reasonKey()));
         }
     }
 

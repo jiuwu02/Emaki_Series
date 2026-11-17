@@ -10,6 +10,9 @@ import java.util.function.Function;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class EditorEditService {
 
@@ -71,8 +74,7 @@ public final class EditorEditService {
             if (result.saved()) {
                 pendingFlushes.remove(entry.getKey());
             } else {
-                plugin.getLogger().warning("[editor] 编辑器延迟写入未持久化 " + entry.getKey()
-                        + ": " + result.detail());
+                LogTags.send(plugin, LogTag.EDITOR, Level.WARNING, "editor.deferred_write_not_persisted", Map.of("path", entry.getKey(), "detail", result.detail()));
             }
         }
     }

@@ -37,7 +37,10 @@ import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import me.clip.placeholderapi.PlaceholderAPI;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class PdcAttributeService implements PdcAttributeAccess {
 
@@ -121,7 +124,7 @@ public final class PdcAttributeService implements PdcAttributeAccess {
             return EmakiResult.invalidInput("attribute.pdc.write_input_invalid");
         }
         if (!isRegisteredSource(payload.sourceId())) {
-            plugin.getLogger().warning("[persistence] 忽略未注册来源的 PDC 属性写入: " + payload.sourceId());
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.pdc_attribute_write_unregistered_source", Map.of("source", payload.sourceId()));
             return EmakiResult.rejected("attribute.pdc.source_not_registered");
         }
         try {

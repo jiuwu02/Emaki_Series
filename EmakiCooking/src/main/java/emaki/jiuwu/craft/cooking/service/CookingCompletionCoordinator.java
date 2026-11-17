@@ -42,6 +42,9 @@ import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.Unit;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitKind;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitState;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionRecoveryPlanner.NextStep;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.cooking.log.CookingLogTag;
+import java.util.logging.Level;
 
 public final class CookingCompletionCoordinator {
 
@@ -121,22 +124,20 @@ public final class CookingCompletionCoordinator {
             operation = prepareOperation(request);
         } catch (Throwable error) {
             activeByStation.remove(stationKey, operationId);
-            logger.warning("[completion] 准备烹饪完成失败, 位置 " + stationKey + ": " + rootCauseMessage(error));
+            LogTags.send(logger, CookingLogTag.COMPLETION, Level.WARNING, "completion.prepare_completion_failed", Map.of("station", stationKey, "error", rootCauseMessage(error)));
             return false;
         }
 
         journalStore.createIfAbsent(operation).whenComplete((created, error) -> {
             if (error != null || created == null) {
                 activeByStation.remove(stationKey, operationId);
-                logger.warning("[completion] 持久化 PREPARED 烹饪完成失败 " + operationId + ": "
-                        + rootCauseMessage(error));
+                LogTags.send(logger, CookingLogTag.COMPLETION, Level.WARNING, "completion.persist_prepared_completion_failed", Map.of("operation", operationId, "error", rootCauseMessage(error)));
                 return;
             }
             install(created);
             triggerAdvance(created.operationId());
         }).exceptionally(error -> {
-            logger.warning("[completion] 启动烹饪完成时发生未处理失败 " + operationId + ": "
-                    + rootCauseMessage(error));
+            LogTags.send(logger, CookingLogTag.COMPLETION, Level.WARNING, "completion.start_completion_unhandled_failure", Map.of("operation", operationId, "error", rootCauseMessage(error)));
             return null;
         });
         return true;
@@ -280,8 +281,7 @@ public final class CookingCompletionCoordinator {
             return taskScheduler.runAtLocation(
                     plugin, location, () -> advanceOnOwnerThread(operationId)) != null;
         } catch (Throwable error) {
-            logger.warning("[completion] 调度烹饪完成推进失败 " + operationId + ": "
-                    + rootCauseMessage(error));
+            LogTags.send(logger, CookingLogTag.COMPLETION, Level.WARNING, "completion.schedule_advance_failed", Map.of("operation", operationId, "error", rootCauseMessage(error)));
             return false;
         }
     }
@@ -301,8 +301,7 @@ public final class CookingCompletionCoordinator {
             if (error != null) {
                 CookingCompletionOperation operation = operations.get(operationId);
                 if (operation == null) {
-                    logger.warning("[completion] 烹饪完成推进失败 " + operationId + ": "
-                            + rootCauseMessage(error));
+                    LogTags.send(logger, CookingLogTag.COMPLETION, Level.WARNING, "completion.advance_failed", Map.of("operation", operationId, "error", rootCauseMessage(error)));
                     return;
                 }
                 save(operation.withError(rootCauseMessage(error))).whenComplete((_, saveError) -> scheduleRetry(operationId));
@@ -383,9 +382,7 @@ public final class CookingCompletionCoordinator {
     private CompletableFuture<CookingCompletionOperation> abandonUnavailableInput(
             CookingCompletionOperation operation,
             Unit unit) {
-        logger.warning("[completion] 放弃烹饪完成 " + operation.operationId()
-                + ", 经 " + unit.attempts() + " 次尝试后所需物品栏输入始终不可用"
-                + " (未消耗任何物品, 工位状态未变)");
+        LogTags.send(logger, CookingLogTag.COMPLETION, Level.WARNING, "completion.abandon_completion_input_unavailable", Map.of("operation", operation.operationId(), "attempts", unit.attempts()));
         debugCompletion("station.completion_input_abandoned", Map.of(
                 "operation", operation.operationId(),
                 "station", operation.stationCoordinates().runtimeKey(),
@@ -608,7 +605,7 @@ public final class CookingCompletionCoordinator {
             CookingCompletionOperation operation,
             String error) {
         String reason = Texts.isBlank(error) ? "烹饪完成恢复拒绝了操作" : error;
-        logger.warning("[completion] 隔离烹饪完成 " + operation.operationId() + ": " + reason);
+        LogTags.send(logger, CookingLogTag.COMPLETION, Level.WARNING, "completion.quarantine_completion", Map.of("operation", operation.operationId(), "reason", reason));
         debugCompletion("station.completion_quarantined", Map.of(
                 "operation", operation.operationId(),
                 "station", operation.stationCoordinates().runtimeKey(),

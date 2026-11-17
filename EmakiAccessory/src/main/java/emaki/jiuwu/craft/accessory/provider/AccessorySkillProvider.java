@@ -13,6 +13,9 @@ import emaki.jiuwu.craft.accessory.model.AccessoryContributionSnapshot;
 import emaki.jiuwu.craft.accessory.service.AccessoryContributionService;
 import emaki.jiuwu.craft.skills.api.SkillSourceEntry;
 import emaki.jiuwu.craft.skills.api.SkillSourceProvider;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class AccessorySkillProvider implements SkillSourceProvider {
 
@@ -45,7 +48,7 @@ public final class AccessorySkillProvider implements SkillSourceProvider {
             return entries;
         } catch (RuntimeException exception) {
             if (logger != null) {
-                logger.warning("[integration] 饰品技能收集失败: " + exception.getMessage());
+                LogTags.send(logger, LogTag.INTEGRATION, Level.WARNING, "integration.accessory_skill_collect_failed", Map.of("error", exception.getMessage()));
             }
             return List.of();
         }

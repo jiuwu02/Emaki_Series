@@ -11,6 +11,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
 import emaki.jiuwu.craft.storage.model.PlayerStorage;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class StoragePlayerListener implements Listener {
 
@@ -27,7 +28,7 @@ public final class StoragePlayerListener implements Listener {
         plugin.dataStore().beginSessionAsync(player.getUniqueId(), player.getName())
                 .whenComplete((loaded, throwable) -> {
                     if (throwable != null) {
-                        plugin.messageService().warning("console.storage_load_failed", Map.of(
+                        plugin.messageService().warning(LogTag.PERSISTENCE, "console.storage_load_failed", Map.of(
                                 "player", player.getName(),
                                 "reason", throwable.getClass().getSimpleName()));
                         return;

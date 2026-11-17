@@ -27,6 +27,8 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 import emaki.jiuwu.craft.cooking.model.PlayerNutritionData;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class PlayerNutritionDataStore {
 
@@ -485,10 +487,10 @@ public final class PlayerNutritionDataStore {
     }
 
     private void logLoadFailure(UUID uuid, Throwable throwable) {
-        logger.log(Level.WARNING, "[persistence] 加载玩家营养数据失败: " + uuid, AsyncFailures.unwrap(throwable));
+        LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.load_player_nutrition_data_failed", Map.of("player", uuid), AsyncFailures.unwrap(throwable));
     }
 
     private void logSaveFailure(UUID uuid, Throwable throwable) {
-        logger.log(Level.WARNING, "[persistence] 保存玩家营养数据失败: " + uuid, AsyncFailures.unwrap(throwable));
+        LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.save_player_nutrition_data_failed", Map.of("player", uuid), AsyncFailures.unwrap(throwable));
     }
 }

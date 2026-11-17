@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.log.DungeonLogTag;
 
 public final class RewardBoxStore {
 
@@ -95,7 +96,7 @@ public final class RewardBoxStore {
             try {
                 saved = update(playerId, mutator);
             } catch (RuntimeException failure) {
-                messages.warning("console.rewardbox_update_failed", Map.of(
+                messages.warning(DungeonLogTag.REWARDBOX, "console.rewardbox_update_failed", Map.of(
                         "player", String.valueOf(playerId),
                         "cause", describe(failure)));
                 saved = false;
@@ -103,7 +104,7 @@ public final class RewardBoxStore {
             future.complete(saved);
         });
         if (token == null || token.cancelled()) {
-            messages.warning("console.rewardbox_update_rejected", Map.of(
+            messages.warning(DungeonLogTag.REWARDBOX, "console.rewardbox_update_rejected", Map.of(
                     "player", String.valueOf(playerId)));
             future.complete(Boolean.FALSE);
             return future;
@@ -131,7 +132,7 @@ public final class RewardBoxStore {
                         pendingWrites.values().removeAll(pending);
                         return Boolean.TRUE;
                     }
-                    messages.warning("console.rewardbox_drain_unsettled", Map.of(
+                    messages.warning(DungeonLogTag.REWARDBOX, "console.rewardbox_drain_unsettled", Map.of(
                             "count", String.valueOf(unsettled),
                             "reason", describe(throwable)));
                     return Boolean.FALSE;
@@ -179,7 +180,7 @@ public final class RewardBoxStore {
             YamlFiles.save(file, values);
             return true;
         } catch (IOException exception) {
-            messages.warning("console.rewardbox_save_failed", Map.of(
+            messages.warning(DungeonLogTag.REWARDBOX, "console.rewardbox_save_failed", Map.of(
                     "player", String.valueOf(playerId),
                     "file", String.valueOf(file.getAbsolutePath()),
                     "error", String.valueOf(exception.getMessage())));

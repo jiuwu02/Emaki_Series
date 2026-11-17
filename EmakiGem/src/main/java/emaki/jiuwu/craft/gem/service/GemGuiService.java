@@ -19,6 +19,9 @@ import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class GemGuiService {
 
@@ -57,7 +60,7 @@ public final class GemGuiService {
             return false;
         }
         if (!scheduling.ownsEntity(player)) {
-            plugin.getLogger().warning("[gui] 无法在玩家所有权之外打开宝石 GUI: " + player.getUniqueId());
+            LogTags.send(plugin, LogTag.GUI, Level.WARNING, "gui.open_gem_gui_outside_player_ownership", Map.of("player", player.getUniqueId()));
             return false;
         }
         return switch (normalizeMode(mode)) {
@@ -75,7 +78,7 @@ public final class GemGuiService {
             return false;
         }
         if (!scheduling.ownsEntity(player)) {
-            plugin.getLogger().warning("[gui] 无法在玩家所有权之外打开开孔 GUI: " + player.getUniqueId());
+            LogTags.send(plugin, LogTag.GUI, Level.WARNING, "gui.open_socket_gui_outside_player_ownership", Map.of("player", player.getUniqueId()));
             return false;
         }
         return openSocket(player, initialTarget, null);
@@ -242,7 +245,7 @@ public final class GemGuiService {
             return;
         }
         if (!scheduling.ownsEntity(player) && player.isOnline()) {
-            plugin.getLogger().warning("[gui] 无法在玩家所有权之外关闭宝石 GUI: " + player.getUniqueId());
+            LogTags.send(plugin, LogTag.GUI, Level.WARNING, "gui.close_gem_gui_outside_player_ownership", Map.of("player", player.getUniqueId()));
             return;
         }
         guiService.close(player.getUniqueId());

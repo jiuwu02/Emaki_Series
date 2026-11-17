@@ -14,6 +14,7 @@ import java.io.IOException;
 import org.bukkit.plugin.java.JavaPlugin;
 import java.util.Map;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class TemplateRepository {
 
@@ -97,7 +98,7 @@ public final class TemplateRepository {
                 YamlFiles.copyResourceIfMissing(
                         plugin, "world/default_config.yml", configFile);
             } catch (IOException exception) {
-                messages.warning("console.default_config_copy_failed", Map.of(
+                messages.warning(LogTag.EDITOR, "console.default_config_copy_failed", Map.of(
                         "dungeon", String.valueOf(child.getName()),
                         "error", String.valueOf(exception.getMessage())));
             }

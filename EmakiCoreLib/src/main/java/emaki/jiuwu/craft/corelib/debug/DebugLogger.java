@@ -17,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class DebugLogger {
@@ -214,11 +215,12 @@ public final class DebugLogger {
     private void logConsole(String langKey, Map<String, ?> replacements) {
         String template = resolveTemplate(langKey);
         if (Texts.isBlank(template) || langKey.equals(template)) {
-            template = "<gray>[调试][<aqua>%module%</aqua>]</gray> %message%";
+            template = "<gray>[ <aqua>%module%</aqua> ]</gray> %message%";
         }
         String message = replacements == null || replacements.isEmpty()
                 ? template
                 : Texts.formatTemplate(template, replacements);
+        message = LogTags.head(logger, "debug") + " " + message;
         if (plugin != null && plugin.isEnabled()) {
             Bukkit.getConsoleSender().sendMessage(MiniMessages.parse(withPrefix(message)));
             return;

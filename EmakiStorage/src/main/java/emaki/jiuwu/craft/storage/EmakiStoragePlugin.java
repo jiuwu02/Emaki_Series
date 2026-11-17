@@ -72,6 +72,8 @@ import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.storage.editor.StorageEditorModule;
 import emaki.jiuwu.craft.storage.listener.StorageAutoPickupListener;
 import emaki.jiuwu.craft.storage.service.StorageAutoPickupService;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider {
@@ -140,7 +142,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII,
                 STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
-        messageService.info("console.plugin_starting");
+        messageService.info(LogTag.STARTUP, "console.plugin_starting");
         bootstrapService.bootstrap();
         registerActions();
 
@@ -153,7 +155,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         EmakiStorageApi.install(apiBridge);
         publishCapabilities();
         metrics = coreLib().registerBStats(this, BSTATS_PLUGIN_ID);
-        messageService.info("console.plugin_started");
+        messageService.info(LogTag.STARTUP, "console.plugin_started");
     }
 
     private void publishCapabilities() {
@@ -162,7 +164,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 ApiCapability.of("emakistorage:batch_count"),
                 ApiCapability.of("emakistorage:reservation")));
         if (!capabilityRegistration.successful()) {
-            messageService.warning("console.capability_refused",
+            messageService.warning(LogTag.INTEGRATION, "console.capability_refused",
                     Map.of("reason", String.valueOf(capabilityRegistration.reasonKey())));
         }
     }
@@ -205,10 +207,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (dataStore != null) {
             PlayerStorageStore.FlushResult result = dataStore.flushAndSeal(drainTimeout, TimeUnit.SECONDS);
             if (!result.clean()) {
-                getLogger().warning("[shutdown] 关闭刷新未干净完成: saved="
-                        + result.savedEntries() + " failed=" + result.failedEntries()
-                        + " remainingDirty=" + result.remainingDirtyEntries()
-                        + " drained=" + (result.drainResult() != null && result.drainResult().drained()));
+                LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.close_flush_not_clean", Map.of("saved", result.savedEntries(), "failed", result.failedEntries(), "remaining_dirty", result.remainingDirtyEntries(), "drained", (result.drainResult() != null && result.drainResult().drained())));
             }
         }
         reportLogDrain(logDrain, drainTimeout);
@@ -218,12 +217,11 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private void reportLogDrain(CompletableFuture<StorageOperationLog.DrainReport> drain, long timeoutSeconds) {
         StorageOperationLog.DrainReport report = awaitLogDrain(drain, timeoutSeconds);
         if (report == null) {
-            getLogger().warning("[shutdown] 存储日志落盘在 " + timeoutSeconds + " 秒内未完成, 停服结果不完整");
+            LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.log_flush_timed_out", Map.of("timeout", timeoutSeconds));
             return;
         }
         if (!report.drained()) {
-            getLogger().warning("[shutdown] 存储日志未干净落盘: written=" + report.entriesWritten()
-                    + " pending=" + report.pendingEntries());
+            LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.log_flush_dirty", Map.of("written", report.entriesWritten(), "pending", report.pendingEntries()));
         }
     }
 
@@ -236,14 +234,14 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             return drain.get(Math.max(0L, timeoutSeconds), TimeUnit.SECONDS);
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
-            getLogger().warning("[shutdown] 等待存储日志落盘时被中断");
+            LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.log_flush_wait_interrupted");
             return null;
         } catch (ExecutionException | CancellationException failure) {
             Throwable cause = failure.getCause() == null ? failure : failure.getCause();
-            getLogger().log(Level.WARNING, "[shutdown] 存储日志落盘失败: " + cause, cause);
+            LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.log_flush_failed", Map.of("error", cause), cause);
             return null;
         } catch (TimeoutException timeout) {
-            getLogger().log(Level.WARNING, "[shutdown] 存储日志落盘等待超时: " + timeout, timeout);
+            LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.log_flush_wait_timeout", Map.of("error", timeout), timeout);
             return null;
         }
     }
@@ -281,7 +279,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         try {
             action.accept(EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class));
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
+            LogTags.send(getLogger(), LogTag.STARTUP, Level.FINE, "startup.readiness_publish_skipped", Map.of("error", exception));
         }
     }
 
@@ -359,11 +357,11 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         try {
             placeholderExpansion = new StoragePlaceholderExpansion(this);
             if (!placeholderExpansion.register()) {
-                messageService.warning("console.papi_registration_refused");
+                messageService.warning(LogTag.INTEGRATION, "console.papi_registration_refused");
                 placeholderExpansion = null;
             }
         } catch (RuntimeException | LinkageError failure) {
-            messageService.warning("console.papi_unavailable",
+            messageService.warning(LogTag.INTEGRATION, "console.papi_unavailable",
                     Map.of("reason", failure.getClass().getSimpleName()));
             placeholderExpansion = null;
         }
@@ -564,7 +562,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 YamlFiles.save(target.toFile(), dump);
                 return "exports/" + fileName;
             } catch (IOException failure) {
-                messageService.warning("console.export_failed", Map.of(
+                messageService.warning(LogTag.COMMAND, "console.export_failed", Map.of(
                         "player", playerId,
                         "error", String.valueOf(failure.getMessage())));
                 return null;

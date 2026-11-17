@@ -16,6 +16,10 @@ import emaki.jiuwu.craft.corelib.item.PlayerItemRefreshService;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class StrengthenRefreshService implements PlayerItemRefreshService {
 
@@ -50,11 +54,10 @@ public final class StrengthenRefreshService implements PlayerItemRefreshService 
             try {
                 if (executionDispatcher.runEntity(
                         plugin, player, () -> refreshPlayerInventory(player)) == null) {
-                    plugin.getLogger().warning("[scheduler] 玩家刷新的调度被拒绝: " + player.getUniqueId());
+                    LogTags.send(plugin, LogTag.SCHEDULER, Level.WARNING, "scheduler.player_refresh_schedule_rejected", Map.of("player", player.getUniqueId()));
                 }
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("[scheduler] 调度玩家刷新失败: " + player.getUniqueId()
-                        + ": " + throwable.getMessage());
+                LogTags.send(plugin, LogTag.SCHEDULER, Level.WARNING, "scheduler.schedule_player_refresh_failed", Map.of("player", player.getUniqueId(), "error", throwable.getMessage()));
             }
         }
     }
@@ -167,13 +170,12 @@ public final class StrengthenRefreshService implements PlayerItemRefreshService 
         try {
             ItemStack rebuilt = attemptService.rebuild(itemStack);
             if (rebuilt == null) {
-                plugin.getLogger().warning("[refresh] 刷新失败: rebuild 返回 null | material=" + itemStack.getType().name());
+                LogTags.send(plugin, LogTag.REFRESH, Level.WARNING, "refresh.rebuild_returned_null", Map.of("item", itemStack.getType().name()));
                 return itemStack;
             }
             return rebuilt;
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("[refresh] 刷新失败: rebuild 抛出异常 | material=" + itemStack.getType().name()
-                    + " | error=" + exception.getMessage());
+            LogTags.send(plugin, LogTag.REFRESH, Level.WARNING, "refresh.rebuild_threw", Map.of("item", itemStack.getType().name(), "error", exception.getMessage()));
             return itemStack;
         }
     }

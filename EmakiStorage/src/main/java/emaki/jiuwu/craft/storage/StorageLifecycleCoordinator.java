@@ -44,6 +44,9 @@ import emaki.jiuwu.craft.storage.config.AutoPickupConfig;
 import emaki.jiuwu.craft.storage.config.InputModeConfig;
 import emaki.jiuwu.craft.storage.editor.StorageEditorModule;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import java.util.logging.Level;
 
 final class StorageLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiStoragePlugin, StorageRuntimeComponents> {
@@ -172,7 +175,7 @@ final class StorageLifecycleCoordinator
                 plugin.layoutResolver().resolve(plugin.guiTemplateLoader(), config.gui().storageRows());
         plugin.storageGuiService().reconfigure(config, layout);
         for (String issue : plugin.guiTemplateLoader().issues()) {
-            plugin.messageService().warning("console.gui_issue", Map.of("issue", issue));
+            plugin.messageService().warning(null, "console.gui_issue", Map.of("issue", issue));
         }
         plugin.operationLog().purgeExpired();
         return templates;
@@ -189,7 +192,7 @@ final class StorageLifecycleCoordinator
             return AppConfig.defaults();
         }
         Consumer<String> issues =
-                issue -> plugin.getLogger().warning("[配置] " + issue);
+                issue -> LogTags.send(plugin, LogTag.CONFIG, Level.WARNING, "config.issue_reported", Map.of("message", issue));
         return new AppConfig(
                 configuration.getString("language", "zh_CN"),
                 configuration.getString("version", AppConfig.CURRENT_VERSION),
@@ -366,7 +369,7 @@ final class StorageLifecycleCoordinator
         YamlSection section = YamlFiles.load(plugin.dataPath(fileName).toFile());
         if (section == null || section.isEmpty()) {
             if (reportMissingFile) {
-                plugin.messageService().warning("console.cost_file_missing", Map.of("file", fileName));
+                plugin.messageService().warning(LogTag.ECONOMY, "console.cost_file_missing", Map.of("file", fileName));
             }
             return UnlockCostConfig.empty();
         }
@@ -401,14 +404,14 @@ final class StorageLifecycleCoordinator
         String range = ConfigNodes.string(raw, "count_range", null);
         int[] bounds = parseRange(range);
         if (bounds == null) {
-            plugin.messageService().warning("console.unlock_tier_invalid_range",
+            plugin.messageService().warning(LogTag.ECONOMY, "console.unlock_tier_invalid_range",
                     Map.of("range", String.valueOf(range)));
             return null;
         }
         UnlockCostConfig.CurrencyCost currency = parseCurrency(ConfigNodes.get(raw, "currency"));
         UnlockCostConfig.ItemCost item = parseItem(ConfigNodes.get(raw, "item"));
         if (currency == null && item == null) {
-            plugin.messageService().warning("console.unlock_tier_no_price", Map.of("range", range));
+            plugin.messageService().warning(LogTag.ECONOMY, "console.unlock_tier_no_price", Map.of("range", range));
             return null;
         }
         return new UnlockCostConfig.Tier(bounds[0], bounds[1], currency, item);
@@ -425,7 +428,7 @@ final class StorageLifecycleCoordinator
         }
         Double maxAmount = section.getDouble("max_amount", null);
         if (maxAmount == null || maxAmount <= 0.0D) {
-            plugin.messageService().warning("console.unlock_fallback_invalid");
+            plugin.messageService().warning(LogTag.ECONOMY, "console.unlock_fallback_invalid");
             return null;
         }
         return new UnlockCostConfig.Fallback(currency, item, maxAmount);
@@ -515,10 +518,7 @@ final class StorageLifecycleCoordinator
         }
         if (section.contains(legacyPath)) {
             long legacyValue = longValue(section, legacyPath, fallback);
-            JavaPlugin.getPlugin(EmakiStoragePlugin.class).getLogger().warning("[配置] 配置键 " + legacyPath
-                    + " 已更名为 " + path
-                    + ", 当前按旧键值 " + legacyValue
-                    + " 生效, 启动时会自动迁移到新键");
+            LogTags.send(JavaPlugin.getPlugin(EmakiStoragePlugin.class), LogTag.CONFIG, Level.WARNING, "config.legacy_key_renamed", Map.of("legacy_key", legacyPath, "key", path, "value", legacyValue));
             return legacyValue;
         }
         return fallback;

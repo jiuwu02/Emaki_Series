@@ -68,6 +68,9 @@ import emaki.jiuwu.craft.item.service.ItemBrowserGuiService;
 import emaki.jiuwu.craft.item.service.ItemRepairGuiService;
 import emaki.jiuwu.craft.item.service.ItemRepairService;
 import emaki.jiuwu.craft.item.service.ItemSetLoreRenderer;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiItemPlugin, ItemRuntimeComponents> {
 
@@ -325,9 +328,9 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         plugin.setService().clearAllCachedState();
         reloadScriptBridge(plugin);
         if (plugin.messageService() != null && reloadAllowed(allowed)) {
-            plugin.messageService().info("console.items_loaded", Map.of("count", loadedItems));
-            plugin.messageService().info("console.sets_loaded", Map.of("count", loadedSets));
-            plugin.messageService().info("console.aliases_loaded", Map.of("count", loadedAliases));
+            plugin.messageService().info(LogTag.LOADER, "console.items_loaded", Map.of("count", loadedItems));
+            plugin.messageService().info(LogTag.LOADER, "console.sets_loaded", Map.of("count", loadedSets));
+            plugin.messageService().info(LogTag.LOADER, "console.aliases_loaded", Map.of("count", loadedAliases));
         }
     }
 
@@ -395,7 +398,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                     }
                     plugin.guiTemplateLoader().load();
                 },
-                null, (stage, ex) -> plugin.messageService().warning("console.reload_stage_failed",
+                null, (stage, ex) -> plugin.messageService().warning(LogTag.RELOAD, "console.reload_stage_failed",
                         Map.of("stage", stage, "error", String.valueOf(ex.getMessage())))
         )).thenCompose(ignored -> {
             if (!reloadAllowed(allowed)) {
@@ -418,8 +421,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 plugin.setService().clearAllCachedState();
                 reloadScriptBridge(plugin);
                 if (plugin.messageService() != null && reloadAllowed(allowed)) {
-                    plugin.messageService().info("console.items_loaded", Map.of("count", plugin.itemLoader().all().size()));
-                    plugin.messageService().info("console.sets_loaded", Map.of("count", plugin.setLoader().all().size()));
+                    plugin.messageService().info(LogTag.LOADER, "console.items_loaded", Map.of("count", plugin.itemLoader().all().size()));
+                    plugin.messageService().info(LogTag.LOADER, "console.sets_loaded", Map.of("count", plugin.setLoader().all().size()));
                 }
                 if (reloadAllowed(allowed)) {
                     notifyProgress(progressListener, "重载完成.");
@@ -453,13 +456,11 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 continue;
             }
             if (plugin.scheduling() == null) {
-                plugin.getLogger().warning("[scheduler] 跳过修复界面关闭 (玩家 " + player.getName()
-                        + "): 调用线程不拥有该玩家且没有可用的调度");
+                LogTags.send(plugin, LogTag.SCHEDULER, Level.WARNING, "scheduler.skip_repair_gui_close", Map.of("player", player.getName()));
                 continue;
             }
             if (plugin.scheduling().runForEntity(plugin, player, player::closeInventory, null) == TaskToken.UNAVAILABLE) {
-                plugin.getLogger().warning("[scheduler] 无法重新调度修复界面关闭 (玩家 " + player.getName()
-                        + "): 实体任务调度被拒绝");
+                LogTags.send(plugin, LogTag.SCHEDULER, Level.WARNING, "scheduler.repair_gui_close_reschedule_denied", Map.of("player", player.getName()));
             }
         }
         plugin.repairGuiService().clearAllSessions();
@@ -474,7 +475,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
 
     public void shutdown(EmakiItemPlugin plugin) {
         if (plugin.messageService() != null) {
-            plugin.messageService().info("console.plugin_stopping");
+            plugin.messageService().info(LogTag.SHUTDOWN, "console.plugin_stopping");
         }
         closeRepairInventories(plugin);
         EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
@@ -495,7 +496,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
             plugin.pdcWriter().shutdown();
         }
         if (plugin.messageService() != null) {
-            plugin.messageService().info("console.plugin_stopped");
+            plugin.messageService().info(LogTag.SHUTDOWN, "console.plugin_stopped");
         }
     }
 

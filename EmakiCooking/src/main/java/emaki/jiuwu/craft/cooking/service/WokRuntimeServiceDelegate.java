@@ -49,6 +49,7 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 final class WokRuntimeServiceDelegate {
 
@@ -80,7 +81,7 @@ final class WokRuntimeServiceDelegate {
         if (!ownerRef.blockMatcher.matches(block, StationType.WOK, stationSource)) {
             ownerRef.displayService.removeStation(StationType.WOK, coordinates);
             ownerRef.textDisplayService.removeStation(StationType.WOK, coordinates);
-            ownerRef.plugin.messageService().warning("console.station_restore_skipped_mismatch", Map.of(
+            ownerRef.plugin.messageService().warning(LogTag.PERSISTENCE, "console.station_restore_skipped_mismatch", Map.of(
                     "type", "wok",
                     "coordinate", coordinates.runtimeKey()));
             return false;

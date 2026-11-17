@@ -8,6 +8,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.furniture.FurnitureBridge;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 abstract class LazyFurnitureBridge implements FurnitureBridge {
 
@@ -64,8 +68,7 @@ abstract class LazyFurnitureBridge implements FurnitureBridge {
             } catch (LinkageError exception) {
                 failed = true;
                 if (owner != null) {
-                    owner.getLogger().warning("[integration] 初始化 " + pluginName + " 家具 API 桥接失败: "
-                            + Texts.toStringSafe(exception.getMessage()));
+                    LogTags.send(owner, LogTag.INTEGRATION, Level.WARNING, "integration.furniture_bridge_init_failed", Map.of("plugin", pluginName, "error", Texts.toStringSafe(exception.getMessage())));
                 }
                 return null;
             }

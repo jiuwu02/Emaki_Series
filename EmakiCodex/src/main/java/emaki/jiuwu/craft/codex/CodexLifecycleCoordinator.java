@@ -42,6 +42,10 @@ import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.codex.log.CodexLogTag;
+import java.util.logging.Level;
 
 final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCodexPlugin, CodexRuntimeComponents> {
 
@@ -158,14 +162,14 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
         AppConfig config = plugin.appConfig();
 
-        plugin.messageService().info("console.codex_categories_loaded",
+        plugin.messageService().info(LogTag.LOADER, "console.codex_categories_loaded",
                 Map.of("count", plugin.codexCategoryLoader().all().size()));
         plugin.codexProviderRegistrar().register();
         plugin.codexProviderRegistrar().resyncAll();
 
         if (config.advancementEnabled()) {
             int registered = plugin.advancementRegistrar().registerAll();
-            plugin.messageService().info("console.advancements_registered", Map.of("count", registered));
+            plugin.messageService().info(CodexLogTag.ADVANCEMENT, "console.advancements_registered", Map.of("count", registered));
             resyncAdvancements(plugin, registered);
         } else {
             plugin.advancementRegistrar().unregisterConfigured();
@@ -182,9 +186,9 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
         plugin.advancementPacketGateway().resyncAll().thenAccept(result -> {
             if (result < 0) {
-                plugin.messageService().info("console.advancements_need_relog");
+                plugin.messageService().info(CodexLogTag.ADVANCEMENT, "console.advancements_need_relog");
             } else if (result > 0) {
-                plugin.messageService().info("console.advancements_resynced", Map.of("count", result));
+                plugin.messageService().info(CodexLogTag.ADVANCEMENT, "console.advancements_resynced", Map.of("count", result));
             }
         });
     }
@@ -200,9 +204,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             PlayerCodexStore.FlushResult flush =
                     plugin.codexStore().flushAndSeal(SHUTDOWN_FLUSH_SECONDS, TimeUnit.SECONDS);
             if (!flush.clean()) {
-                plugin.getLogger().warning("[shutdown] 进度刷新结束时仍有未落盘数据: saved="
-                        + flush.savedEntries() + " failed=" + flush.failedEntries()
-                        + " remaining=" + flush.remainingDirtyEntries());
+                LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.progress_flush_dirty", Map.of("saved", flush.savedEntries(), "failed", flush.failedEntries(), "remaining", flush.remainingDirtyEntries()));
             }
         }
         if (plugin.advancementRegistrar() != null) {
@@ -258,10 +260,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
         if (section.contains(legacyPath)) {
             boolean legacyValue = bool(section, legacyPath, fallback);
-            JavaPlugin.getPlugin(EmakiCodexPlugin.class).getLogger().warning("[配置] 配置键 advancement." + legacyPath
-                    + " 已更名为 advancement." + path
-                    + ", 当前按旧键值 " + legacyValue
-                    + " 生效, 启动时会自动迁移到新键");
+            LogTags.send(JavaPlugin.getPlugin(EmakiCodexPlugin.class), LogTag.CONFIG, Level.WARNING, "config.advancement_legacy_key_renamed", Map.of("legacy_key", legacyPath, "key", path, "value", legacyValue));
             return legacyValue;
         }
         return fallback;

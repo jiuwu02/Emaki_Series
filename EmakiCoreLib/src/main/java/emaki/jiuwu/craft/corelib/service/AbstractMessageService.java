@@ -14,6 +14,8 @@ import java.util.List;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.DiagnosticRenderer;
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
+import emaki.jiuwu.craft.corelib.log.LogTagType;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -51,6 +53,7 @@ public class AbstractMessageService implements LogMessages {
         this.replacementResolver = replacementResolver;
         this.includePrefixInLogs = includePrefixInLogs;
         EmakiLog.registerPrefix(plugin.getName(), this::logPrefix);
+        LogTags.register(plugin.getName(), this::resolveMessage);
     }
 
     @Override
@@ -96,33 +99,46 @@ public class AbstractMessageService implements LogMessages {
     }
 
     @Override
-    public final void info(String key) {
-        info(key, Map.of());
+    public final void info(LogTagType tag, String key) {
+        info(tag, key, Map.of());
     }
 
     @Override
-    public final void info(String key, Map<String, ?> replacements) {
-        log(Level.INFO, message(key, replacements));
+    public final void info(LogTagType tag, String key, Map<String, ?> replacements) {
+        log(Level.INFO, withTag(tag, message(key, replacements)));
     }
 
     @Override
-    public final void warning(String key) {
-        warning(key, Map.of());
+    public final void warning(LogTagType tag, String key) {
+        warning(tag, key, Map.of());
     }
 
     @Override
-    public final void warning(String key, Map<String, ?> replacements) {
-        log(Level.WARNING, message(key, replacements));
+    public final void warning(LogTagType tag, String key, Map<String, ?> replacements) {
+        log(Level.WARNING, withTag(tag, message(key, replacements)));
     }
 
     @Override
-    public final void severe(String key) {
-        severe(key, Map.of());
+    public final void severe(LogTagType tag, String key) {
+        severe(tag, key, Map.of());
     }
 
     @Override
-    public final void severe(String key, Map<String, ?> replacements) {
-        log(Level.SEVERE, message(key, replacements));
+    public final void severe(LogTagType tag, String key, Map<String, ?> replacements) {
+        log(Level.SEVERE, withTag(tag, message(key, replacements)));
+    }
+
+    private String withTag(LogTagType tag, String text) {
+        return tag == null ? text : LogTags.head(plugin.getName(), tag.key()) + " " + text;
+    }
+
+    public void send(CommandSender sender, LogTagType tag, String key) {
+        send(sender, tag, key, Map.of());
+    }
+
+    public void send(CommandSender sender, LogTagType tag, String key, Map<String, ?> replacements) {
+        String text = message(key, replacements == null ? Map.of() : replacements);
+        sendRaw(sender, tag == null ? text : LogTags.head(plugin.getName(), tag.key()) + " " + text);
     }
 
     public void send(CommandSender sender, String key) {

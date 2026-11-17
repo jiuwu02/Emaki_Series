@@ -53,6 +53,7 @@ import emaki.jiuwu.craft.corelib.trigger.TriggerDefinition;
 import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
 import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class SkillsGuiService {
 
@@ -103,7 +104,7 @@ public final class SkillsGuiService {
         }
         GuiTemplate template = guiTemplateLoader.get(TEMPLATE_SKILLS_GUI);
         if (template == null) {
-            plugin.messageService().warning("console.gui_template_not_found",
+            plugin.messageService().warning(LogTag.GUI, "console.gui_template_not_found",
                     Map.of("template", TEMPLATE_SKILLS_GUI));
             return false;
         }
@@ -130,7 +131,7 @@ public final class SkillsGuiService {
         }
         GuiTemplate template = guiTemplateLoader.get(TEMPLATE_TRIGGER_SELECT);
         if (template == null) {
-            plugin.messageService().warning("console.gui_template_not_found",
+            plugin.messageService().warning(LogTag.GUI, "console.gui_template_not_found",
                     Map.of("template", TEMPLATE_TRIGGER_SELECT));
             return false;
         }
@@ -163,7 +164,7 @@ public final class SkillsGuiService {
         }
         GuiTemplate template = resolveUpgradeTemplate(definition);
         if (template == null) {
-            plugin.messageService().warning("console.gui_template_not_found",
+            plugin.messageService().warning(LogTag.GUI, "console.gui_template_not_found",
                     Map.of("template", TEMPLATE_UPGRADE));
             return false;
         }
@@ -193,7 +194,7 @@ public final class SkillsGuiService {
             if (custom != null) {
                 return custom;
             }
-            plugin.messageService().warning("console.gui_upgrade_template_missing", Map.of(
+            plugin.messageService().warning(LogTag.GUI, "console.gui_upgrade_template_missing", Map.of(
                     "skill", definition.id(),
                     "template", configured,
                     "fallback", TEMPLATE_UPGRADE));
@@ -203,7 +204,7 @@ public final class SkillsGuiService {
 
     public void clearAllSessions() {
         clearAllSessionsAsync().exceptionally(throwable -> {
-            plugin.messageService().warning("console.gui_close_failed",
+            plugin.messageService().warning(LogTag.GUI, "console.gui_close_failed",
                     Map.of("error", Texts.toStringSafe(throwable.getMessage())));
             return null;
         });
@@ -640,7 +641,7 @@ public final class SkillsGuiService {
                 }
             }
         } catch (RuntimeException exception) {
-            plugin.messageService().warning("console.gui_material_requirement_failed",
+            plugin.messageService().warning(LogTag.GUI, "console.gui_material_requirement_failed",
                     Map.of("error", exception.getClass().getSimpleName()));
             return 0L;
         }

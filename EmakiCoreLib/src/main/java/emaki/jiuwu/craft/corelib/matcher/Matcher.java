@@ -21,7 +21,10 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ComponentPath;
 import emaki.jiuwu.craft.corelib.item.ItemComponentSnapshot;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import net.kyori.adventure.text.Component;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public sealed interface Matcher permits
         Matcher.PdcMatcher,
@@ -42,8 +45,7 @@ public sealed interface Matcher permits
         }
         YamlSection section = asSection(config);
         if (section == null) {
-            ComponentMatcherSupport.LOGGER.warning("[matcher] 匹配器配置不是映射, 永远不会匹配: "
-                    + config.getClass().getSimpleName() + " -> " + config);
+            LogTags.send(ComponentMatcherSupport.LOGGER, LogTag.MATCHER, Level.WARNING, "matcher.config_not_mapping", Map.of("type", config.getClass().getSimpleName(), "value", config));
             return new AnyMatcher(List.of());
         }
         if (containsItemSourceField(section)) {
@@ -81,7 +83,7 @@ public sealed interface Matcher permits
     }
 
     private static @NotNull Matcher reject(@NotNull String reason) {
-        ComponentMatcherSupport.LOGGER.warning("[matcher] 匹配器在加载时被拒绝, 永远不会匹配: " + reason);
+        LogTags.send(ComponentMatcherSupport.LOGGER, LogTag.MATCHER, Level.WARNING, "matcher.rejected", Map.of("reason", reason));
         return new AnyMatcher(List.of());
     }
 
@@ -157,7 +159,7 @@ public sealed interface Matcher permits
     }
 
     private static @NotNull Matcher rejectComponentMatcher(@NotNull String reason) {
-        ComponentMatcherSupport.LOGGER.warning("[matcher] 组件匹配器在加载时被拒绝, 永远不会匹配: " + reason);
+        LogTags.send(ComponentMatcherSupport.LOGGER, LogTag.MATCHER, Level.WARNING, "matcher.component_rejected", Map.of("reason", reason));
         return new AnyMatcher(List.of());
     }
 

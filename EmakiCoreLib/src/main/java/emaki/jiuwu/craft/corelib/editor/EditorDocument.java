@@ -14,6 +14,9 @@ import java.util.logging.Logger;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.file.FileRevisions;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
 
 public final class EditorDocument {
 
@@ -137,7 +140,7 @@ public final class EditorDocument {
         } catch (FileRevisions.RevisionConflictException conflict) {
             return new SaveResult(SaveStatus.CONFLICT, conflict.currentRevision(), "revision_conflict");
         } catch (IOException | RuntimeException failure) {
-            logger.log(Level.WARNING, "[editor] 无法持久化定义文件 " + file + ": " + failure, failure);
+            LogTags.send(logger, LogTag.EDITOR, Level.WARNING, "editor.persist_definition_failed", Map.of("file", file, "error", failure), failure);
             return new SaveResult(SaveStatus.IO_ERROR, expectedRevision, Texts.toStringSafe(failure.getMessage()));
         }
     }
@@ -149,7 +152,7 @@ public final class EditorDocument {
             expectedRevision = FileRevisions.revision(file);
             dirty = false;
         } catch (IOException failure) {
-            logger.log(Level.WARNING, "[editor] 无法重新加载定义文件 " + file + ": " + failure, failure);
+            LogTags.send(logger, LogTag.EDITOR, Level.WARNING, "editor.reload_definition_failed", Map.of("file", file, "error", failure), failure);
         }
     }
 

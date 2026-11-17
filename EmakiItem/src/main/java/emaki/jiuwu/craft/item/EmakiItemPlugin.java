@@ -83,6 +83,11 @@ import emaki.jiuwu.craft.item.trigger.ProficiencyGuard;
 import emaki.jiuwu.craft.item.apiimpl.DefaultEmakiItemApi;
 import emaki.jiuwu.craft.item.editor.ItemEditorModule;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.item.log.ItemLogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -172,9 +177,10 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
                 STARTUP_ASCII_START_COLOR,
                 STARTUP_ASCII_END_COLOR
         );
+        LogTags.registerTags(this, ItemLogTag.values());
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         registerConfigPrecheckContributor();
-        messageService.info("console.plugin_starting");
+        messageService.info(LogTag.STARTUP, "console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState();
         EmakiItemApi.install(itemApiBridge);
@@ -188,7 +194,7 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         registerMythicDrops();
         ensurePlaceholderExpansion();
         metrics = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
-        messageService.info("console.plugin_started");
+        messageService.info(LogTag.STARTUP, "console.plugin_started");
     }
 
     @Override
@@ -373,7 +379,7 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
+            LogTags.send(getLogger(), LogTag.STARTUP, Level.FINE, "startup.readiness_publish_skipped", Map.of("error", exception));
         }
     }
 
@@ -395,8 +401,7 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
                 return;
             }
             Throwable cause = AsyncFailures.unwrapOnce(failure);
-            getLogger().warning("[reload] 重载失败: " + cause.getClass().getSimpleName()
-                    + (Texts.isBlank(cause.getMessage()) ? "" : ": " + cause.getMessage()));
+            LogTags.send(getLogger(), LogTag.RELOAD, Level.WARNING, "reload.failed", Map.of("error", cause.getClass().getSimpleName(), "message", (Texts.isBlank(cause.getMessage()) ? "" : ": " + cause.getMessage())));
         });
     }
 
@@ -492,7 +497,7 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         }
         mythicDropBridge = new MythicItemDropBridge(this);
         getServer().getPluginManager().registerEvents(mythicDropBridge, this);
-        messageService.info("console.mythic_drops_registered");
+        messageService.info(LogTag.INTEGRATION, "console.mythic_drops_registered");
     }
 
     private void ensurePlaceholderExpansion() {
@@ -501,7 +506,7 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         }
         placeholderExpansion = new ItemPlaceholderExpansion(this);
         placeholderExpansion.register();
-        messageService.info("console.papi_registered");
+        messageService.info(LogTag.INTEGRATION, "console.papi_registered");
     }
 
     public EmakiScheduling scheduling() {

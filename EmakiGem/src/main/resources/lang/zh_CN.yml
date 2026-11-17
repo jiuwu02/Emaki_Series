@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "3.0.2"
+version: "3.0.3"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -16,13 +16,13 @@ general:
   reload_summary: "<gray>已加载宝石 %gems% 个, 装备 %items% 个, GUI 模板 %guis% 个</gray>"
 
 console:
-  plugin_starting: "[startup] <gray>正在启动...</gray>"
-  plugin_started: "[startup] <green>启动完成</green>"
-  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "<gray>正在启动...</gray>"
+  plugin_started: "<green>启动完成</green>"
+  config_precheck_passed: "<gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "<red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -38,42 +38,42 @@ console:
       required_directory_missing: "缺少必需目录"
       path_not_directory: "指定路径不是目录"
       directory_not_readable: "目录不可读"
-  bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
-  bootstrap_skip: "[loader] <gray>release_default_data=false, 跳过默认数据文件生成</gray>"
-  bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  default_file_missing: "[loader] <yellow>缺少内置默认资源, 已跳过: <red>%path%</red></yellow>"
-  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>保存默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  directory_create_failed: "[loader] <yellow>无法创建目录: <red>%path%</red></yellow>"
-  loader_config_load_error: "[loader] <red>加载配置失败: %path%  (%error%)</red>"
-  pdc_source_registered: "[loader] <gray>PDC 属性源已注册: <aqua>%source%</aqua></gray>"
-  gems_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个宝石</gray>"
-  editor_open_failed: "[editor] <red>无法打开 EmakiGem 编辑界面: %item%  (%error%)</red>"
-  editor_template_missing: "[editor] <red>缺少 EmakiGem 编辑界面模板: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
-  papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
-  reroll_refresh_degraded: "[persistence] <yellow>洗炼写回后的宝石刷新未生效 | 操作号=%operation_id% | 实例=%instance_id% | 刷新结果=%outcome% | 原因=%reason% | 期望指纹=%expected_fingerprint% | 实际指纹=%presented_fingerprint%</yellow>"
+  bootstrap_start: "<gray>开始检查默认文件...</gray>"
+  bootstrap_skip: "<gray>release_default_data=false, 跳过默认数据文件生成</gray>"
+  bootstrap_complete: "<green>默认文件检查完成</green>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  default_file_missing: "<yellow>缺少内置默认资源, 已跳过: <red>%path%</red></yellow>"
+  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>保存默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  directory_create_failed: "<yellow>无法创建目录: <red>%path%</red></yellow>"
+  loader_config_load_error: "<red>加载配置失败: %path%  (%error%)</red>"
+  pdc_source_registered: "<gray>PDC 属性源已注册: <aqua>%source%</aqua></gray>"
+  gems_loaded: "<gray>已加载 <yellow>%count%</yellow> 个宝石</gray>"
+  editor_open_failed: "<red>无法打开 EmakiGem 编辑界面: %item%  (%error%)</red>"
+  editor_template_missing: "<red>缺少 EmakiGem 编辑界面模板: %template%</red>"
+  editor_browser_create_failed: "<red>无法创建定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>无法删除定义: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>无法列举定义目录: %path%  (%error%)</red>"
+  papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
+  reroll_refresh_degraded: "<yellow>洗炼写回后的宝石刷新未生效 | 操作号=%operation_id% | 实例=%instance_id% | 刷新结果=%outcome% | 原因=%reason% | 期望指纹=%expected_fingerprint% | 实际指纹=%presented_fingerprint%</yellow>"
 
 loader:
   type:
     gem: "宝石"
     gem_item: "宝石物品"
     resonance: "共鸣"
-  lang_directory_create_failed: "[loader] <red>无法创建语言目录: %path%</red>"
-  bundled_language_load_failed: "[loader] <red>读取内置语言失败: %error%</red>"
-  bundled_resource_missing: "[loader] <red>内置资源缺失: %resource%, 无法写入 %path%</red>"
-  directory_create_failed: "[loader] <red>无法创建目录: %path%</red>"
-  invalid_blank_id: "[loader] <red>%type% 文件 %file% 缺少有效 ID</red>"
-  duplicate_id: "[loader] <red>%type% 文件 %file% 出现重复 ID: %id%</red>"
-  load_failed: "[loader] <red>加载 %type% 文件 %file% 失败: %error%</red>"
-  invalid_config: "[loader] <red>%type% 文件 %file% 配置无效, 已跳过加载</red>"
-  gem_legacy_item_sources: "[loader] <yellow>宝石文件 %file% 使用已废弃的顶层 item_sources 作为构造底材, 将来请改为 base_item_source: %id%</yellow>"
-  gem_missing_item_source: "[loader] <red>宝石文件 %file% 的 item_sources 缺失或无效, 已拒绝加载: %id%, 当前值: %item_sources%</red>"
-  gem_relationship_self_reference: "[loader] <red>宝石文件 %file% 在 required_gems 或 conflicting_gems 中引用自身, 已拒绝加载: %id%</red>"
-  gem_relationship_conflict: "[loader] <red>宝石文件 %file% 同时将 %related_gem% 声明为依赖与冲突, 已拒绝加载: %id%</red>"
+  lang_directory_create_failed: "<red>无法创建语言目录: %path%</red>"
+  bundled_language_load_failed: "<red>读取内置语言失败: %error%</red>"
+  bundled_resource_missing: "<red>内置资源缺失: %resource%, 无法写入 %path%</red>"
+  directory_create_failed: "<red>无法创建目录: %path%</red>"
+  invalid_blank_id: "<red>%type% 文件 %file% 缺少有效 ID</red>"
+  duplicate_id: "<red>%type% 文件 %file% 出现重复 ID: %id%</red>"
+  load_failed: "<red>加载 %type% 文件 %file% 失败: %error%</red>"
+  invalid_config: "<red>%type% 文件 %file% 配置无效, 已跳过加载</red>"
+  gem_legacy_item_sources: "<yellow>宝石文件 %file% 使用已废弃的顶层 item_sources 作为构造底材, 将来请改为 base_item_source: %id%</yellow>"
+  gem_missing_item_source: "<red>宝石文件 %file% 的 item_sources 缺失或无效, 已拒绝加载: %id%, 当前值: %item_sources%</red>"
+  gem_relationship_self_reference: "<red>宝石文件 %file% 在 required_gems 或 conflicting_gems 中引用自身, 已拒绝加载: %id%</red>"
+  gem_relationship_conflict: "<red>宝石文件 %file% 同时将 %related_gem% 声明为依赖与冲突, 已拒绝加载: %id%</red>"
 
 gem:
   error:
@@ -198,6 +198,9 @@ gui:
     invalid_opener: "<red>放入的物品不是有效的开孔器</red>"
     hold_opener: "<red>请先放入一个可用的开孔器</red>"
     no_slot_selected: "<red>请先选择一个要开启的锁定槽位</red>"
+  open_gem_gui_outside_player_ownership: "无法在玩家所有权之外打开宝石 GUI: %player%"
+  close_gem_gui_outside_player_ownership: "无法在玩家所有权之外关闭宝石 GUI: %player%"
+  open_socket_gui_outside_player_ownership: "无法在玩家所有权之外打开开孔 GUI: %player%"
 
 gui_text:
   common:
@@ -531,10 +534,10 @@ editor:
   modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
+    chat: '<yellow>请在聊天栏输入"%label%"的内容, 输入 cancel 取消</yellow>'
+    map_entry: '<yellow>请在聊天栏输入"键=值"新增一条映射, 输入 cancel 取消</yellow>'
   map:
-    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
+    bad_entry: '<red>格式错误, 请按"键=值"输入</red>'
   value:
     unset: "未设置 (空)"
     integer: "整数"
@@ -562,6 +565,35 @@ editor:
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
     delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
-    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
+    delete_confirm: '<red>再次点击"删除"以确认删除</red>'
     delete_success: "<green>已删除定义 %id%</green>"
     delete_failed: "<red>删除失败, 详见控制台</red>"
+startup:
+  register_pipeline_stage_failed: "注册流水线阶段 '%stage%' 失败: %reason%"
+  readiness_publish_skipped: "就绪状态发布已跳过: %error%"
+config:
+  legacy_permission_op_bypass_key: "配置键 permission.op_bypass 已移到顶层 op_bypass, 当前按旧键值 %value% 生效, 启动时会自动迁移到新键"
+shutdown:
+  close_gem_gui_sessions_failed: "关闭阶段无法关闭宝石 GUI 会话: %error%"
+scheduler:
+  reschedule_gem_item_refresh_rejected: "无法为玩家 %player% 重新安排宝石物品刷新: 实体任务调度被拒绝"
+  skipped_gem_item_refresh: "已跳过玩家 %player% 的宝石物品刷新: 当前线程不拥有该玩家且没有可用的调度器"
+  skip_gem_extract_event_target_scheduler_retired: "已跳过宝石取出完成事件, 因为目标调度已退役: %player%"
+  skip_gem_extract_event_target_offline: "已跳过宝石取出完成事件, 因为目标玩家离线: %player%"
+  skip_gem_complete_event_actor_scheduler_retired: "已跳过宝石完成事件, 因为执行者调度已退役: %player%"
+  skip_gem_complete_event_actor_offline: "已跳过宝石完成事件, 因为操作执行者离线: %player%"
+reload:
+  stage_failed: "阶段 %stage% 失败: %error%"
+integration:
+  register_gem_enhancement_target_provider_failed: "注册 gem 强化目标 Provider 失败; 宝石升级将无法通过强化框架执行"
+  register_gem_enhancement_target_provider_unsuccessful: "注册 gem 强化目标 Provider 未成功: %result%"
+  gem_upgrade_via_strengthen_failed: "通过强化框架执行宝石升级失败"
+action:
+  gem_action_stage_failed: "宝石动作阶段 '%phase%' 失败: %message%"
+economy:
+  gem_cost_compensation_incomplete: "未能在 %phase% 阶段完全补偿宝石费用, 玩家 %player%"
+matcher:
+  gem_recognition_evaluation_failed: "宝石识别求值失败, 将该物品视为不匹配: %error%"
+  gem_matcher_evaluation_failed: "宝石匹配器求值失败, 将该物品视为不匹配: %error%"
+journal:
+  recoverable_gem_operations: "可恢复的宝石操作: %operations%"

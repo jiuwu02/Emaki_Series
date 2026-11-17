@@ -9,6 +9,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 final class ScriptExampleReleaser {
 
@@ -34,8 +38,7 @@ final class ScriptExampleReleaser {
         try {
             Files.createDirectories(scriptsDirectory);
         } catch (IOException exception) {
-            plugin.getLogger().warning("[script] 创建脚本目录失败 " + scriptsDirectory + ": "
-                    + exception.getMessage());
+            LogTags.send(plugin, LogTag.SCRIPT, Level.WARNING, "script.create_directory_failed", Map.of("path", scriptsDirectory, "error", exception.getMessage()));
             return;
         }
         for (String resource : EXAMPLE_RESOURCES) {
@@ -43,8 +46,7 @@ final class ScriptExampleReleaser {
             try {
                 YamlFiles.copyResourceIfMissing(plugin, resource, target.toFile());
             } catch (IOException exception) {
-                plugin.getLogger().warning("[script] 释放示例脚本失败 " + resource + ": "
-                        + exception.getMessage());
+                LogTags.send(plugin, LogTag.SCRIPT, Level.WARNING, "script.release_example_failed", Map.of("resource", resource, "error", exception.getMessage()));
             }
         }
     }

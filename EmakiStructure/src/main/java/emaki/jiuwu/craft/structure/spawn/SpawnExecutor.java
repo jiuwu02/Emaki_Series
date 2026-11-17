@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 
 public final class SpawnExecutor {
 
@@ -63,7 +65,7 @@ public final class SpawnExecutor {
             Location location, boolean passive, boolean conservative, GenerationJournal journal) {
         SpawnOutcome outcome = dispatch(location, entry, templateId, entryIndex, conservative);
         if (!outcome.spawned()) {
-            plugin.messageService().warning("console.spawn_entry_failed", Map.of(
+            plugin.messageService().warning(LogTag.SPAWN, "console.spawn_entry_failed", Map.of(
                     "template", templateId,
                     "index", entryIndex,
                     "type", entry.type(),
@@ -82,8 +84,7 @@ public final class SpawnExecutor {
                         spawnedLocation.getBlockX(), spawnedLocation.getBlockY(),
                         spawnedLocation.getBlockZ());
             } catch (GenerationJournal.JournalWriteException exception) {
-                plugin.getLogger().log(Level.WARNING, "生物回滚日志写入失败 " + templateId,
-                        exception);
+                LogTags.send(plugin, null, Level.WARNING, "spawn.journal_write_failed", Map.of("template", templateId), exception);
             }
         }
     }

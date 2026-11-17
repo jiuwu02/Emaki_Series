@@ -12,6 +12,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.attribute.log.AttributeLogTag;
 
 public final class PerfectTakeoverCoordinator implements Listener {
 
@@ -79,11 +81,7 @@ public final class PerfectTakeoverCoordinator implements Listener {
                 event.setDamage(modifier, 0D);
             }
         } catch (UnsupportedOperationException | IllegalArgumentException exception) {
-            service.plugin().getLogger().log(Level.WARNING,
-                    "[战斗] 原版伤害修饰符归零失败: entity=" + event.getEntity().getType()
-                            + ", modifier=" + modifier
-                            + ", operation=zero_damage_modifier, cause=" + exception,
-                    exception);
+            LogTags.send(service.plugin(), AttributeLogTag.COMBAT, Level.WARNING, "combat.vanilla_damage_modifier_zero_failed", Map.of("entity", event.getEntity().getType(), "modifier", modifier, "error", exception), exception);
         }
     }
 }

@@ -63,6 +63,9 @@ import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.skills.editor.SkillsEditorModule;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiSkillsPlugin, SkillsRuntimeComponents> {
 
@@ -270,7 +273,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         forEachOnlinePlayer(plugin, plugin.playerSkillStateService()::validateBindings).join();
         plugin.reloadScriptBridge();
         plugin.actionBarService().startRefreshTask();
-        plugin.messageService().info("console.skills_loaded", Map.of(
+        plugin.messageService().info(LogTag.LOADER, "console.skills_loaded", Map.of(
                 "skills", String.valueOf(plugin.skillRegistryService().allDefinitions().size()),
                 "triggers", String.valueOf(plugin.triggerRegistry().all().size())
         ));
@@ -312,7 +315,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                             }
                         },
                         null,
-                        (stage, ex) -> plugin.messageService().warning("console.reload_stage_failed", Map.of(
+                        (stage, ex) -> plugin.messageService().warning(LogTag.RELOAD, "console.reload_stage_failed", Map.of(
                                 "stage", String.valueOf(stage),
                                 "error", Texts.toStringSafe(ex.getMessage())))
                 )))
@@ -373,11 +376,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         if (plugin.playerSkillDataStore() != null) {
             var flushResult = plugin.playerSkillDataStore().flushAndSeal(5L, TimeUnit.SECONDS);
             if (!flushResult.clean()) {
-                plugin.getLogger().warning("[shutdown] 技能数据落盘不完整: pending="
-                        + flushResult.drainResult().pendingOperations()
-                        + ", ioFailures=" + flushResult.drainResult().failures().size()
-                        + ", saveFailures=" + flushResult.failedEntries()
-                        + ", remainingDirty=" + flushResult.remainingDirtyEntries());
+                LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.skill_data_flush_incomplete", Map.of("pending", flushResult.drainResult().pendingOperations(), "io_failures", flushResult.drainResult().failures().size(), "save_failures", flushResult.failedEntries(), "remaining_dirty", flushResult.remainingDirtyEntries()));
             }
         }
         if (plugin.eaBridge() != null) {

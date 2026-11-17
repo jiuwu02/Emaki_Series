@@ -18,6 +18,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.forge.model.PlayerData;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 final class ForgePlayerDataListener implements Listener {
 
@@ -79,9 +81,7 @@ final class ForgePlayerDataListener implements Listener {
             return;
         }
         Throwable cause = AsyncFailures.unwrapOnce(throwable);
-        plugin.getLogger().log(Level.WARNING,
-                "[persistence] 异步 " + operation + " 失败, 玩家 " + playerId,
-                cause);
+        LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.async_operation_failed_for_player", Map.of("operation", operation, "player", playerId), cause);
     }
 
     private final class ConnectionSession {

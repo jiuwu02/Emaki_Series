@@ -42,6 +42,9 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.StationStateStore.StationIndexEntry;
 import emaki.jiuwu.craft.cooking.service.StationStateStore.StationStorageBackend;
 import emaki.jiuwu.craft.cooking.service.StationStateStore.StoredState;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class StationIndexRegistry {
 
@@ -260,7 +263,7 @@ final class StationIndexRegistry {
             indexFlushTask = null;
             indexFlushScheduled.set(false);
             operationTracker.accept(flushDirtyIndexesAsync());
-            plugin.getLogger().warning("[persistence] 调度工位索引刷写失败: " + StationStateStore.rootCauseMessage(throwable));
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.schedule_index_flush_failed", Map.of("error", StationStateStore.rootCauseMessage(throwable)));
         }
     }
 
@@ -318,7 +321,7 @@ final class StationIndexRegistry {
         }
         return fileScope.write(file, "station-index-save:" + world, task)
                 .exceptionally(throwable -> {
-                    plugin.getLogger().warning("[persistence] 写入工位索引失败, 世界 " + world + ": " + StationStateStore.rootCauseMessage(throwable));
+                    LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.write_index_failed", Map.of("world", world, "error", StationStateStore.rootCauseMessage(throwable)));
                     return null;
                 });
     }
@@ -343,7 +346,7 @@ final class StationIndexRegistry {
                 }
             }
         } catch (IOException exception) {
-            plugin.getLogger().warning("[persistence] 加载工位索引失败: " + exception.getMessage());
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.load_index_failed", Map.of("error", exception.getMessage()));
         }
         return loadedAny;
     }
@@ -435,7 +438,7 @@ final class StationIndexRegistry {
                 }
             }
         } catch (IOException exception) {
-            plugin.getLogger().warning("[persistence] 扫描旧版工位 YAML 失败: " + exception.getMessage());
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.scan_legacy_yaml_failed", Map.of("error", exception.getMessage()));
             failures.add("扫描旧版工位 YAML 失败: " + exception.getMessage());
         }
         return new LegacyScanResult(count, List.copyOf(failures));
@@ -468,7 +471,7 @@ final class StationIndexRegistry {
             return coordinates;
         } catch (RuntimeException exception) {
             String reason = StationStateStore.rootCauseMessage(exception);
-            plugin.getLogger().warning("[persistence] 旧版工位 YAML " + file.getFileName() + " 解析失败: " + reason);
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.parse_legacy_yaml_failed", Map.of("file", file.getFileName(), "error", reason));
             failures.add("旧版工位 YAML " + file.getFileName() + " 解析失败: " + reason);
             return null;
         }
@@ -481,7 +484,7 @@ final class StationIndexRegistry {
         return fileScope.read("station-index-scan-legacy-yaml", this::scanLegacyYamlSync)
                 .exceptionally(throwable -> {
                     String reason = StationStateStore.rootCauseMessage(throwable);
-                    plugin.getLogger().warning("[persistence] 旧版工位 YAML 扫描失败: " + reason);
+                    LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.legacy_yaml_scan_failed", Map.of("error", reason));
                     return new LegacyScanResult(0, List.of("旧版工位 YAML 扫描失败: " + reason));
                 });
     }
@@ -491,7 +494,7 @@ final class StationIndexRegistry {
                 .thenCompose(this::combinePdcScanResults)
                 .exceptionally(throwable -> {
                     String reason = StationStateStore.rootCauseMessage(throwable);
-                    plugin.getLogger().warning("[persistence] 已加载 TileState 的 PDC 重建索引失败: " + reason);
+                    LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.loaded_pdc_reindex_failed", Map.of("error", reason));
                     return new PdcScanResult(0, List.of("已加载 TileState 的 PDC 重建索引失败: " + reason));
                 });
     }
@@ -532,8 +535,7 @@ final class StationIndexRegistry {
             handle = taskScheduler.runAtLocation(plugin, anchor, () -> scanLoadedPdcChunkOnRegionThread(target, future));
         } catch (Throwable throwable) {
             String reason = StationStateStore.rootCauseMessage(throwable);
-            plugin.getLogger().warning("[persistence] 区块 " + target.worldName() + " " + target.chunkX() + "," + target.chunkZ()
-                    + " 的 TileState 扫描调度失败: " + reason);
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.schedule_chunk_scan_failed", Map.of("world", target.worldName(), "chunk_x", target.chunkX(), "chunk_z", target.chunkZ(), "error", reason));
             future.complete(PdcScanResult.failed(target, reason));
             return future;
         }
@@ -557,8 +559,7 @@ final class StationIndexRegistry {
             future.complete(new PdcScanResult(scanLoadedPdcChunkSync(world.getChunkAt(target.chunkX(), target.chunkZ())), List.of()));
         } catch (Throwable throwable) {
             String reason = StationStateStore.rootCauseMessage(throwable);
-            plugin.getLogger().warning("[persistence] 区块 " + target.worldName() + " " + target.chunkX() + "," + target.chunkZ()
-                    + " 的 TileState 扫描失败: " + reason);
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.chunk_scan_failed", Map.of("world", target.worldName(), "chunk_x", target.chunkX(), "chunk_z", target.chunkZ(), "error", reason));
             future.complete(PdcScanResult.failed(target, reason));
         }
     }

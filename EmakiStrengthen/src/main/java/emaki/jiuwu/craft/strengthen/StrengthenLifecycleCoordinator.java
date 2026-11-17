@@ -56,6 +56,10 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenRecipeResolver;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.strengthen.log.StrengthenLogTag;
+import java.util.logging.Level;
 
 final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiStrengthenPlugin, StrengthenRuntimeComponents> {
 
@@ -236,10 +240,10 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             }
             plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
             plugin.affixAttributeGateway().syncRegistration(AFFIX_PDC_ATTRIBUTE_SOURCE_ID);
-            plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
-            plugin.messageService().info("console.pdc_source_registered", Map.of("source", AFFIX_PDC_ATTRIBUTE_SOURCE_ID));
+            plugin.messageService().info(LogTag.INTEGRATION, "console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
+            plugin.messageService().info(LogTag.INTEGRATION, "console.pdc_source_registered", Map.of("source", AFFIX_PDC_ATTRIBUTE_SOURCE_ID));
             plugin.refreshService().refreshOnlinePlayers();
-            plugin.messageService().info("console.recipes_loaded", Map.of(
+            plugin.messageService().info(LogTag.LOADER, "console.recipes_loaded", Map.of(
                     "count", String.valueOf(plugin.recipeLoader().all().size())
             ));
         } finally {
@@ -285,7 +289,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                                 + String.join("; ", gate.failures()));
                     }
                 },
-                null, (stage, ex) -> plugin.messageService().warning("console.reload_stage_failed",
+                null, (stage, ex) -> plugin.messageService().warning(LogTag.RELOAD, "console.reload_stage_failed",
                         Map.of("stage", stage, "error", String.valueOf(ex.getMessage())))
         )).thenCompose(_ -> {
             notifyProgress(progressListener, plugin.messageService().message("console.reload_applying"));
@@ -297,10 +301,10 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 }
                 plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
                 plugin.affixAttributeGateway().syncRegistration(AFFIX_PDC_ATTRIBUTE_SOURCE_ID);
-                plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
-                plugin.messageService().info("console.pdc_source_registered", Map.of("source", AFFIX_PDC_ATTRIBUTE_SOURCE_ID));
+                plugin.messageService().info(LogTag.INTEGRATION, "console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
+                plugin.messageService().info(LogTag.INTEGRATION, "console.pdc_source_registered", Map.of("source", AFFIX_PDC_ATTRIBUTE_SOURCE_ID));
                 plugin.refreshService().refreshOnlinePlayers();
-                plugin.messageService().info("console.recipes_loaded", Map.of(
+                plugin.messageService().info(LogTag.LOADER, "console.recipes_loaded", Map.of(
                         "count", String.valueOf(plugin.recipeLoader().all().size())
                 ));
                 notifyProgress(progressListener, plugin.messageService().message("console.reload_complete"));
@@ -357,10 +361,8 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             plugin.affixGuiService().clearAllSessions();
         }
         if (!attemptsDrained || !enhancementsDrained) {
-            plugin.getLogger().warning("[lifecycle] 强化排空未完成 | phase=" + phase
-                    + " | attempts=" + (plugin.attemptService() == null ? Map.of() : plugin.attemptService().journalSnapshot())
-                    + " | enhancements=" + (plugin.enhancementAttemptService() == null
-                            ? Map.of() : plugin.enhancementAttemptService().journalSnapshot()));
+            LogTags.send(plugin, StrengthenLogTag.LIFECYCLE, Level.WARNING, "lifecycle.strengthen_drain_incomplete", Map.of("phase", phase, "attempts", (plugin.attemptService() == null ? Map.of() : plugin.attemptService().journalSnapshot()), "enhancements", (plugin.enhancementAttemptService() == null
+                            ? Map.of() : plugin.enhancementAttemptService().journalSnapshot())));
             return false;
         }
         return true;

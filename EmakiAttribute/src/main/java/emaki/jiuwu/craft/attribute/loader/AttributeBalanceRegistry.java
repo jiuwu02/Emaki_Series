@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class AttributeBalanceRegistry {
 
@@ -43,14 +44,14 @@ public final class AttributeBalanceRegistry {
             }
             configuration = file.isFile() ? YamlFiles.load(file) : new MapYamlSection();
         } catch (IOException exception) {
-            messages.warning("loader.bundled_resource_sync_failed", Map.of(
+            messages.warning(LogTag.LOADER, "loader.bundled_resource_sync_failed", Map.of(
                     "path", file.getPath(),
                     "error", String.valueOf(exception.getMessage())
             ));
             configuration = file.isFile() ? YamlFiles.load(file) : new MapYamlSection();
         }
         if (plugin.configModel().releaseDefaultData() && !file.exists()) {
-            messages.warning("loader.bundled_resource_missing", Map.of(
+            messages.warning(LogTag.LOADER, "loader.bundled_resource_missing", Map.of(
                     "type", typeName(),
                     "path", file.getPath(),
                     "resource", "attribute_balance.yml"
@@ -165,7 +166,7 @@ public final class AttributeBalanceRegistry {
             return;
         }
         MessageService messages = plugin.messageService();
-        messages.warning("loader.schema_invalid_section", Map.of(
+        messages.warning(LogTag.LOADER, "loader.schema_invalid_section", Map.of(
                 "type", typeName(),
                 "file", file.getName(),
                 "field", field

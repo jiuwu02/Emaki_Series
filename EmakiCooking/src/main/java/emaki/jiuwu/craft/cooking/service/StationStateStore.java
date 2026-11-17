@@ -38,6 +38,9 @@ import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class StationStateStore {
 
@@ -84,7 +87,7 @@ public final class StationStateStore {
             for (List<StationIndexEntry> entries : entriesByChunk.values()) {
                 trackOperation(runLoadedStateBatch(stationType, entries, consumer)
                         .exceptionally(throwable -> {
-                            plugin.getLogger().warning("[persistence] 工位恢复批次失败: " + rootCauseMessage(throwable));
+                            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.restore_batch_failed", Map.of("error", rootCauseMessage(throwable)));
                             return null;
                         }));
             }
@@ -108,7 +111,7 @@ public final class StationStateStore {
             return null;
         }).exceptionally(throwable -> {
             indexedStatesPrewarmed.set(false);
-            plugin.getLogger().warning("[persistence] 工位状态预加载失败: " + rootCauseMessage(throwable));
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.preload_station_states_failed", Map.of("error", rootCauseMessage(throwable)));
             return null;
         });
     }
@@ -254,7 +257,7 @@ public final class StationStateStore {
                     });
         }, future);
         return trackOperation(future.exceptionally(throwable -> {
-            plugin.getLogger().warning("[persistence] 工位异步保存失败 " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.async_save_failed", Map.of("station", coordinates.runtimeKey(), "error", rootCauseMessage(throwable)));
             return false;
         }));
     }
@@ -283,7 +286,7 @@ public final class StationStateStore {
                     yamlFuture.exceptionally(_ -> false)
             ).thenApply(_ -> true);
         }).exceptionally(throwable -> {
-            plugin.getLogger().warning("[persistence] 工位异步删除失败 " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.async_delete_failed", Map.of("station", coordinates.runtimeKey(), "error", rootCauseMessage(throwable)));
             return false;
         });
         result.whenComplete((success, throwable) -> debugStation(plugin, "station.state_delete_result", Map.of(
@@ -480,8 +483,7 @@ public final class StationStateStore {
             return;
         }
         if (fileStore.backendForCurrentBlock(entry.coordinates()) == StationStorageBackend.YAML_FALLBACK) {
-            plugin.getLogger().warning("[persistence] 工位恢复报告: 方块实体丢失已替换 type=" + entry.type().folderName()
-                    + " coordinate=" + entry.coordinates().runtimeKey());
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.restore_lost_block_entity_replaced", Map.of("type", entry.type().folderName(), "coordinate", entry.coordinates().runtimeKey()));
         }
     }
 

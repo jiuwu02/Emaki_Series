@@ -44,6 +44,8 @@ import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.attribute.log.AttributeLogTag;
 
 final class DamageCalculationServiceDelegate {
 
@@ -275,11 +277,7 @@ final class DamageCalculationServiceDelegate {
         if (ownerRef.service.plugin() == null) {
             return;
         }
-        ownerRef.service.plugin().getLogger().log(
-                Level.WARNING,
-                "[战斗] 同步伤害入口被非实体所有者线程调用; 已拒绝, 请改用 applyDamageAsync; target="
-                        + ownerRef.service.combatDebug().entityDebugLabel(damageContext.target())
-        );
+        LogTags.send(ownerRef.service.plugin(), AttributeLogTag.COMBAT, Level.WARNING, "combat.sync_damage_wrong_thread", Map.of("target", ownerRef.service.combatDebug().entityDebugLabel(damageContext.target())));
     }
 
     DamageContext buildDamageContext(LivingEntity attacker,
@@ -386,11 +384,7 @@ final class DamageCalculationServiceDelegate {
             return operation.get();
         } catch (RuntimeException | LinkageError exception) {
             if (ownerRef.service.plugin() != null) {
-                ownerRef.service.plugin().getLogger().log(
-                        Level.WARNING,
-                        "[战斗] 伤害后置效果 '" + phase + "' 执行失败; 其余终结效果将继续处理",
-                        exception
-                );
+                LogTags.send(ownerRef.service.plugin(), AttributeLogTag.COMBAT, Level.WARNING, "combat.post_damage_effect_failed", Map.of("phase", phase), exception);
             }
             return fallback;
         }
@@ -686,11 +680,7 @@ final class DamageCalculationServiceDelegate {
             ownerRef.emitDamagePlanAnchors(plan, context);
         } catch (RuntimeException | LinkageError exception) {
             if (ownerRef.service.plugin() != null) {
-                ownerRef.service.plugin().getLogger().log(
-                        Level.WARNING,
-                        "[战斗] 伤害调试锚点输出失败; 伤害计算不受影响",
-                        exception
-                );
+                LogTags.send(ownerRef.service.plugin(), AttributeLogTag.COMBAT, Level.WARNING, "combat.damage_debug_anchor_output_failed", Map.of(), exception);
             }
         }
     }

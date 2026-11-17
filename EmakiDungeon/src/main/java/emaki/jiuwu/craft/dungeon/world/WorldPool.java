@@ -216,7 +216,7 @@ public final class WorldPool {
                 "error", reason
         );
         if (cause == null) {
-            messages.warning("console.world_create_failed", replacements);
+            messages.warning(null, "console.world_create_failed", replacements);
         } else {
             plugin.getLogger().log(Level.WARNING,
                     messages.message("console.world_create_failed", replacements), cause);
@@ -267,7 +267,7 @@ public final class WorldPool {
             allocator.releaseWorld(dungeonId);
             dispatcher.runAsync(plugin, () -> disposer.deleteResidual(worldName));
         }
-        messages.warning("console.pool_reserve_invalidated", Map.of(
+        messages.warning(null, "console.pool_reserve_invalidated", Map.of(
                 "dungeon", dungeonId,
                 "world", worldName
         ));
@@ -337,7 +337,7 @@ public final class WorldPool {
     }
 
     private WorldCommandQueue newWorldQueue(String worldName) {
-        return new WorldCommandQueue(total -> messages.warning("console.world_command_deferred", Map.of(
+        return new WorldCommandQueue(total -> messages.warning(null, "console.world_command_deferred", Map.of(
                 "world", worldName,
                 "count", String.valueOf(total)
         )));

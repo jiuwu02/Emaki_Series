@@ -31,6 +31,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.structure.log.StructureLogTag;
 
 public final class RollbackService implements Runnable {
 
@@ -136,8 +138,7 @@ public final class RollbackService implements Runnable {
         }
         List<GenerationJournal.Entry> entries = journal.entries();
         if (!journal.close()) {
-            plugin.getLogger().warning("回滚日志未可靠落盘, 仍按现有内容回滚 "
-                    + journal.file().getFileName());
+            LogTags.send(plugin, null, Level.WARNING, "rollback.journal_not_reliably_flushed", Map.of("file", journal.file().getFileName()));
         }
         enqueue(job.id().toString(), journal.file(), entries, false);
         return true;
@@ -148,12 +149,10 @@ public final class RollbackService implements Runnable {
             if (journal.commit()) {
                 return true;
             }
-            plugin.getLogger().warning("回滚日志删除失败, 已保留日志供下次启动处理 "
-                    + journal.file().getFileName());
+            LogTags.send(plugin, null, Level.WARNING, "rollback.journal_delete_failed_kept_for_startup", Map.of("file", journal.file().getFileName()));
             return true;
         } catch (GenerationJournal.JournalWriteException exception) {
-            plugin.getLogger().log(Level.WARNING, "回滚日志提交失败, 已保留日志并立即补偿回滚 "
-                    + journal.file().getFileName(), exception);
+            LogTags.send(plugin, null, Level.WARNING, "rollback.journal_commit_failed_kept_and_compensated", Map.of("file", journal.file().getFileName()), exception);
             List<GenerationJournal.Entry> entries = journal.entries();
             if (!entries.isEmpty()) {
                 enqueue(job.id().toString(), journal.file(), entries, false);
@@ -180,16 +179,16 @@ public final class RollbackService implements Runnable {
                 processStartupFile(path, name, rollbackEnabled);
             }
         } catch (IOException exception) {
-            plugin.getLogger().warning("journal 扫描失败: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "rollback.journal_scan_failed", Map.of("error", exception.getMessage()));
             return;
         }
         int pending = startupPending.get();
         recovering = pending > 0;
         if (pending > 0) {
-            plugin.messageService().info("console.rollback_recovering", Map.of("count", pending));
+            plugin.messageService().info(StructureLogTag.ROLLBACK, "console.rollback_recovering", Map.of("count", pending));
         }
         for (String partial : partialFiles()) {
-            plugin.messageService().severe("console.rollback_partial", Map.of("file", partial));
+            plugin.messageService().severe(StructureLogTag.ROLLBACK, "console.rollback_partial", Map.of("file", partial));
         }
     }
 
@@ -203,7 +202,7 @@ public final class RollbackService implements Runnable {
             }
             return;
         } catch (IOException exception) {
-            plugin.getLogger().warning("journal 读取失败 " + name + ": " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "rollback.journal_read_failed", Map.of("file", name, "error", exception.getMessage()));
             return;
         }
         if (parsed.committed() || parsed.entries().isEmpty()) {
@@ -235,7 +234,7 @@ public final class RollbackService implements Runnable {
         RestoreTask task = new RestoreTask(txid, file, startup);
         List<String> missingWorlds = buildBatches(task, entries);
         if (!missingWorlds.isEmpty()) {
-            plugin.messageService().severe("console.rollback_partial", Map.of(
+            plugin.messageService().severe(StructureLogTag.ROLLBACK, "console.rollback_partial", Map.of(
                     "file", file.getFileName().toString()));
             markPartial(file, file.getFileName().toString());
             if (startup) {
@@ -400,7 +399,7 @@ public final class RollbackService implements Runnable {
         } else {
             deleteQuietly(task.file);
             if (task.startup) {
-                plugin.getLogger().info("已回滚未完成事务 " + task.txid);
+                LogTags.send(plugin, null, Level.INFO, "rollback.unfinished_transaction_rolled_back", Map.of("transaction", task.txid));
             }
         }
         if (task.startup) {
@@ -412,7 +411,7 @@ public final class RollbackService implements Runnable {
         if (startupPending.decrementAndGet() == 0 && recovering) {
             recovering = false;
             if (config.get().rollback().enabled()) {
-                plugin.messageService().info("console.rollback_recovered",
+                plugin.messageService().info(StructureLogTag.ROLLBACK, "console.rollback_recovered",
                         Map.of("count", startupTotal.get()));
             }
         }
@@ -425,8 +424,7 @@ public final class RollbackService implements Runnable {
                 Files.move(file, target, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException exception) {
-            plugin.getLogger().warning("rollback-partial 标记失败 " + name + ": "
-                    + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "rollback.partial_marker_write_failed", Map.of("file", name, "error", exception.getMessage()));
         }
         registerPartial(name + SUFFIX_PARTIAL);
         plugin.debugLogger().log("structure", (UUID) null, "rollback_partial",

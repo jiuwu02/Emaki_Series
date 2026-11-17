@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.attribute.service.TemporaryEffectSource;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import io.lumine.mythic.api.adapters.AbstractEntity;
 import io.lumine.mythic.api.config.MythicLineConfig;
 import io.lumine.mythic.api.mobs.MythicMob;
@@ -49,6 +50,7 @@ import io.lumine.mythic.core.skills.SkillMechanic;
 import io.lumine.mythic.core.skills.variables.Variable;
 import io.lumine.mythic.core.utils.annotations.MythicCondition;
 import io.lumine.mythic.core.utils.annotations.MythicMechanic;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class MythicBridge implements Listener {
 
@@ -171,34 +173,27 @@ public final class MythicBridge implements Listener {
             separator = entry.indexOf('：');
         }
         if (separator < 0) {
-            plugin.getLogger().warning("[integration] 已跳过 Mythic 生物属性: source=" + sourceId
-                    + ", entry=" + entry + ", reason=missing_separator");
+            LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.skip_mythic_mob_attribute_missing_separator", Map.of("source", sourceId, "entry", entry));
             return null;
         }
         String attributeName = entry.substring(0, separator).trim();
         String valueText = entry.substring(separator + 1).trim();
         if (Texts.isBlank(attributeName) || Texts.isBlank(valueText)) {
-            plugin.getLogger().warning("[integration] 已跳过 Mythic 生物属性: source=" + sourceId
-                    + ", entry=" + entry + ", reason=blank_attribute_or_value");
+            LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.skip_mythic_mob_attribute_blank_attribute_or_value", Map.of("source", sourceId, "entry", entry));
             return null;
         }
         var definition = attributeService.attributeRegistry() == null ? null : attributeService.attributeRegistry().resolve(attributeName);
         if (definition == null) {
-            plugin.getLogger().warning("[integration] 已跳过 Mythic 生物属性: source=" + sourceId
-                    + ", attribute=" + attributeName + ", reason=unregistered_attribute");
+            LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.skip_mythic_mob_attribute_unregistered_attribute", Map.of("source", sourceId, "attribute", attributeName));
             return null;
         }
         Double value = parseMobAttributeValue(valueText);
         if (value == null) {
-            plugin.getLogger().warning("[integration] 已跳过 Mythic 生物属性: source=" + sourceId
-                    + ", attribute=" + definition.id() + ", expression=" + valueText
-                    + ", reason=unparsable_value");
+            LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.skip_mythic_mob_attribute_unparsable_value", Map.of("source", sourceId, "attribute", definition.id(), "expression", valueText));
             return null;
         }
         if (!Double.isFinite(value)) {
-            plugin.getLogger().warning("[integration] 已跳过 Mythic 生物属性: source=" + sourceId
-                    + ", attribute=" + definition.id() + ", expression=" + valueText
-                    + ", reason=non_finite_value");
+            LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.skip_mythic_mob_attribute_non_finite_value", Map.of("source", sourceId, "attribute", definition.id(), "expression", valueText));
             return null;
         }
         return new AttributeContribution(definition.id(), value, sourceId);
@@ -212,8 +207,7 @@ public final class MythicBridge implements Listener {
         try {
             return ExpressionEngine.evaluate(valueText);
         } catch (Exception exception) {
-            plugin.getLogger().warning("[integration] Mythic 生物属性表达式执行失败: expression=" + valueText
-                    + ", cause=" + exception);
+            LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.mythic_mob_attribute_expression_failed", Map.of("expression", valueText, "error", exception));
             return null;
         }
     }
@@ -279,12 +273,7 @@ public final class MythicBridge implements Listener {
                         if (throwable == null || attributeService.plugin() == null) {
                             return;
                         }
-                        attributeService.plugin().getLogger().log(
-                                Level.WARNING,
-                                "[integration] Mythic 伤害结算失败: mechanic=" + getTypeName()
-                                        + " target=" + livingTarget.getUniqueId(),
-                                throwable
-                        );
+                        LogTags.send(attributeService.plugin(), LogTag.INTEGRATION, Level.WARNING, "integration.mythic_damage_failed", Map.of("mechanic", getTypeName(), "target", livingTarget.getUniqueId()), throwable);
                     });
             return SkillResult.SUCCESS;
         }
@@ -369,13 +358,11 @@ public final class MythicBridge implements Listener {
         protected boolean rejectsDeclaredArguments(String mechanic, double value) {
             String rawStackMode = rawStackMode();
             if (!rawStackMode.isBlank() && !TemporaryStackMode.isDeclared(rawStackMode)) {
-                plugin.getLogger().warning("[integration] Mythic 技能在解析时被拒绝: mechanic=" + mechanic
-                        + ", reason=unknown_stack_mode, stack_mode=" + rawStackMode);
+                LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.mythic_skill_parse_rejected_unknown_stack_mode", Map.of("mechanic", mechanic, "stack_mode", rawStackMode));
                 return true;
             }
             if (!Double.isFinite(value)) {
-                plugin.getLogger().warning("[integration] Mythic 技能在解析时被拒绝: mechanic=" + mechanic
-                        + ", reason=non_finite_value, value=" + value);
+                LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.mythic_skill_parse_rejected_non_finite_value", Map.of("mechanic", mechanic, "value", value));
                 return true;
             }
             return false;
@@ -392,12 +379,7 @@ public final class MythicBridge implements Listener {
                 default -> SkillResult.ERROR;
             };
             if (outcome.status().rejected()) {
-                plugin.getLogger().warning(
-                        "[integration] Mythic 技能被拒绝: mechanic=" + mechanic
-                                + ", status=" + outcome.status().name()
-                                + ", group=" + outcome.groupId()
-                                + ", attribute=" + outcome.attributeId()
-                                + ", detail=" + outcome.detail());
+                LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.mythic_skill_rejected", Map.of("mechanic", mechanic, "status", outcome.status().name(), "group", outcome.groupId(), "attribute", outcome.attributeId(), "detail", outcome.detail()));
             }
             return result;
         }

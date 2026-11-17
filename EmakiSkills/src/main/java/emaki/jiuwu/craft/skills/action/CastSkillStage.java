@@ -26,6 +26,8 @@ import emaki.jiuwu.craft.skills.model.CastAttemptResult;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.service.CastAttemptService;
 import emaki.jiuwu.craft.skills.service.CastAttemptService.CastBypass;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.skills.log.SkillsLogTag;
 
 public final class CastSkillStage implements CoreActionStage {
 
@@ -135,10 +137,9 @@ public final class CastSkillStage implements CoreActionStage {
         if (throwable == null && (result == null || result.success())) {
             return;
         }
-        plugin.getLogger().log(Level.FINE, "[cast] cast_skill: 技能 '" + skillId
-                + "' 未完成: " + (throwable != null
+        LogTags.send(plugin, SkillsLogTag.CAST, Level.FINE, "cast.cast_skill_not_completed", Map.of("skill", skillId, "message", (throwable != null
                         ? Texts.toStringSafe(throwable.getMessage())
-                        : Texts.toStringSafe(result.failureMessage())));
+                        : Texts.toStringSafe(result.failureMessage()))));
     }
 
     private static Entity entity(CoreActionSubject subject) {

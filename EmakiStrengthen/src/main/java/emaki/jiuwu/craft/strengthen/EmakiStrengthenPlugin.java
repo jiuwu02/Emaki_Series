@@ -60,6 +60,11 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.strengthen.log.StrengthenLogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -137,9 +142,10 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
                 STARTUP_ASCII_START_COLOR,
                 STARTUP_ASCII_END_COLOR
         );
+        LogTags.registerTags(this, StrengthenLogTag.values());
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         registerConfigPrecheckContributor();
-        messageService.info("console.plugin_starting");
+        messageService.info(LogTag.STARTUP, "console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
         pityRetryScheduler.start();
@@ -150,7 +156,7 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         itemLayerPreviewLifecycle.initialize();
         ensurePlaceholderExpansion();
         metrics = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
-        messageService.info("console.plugin_started");
+        messageService.info(LogTag.STARTUP, "console.plugin_started");
     }
 
     @Override
@@ -242,7 +248,7 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         try {
             action.accept(EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class));
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
+            LogTags.send(getLogger(), LogTag.STARTUP, Level.FINE, "startup.readiness_publish_skipped", Map.of("error", exception));
         }
     }
 
@@ -327,7 +333,7 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         }
         placeholderExpansion = new StrengthenPlaceholderExpansion(this, attemptService);
         placeholderExpansion.register();
-        messageService.info("console.papi_registered");
+        messageService.info(LogTag.INTEGRATION, "console.papi_registered");
     }
 
     public YamlConfigLoader<AppConfig> appConfigLoader() {

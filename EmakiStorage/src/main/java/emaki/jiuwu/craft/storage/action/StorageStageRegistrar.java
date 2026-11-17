@@ -7,6 +7,7 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class StorageStageRegistrar {
 
@@ -25,7 +26,7 @@ public final class StorageStageRegistrar {
             if (registration.successful()) {
                 handles.add(registration);
             } else {
-                plugin.messageService().warning("console.stage_register_failed", Map.of(
+                plugin.messageService().warning(LogTag.REGISTRY, "console.stage_register_failed", Map.of(
                         "stage", operation.id(),
                         "reason", String.valueOf(registration.reasonKey())));
             }

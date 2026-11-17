@@ -8,6 +8,9 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class TriggerConflictResolver {
 
@@ -25,8 +28,7 @@ public final class TriggerConflictResolver {
         for (TriggerDefinition def : definitions.values()) {
             for (String other : def.incompatibleWith()) {
                 if (!definitions.containsKey(other)) {
-                    LOGGER.warning("[trigger] 触发器 '" + def.id()
-                            + "' 声明了与未知触发器 '" + other + "' 的不兼容");
+                    LogTags.send(LOGGER, LogTag.TRIGGER, Level.WARNING, "trigger.unknown_incompatibility", Map.of("id", def.id(), "target", other));
                     continue;
                 }
                 conflictMatrix.computeIfAbsent(def.id(), k -> new HashSet<>()).add(other);

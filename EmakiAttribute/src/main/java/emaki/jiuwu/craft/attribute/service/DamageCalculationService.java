@@ -46,6 +46,8 @@ import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.attribute.log.AttributeLogTag;
 
 final class DamageCalculationService {
 
@@ -760,11 +762,7 @@ final class DamageCalculationService {
             ));
         } catch (RuntimeException | LinkageError exception) {
             if (service.plugin() != null) {
-                service.plugin().getLogger().log(
-                        Level.WARNING,
-                        "[战斗] 伤害调试锚点输出失败; 伤害计算不受影响",
-                        exception
-                );
+                LogTags.send(service.plugin(), AttributeLogTag.COMBAT, Level.WARNING, "combat.damage_debug_anchor_output_failed", Map.of(), exception);
             }
         }
     }

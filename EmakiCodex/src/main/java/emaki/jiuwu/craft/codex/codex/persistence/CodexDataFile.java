@@ -11,6 +11,9 @@ import emaki.jiuwu.craft.codex.codex.model.CodexEntryState;
 import emaki.jiuwu.craft.codex.codex.model.PlayerCodex;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class CodexDataFile {
 
@@ -65,13 +68,12 @@ public final class CodexDataFile {
         String key = Texts.trim(rawKey);
         YamlSection node = entriesSection.getSection(rawKey);
         if (Texts.isBlank(key) || node == null) {
-            warn("已丢弃无法解析的图鉴条目 '" + Texts.toStringSafe(rawKey)
-                    + "'(玩家 " + playerId + ")");
+            LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.unparsable_entry_discarded", Map.of("raw_key", Texts.toStringSafe(rawKey), "player", playerId));
             return;
         }
         Long unlockedAt = longOf(node.get(KEY_UNLOCKED_AT));
         if (unlockedAt == null) {
-            warn("已丢弃图鉴条目 '" + key + "': 缺少有效的 unlocked_at(玩家 " + playerId + ")");
+            LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.entry_missing_unlocked_at_discarded", Map.of("entry", key, "player", playerId));
             return;
         }
         boolean activated = Boolean.TRUE.equals(node.getBoolean(KEY_ACTIVATED, false));
@@ -108,14 +110,9 @@ public final class CodexDataFile {
         try {
             return Long.valueOf(text);
         } catch (NumberFormatException exception) {
-            warn("无法解析图鉴时间戳 '" + text + "': " + exception.getMessage());
+            LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.timestamp_parse_failed", Map.of("timestamp", text, "error", exception.getMessage()));
             return null;
         }
     }
 
-    private void warn(String message) {
-        if (logger != null) {
-            logger.warning("[persistence] " + message);
-        }
-    }
 }

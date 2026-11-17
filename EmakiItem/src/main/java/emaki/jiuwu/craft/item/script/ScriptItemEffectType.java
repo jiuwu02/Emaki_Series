@@ -15,6 +15,9 @@ import emaki.jiuwu.craft.item.api.effect.ItemEffect;
 import emaki.jiuwu.craft.item.api.effect.ItemEffectApplyContext;
 import emaki.jiuwu.craft.item.api.effect.ItemEffectParseContext;
 import emaki.jiuwu.craft.item.api.effect.ItemEffectType;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class ScriptItemEffectType implements ItemEffectType {
 
@@ -51,8 +54,7 @@ final class ScriptItemEffectType implements ItemEffectType {
             }
             return new ScriptItemEffect(this, effect);
         } catch (ScriptCallbackException exception) {
-            logger.warning("[script] 脚本效果 '" + id + "' 解析物品 '"
-                    + context.definitionId() + "' 失败: " + exception.getMessage());
+            LogTags.send(logger, LogTag.SCRIPT, Level.WARNING, "script.effect_parse_item_failed", Map.of("effect", id, "item", context.definitionId(), "error", exception.getMessage()));
             return null;
         }
     }
@@ -64,8 +66,7 @@ final class ScriptItemEffectType implements ItemEffectType {
         try {
             runner.run(clearFn, effect, exportApplyContext(context));
         } catch (ScriptCallbackException exception) {
-            logger.warning("[script] 脚本效果 '" + id + "' 清理物品 '"
-                    + context.definitionId() + "' 失败: " + exception.getMessage());
+            LogTags.send(logger, LogTag.SCRIPT, Level.WARNING, "script.effect_clear_item_failed", Map.of("effect", id, "item", context.definitionId(), "error", exception.getMessage()));
         }
     }
 
@@ -73,8 +74,7 @@ final class ScriptItemEffectType implements ItemEffectType {
         try {
             runner.run(applyFn, effect, exportApplyContext(context));
         } catch (ScriptCallbackException exception) {
-            logger.warning("[script] 脚本效果 '" + id + "' 应用物品 '"
-                    + context.definitionId() + "' 失败: " + exception.getMessage());
+            LogTags.send(logger, LogTag.SCRIPT, Level.WARNING, "script.effect_apply_item_failed", Map.of("effect", id, "item", context.definitionId(), "error", exception.getMessage()));
         }
     }
 

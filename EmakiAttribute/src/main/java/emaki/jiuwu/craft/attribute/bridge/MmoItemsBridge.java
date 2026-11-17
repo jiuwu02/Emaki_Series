@@ -43,6 +43,7 @@ import net.Indyuce.mmoitems.api.item.mmoitem.LiveMMOItem;
 import net.Indyuce.mmoitems.api.item.mmoitem.MMOItem;
 import net.Indyuce.mmoitems.stat.data.DoubleData;
 import net.Indyuce.mmoitems.stat.type.ItemStat;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class MmoItemsBridge implements Listener {
 
@@ -237,7 +238,7 @@ public final class MmoItemsBridge implements Listener {
         if (plugin == null || plugin.messageService() == null) {
             return;
         }
-        plugin.messageService().warning("console.mmoitems_bridge_unavailable", Map.of(
+        plugin.messageService().warning(LogTag.INTEGRATION, "console.mmoitems_bridge_unavailable", Map.of(
                 "error", Texts.toStringSafe(error)
         ));
     }
@@ -462,7 +463,7 @@ public final class MmoItemsBridge implements Listener {
             if (plugin == null || plugin.messageService() == null || !warnings.add(uniqueId)) {
                 return;
             }
-            plugin.messageService().warning(key, replacements);
+            plugin.messageService().warning(LogTag.INTEGRATION, key, replacements);
         }
 
         private String safeText(String value, String fallback) {

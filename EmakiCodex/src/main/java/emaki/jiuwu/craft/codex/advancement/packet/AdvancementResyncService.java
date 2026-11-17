@@ -33,8 +33,11 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.codex.log.CodexLogTag;
 
 import net.kyori.adventure.text.Component;
+import java.util.Map;
 
 public final class AdvancementResyncService {
 
@@ -104,8 +107,7 @@ public final class AdvancementResyncService {
                 future.complete(false);
             }
         } catch (Throwable throwable) {
-            plugin.getLogger().log(Level.WARNING,
-                    "[packet] 为 " + player.getName() + " 安排成就重同步失败: " + throwable.getMessage());
+            LogTags.send(plugin, CodexLogTag.PACKET, Level.WARNING, "packet.advancement_resync_schedule_failed", Map.of("player", player.getName(), "error", throwable.getMessage()));
             future.complete(false);
         }
         return future;
@@ -121,8 +123,7 @@ public final class AdvancementResyncService {
             PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet);
             return true;
         } catch (Throwable throwable) {
-            plugin.getLogger().log(Level.WARNING,
-                    "[packet] 为 " + player.getName() + " 重同步成就失败: " + throwable.getMessage());
+            LogTags.send(plugin, CodexLogTag.PACKET, Level.WARNING, "packet.advancement_resync_failed", Map.of("player", player.getName(), "error", throwable.getMessage()));
             return false;
         }
     }
@@ -133,8 +134,7 @@ public final class AdvancementResyncService {
             try {
                 holders.add(buildHolder(node));
             } catch (Throwable throwable) {
-                plugin.getLogger().log(Level.FINE,
-                        "[packet] 已跳过成就持有者 " + node.key() + ": " + throwable.getMessage());
+                LogTags.send(plugin, CodexLogTag.PACKET, Level.FINE, "packet.advancement_holder_skipped", Map.of("holder", node.key(), "error", throwable.getMessage()));
             }
         }
         return holders;

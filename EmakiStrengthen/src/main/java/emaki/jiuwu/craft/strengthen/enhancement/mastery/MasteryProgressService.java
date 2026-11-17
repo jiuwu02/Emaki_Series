@@ -8,6 +8,10 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.strengthen.log.StrengthenLogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class MasteryProgressService {
 
@@ -38,7 +42,7 @@ public final class MasteryProgressService {
             }
             return codec.write(target, base.withGainedExp(gain));
         } catch (RuntimeException | LinkageError exception) {
-            warn("熟练度写入失败, 本次强化结果不受影响", exception);
+            warn(LogTags.text(plugin, "console.mastery_write_failed", Map.of()), exception);
             return false;
         }
     }
@@ -47,7 +51,7 @@ public final class MasteryProgressService {
         try {
             return codec.read(itemStack);
         } catch (RuntimeException | LinkageError exception) {
-            warn("熟练度读取失败", exception);
+            warn(LogTags.text(plugin, "console.mastery_read_failed", Map.of()), exception);
             return null;
         }
     }
@@ -64,7 +68,7 @@ public final class MasteryProgressService {
             MasteryLayer replaced = MasteryLayer.empty(instanceId, resolveSoftCap()).withGainedExp(totalExp);
             return codec.write(itemStack, replaced);
         } catch (RuntimeException | LinkageError exception) {
-            warn("熟练度覆写失败", exception);
+            warn(LogTags.text(plugin, "console.mastery_overwrite_failed", Map.of()), exception);
             return false;
         }
     }
@@ -77,7 +81,7 @@ public final class MasteryProgressService {
             codec.clear(itemStack);
             return true;
         } catch (RuntimeException | LinkageError exception) {
-            warn("熟练度清除失败", exception);
+            warn(LogTags.text(plugin, "console.mastery_clear_failed", Map.of()), exception);
             return false;
         }
     }
@@ -98,7 +102,7 @@ public final class MasteryProgressService {
 
     private void warn(String message, Throwable throwable) {
         if (plugin.getLogger() != null) {
-            plugin.getLogger().warning("[mastery] " + message + ": " + String.valueOf(throwable.getMessage()));
+            LogTags.sendRaw(plugin, StrengthenLogTag.MASTERY, Level.WARNING, message + ": " + String.valueOf(throwable.getMessage()));
         }
     }
 }

@@ -58,6 +58,9 @@ import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.service.ForgeGuiSession;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class ForgeLifecycleCoordinatorDelegate {
 
@@ -127,7 +130,7 @@ final class ForgeLifecycleCoordinatorDelegate {
     CompletableFuture<ForgeReloadResult> rejectedReload(EmakiForgePlugin plugin, ForgeReloadCandidate candidate, long started, String detail) {
         return ownerRef.submitGlobal(plugin, () -> {
             plugin.failReload(candidate, detail);
-            plugin.messageService().warning("console.reload_rejected", Map.of("generation", candidate.generation(),
+            plugin.messageService().warning(LogTag.RELOAD, "console.reload_rejected", Map.of("generation", candidate.generation(),
                     "summary", candidate.recipeReport().summary()));
             ForgeReloadResult result = new ForgeReloadResult(
                     candidate.generation(),
@@ -176,13 +179,12 @@ final class ForgeLifecycleCoordinatorDelegate {
         }
         try {
             if (replacements == null || replacements.isEmpty()) {
-                plugin.messageService().info(key);
+                plugin.messageService().info(LogTag.SHUTDOWN, key);
             } else {
-                plugin.messageService().info(key, replacements);
+                plugin.messageService().info(LogTag.SHUTDOWN, key, replacements);
             }
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[shutdown] 消息派发失败, 键 '" + key + "': "
-                    + String.valueOf(throwable.getMessage()));
+            LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.message_dispatch_failed", Map.of("key", key, "error", String.valueOf(throwable.getMessage())));
         }
     }
 
@@ -191,8 +193,7 @@ final class ForgeLifecycleCoordinatorDelegate {
         int unresolvedSessions = plugin.forgeGuiService().sessionsSnapshot().size();
         if (unresolvedSessions > 0) {
             plugin.runtimeMetrics().recordGuiSettlementFailure();
-            plugin.getLogger().severe("[shutdown] " + unresolvedSessions
-                    + " 个 Forge GUI 会话仍持有未结算物品; 未静默丢弃这些会话");
+            LogTags.send(plugin, LogTag.SHUTDOWN, Level.SEVERE, "shutdown.forge_gui_sessions_unsettled", Map.of("count", unresolvedSessions));
         }
         plugin.recipeBookGuiService().clearAllBooks();
         if (plugin.forgeService() != null) {
@@ -206,8 +207,7 @@ final class ForgeLifecycleCoordinatorDelegate {
                 plugin.forgeGuiService().settleShutdownSessionOnOwner(session);
                 player.closeInventory();
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("[shutdown] Forge GUI 结算回退失败, 玩家 "
-                        + player.getUniqueId() + ": " + String.valueOf(throwable.getMessage()));
+                LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.forge_gui_settlement_fallback_failed", Map.of("player", player.getUniqueId(), "error", String.valueOf(throwable.getMessage())));
                 plugin.forgeGuiService().handleShutdownClosureFailure(session,
                         "关闭结算回退失败: " + String.valueOf(throwable.getMessage()));
             } finally {
@@ -244,16 +244,14 @@ final class ForgeLifecycleCoordinatorDelegate {
                             scheduled.cancel();
                         }
                     } catch (Throwable cancellationFailure) {
-                        plugin.getLogger().warning("[shutdown] Forge GUI 结算回退取消失败: "
-                                + String.valueOf(cancellationFailure.getMessage()));
+                        LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.forge_gui_settlement_fallback_cancel_failed", Map.of("error", String.valueOf(cancellationFailure.getMessage())));
                     }
                     ownerRef.scheduleShutdownEntityTask(plugin, coreLibPlugin, player, settle, retired, completion,
                             "Forge GUI 静默后结算");
                 });
             }
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[shutdown] Forge GUI 结算回退调度失败: "
-                    + String.valueOf(throwable.getMessage()));
+            LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.forge_gui_settlement_fallback_schedule_failed", Map.of("error", String.valueOf(throwable.getMessage())));
             try {
                 retired.run();
             } catch (Throwable retiredFailure) {
@@ -277,8 +275,7 @@ final class ForgeLifecycleCoordinatorDelegate {
                 retired.run();
             }
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[shutdown] " + description + " 调度失败: "
-                    + String.valueOf(throwable.getMessage()));
+            LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.schedule_failed", Map.of("description", description, "error", String.valueOf(throwable.getMessage())));
             try {
                 retired.run();
             } catch (Throwable retiredFailure) {
@@ -352,9 +349,7 @@ final class ForgeLifecycleCoordinatorDelegate {
         }
         if (permission != null && permission.contains("op_bypass")) {
             boolean legacyValue = permission.getBoolean("op_bypass", false);
-            JavaPlugin.getPlugin(EmakiForgePlugin.class).getLogger().warning("[配置] 配置键 permission.op_bypass"
-                    + " 已移到顶层 op_bypass, 当前按旧键值 " + legacyValue
-                    + " 生效, 启动时会自动迁移到新键");
+            LogTags.send(JavaPlugin.getPlugin(EmakiForgePlugin.class), LogTag.CONFIG, Level.WARNING, "config.legacy_permission_op_bypass_key", Map.of("value", legacyValue));
             return legacyValue;
         }
         return false;

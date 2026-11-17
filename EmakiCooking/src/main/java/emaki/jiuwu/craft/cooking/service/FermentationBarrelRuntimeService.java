@@ -49,6 +49,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class FermentationBarrelRuntimeService implements Listener {
 
@@ -160,12 +161,12 @@ public final class FermentationBarrelRuntimeService implements Listener {
         ItemSourceRef stationSource = stateStore.stationSource(section);
         boolean needsCanonicalWriteback = state != null && (state.needsSchemaWriteback() || !state.slotIdsResolved());
         if (state == null || !state.valid()) {
-            messageService.warning("console.station_restore_rejected_invalid_fermentation_state", Map.of(
+            messageService.warning(LogTag.PERSISTENCE, "console.station_restore_rejected_invalid_fermentation_state", Map.of(
                     "coordinate", coordinates.runtimeKey()));
             return false;
         }
         if (!migrateSlotIds(state)) {
-            messageService.warning("console.station_restore_rejected_slot_migration", Map.of(
+            messageService.warning(LogTag.PERSISTENCE, "console.station_restore_rejected_slot_migration", Map.of(
                     "coordinate", coordinates.runtimeKey(),
                     "recipe", String.valueOf(state.activeRecipeId())));
             return false;
@@ -178,7 +179,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         if (!blockMatcher.matches(block, StationType.FERMENTATION_BARREL, stationSource)) {
             removeState(coordinates, false);
             activeStations.remove(coordinates);
-            messageService.warning("console.station_restore_skipped_mismatch", Map.of(
+            messageService.warning(LogTag.PERSISTENCE, "console.station_restore_skipped_mismatch", Map.of(
                     "type", "fermentation_barrel",
                     "coordinate", coordinates.runtimeKey()));
             return false;
@@ -267,7 +268,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
                 openHolder.getInventory(), openHolder.viewerId(), Bukkit.getPlayer(openHolder.viewerId()) == null ? "" : Bukkit.getPlayer(openHolder.viewerId()).getName());
         if (state == null || !state.valid() || !state.slotIdsResolved()) {
             context.cancel();
-            messageService.warning("console.station_break_rejected_slot_migration", Map.of(
+            messageService.warning(LogTag.PERSISTENCE, "console.station_break_rejected_slot_migration", Map.of(
                     "coordinate", coordinates.runtimeKey()));
             return true;
         }
@@ -290,7 +291,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         FermentationBarrelState state = loadStateOrEmpty(coordinates);
         if (state == null || !state.valid() || !state.slotIdsResolved()) {
             interaction.cancel();
-            messageService.warning("console.station_interaction_rejected_slot_migration", Map.of(
+            messageService.warning(LogTag.PERSISTENCE, "console.station_interaction_rejected_slot_migration", Map.of(
                     "coordinate", coordinates.runtimeKey()));
             return true;
         }

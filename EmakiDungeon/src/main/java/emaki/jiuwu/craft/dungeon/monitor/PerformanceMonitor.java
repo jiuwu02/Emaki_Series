@@ -103,7 +103,7 @@ public final class PerformanceMonitor implements AutoCloseable {
         Map<String, String> fields = Map.of(
                 "p95", String.format(Locale.ROOT, "%.1f", p95),
                 "threshold", String.valueOf(threshold));
-        messages.warning("console.monitor_mspt_high", fields);
+        messages.warning(null, "console.monitor_mspt_high", fields);
         audit.write("monitor", merge("kind", "mspt_p95", fields));
     }
 
@@ -129,7 +129,7 @@ public final class PerformanceMonitor implements AutoCloseable {
         Map<String, String> fields = Map.of(
                 "slope", String.format(Locale.ROOT, "%.1f", slopeMbPerMin),
                 "threshold", String.valueOf(threshold));
-        messages.warning("console.monitor_memory_slope", fields);
+        messages.warning(null, "console.monitor_memory_slope", fields);
         audit.write("monitor", merge("kind", "memory_slope", fields));
     }
 
@@ -162,7 +162,7 @@ public final class PerformanceMonitor implements AutoCloseable {
                     "instance", instanceId,
                     "seconds", String.valueOf(seconds),
                     "threshold", String.valueOf(threshold));
-            messages.warning("console.monitor_queue_backlog", fields);
+            messages.warning(null, "console.monitor_queue_backlog", fields);
             audit.write("monitor", merge("kind", "queue_backlog", fields));
         }
         backlogSince.keySet().removeIf(instanceId -> !seen.contains(instanceId));

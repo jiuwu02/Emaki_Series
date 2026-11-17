@@ -20,6 +20,8 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public abstract class YamlDirectoryLoader<T> {
 
@@ -221,7 +223,7 @@ public abstract class YamlDirectoryLoader<T> {
     }
 
     protected void onPreparationFailure(File directory, RuntimeException exception) {
-        String message = "[loader] 准备 " + typeName() + " 配置文件失败, 目录 "
+        String message = LogTags.head(plugin, "loader") + " 准备 " + typeName() + " 配置文件失败, 目录 "
                 + directory.getPath() + ": " + Texts.toStringSafe(exception.getMessage());
         issues.add(message);
         plugin.getLogger().warning(message);
@@ -256,7 +258,7 @@ public abstract class YamlDirectoryLoader<T> {
         issues.add(localized(key, safeReplacements));
         LogMessages messages = messages();
         if (messages != null) {
-            messages.warning(key, safeReplacements);
+            messages.warning(LogTag.LOADER, key, safeReplacements);
         }
     }
 

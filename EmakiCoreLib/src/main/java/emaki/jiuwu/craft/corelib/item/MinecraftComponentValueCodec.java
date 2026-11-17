@@ -12,7 +12,10 @@ import java.util.regex.Pattern;
 
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import net.kyori.adventure.text.Component;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class MinecraftComponentValueCodec {
 
@@ -153,8 +156,7 @@ public final class MinecraftComponentValueCodec {
             }
         } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
             if (gsonWarningLogged.compareAndSet(false, true)) {
-                LOGGER.warning("[component] Adventure GsonComponentSerializer 不可用, 回退为纯文本"
-                        + "组件编码: " + describe(exception));
+                LogTags.send(LOGGER, LogTag.COMPONENT, Level.WARNING, "component.gson_serializer_unavailable", Map.of("error", describe(exception)));
             }
         }
         return "{\"text\":" + quote(MiniMessages.plain(component)) + "}";

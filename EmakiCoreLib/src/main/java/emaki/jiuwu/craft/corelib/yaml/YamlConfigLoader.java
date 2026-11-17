@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class YamlConfigLoader<T> {
 
@@ -87,7 +88,7 @@ public final class YamlConfigLoader<T> {
     private void warning(String key, Map<String, ?> replacements) {
         LogMessages messages = messages();
         if (messages != null) {
-            messages.warning(key, replacements);
+            messages.warning(LogTag.LOADER, key, replacements);
         }
     }
 

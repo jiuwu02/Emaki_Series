@@ -22,6 +22,8 @@ import emaki.jiuwu.craft.storage.model.StorageKey;
 import emaki.jiuwu.craft.storage.model.StorageReservation;
 import emaki.jiuwu.craft.storage.persistence.StorageDataFile;
 import emaki.jiuwu.craft.storage.persistence.StorageMetaFile;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class PlayerStorageStore {
 
@@ -147,14 +149,11 @@ public final class PlayerStorageStore {
             throw new CompletionException(failure);
         }
         if (loaded.hasCorruption()) {
-            logger.warning("[persistence] 已隔离玩家 " + playerId + " 的 " + loaded.corruptRecords()
-                    + " 条无法读取的记录"
-                    + (loaded.quarantineTarget() == null
-                            ? "" : ", 已移入 " + loaded.quarantineTarget().getFileName()));
+            LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.quarantine_unreadable_records", Map.of("player", playerId, "count", loaded.corruptRecords(), "quarantine_target", (loaded.quarantineTarget() == null
+                            ? "" : ", 已移入 " + loaded.quarantineTarget().getFileName())));
         }
         if (loaded.truncated()) {
-            logger.warning("[persistence] 玩家 " + playerId + " 的存储文件被截断 ("
-                    + loaded.truncationDetail() + "), 已按加载失败处理并进入只读保护, 原文件保留不覆盖");
+            LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.storage_file_truncated", Map.of("player", playerId, "detail", loaded.truncationDetail()));
             throw new CompletionException(new IOException("存储文件框架被截断: " + loaded.truncationDetail()));
         }
         int merged = 0;
@@ -170,8 +169,7 @@ public final class PlayerStorageStore {
             storage.append(textIndexer.createEntry(key, record.amount(), record.stackLimit()));
         }
         if (merged > 0) {
-            logger.warning("[persistence] 已为玩家 " + playerId + " 合并 " + merged
-                    + " 条重复条目; 组件格式变更后两个已存物品现在判定相等");
+            LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.duplicate_entries_merged", Map.of("player", playerId, "count", merged));
         }
         restoreReservations(playerId, storage, loaded.reservations());
         storage.pruneEmpty();
@@ -200,15 +198,14 @@ public final class PlayerStorageStore {
                     record.expiresAtMillis(), ops));
         }
         if (expired > 0) {
-            logger.info("[persistence] 已释放玩家 " + playerId + " 的 " + expired + " 条过期预留");
+            LogTags.send(logger, LogTag.PERSISTENCE, Level.INFO, "persistence.expired_reservations_released", Map.of("player", playerId, "count", expired));
         }
     }
 
     private void warnOnLargeStorage(UUID playerId, PlayerStorage storage) {
         int threshold = warnEntryCount;
         if (threshold > 0 && storage.entryCount() > threshold) {
-            logger.warning("[persistence] 玩家 " + playerId + " 持有 " + storage.entryCount()
-                    + " 个条目, 超过 capacity.warn_entry_count=" + threshold);
+            LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.storage_entry_count_warn", Map.of("player", playerId, "count", storage.entryCount(), "limit", threshold));
         }
     }
 
@@ -337,8 +334,7 @@ public final class PlayerStorageStore {
     }
 
     private void logFailure(String stage, UUID playerId, Throwable throwable) {
-        logger.log(Level.WARNING, "[persistence] 玩家 " + playerId + " 数据处理失败 (" + stage + "): "
-                + describe(throwable));
+        LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.data_handling_failed", Map.of("player", playerId, "stage", stage, "error", describe(throwable)));
     }
 
     private static String describe(Throwable throwable) {

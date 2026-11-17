@@ -5,6 +5,7 @@ import emaki.jiuwu.craft.corelib.api.animation.AnimationKeyframe;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.mobs.config.ModelSettings;
 import emaki.jiuwu.craft.mobs.selector.TargetLockConfig;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.EntityType;
@@ -17,6 +18,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> {
 
@@ -103,9 +106,7 @@ public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> 
         if (config.getSection(currentKey) != null || config.getSection(legacyKey) == null) {
             return currentKey;
         }
-        plugin.getLogger().warning("[loader] 生物文件 '" + file.getName() + "' 仍在使用旧键 '"
-                + legacyKey + "', 请改为 '" + currentKey
-                + "', 旧键将在下一个大版本移除");
+        LogTags.send(plugin, LogTag.LOADER, Level.WARNING, "loader.mob_file_legacy_key_in_use", Map.of("file", file.getName(), "old_key", legacyKey, "new_key", currentKey));
         return legacyKey;
     }
 

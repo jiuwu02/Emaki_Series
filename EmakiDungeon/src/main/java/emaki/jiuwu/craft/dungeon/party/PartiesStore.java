@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.log.DungeonLogTag;
 
 public final class PartiesStore {
 
@@ -115,7 +116,7 @@ public final class PartiesStore {
             YamlFiles.save(file, values);
             return true;
         } catch (IOException exception) {
-            messages.warning("console.parties_save_failed", Map.of(
+            messages.warning(DungeonLogTag.STORAGE, "console.parties_save_failed", Map.of(
                     "file", String.valueOf(file.getAbsolutePath()),
                     "error", String.valueOf(exception.getMessage())));
             return false;

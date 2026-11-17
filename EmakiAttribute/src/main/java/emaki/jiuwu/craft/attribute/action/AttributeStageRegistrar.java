@@ -9,6 +9,10 @@ import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class AttributeStageRegistrar {
 
@@ -28,8 +32,7 @@ public final class AttributeStageRegistrar {
             if (registration.successful()) {
                 handles.add(registration);
             } else {
-                owner.getLogger().warning("[startup] 注册管线阶段 '" + stage.id()
-                        + "' 失败: " + registration.reasonKey());
+                LogTags.send(owner, LogTag.STARTUP, Level.WARNING, "startup.pipeline_stage_register_failed", Map.of("stage", stage.id(), "reason", registration.reasonKey()));
             }
         }
         EmakiCoreLibApi.onStageRegistryRebuilt(owner, this::register);

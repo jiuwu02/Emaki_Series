@@ -35,6 +35,9 @@ import emaki.jiuwu.craft.item.model.RepairCurrencyCost;
 import emaki.jiuwu.craft.item.model.RepairEconomyConfig;
 import emaki.jiuwu.craft.item.model.RepairMaterial;
 import emaki.jiuwu.craft.item.api.event.ItemRepairEvent;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.item.log.ItemLogTag;
+import java.util.logging.Level;
 
 public final class ItemRepairService {
 
@@ -292,7 +295,7 @@ public final class ItemRepairService {
             success &= InventoryItemUtil.rollbackRemoval(providedMaterials, plans.get(index));
         }
         if (!success && plugin != null) {
-            plugin.getLogger().severe("[repair] 无法完整回滚修复材料");
+            LogTags.send(plugin, ItemLogTag.REPAIR, Level.SEVERE, "repair.material_rollback_incomplete");
         }
         return success;
     }

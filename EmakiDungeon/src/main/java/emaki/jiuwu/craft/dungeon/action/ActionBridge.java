@@ -69,7 +69,7 @@ public final class ActionBridge {
     public void registerAll() {
         closeAll();
         if (!EmakiCoreLibApi.status().usable()) {
-            messages.warning("console.action_corelib_unavailable", Map.of());
+            messages.warning(null, "console.action_corelib_unavailable", Map.of());
             return;
         }
         for (String segment : SEGMENTS) {
@@ -111,7 +111,7 @@ public final class ActionBridge {
         EmakiCoreLibApi.dispatchTriggerAsync(plugin, NAMESPACE + segment, dispatch)
                 .whenComplete((result, error) -> {
                     if (error != null) {
-                        messages.warning("console.action_dispatch_failed", Map.of(
+                        messages.warning(null, "console.action_dispatch_failed", Map.of(
                                 "segment", segment,
                                 "error", String.valueOf(error.getMessage())
                         ));
@@ -133,7 +133,7 @@ public final class ActionBridge {
         EmakiCoreLibApi.executeActionLineAsync(plugin, line, context)
                 .whenComplete((result, error) -> {
                     if (error != null) {
-                        messages.warning("console.action_dispatch_failed", Map.of(
+                        messages.warning(null, "console.action_dispatch_failed", Map.of(
                                 "segment", WORLD_SOURCE_ID,
                                 "error", String.valueOf(error.getMessage())
                         ));

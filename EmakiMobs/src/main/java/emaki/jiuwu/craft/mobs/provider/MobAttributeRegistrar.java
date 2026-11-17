@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.mobs.provider;
 
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
@@ -9,6 +10,8 @@ import java.lang.reflect.Constructor;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class MobAttributeRegistrar {
 
@@ -65,11 +68,11 @@ public final class MobAttributeRegistrar {
             if (value instanceof MobOptionalProviderIntegration created) {
                 return created;
             }
-            logger.warning("[integration] EmakiAttribute 集成实现类型无效");
+            LogTags.send(logger, LogTag.INTEGRATION, Level.WARNING, "integration.emaki_attribute_integration_type_invalid");
         } catch (ClassNotFoundException | LinkageError exception) {
-            logger.info("[integration] EmakiAttribute 集成不可用, 将在不提供属性贡献的情况下继续");
+            LogTags.send(logger, LogTag.INTEGRATION, Level.INFO, "integration.emaki_attribute_integration_unavailable");
         } catch (ReflectiveOperationException | SecurityException exception) {
-            logger.warning("[integration] EmakiAttribute 集成失败: " + exception.getMessage());
+            LogTags.send(logger, LogTag.INTEGRATION, Level.WARNING, "integration.emaki_attribute_integration_failed", Map.of("error", exception.getMessage()));
         }
         return null;
     }

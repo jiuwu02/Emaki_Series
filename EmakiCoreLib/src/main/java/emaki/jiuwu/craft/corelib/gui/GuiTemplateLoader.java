@@ -6,6 +6,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 
 public class GuiTemplateLoader extends YamlDirectoryLoader<GuiTemplate> {
 
@@ -26,7 +27,7 @@ public class GuiTemplateLoader extends YamlDirectoryLoader<GuiTemplate> {
     @Override
     protected GuiTemplate parse(File file, YamlSection configuration) {
         return GuiTemplateParser.parse(configuration, message -> {
-            String detail = "[gui] " + file.getName() + ": " + message;
+            String detail = LogTags.head(plugin, "gui") + " " + file.getName() + ": " + message;
             issues.add(detail);
             plugin.getLogger().warning(detail);
         });

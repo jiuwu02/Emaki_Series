@@ -60,6 +60,9 @@ import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.service.ForgeGuiSession;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiForgePlugin, ForgeRuntimeComponents> {
 
@@ -261,7 +264,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             }
             return submitGlobal(plugin, () -> {
                 plugin.failReload(generation, "重载失败: " + cause.getMessage());
-                plugin.messageService().warning("console.reload_generation_failed",
+                plugin.messageService().warning(LogTag.RELOAD, "console.reload_generation_failed",
                         Map.of("generation", generation, "error", String.valueOf(cause.getMessage())));
                 ForgeReloadResult reloadResult = new ForgeReloadResult(
                         generation,
@@ -485,9 +488,9 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                         plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
                         plugin.installCandidate(candidate);
                     }
-                    plugin.messageService().info("console.pdc_source_registered", Map.of(
+                    plugin.messageService().info(LogTag.LOADER, "console.pdc_source_registered", Map.of(
                             "source", PDC_ATTRIBUTE_SOURCE_ID));
-                    plugin.messageService().info("console.recipes_loaded", Map.of(
+                    plugin.messageService().info(LogTag.LOADER, "console.recipes_loaded", Map.of(
                             "count", String.valueOf(candidate.recipeLoader().all().size())));
                     return null;
                 }))
@@ -576,8 +579,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             try {
                 coreLibPlugin.namespaceRegistry().unregister("forge");
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("[shutdown] 命名空间清理失败: "
-                        + String.valueOf(throwable.getMessage()));
+                LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.namespace_cleanup_failed", Map.of("error", String.valueOf(throwable.getMessage())));
             }
         }
         sendShutdownMessage(plugin, "console.plugin_stopping");
@@ -585,8 +587,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             try {
                 plugin.pdcAttributeGateway().shutdown();
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("[shutdown] PDC 网关清理失败: "
-                        + String.valueOf(throwable.getMessage()));
+                LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.pdc_gateway_cleanup_failed", Map.of("error", String.valueOf(throwable.getMessage())));
             }
         }
         if (plugin.playerDataStore() == null) {
@@ -598,25 +599,19 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         try {
             flushFuture = plugin.playerDataStore().flushAndSealAsync(5L, TimeUnit.SECONDS);
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[shutdown] 玩家数据刷写无法启动: "
-                    + throwable.getClass().getSimpleName() + ": " + String.valueOf(throwable.getMessage()));
+            LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.player_data_flush_start_failed", Map.of("type", throwable.getClass().getSimpleName(), "error", String.valueOf(throwable.getMessage())));
             sendShutdownMessage(plugin, "console.plugin_stopped");
             return CompletableFuture.completedFuture(null);
         }
         return flushFuture.handle((flushResult, throwable) -> {
             if (throwable != null) {
                 Throwable cause = AsyncFailures.unwrap(throwable);
-                plugin.getLogger().warning("[shutdown] 玩家数据刷写失败: "
-                        + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
+                LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.player_data_flush_failed", Map.of("type", cause.getClass().getSimpleName(), "error", String.valueOf(cause.getMessage())));
             } else if (flushResult != null) {
                 sendShutdownMessage(plugin, "console.player_data_saved", Map.of(
                         "count", flushResult.savedEntries()));
                 if (!flushResult.clean()) {
-                    plugin.getLogger().warning("[shutdown] 玩家数据排空不完整: pending="
-                            + flushResult.drainResult().pendingOperations()
-                            + ", ioFailures=" + flushResult.drainResult().failures().size()
-                            + ", saveFailures=" + flushResult.failedEntries()
-                            + ", remainingDirty=" + flushResult.remainingDirtyEntries());
+                    LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.player_data_drain_incomplete", Map.of("pending", flushResult.drainResult().pendingOperations(), "io_failures", flushResult.drainResult().failures().size(), "save_failures", flushResult.failedEntries(), "remaining_dirty", flushResult.remainingDirtyEntries()));
                 }
             }
             sendShutdownMessage(plugin, "console.plugin_stopped");
@@ -656,8 +651,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     if (throwable != null) {
                         Throwable cause = AsyncFailures.unwrap(throwable);
                         plugin.runtimeMetrics().recordGuiSettlementFailure();
-                        plugin.getLogger().warning("[shutdown] Forge 退役未干净完成: "
-                                + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
+                        LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.forge_retirement_incomplete", Map.of("type", cause.getClass().getSimpleName(), "error", String.valueOf(cause.getMessage())));
                     }
                     return throwable == null;
                 })
@@ -674,8 +668,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 .handle((ignored, throwable) -> {
                     if (throwable != null) {
                         Throwable cause = AsyncFailures.unwrap(throwable);
-                        plugin.getLogger().warning("[shutdown] Forge 运行时清理失败: "
-                                + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
+                        LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.forge_runtime_cleanup_failed", Map.of("type", cause.getClass().getSimpleName(), "error", String.valueOf(cause.getMessage())));
                         closeRuntimeForShutdown(plugin);
                     }
                     return null;
@@ -718,8 +711,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                         player.closeInventory();
                     }
                 } catch (Throwable throwable) {
-                    plugin.getLogger().warning("[shutdown] Forge GUI 关闭失败, 玩家 "
-                            + player.getUniqueId() + ": " + String.valueOf(throwable.getMessage()));
+                    LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.forge_gui_close_failed", Map.of("player", player.getUniqueId(), "error", String.valueOf(throwable.getMessage())));
                     plugin.forgeGuiService().handleShutdownClosureFailure(session,
                             "关闭背包时失败: " + String.valueOf(throwable.getMessage()));
                 } finally {
@@ -749,15 +741,14 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     plugin.recipeBookGuiService().removeRecipeBook(player);
                     player.closeInventory();
                 } catch (Throwable throwable) {
-                    plugin.getLogger().warning("[shutdown] 配方图鉴关闭失败, 玩家 "
-                            + player.getUniqueId() + ": " + String.valueOf(throwable.getMessage()));
+                    LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.recipe_book_close_failed", Map.of("player", player.getUniqueId(), "error", String.valueOf(throwable.getMessage())));
                 } finally {
                     closure.complete(null);
                 }
             };
             Runnable retired = () -> {
                 plugin.recipeBookGuiService().removeRecipeBookOwner(player);
-                plugin.getLogger().warning("[shutdown] 配方图鉴所有者已在关闭背包前退役");
+                LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.recipe_book_owner_retired_before_close");
                 closure.complete(null);
             };
             scheduleShutdownEntityTask(plugin, coreLibPlugin, player, close, retired, closure,

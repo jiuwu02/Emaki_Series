@@ -39,6 +39,8 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
 import java.util.List;
 import java.util.Map;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.structure.log.StructureLogTag;
 
 final class StructureLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiStructurePlugin, StructureRuntimeComponents> {
@@ -76,7 +78,7 @@ final class StructureLifecycleCoordinator
         templateRepository.reload();
         reportTemplateProblems(plugin, templateRepository);
         reportCacheWarnings(plugin, templateRepository);
-        messageService.info("console.templates_loaded",
+        messageService.info(LogTag.LOADER, "console.templates_loaded",
                 Map.of("count", templateRepository.templateIds().size()));
 
         var spawnSidecars = new SpawnSidecarRepository(plugin, plugin.getDataFolder().toPath(),
@@ -124,10 +126,10 @@ final class StructureLifecycleCoordinator
                 appConfigLoader::current);
 
         for (String source : furnitureAdapter.presentSources()) {
-            messageService.info("console.furniture_source_ready", Map.of("source", source));
+            messageService.info(LogTag.LOADER, "console.furniture_source_ready", Map.of("source", source));
         }
         for (String namespace : customBlockAdapter.availableKnownNamespaces()) {
-            messageService.info("console.custom_block_source_ready",
+            messageService.info(LogTag.LOADER, "console.custom_block_source_ready",
                     Map.of("namespace", namespace));
         }
         var multiblockRepository = new MultiblockRepository(plugin.dataPath("multiblocks"),
@@ -157,7 +159,7 @@ final class StructureLifecycleCoordinator
         try {
             YamlFiles.load(components.appConfigLoader().file());
         } catch (RuntimeException exception) {
-            plugin.messageService().warning("console.config_reload_failed", Map.of(
+            plugin.messageService().warning(LogTag.RELOAD, "console.config_reload_failed", Map.of(
                     "file", components.appConfigLoader().file().getName(),
                     "error", String.valueOf(exception.getMessage())));
             return components.templateRepository().templateIds().size();
@@ -180,13 +182,13 @@ final class StructureLifecycleCoordinator
         reportCacheWarnings(plugin, components.templateRepository());
         components.multiblockService().startSweep();
         int count = components.templateRepository().templateIds().size();
-        plugin.messageService().info("console.reload_complete", Map.of("count", count));
+        plugin.messageService().info(LogTag.RELOAD, "console.reload_complete", Map.of("count", count));
         return count;
     }
 
     private static void reportCacheWarnings(EmakiStructurePlugin plugin, TemplateRepository repository) {
         for (String templateId : repository.drainCacheWarnings()) {
-            plugin.messageService().warning("console.cache_rejected",
+            plugin.messageService().warning(StructureLogTag.CACHE, "console.cache_rejected",
                     Map.of("template", templateId));
         }
     }
@@ -196,16 +198,16 @@ final class StructureLifecycleCoordinator
         for (MultiblockRepository.Problem problem : repository.drainProblems()) {
             if ("error.multiblock.duplicate_id".equals(problem.reasonKey())
                     || "error.multiblock.version_unsupported".equals(problem.reasonKey())) {
-                plugin.messageService().severe(problem.reasonKey(), problem.placeholders());
+                plugin.messageService().severe(null, problem.reasonKey(), problem.placeholders());
             } else {
-                plugin.messageService().warning(problem.reasonKey(), problem.placeholders());
+                plugin.messageService().warning(null, problem.reasonKey(), problem.placeholders());
             }
         }
     }
 
     private static void reportConfigIssues(EmakiStructurePlugin plugin, AppConfig config) {
         for (ConfigIssue issue : config.issues()) {
-            plugin.messageService().warning("console.config_issue", issue.placeholders());
+            plugin.messageService().warning(LogTag.CONFIG, "console.config_issue", issue.placeholders());
         }
     }
 
@@ -215,7 +217,7 @@ final class StructureLifecycleCoordinator
             return;
         }
         for (TemplateLoadReport.Problem problem : report.problems()) {
-            plugin.messageService().warning("error.template.rejected", Map.of(
+            plugin.messageService().warning(null, "error.template.rejected", Map.of(
                     "file", problem.source(),
                     "reason", plugin.messageService().message(problem.reasonKey(), problem.placeholders())));
         }

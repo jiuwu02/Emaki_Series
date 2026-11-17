@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 final class MobsLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiMobsPlugin, MobsRuntimeComponents> {
@@ -274,10 +275,10 @@ final class MobsLifecycleCoordinator
         }
 
         if (!EmakiCoreLibApi.onStageRegistryRebuilt(plugin, () -> registerCustomActions(plugin))) {
-            components.messageService().warning("console.custom_action_rebuild_hook_failed");
+            components.messageService().warning(LogTag.INTEGRATION, "console.custom_action_rebuild_hook_failed");
         }
         registerTargetIdentity(plugin, components);
-        components.messageService().info("console.custom_actions_registered", Map.of(
+        components.messageService().info(LogTag.INTEGRATION, "console.custom_actions_registered", Map.of(
                 "registered", registered,
                 "expected", 8));
     }
@@ -286,7 +287,7 @@ final class MobsLifecycleCoordinator
         CoreTargetRegistration registration = EmakiCoreLibApi.registerTargetIdentityProvider(plugin,
                 new MobTargetIdentityProvider(plugin));
         if (!registration.successful()) {
-            components.messageService().warning("console.target_identity_registration_failed", Map.of(
+            components.messageService().warning(LogTag.INTEGRATION, "console.target_identity_registration_failed", Map.of(
                     "id", registration.targetId(),
                     "reason", registration.reasonKey()));
             return;
@@ -306,7 +307,7 @@ final class MobsLifecycleCoordinator
             customActionRegistrations.add(registration);
             return true;
         }
-        plugin.components().messageService().warning("console.custom_action_registration_failed", Map.of(
+        plugin.components().messageService().warning(LogTag.INTEGRATION, "console.custom_action_registration_failed", Map.of(
                 "kind", kind,
                 "id", id,
                 "reason", registration.reasonKey()));

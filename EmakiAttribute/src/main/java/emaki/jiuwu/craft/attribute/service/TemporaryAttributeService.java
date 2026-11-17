@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.TemporaryStackMode;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 
 public final class TemporaryAttributeService implements AutoCloseable {
 
@@ -469,10 +470,7 @@ public final class TemporaryAttributeService implements AutoCloseable {
         try {
             cleanupExpired();
         } catch (Exception exception) {
-            plugin.getLogger().log(Level.WARNING,
-                    "[temporary_attribute] 临时属性清理失败: trackedEntities=" + states.size()
-                            + ", operation=cleanup_expired, cause=" + exception,
-                    exception);
+            LogTags.send(plugin, null, Level.WARNING, "temporary_attribute.cleanup_expired_failed", Map.of("count", states.size(), "error", exception), exception);
         }
     }
 

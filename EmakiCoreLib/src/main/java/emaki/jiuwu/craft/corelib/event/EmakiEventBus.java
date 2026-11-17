@@ -12,6 +12,9 @@ import java.util.logging.Logger;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class EmakiEventBus {
 
@@ -51,7 +54,7 @@ public final class EmakiEventBus {
             try {
                 ((EventSubscription<T>) subscription).dispatch(event);
             } catch (Exception exception) {
-                LOGGER.warning("[event] 事件处理器抛出异常, 事件 " + event.eventType() + ": " + exception.getMessage());
+                LogTags.send(LOGGER, LogTag.EVENT, Level.WARNING, "event.handler_exception", Map.of("event", event.eventType(), "error", exception.getMessage()));
             }
         }
     }

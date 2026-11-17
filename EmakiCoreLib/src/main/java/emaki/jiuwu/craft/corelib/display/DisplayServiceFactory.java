@@ -11,6 +11,10 @@ import emaki.jiuwu.craft.corelib.display.packet.PacketItemDisplayService;
 import emaki.jiuwu.craft.corelib.display.packet.PacketTextDisplayService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class DisplayServiceFactory {
 
@@ -47,8 +51,7 @@ public final class DisplayServiceFactory {
         try {
             return new PacketTextDisplayService(owner, safeSettings, dispatcher);
         } catch (LinkageError | RuntimeException exception) {
-            owner.getLogger().warning("[display] 无法启动 packet 文本后端, "
-                    + "回退为实体显示: " + exception.getMessage());
+            LogTags.send(owner, LogTag.DISPLAY, Level.WARNING, "display.packet_text_backend_failed", Map.of("error", exception.getMessage()));
             return new BukkitTextDisplayService(owner, dispatcher);
         }
     }
@@ -66,8 +69,7 @@ public final class DisplayServiceFactory {
         try {
             return new PacketItemDisplayService(owner, safeSettings, dispatcher);
         } catch (LinkageError | RuntimeException exception) {
-            owner.getLogger().warning("[display] 无法启动 packet 物品后端, "
-                    + "回退为实体显示: " + exception.getMessage());
+            LogTags.send(owner, LogTag.DISPLAY, Level.WARNING, "display.packet_item_backend_failed", Map.of("error", exception.getMessage()));
             return new BukkitItemDisplayService(owner, dispatcher);
         }
     }
@@ -78,8 +80,7 @@ public final class DisplayServiceFactory {
         }
         if (!Bukkit.getPluginManager().isPluginEnabled(PACKET_EVENTS_PLUGIN)) {
             if (BACKEND_PACKET.equals(backend)) {
-                owner.getLogger().warning("[display] packet 后端需要安装 PacketEvents, "
-                        + "回退为实体显示");
+                LogTags.send(owner, LogTag.DISPLAY, Level.WARNING, "display.packet_backend_requires_packetevents");
             }
             return false;
         }

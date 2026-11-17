@@ -24,6 +24,18 @@ public final class EmakiLog {
         return LOGGERS.computeIfAbsent(pluginName, EmakiLog::create);
     }
 
+    public static String pluginNameOf(Logger logger) {
+        if (logger == null) {
+            return null;
+        }
+        for (Map.Entry<String, Prefixed> entry : LOGGERS.entrySet()) {
+            if (entry.getValue() == logger) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
     public static void registerPrefix(String pluginName, Supplier<String> prefixSupplier) {
         if (pluginName == null || prefixSupplier == null) {
             return;
@@ -32,7 +44,7 @@ public final class EmakiLog {
     }
 
     private static Prefixed create(String pluginName) {
-        Supplier<String> fallback = () -> "[" + pluginName + " ] ";
+        Supplier<String> fallback = () -> "[ " + pluginName + " ] ";
         String name = Bukkit.getServer() == null ? "emaki" : Bukkit.getLogger().getName();
         return new Prefixed(name, fallback);
     }

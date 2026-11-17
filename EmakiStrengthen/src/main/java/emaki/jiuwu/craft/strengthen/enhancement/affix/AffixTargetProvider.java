@@ -24,6 +24,10 @@ import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
 import emaki.jiuwu.craft.strengthen.enhancement.mastery.MasteryLayer;
 import emaki.jiuwu.craft.strengthen.enhancement.mastery.MasteryLayerCodec;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.strengthen.log.StrengthenLogTag;
+import java.util.logging.Level;
 
 public final class AffixTargetProvider implements EnhancementTargetProvider {
 
@@ -307,8 +311,7 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
                 "stage", stage,
                 "source", ATTRIBUTE_SOURCE_ID,
                 "error_key", ERROR_BRIDGE_UNAVAILABLE));
-        plugin.getLogger().warning("[integration] 词条强化属性桥不可用 | 阶段=" + stage
-                + " | 来源=" + ATTRIBUTE_SOURCE_ID + " | 错误键=" + ERROR_BRIDGE_UNAVAILABLE);
+        LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.affix_attribute_bridge_unavailable", Map.of("stage", stage, "source", ATTRIBUTE_SOURCE_ID, "error_key", ERROR_BRIDGE_UNAVAILABLE));
     }
 
     private void logRefreshFailure(@Nullable Player player, ItemStack itemStack, String reason) {
@@ -319,9 +322,7 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
                 "reason", reason,
                 "item", itemStack == null ? "-" : itemStack.getType().name(),
                 "error_key", ERROR_REFRESH_FAILED));
-        plugin.getLogger().warning("[affix] 词条强化刷新失败 | 原因=" + reason
-                + " | 物品=" + (itemStack == null ? "-" : itemStack.getType().name())
-                + " | 错误键=" + ERROR_REFRESH_FAILED);
+        LogTags.send(plugin, StrengthenLogTag.AFFIX, Level.WARNING, "affix.affix_refresh_failed", Map.of("reason", reason, "item", (itemStack == null ? "-" : itemStack.getType().name()), "error_key", ERROR_REFRESH_FAILED));
     }
 
     private boolean syncAttributePayload(ItemStack itemStack, AffixLayer layer) {

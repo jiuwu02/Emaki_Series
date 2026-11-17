@@ -31,6 +31,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class EditorBrowser implements GuiSessionHandler {
 
@@ -219,7 +220,7 @@ public final class EditorBrowser implements GuiSessionHandler {
                 service.messages().send(player, "editor.open_failed", Map.of("id", id));
             }
         } catch (IOException failure) {
-            service.messages().warning("console.editor_browser_create_failed",
+            service.messages().warning(LogTag.EDITOR, "console.editor_browser_create_failed",
                     Map.of("path", String.valueOf(file), "error", String.valueOf(failure)));
             service.messages().send(player, "editor.browser.create_failed");
             EditorFeedback.play(player, false);
@@ -283,7 +284,7 @@ public final class EditorBrowser implements GuiSessionHandler {
             service.messages().send(player, "editor.browser.delete_success", Map.of("id", entry.id()));
             EditorFeedback.play(player, true);
         } catch (IOException failure) {
-            service.messages().warning("console.editor_browser_delete_failed",
+            service.messages().warning(LogTag.EDITOR, "console.editor_browser_delete_failed",
                     Map.of("path", String.valueOf(entry.file()), "error", String.valueOf(failure)));
             service.messages().send(player, "editor.browser.delete_failed");
             EditorFeedback.play(player, false);
@@ -302,7 +303,7 @@ public final class EditorBrowser implements GuiSessionHandler {
                 : service.module().browserTemplateId();
         GuiTemplate template = service.templates().get(templateId);
         if (template == null) {
-            service.messages().warning("console.editor_template_missing", Map.of("template", templateId));
+            service.messages().warning(LogTag.EDITOR, "console.editor_template_missing", Map.of("template", templateId));
             return;
         }
         List<BrowserEntry> entries = state.rootSelect ? List.of() : entries();
@@ -426,7 +427,7 @@ public final class EditorBrowser implements GuiSessionHandler {
                     }
                 }
             } catch (IOException failure) {
-                service.messages().warning("console.editor_browser_list_failed",
+                service.messages().warning(LogTag.EDITOR, "console.editor_browser_list_failed",
                         Map.of("path", String.valueOf(directory), "error", String.valueOf(failure)));
             }
         }

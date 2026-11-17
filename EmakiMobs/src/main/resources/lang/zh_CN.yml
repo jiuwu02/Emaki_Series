@@ -2,7 +2,10 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "2.0.2"
+version: "2.0.3"
+
+tags:
+  loot: '[ 掉落 ]'
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -15,42 +18,42 @@ general:
   reload_success: "<green>配置已重载</green>"
 
 console:
-  plugin_starting: "[startup] <gray>正在启动...</gray>"
-  plugin_started: "[startup] <green>启动完成</green>"
-  plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
-  bootstrap_start: "[loader] <gray>正在同步默认资源...</gray>"
-  bootstrap_complete: "[loader] 默认资源同步完成"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  loader_config_load_error: "[loader] <yellow>读取 Mobs 配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_skip: "[loader] 已按配置跳过默认数据释放"
-  default_file_missing: "[loader] 内置资源不存在: %path%"
-  bootstrap_copy_failed: "[loader] 复制默认资源失败: %path%  (%error%)"
-  bootstrap_save_failed: "[loader] 保存版本化资源失败: %path%  (%error%)"
-  directory_create_failed: "[loader] 创建目录失败: %path%"
-  mobs_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个生物定义</gray>"
-  reload_complete: "[reload] <green>重载完成, 共 <white>%count%</white> 个生物定义</green>"
-  custom_actions_registered: "[integration] <gray>已向 CoreLib 注册 <yellow>%registered%</yellow>/<yellow>%expected%</yellow> 个自定义动作组件</gray>"
-  custom_action_registration_failed: "[integration] <yellow>注册 CoreLib %kind% <white>%id%</white> 失败: <red>%reason%</red></yellow>"
-  custom_action_rebuild_hook_failed: "[integration] <yellow>无法安装 CoreLib 动作重建回调; CoreLib 重载后自定义动作可能不可用</yellow>"
-  target_identity_registration_failed: "[integration] <yellow>注册 CoreLib 目标身份提供者 <white>%id%</white> 失败: <red>%reason%</red></yellow>"
+  plugin_starting: "<gray>正在启动...</gray>"
+  plugin_started: "<green>启动完成</green>"
+  plugin_stopped: "<yellow>已关闭</yellow>"
+  bootstrap_start: "<gray>正在同步默认资源...</gray>"
+  bootstrap_complete: "默认资源同步完成"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  loader_config_load_error: "<yellow>读取 Mobs 配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_skip: "已按配置跳过默认数据释放"
+  default_file_missing: "内置资源不存在: %path%"
+  bootstrap_copy_failed: "复制默认资源失败: %path%  (%error%)"
+  bootstrap_save_failed: "保存版本化资源失败: %path%  (%error%)"
+  directory_create_failed: "创建目录失败: %path%"
+  mobs_loaded: "<gray>已加载 <yellow>%count%</yellow> 个生物定义</gray>"
+  reload_complete: "<green>重载完成, 共 <white>%count%</white> 个生物定义</green>"
+  custom_actions_registered: "<gray>已向 CoreLib 注册 <yellow>%registered%</yellow>/<yellow>%expected%</yellow> 个自定义动作组件</gray>"
+  custom_action_registration_failed: "<yellow>注册 CoreLib %kind% <white>%id%</white> 失败: <red>%reason%</red></yellow>"
+  custom_action_rebuild_hook_failed: "<yellow>无法安装 CoreLib 动作重建回调; CoreLib 重载后自定义动作可能不可用</yellow>"
+  target_identity_registration_failed: "<yellow>注册 CoreLib 目标身份提供者 <white>%id%</white> 失败: <red>%reason%</red></yellow>"
   # 控制台: 自定义生成器被替换; 占位符: %id%, %old_owner%, %new_owner%
-  custom_spawner_replaced: "[spawn] 已替换自定义生成器 '%id%': 所有者由 '%old_owner%' 改为 '%new_owner%'"
+  custom_spawner_replaced: "已替换自定义生成器 '%id%': 所有者由 '%old_owner%' 改为 '%new_owner%'"
   # 控制台: 自定义生成器重载失败; 占位符: %id%, %owner%
   custom_spawner_reload_failed: "自定义生成器 '%id%' (所有者 '%owner%') 在重载时失败"
   # 控制台: 命令结果接收者投递前退役
-  command_result_recipient_retired: "[command] 命令结果接收者已在投递前退役"
+  command_result_recipient_retired: "命令结果接收者已在投递前退役"
   # 控制台: 命令结果投递调度失败
-  command_result_schedule_failed: "[command] 无法调度命令结果投递"
+  command_result_schedule_failed: "无法调度命令结果投递"
   # 控制台: 受管生物命令操作失败; 占位符: %operation%
   command_operation_failed: "受管生物命令操作 %operation% 执行失败"
-  model_backend_selected: "[integration] <gray>模型后端: <yellow>%backend%</yellow></gray>"
-  model_backend_unavailable: "[integration] <yellow>配置的模型后端 <white>%backend%</white> 不可用, 模型功能已禁用</yellow>"
-  model_blueprint_missing: "[integration] <yellow>生物 %mob_id% 引用的模型蓝图 <white>%blueprint%</white> 不存在, 已跳过模型挂载</yellow>"
-  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  model_backend_selected: "<gray>模型后端: <yellow>%backend%</yellow></gray>"
+  model_backend_unavailable: "<yellow>配置的模型后端 <white>%backend%</white> 不可用, 模型功能已禁用</yellow>"
+  model_blueprint_missing: "<yellow>生物 %mob_id% 引用的模型蓝图 <white>%blueprint%</white> 不存在, 已跳过模型挂载</yellow>"
+  config_precheck_passed: "<gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "<red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -69,43 +72,50 @@ console:
       mobs_max_health_stacking: "生物 %mob_id% 同时配置了 components.max_health 与 ea_attributes.max_health_vanilla, 两者叠加, 最终上限为二者之和"
       model_api_invalid: "model.api 取值 %api% 无效, 应为 auto, model_engine 或 better_model 之一, 已回退为 auto"
   # 控制台: 无法打开编辑界面; 占位符: %item%, %error%
-  editor_open_failed: "[editor] <red>无法打开 EmakiMobs 编辑界面: %item%  (%error%)</red>"
+  editor_open_failed: "<red>无法打开 EmakiMobs 编辑界面: %item%  (%error%)</red>"
   # 控制台: 缺少编辑界面模板; 占位符: %template%
-  editor_template_missing: "[editor] <red>缺少 EmakiMobs 编辑界面模板: %template%</red>"
+  editor_template_missing: "<red>缺少 EmakiMobs 编辑界面模板: %template%</red>"
   # 控制台: 无法创建定义文件; 占位符: %path%, %error%
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
+  editor_browser_create_failed: "<red>无法创建定义: %path%  (%error%)</red>"
   # 控制台: 无法删除定义文件; 占位符: %path%, %error%
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>无法删除定义: %path%  (%error%)</red>"
   # 控制台: 无法列举定义目录; 占位符: %path%, %error%
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>无法列举定义目录: %path%  (%error%)</red>"
 
 loader:
-  lang_directory_create_failed: "[loader] 无法创建语言目录: %path%"
-  bundled_language_load_failed: "[loader] 读取内置语言文件失败: %error%"
-  bundled_resource_missing: "[loader] 内置资源缺失: %resource%, 无法写入 %path%"
-  directory_create_failed: "[loader] 无法创建 %type% 目录: %path%"
-  invalid_blank_id: "[loader] %type% ID 为空: %file%"
-  duplicate_id: "[loader] 重复的 %type% ID %id%, 来源 %file%"
-  load_failed: "[loader] 读取 %type% 文件失败: %file%  (%error%)"
+  lang_directory_create_failed: "无法创建语言目录: %path%"
+  bundled_language_load_failed: "读取内置语言文件失败: %error%"
+  bundled_resource_missing: "内置资源缺失: %resource%, 无法写入 %path%"
+  directory_create_failed: "无法创建 %type% 目录: %path%"
+  invalid_blank_id: "%type% ID 为空: %file%"
+  duplicate_id: "重复的 %type% ID %id%, 来源 %file%"
+  load_failed: "读取 %type% 文件失败: %file%  (%error%)"
   invalid_config: "%type% 配置无效: %file%"
-  unknown_entity_type: "[loader] 未知的实体类型 %type%: %file%"
+  unknown_entity_type: "未知的实体类型 %type%: %file%"
   deprecated_key: "%file% 仍在使用旧键 %old_key%, 请改为 %new_key%  (旧键将在下一个大版本移除)"
-  target_selectors_load_failed: "[loader] 读取目标选择器文件 %file% 失败: %error%"
-  target_selectors_section_missing: "[loader] 目标选择器文件 %file% 缺少 selectors 节"
-  target_selector_invalid_slot: "[loader] 装备权重表 %table% 包含无效槽位 %slot%, 已跳过"
-  target_selector_invalid_item: "[loader] 装备权重表 %table% 包含不可用物品 %item%, 已跳过"
-  target_selector_invalid_mode: "[loader] 目标选择器 %selector% 包含无效模式 %mode%, 已跳过"
-  target_selector_invalid_score: "[loader] 目标选择器 %selector% 包含无效打分类型 %type%, 已跳过"
-  target_selector_unknown_table: "[loader] 目标选择器 %selector% 引用了不存在的装备权重表 %table%, 已跳过"
-  target_selector_invalid_expression: "[loader] 目标选择器 %selector% 包含无效表达式 %expression%, 已跳过"
-  model_missing_blueprint: "[loader] 生物 %file% 的 model 节缺少 blueprint, 已忽略该模型配置"
-  model_api_invalid: "[loader] 生物 %file% 的 model.api 取值 %api% 无效, 应为 auto, model_engine 或 better_model 之一, 已回退为全局配置"
-  model_invalid_duration: "[loader] 生物 %file% 的动画 %animation% 的 duration_ticks 无效  (%duration%), 已忽略该关键帧时间轴"
-  model_keyframe_missing_tick: "[loader] 生物 %file% 的动画 %animation% 存在缺少 tick 的关键帧, 已跳过该帧"
+  target_selectors_load_failed: "读取目标选择器文件 %file% 失败: %error%"
+  target_selectors_section_missing: "目标选择器文件 %file% 缺少 selectors 节"
+  target_selector_invalid_slot: "装备权重表 %table% 包含无效槽位 %slot%, 已跳过"
+  target_selector_invalid_item: "装备权重表 %table% 包含不可用物品 %item%, 已跳过"
+  target_selector_invalid_mode: "目标选择器 %selector% 包含无效模式 %mode%, 已跳过"
+  target_selector_invalid_score: "目标选择器 %selector% 包含无效打分类型 %type%, 已跳过"
+  target_selector_unknown_table: "目标选择器 %selector% 引用了不存在的装备权重表 %table%, 已跳过"
+  target_selector_invalid_expression: "目标选择器 %selector% 包含无效表达式 %expression%, 已跳过"
+  model_missing_blueprint: "生物 %file% 的 model 节缺少 blueprint, 已忽略该模型配置"
+  model_api_invalid: "生物 %file% 的 model.api 取值 %api% 无效, 应为 auto, model_engine 或 better_model 之一, 已回退为全局配置"
+  model_invalid_duration: "生物 %file% 的动画 %animation% 的 duration_ticks 无效  (%duration%), 已忽略该关键帧时间轴"
+  model_keyframe_missing_tick: "生物 %file% 的动画 %animation% 存在缺少 tick 的关键帧, 已跳过该帧"
   type:
     mob: "生物"
     loot_table: "战利品表"
     spawn_rule: "生成规则"
+  mob_file_legacy_key_in_use: "生物文件 '%file%' 仍在使用旧键 '%old_key%', 请改为 '%new_key%', 旧键将在下一个大版本移除"
+  biome_unknown: "生物群系 '%name%' 未知 (文件 '%file%'), 已跳过 (该规则将不受其限制)"
+  structure_unknown: "结构 '%key%' 未知 (文件 '%file%'), 已跳过"
+  spawn_trigger_unknown: "触发器 '%trigger%' 未知 (生物 '%mob%', 文件 '%file%'), 已跳过"
+  autonomous_rule_missing_trigger: "自主生成规则 '%mob%'(文件 '%file%')缺少 trigger, 已跳过"
+  spawn_type_unknown: "生成类型 '%type%' 未知 (文件 '%file%'), 已跳过"
+  spawn_rule_file_missing_fields: "生成规则文件 '%file%' 缺少 mob_id 或 type, 已跳过"
 
 command:
   spawn_success: "<green>已在目标位置生成 <white>%mob_id%</white></green>"
@@ -127,6 +137,7 @@ command:
   kill_success: "<green>已移除 <white>%count%</white> 个 <white>%mob_id%</white> 受管生物</green>"
   kill_all_success: "<green>已移除全部受管生物, 共 <white>%count%</white> 只</green>"
   find_usage: "<gray>用法: /emakimobs find <mob_id> [半径]  -- 查找范围内指定受管生物并列出 (点击条目可传送)</gray>"
+  unable_to_schedule: "无法调度%description%"
   # 占位符: %mob_id%, %count%, %radius%
   find_header: "<gray>范围内受管生物 <white>%mob_id%</white>:<white>%count%</white> 只 (半径 %radius%):</gray>"
   find_empty: "<yellow>范围内没有对应的受管生物</yellow>"
@@ -215,7 +226,7 @@ editor:
     components: "属性组件"
     components_desc: "<dark_gray>直接映射到原版实体属性的键值</dark_gray>"
     ea_attributes: "EA 属性"
-    ea_attributes_desc: "<dark_gray>EmakiAttribute 属性映射, 按\"属性=值\"编辑</dark_gray>"
+    ea_attributes_desc: '<dark_gray>EmakiAttribute 属性映射, 按"属性=值"编辑</dark_gray>'
     actions: "动作触发器"
     actions_desc: "<dark_gray>进入动作触发器子菜单</dark_gray>"
     threat: "威胁仇恨"
@@ -397,10 +408,10 @@ editor:
   modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
+    chat: '<yellow>请在聊天栏输入"%label%"的内容, 输入 cancel 取消</yellow>'
+    map_entry: '<yellow>请在聊天栏输入"键=值"新增一条映射, 输入 cancel 取消</yellow>'
   map:
-    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
+    bad_entry: '<red>格式错误, 请按"键=值"输入</red>'
   value:
     unset: "未设置 (空)"
     integer: "整数"
@@ -428,6 +439,25 @@ editor:
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
     delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
-    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
+    delete_confirm: '<red>再次点击"删除"以确认删除</red>'
     delete_success: "<green>已删除定义 %id%</green>"
     delete_failed: "<red>删除失败, 详见控制台</red>"
+loot:
+  invalid_rolls_value: "无效的 rolls 值: %value%"
+  emaki_item_api_unavailable: "EmakiItem API 不可用, emaki_item 掉落已禁用"
+integration:
+  model_backend_init_failed: "模型后端 %name% 初始化失败: %error%"
+  model_backend_class_unavailable: "模型后端 %name% 的类不可用, 模型功能已禁用"
+  model_backend_bridge_invalid: "模型后端 %name% 的桥接实现无效"
+  model_backend_not_installed: "模型后端 '%name%' 未安装, 模型功能已禁用"
+  model_backend_not_found: "未找到可用的模型后端, EmakiMobs 模型功能已禁用"
+  emaki_attribute_integration_failed: "EmakiAttribute 集成失败: %error%"
+  emaki_attribute_integration_unavailable: "EmakiAttribute 集成不可用, 将在不提供属性贡献的情况下继续"
+  emaki_attribute_integration_type_invalid: "EmakiAttribute 集成实现类型无效"
+script:
+  skill_compile_error: "技能编译错误: 生物='%mob%' 触发器='%trigger%' 行=%line% 原因=%reason%"
+spawn:
+  unable_to_schedule: "无法调度%description%"
+  mob_cron_expression_invalid: "生物 '%mob%' 的 cron 表达式 '%expression%' 无效: %error%"
+  mob_cron_expression_missing: "生物 '%mob%' 的 cron 触发器缺少 cron 表达式"
+skip:

@@ -22,6 +22,8 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.attribute.api.extension.AttributeSlotProvider;
 import emaki.jiuwu.craft.attribute.api.extension.SlotProviderRegistration;
 import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class AttributeSlotRegistry implements Listener, AutoCloseable {
 
@@ -140,8 +142,7 @@ public final class AttributeSlotRegistry implements Listener, AutoCloseable {
 
     private void warnSlotFailure(String id, RuntimeException exception) {
         if (logger != null) {
-            logger.log(Level.WARNING, "[registry] 属性槽位提供器 '" + id
-                    + "' 执行失败; 跳过该槽位", exception);
+            LogTags.send(logger, LogTag.REGISTRY, Level.WARNING, "registry.attribute_slot_provider_failed", Map.of("slot", id), exception);
         }
     }
 

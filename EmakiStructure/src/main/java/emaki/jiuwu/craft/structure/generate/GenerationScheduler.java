@@ -12,6 +12,9 @@ import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class GenerationScheduler implements Runnable {
 
@@ -106,7 +109,7 @@ public final class GenerationScheduler implements Runnable {
             }
             return token;
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("生成批次提交失败: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "generate.batch_submit_failed", Map.of("error", exception.getMessage()));
             return null;
         }
     }
@@ -117,7 +120,7 @@ public final class GenerationScheduler implements Runnable {
             entry.batch().markFinished();
             entry.job().recordBatchFinished();
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("生成批次写入失败: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "generate.batch_write_failed", Map.of("error", exception.getMessage()));
             entry.batch().markFinished();
             entry.job().requestAbort(KEY_FAILED, DETAIL_WRITE_FAILED);
             entry.job().complete(GenerationJob.Outcome.ABORTED);
@@ -149,7 +152,7 @@ public final class GenerationScheduler implements Runnable {
         int effective = AdaptiveThrottle.effectiveBudget(budget, true, tps);
         throttledWarnActive = AdaptiveThrottle.shouldWarn(true, tps);
         if (throttledWarnActive && throttleWarned.compareAndSet(false, true)) {
-            plugin.getLogger().warning("TPS 低于阈值, 生成写入限额已下调至 " + effective + "/" + budget);
+            LogTags.send(plugin, null, Level.WARNING, "generate.write_budget_throttled", Map.of("limit", effective, "budget", budget));
         }
         if (!throttledWarnActive) {
             throttleWarned.set(false);

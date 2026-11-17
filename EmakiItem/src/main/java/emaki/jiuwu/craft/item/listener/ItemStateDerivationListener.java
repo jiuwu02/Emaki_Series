@@ -24,6 +24,7 @@ import emaki.jiuwu.craft.item.api.event.ItemStateThresholdEvent;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.ItemStateConfig;
 import emaki.jiuwu.craft.item.service.ItemStateDerivationGuard;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class ItemStateDerivationListener implements Listener {
 
@@ -150,7 +151,7 @@ public final class ItemStateDerivationListener implements Listener {
         }
         Sound sound = SoundParser.resolve(threshold.sound());
         if (sound == null) {
-            plugin.messageService().warning("console.item_state_unknown_sound",
+            plugin.messageService().warning(LogTag.CONFIG, "console.item_state_unknown_sound",
                     Map.of("sound", threshold.sound()));
             return;
         }

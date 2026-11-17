@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class CommandGuard implements Listener {
 
@@ -98,12 +99,12 @@ public final class CommandGuard implements Listener {
         try {
             CommandMapGuard guard = EmakiCoreLibApi.commandMapGuard();
             if (guard == null) {
-                messages.info("console.command_map_unsupported");
+                messages.info(LogTag.STARTUP, "console.command_map_unsupported");
                 return;
             }
             guardHandle = guard.install(this::interceptDispatch);
         } catch (RuntimeException exception) {
-            messages.warning("console.command_map_wrap_failed", Map.of(
+            messages.warning(null, "console.command_map_wrap_failed", Map.of(
                     "error", String.valueOf(exception.getMessage())
             ));
         }

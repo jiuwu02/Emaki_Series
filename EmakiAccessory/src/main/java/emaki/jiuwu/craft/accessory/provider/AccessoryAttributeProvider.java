@@ -14,6 +14,9 @@ import emaki.jiuwu.craft.accessory.model.AccessoryContributionSnapshot;
 import emaki.jiuwu.craft.accessory.service.AccessoryContributionService;
 import emaki.jiuwu.craft.attribute.api.extension.AttributeContribution;
 import emaki.jiuwu.craft.attribute.api.extension.AttributeContributionProvider;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class AccessoryAttributeProvider implements AttributeContributionProvider {
 
@@ -55,7 +58,7 @@ public final class AccessoryAttributeProvider implements AttributeContributionPr
             return contributions;
         } catch (RuntimeException exception) {
             if (logger != null) {
-                logger.warning("[integration] 饰品属性收集失败: " + exception.getMessage());
+                LogTags.send(logger, LogTag.INTEGRATION, Level.WARNING, "integration.accessory_attribute_collect_failed", Map.of("error", exception.getMessage()));
             }
             return List.of();
         }

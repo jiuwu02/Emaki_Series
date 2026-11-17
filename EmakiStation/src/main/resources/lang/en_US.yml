@@ -2,26 +2,26 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "2.0.2"
+version: "2.0.3"
 
 console:
-  plugin_starting: "[startup] Starting EmakiStation..."
-  plugin_started: "[startup] started"
-  plugin_stopped: "[shutdown] stopped"
-  bootstrap_start: "[loader] <gray>Checking configuration files...</gray>"
-  bootstrap_complete: "[loader] <green>Default file check complete</green>"
-  bootstrap_skip: "[loader] <yellow>Skipped default data generation</yellow>"
-  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>Failed to save merged resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  default_file_missing: "[loader] <yellow>Missing built-in default resource: <red>%path%</red></yellow>"
-  directory_create_failed: "[loader] <yellow>Failed to create directory: <red>%path%</red></yellow>"
-  loader_config_load_error: "[config] <yellow>Failed to read config.yml, falling back to defaults</yellow>"
-  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
-  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
-  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "Starting EmakiStation..."
+  plugin_started: "started"
+  plugin_stopped: "stopped"
+  bootstrap_start: "<gray>Checking configuration files...</gray>"
+  bootstrap_complete: "<green>Default file check complete</green>"
+  bootstrap_skip: "<yellow>Skipped default data generation</yellow>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "<yellow>Failed to copy default resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>Failed to save merged resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  default_file_missing: "<yellow>Missing built-in default resource: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
+  loader_config_load_error: "<yellow>Failed to read config.yml, falling back to defaults</yellow>"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -38,11 +38,11 @@ console:
       path_not_directory: "The specified path is not a directory"
       directory_not_readable: "The directory is not readable"
       storage_unreachable_material: "Material #%index% of recipe %recipe% declares only a matcher without item_sources, so it can be supplied from the backpack only and is excluded from warehouse lookup"
-  editor_open_failed: "[editor] <red>Could not open EmakiStation editor for %item%  (%error%)</red>"
-  editor_template_missing: "[editor] <red>Missing EmakiStation editor template: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>Could not create definition: %path%  (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>Could not delete definition: %path%  (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>Could not list definition directory: %path%  (%error%)</red>"
+  editor_open_failed: "<red>Could not open EmakiStation editor for %item%  (%error%)</red>"
+  editor_template_missing: "<red>Missing EmakiStation editor template: %template%</red>"
+  editor_browser_create_failed: "<red>Could not create definition: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>Could not delete definition: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>Could not list definition directory: %path%  (%error%)</red>"
 
 general:
   prefix: "<gray>[ <gradient:#A3E635:#22D3EE>EmakiStation</gradient> ]</gray>"
@@ -84,28 +84,28 @@ command:
   debug_unavailable: "<red>Debug output is unavailable right now</red>"
 
 station:
-  station_missing_id: "[loader] <yellow>Station file is missing its id: %file%</yellow>"
-  station_no_channel: "[loader] <yellow>Station %station% has both material channels disabled, skipped  (%file%)</yellow>"
-  recipe_missing_id: "[loader] <yellow>Recipe file is missing its id: %file%</yellow>"
-  recipe_no_materials: "[loader] <yellow>Recipe %recipe% has no usable materials, skipped  (%file%)</yellow>"
-  recipe_no_outputs: "[loader] <yellow>Recipe %recipe% has no outputs, skipped  (%file%)</yellow>"
-  recipe_bad_amount: "[loader] <yellow>Recipe %recipe% has an invalid amount %amount%, entry skipped</yellow>"
-  recipe_bad_source: "[loader] <yellow>Recipe %recipe% has an unresolvable item source %source%  (%file%)</yellow>"
-  recipe_legacy_item_source: "[loader] <yellow>Recipe %recipe% uses legacy item_source; it remains readable but should migrate to item_sources  (%file%)</yellow>"
-  recipe_derived_material_identity: "[loader] <yellow>Material #%index% of recipe %recipe% lacks explicit material_id, requirement_id, or count_key; it remains readable via index fallback, but should declare stable identities  (%file%)</yellow>"
-  recipe_source_field_conflict: "[loader] <red>Recipe %recipe% declares both item_source and item_sources, so loading is blocked  (%file%)</red>"
-  recipe_duplicate_material_identity: "[loader] <red>Recipe %recipe% repeats or conflicts on material identity %identity%, so loading is blocked  (%file%)</red>"
-  recipe_many_materials: "[loader] <yellow>Recipe %recipe% has %count% material types, above the warning threshold %limit%</yellow>"
-  recipe_cost_missing_currency: "[loader] <yellow>Recipe %recipe% has a cost section without a currency subsection, treating it as free; the correct form is cost.currency.type / amount  (%file%)</yellow>"
-  dismantle_recipe_missing_id: "[loader] <yellow>Dismantle recipe file is missing its id: %file%</yellow>"
-  dismantle_recipe_no_input: "[loader] <yellow>Dismantle recipe %recipe% has neither item_sources nor matcher, skipped  (%file%)</yellow>"
-  dismantle_recipe_bad_input: "[loader] <yellow>Dismantle recipe %recipe% has an unresolvable input item source %source%  (%file%)</yellow>"
-  dismantle_recipe_legacy_input_source: "[loader] <yellow>Dismantle recipe %recipe% uses legacy input_source; it remains readable but should migrate to item_sources  (%file%)</yellow>"
-  dismantle_recipe_bad_source: "[loader] <yellow>Dismantle recipe %recipe% has an unresolvable pool item source %source%  (%file%)</yellow>"
-  dismantle_recipe_empty_pool: "[loader] <yellow>Dismantle recipe %recipe% has no usable pool entries, skipped  (%file%)</yellow>"
-  dismantle_recipe_cost_missing_currency: "[loader] <yellow>Dismantle recipe %recipe% has a cost section without a currency subsection, treating it as free; the correct form is cost.currency.type / amount  (%file%)</yellow>"
-  dismantle_recipe_bad_cost_amount: "[loader] <yellow>Dismantle recipe %recipe% has an invalid cost amount %amount%, treating it as free</yellow>"
-  dismantle_recipe_bad_currency: "[loader] <yellow>Dismantle recipe %recipe% has an unknown currency type %type%, treating it as free  (supported: vault / excellent)</yellow>"
+  station_missing_id: "<yellow>Station file is missing its id: %file%</yellow>"
+  station_no_channel: "<yellow>Station %station% has both material channels disabled, skipped  (%file%)</yellow>"
+  recipe_missing_id: "<yellow>Recipe file is missing its id: %file%</yellow>"
+  recipe_no_materials: "<yellow>Recipe %recipe% has no usable materials, skipped  (%file%)</yellow>"
+  recipe_no_outputs: "<yellow>Recipe %recipe% has no outputs, skipped  (%file%)</yellow>"
+  recipe_bad_amount: "<yellow>Recipe %recipe% has an invalid amount %amount%, entry skipped</yellow>"
+  recipe_bad_source: "<yellow>Recipe %recipe% has an unresolvable item source %source%  (%file%)</yellow>"
+  recipe_legacy_item_source: "<yellow>Recipe %recipe% uses legacy item_source; it remains readable but should migrate to item_sources  (%file%)</yellow>"
+  recipe_derived_material_identity: "<yellow>Material #%index% of recipe %recipe% lacks explicit material_id, requirement_id, or count_key; it remains readable via index fallback, but should declare stable identities  (%file%)</yellow>"
+  recipe_source_field_conflict: "<red>Recipe %recipe% declares both item_source and item_sources, so loading is blocked  (%file%)</red>"
+  recipe_duplicate_material_identity: "<red>Recipe %recipe% repeats or conflicts on material identity %identity%, so loading is blocked  (%file%)</red>"
+  recipe_many_materials: "<yellow>Recipe %recipe% has %count% material types, above the warning threshold %limit%</yellow>"
+  recipe_cost_missing_currency: "<yellow>Recipe %recipe% has a cost section without a currency subsection, treating it as free; the correct form is cost.currency.type / amount  (%file%)</yellow>"
+  dismantle_recipe_missing_id: "<yellow>Dismantle recipe file is missing its id: %file%</yellow>"
+  dismantle_recipe_no_input: "<yellow>Dismantle recipe %recipe% has neither item_sources nor matcher, skipped  (%file%)</yellow>"
+  dismantle_recipe_bad_input: "<yellow>Dismantle recipe %recipe% has an unresolvable input item source %source%  (%file%)</yellow>"
+  dismantle_recipe_legacy_input_source: "<yellow>Dismantle recipe %recipe% uses legacy input_source; it remains readable but should migrate to item_sources  (%file%)</yellow>"
+  dismantle_recipe_bad_source: "<yellow>Dismantle recipe %recipe% has an unresolvable pool item source %source%  (%file%)</yellow>"
+  dismantle_recipe_empty_pool: "<yellow>Dismantle recipe %recipe% has no usable pool entries, skipped  (%file%)</yellow>"
+  dismantle_recipe_cost_missing_currency: "<yellow>Dismantle recipe %recipe% has a cost section without a currency subsection, treating it as free; the correct form is cost.currency.type / amount  (%file%)</yellow>"
+  dismantle_recipe_bad_cost_amount: "<yellow>Dismantle recipe %recipe% has an invalid cost amount %amount%, treating it as free</yellow>"
+  dismantle_recipe_bad_currency: "<yellow>Dismantle recipe %recipe% has an unknown currency type %type%, treating it as free  (supported: vault / excellent)</yellow>"
 
   unknown_station: "That station does not exist"
   unknown_recipe: "That recipe does not exist"
@@ -152,7 +152,7 @@ precheck:
 
 debug:
   station:
-    submit: "<gray>[DEBUG][Station] Player <player> submitted recipe <recipe> at station <station>, batch <batch>, queue index <queue_index></gray>"
+    submit: "<gray>[Station] Player <player> submitted recipe <recipe> at station <station>, batch <batch>, queue index <queue_index></gray>"
 
 # Editor: in-game definition editor  (menus/fields/browser/feedback)
 editor:
@@ -321,10 +321,10 @@ editor:
   modify_failed_parse: "<red>Failed to modify %item%: definition_parse_failed. Check the console for details</red>"
   open_failed: "<red>Could not open the editor for %id%</red>"
   prompt:
-    chat: "<yellow>Type the value for \"%label%\" in chat, or type cancel to abort</yellow>"
-    map_entry: "<yellow>Type \"key=value\" to add a mapping, or type cancel to abort</yellow>"
+    chat: '<yellow>Type the value for "%label%" in chat, or type cancel to abort</yellow>'
+    map_entry: '<yellow>Type "key=value" to add a mapping, or type cancel to abort</yellow>'
   map:
-    bad_entry: "<red>Bad format, use \"key=value\"</red>"
+    bad_entry: '<red>Bad format, use "key=value"</red>'
   value:
     unset: "Not set  (empty)"
     integer: "Integer"
@@ -355,3 +355,14 @@ editor:
     delete_confirm: "<red>Click the delete entry again to confirm</red>"
     delete_success: "<green>Deleted definition %id%</green>"
     delete_failed: "<red>Delete failed, see console</red>"
+config:
+  legacy_key_renamed: "Config key %legacy_key% has been renamed to %key%; the legacy value %value% still applies and will be migrated to the new key at startup"
+  warn_message: "%message%"
+  queue_costs_missing_or_empty: "%file% is missing or empty; paid queue slots will stay disabled until it is provided"
+startup:
+  skip_publish_readiness: "Skipped readiness publish: %error%"
+shutdown:
+  queue_flush_incomplete: "Queue data flush did not complete normally: %error%"
+  queue_unlock_flush_incomplete: "Queue unlock data flush did not complete normally: %error%"
+persistence:
+  delete_expired_queue_file_failed: "Failed to delete expired queue file: %path%"

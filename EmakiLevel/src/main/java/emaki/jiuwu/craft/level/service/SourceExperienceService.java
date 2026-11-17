@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.api.ExpSourceContext;
 import emaki.jiuwu.craft.level.api.LevelOperationResult;
 import emaki.jiuwu.craft.level.config.SourceRuleConfig;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class SourceExperienceService {
 
@@ -136,7 +137,7 @@ public final class SourceExperienceService {
         try (ItemComponentSnapshotScope _ = ItemComponentSnapshotScope.open()) {
             return requirement.test(itemStack, actual, player);
         } catch (RuntimeException exception) {
-            plugin.messages().warning("console.source_rule_requirement_failed",
+            plugin.messages().warning(LogTag.MATCHER, "console.source_rule_requirement_failed",
                     Map.of("error", exception.getClass().getSimpleName()));
             return false;
         }

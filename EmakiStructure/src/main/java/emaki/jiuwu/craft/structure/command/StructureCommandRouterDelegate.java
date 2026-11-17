@@ -47,6 +47,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 final class StructureCommandRouterDelegate {
 
@@ -273,7 +274,7 @@ final class StructureCommandRouterDelegate {
             return;
         }
         int count = ownerRef.plugin.reloadContent();
-        ownerRef.plugin.messageService().send(sender, "console.reload_complete", Map.of("count", count));
+        ownerRef.plugin.messageService().send(sender, LogTag.RELOAD, "console.reload_complete", Map.of("count", count));
     }
 
     void handleMultiblock(CommandSender sender, String[] args) {
@@ -442,7 +443,7 @@ final class StructureCommandRouterDelegate {
 
     void reportSkippedPalette(StructureTemplate template) {
         if (template.skippedPaletteEntries() > 0 && ownerRef.legacySkipWarnings.add(template.id())) {
-            ownerRef.plugin.messageService().warning("console.template_legacy_skipped", Map.of(
+            ownerRef.plugin.messageService().warning(LogTag.LOADER, "console.template_legacy_skipped", Map.of(
                     "template", template.id(),
                     "count", template.skippedPaletteEntries()));
         }

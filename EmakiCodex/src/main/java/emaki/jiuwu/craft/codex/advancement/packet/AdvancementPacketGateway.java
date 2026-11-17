@@ -15,6 +15,10 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.codex.log.CodexLogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class AdvancementPacketGateway {
 
@@ -54,8 +58,7 @@ public final class AdvancementPacketGateway {
             registeredListener = PacketEvents.getAPI().getEventManager().registerListener(listener);
             return true;
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[packet] 成就坐标通道不可用, 已跳过: "
-                    + throwable.getMessage());
+            LogTags.send(plugin, CodexLogTag.PACKET, Level.WARNING, "packet.coordinate_channel_unavailable", Map.of("error", throwable.getMessage()));
             registeredListener = null;
             return false;
         }
@@ -89,7 +92,7 @@ public final class AdvancementPacketGateway {
         try {
             return resyncService().resyncAllAsync();
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[packet] 已跳过成就重同步: " + throwable.getMessage());
+            LogTags.send(plugin, CodexLogTag.PACKET, Level.WARNING, "packet.advancement_resync_skipped", Map.of("error", throwable.getMessage()));
             return CompletableFuture.completedFuture(-1);
         }
     }
@@ -102,8 +105,7 @@ public final class AdvancementPacketGateway {
         try {
             return resyncService().resync(player);
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[packet] 已跳过对 "
-                    + player.getName() + " 的成就重同步: " + throwable.getMessage());
+            LogTags.send(plugin, CodexLogTag.PACKET, Level.WARNING, "packet.player_advancement_resync_skipped", Map.of("player", player.getName(), "error", throwable.getMessage()));
             return false;
         }
     }

@@ -28,6 +28,8 @@ import org.graalvm.polyglot.Value;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class ScriptHost implements AutoCloseable {
 
@@ -292,11 +294,11 @@ public final class ScriptHost implements AutoCloseable {
         }
 
         public void info(@NotNull String message) {
-            logger.info("[script] " + message);
+            LogTags.sendRaw(logger, LogTag.SCRIPT, Level.INFO, message);
         }
 
         public void warn(@NotNull String message) {
-            logger.warning("[script] " + message);
+            LogTags.sendRaw(logger, LogTag.SCRIPT, Level.WARNING, message);
         }
     }
 }

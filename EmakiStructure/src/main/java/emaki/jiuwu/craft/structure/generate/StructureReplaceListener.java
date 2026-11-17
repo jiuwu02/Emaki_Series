@@ -4,6 +4,7 @@ import emaki.jiuwu.craft.structure.EmakiStructurePlugin;
 import emaki.jiuwu.craft.structure.config.AppConfig;
 import emaki.jiuwu.craft.structure.template.StructureTemplate;
 import emaki.jiuwu.craft.structure.template.TemplateRepository;
+import emaki.jiuwu.craft.structure.log.StructureLogTag;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import org.bukkit.Bukkit;
@@ -133,7 +134,7 @@ public final class StructureReplaceListener implements Listener {
         Optional<StructureTemplate> resolved = templates.template(rule.template());
         if (resolved.isEmpty()) {
             if (warnedMissingTemplates.add(rule.template())) {
-                plugin.messageService().warning("console.replace_template_missing", Map.of(
+                plugin.messageService().warning(StructureLogTag.REPLACE, "console.replace_template_missing", Map.of(
                         "template", rule.template(),
                         "structure", structureId));
             }

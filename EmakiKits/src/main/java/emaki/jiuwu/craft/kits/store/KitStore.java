@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 
 public final class KitStore {
 
@@ -187,8 +188,7 @@ public final class KitStore {
             }
             dirty = false;
         } catch (IOException | RuntimeException exception) {
-            logger.log(Level.SEVERE,
-                    "[EmakiKits] 持久化写入失败: operation=flush, file=" + file + ", cause=" + exception, exception);
+            LogTags.send(logger, null, Level.SEVERE, "console.persistence_write_failed", Map.of("file", file, "error", exception), exception);
         }
     }
 
@@ -231,7 +231,7 @@ public final class KitStore {
             try {
                 target.put(UUID.fromString(key), section.getString(key, ""));
             } catch (IllegalArgumentException invalidUuid) {
-                logger.fine("[EmakiKits] 跳过非法 UUID 存档键: " + key);
+                LogTags.send(logger, null, Level.FINE, "console.skip_invalid_uuid_key", Map.of("key", key));
             }
         }
     }

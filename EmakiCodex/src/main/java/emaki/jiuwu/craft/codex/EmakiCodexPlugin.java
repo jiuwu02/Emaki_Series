@@ -49,6 +49,11 @@ import emaki.jiuwu.craft.codex.apiimpl.DefaultEmakiCodexApi;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.codex.log.CodexLogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider {
@@ -120,8 +125,9 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 STARTUP_ASCII_START_COLOR,
                 STARTUP_ASCII_END_COLOR
         );
+        LogTags.registerTags(this, CodexLogTag.values());
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
-        messageService.info("console.plugin_starting");
+        messageService.info(LogTag.STARTUP, "console.plugin_starting");
         bootstrapService.bootstrap();
         registerActions();
 
@@ -131,7 +137,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         registerEventHandlers();
         EmakiCodexApi.install(apiBridge);
         metrics = coreLib().registerBStats(this, BSTATS_PLUGIN_ID);
-        messageService.info("console.plugin_started");
+        messageService.info(LogTag.STARTUP, "console.plugin_started");
     }
 
     @Override
@@ -188,7 +194,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
+            LogTags.send(getLogger(), LogTag.STARTUP, Level.FINE, "startup.readiness_publish_skipped", Map.of("error", exception));
         }
     }
 
@@ -270,9 +276,9 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             return;
         }
         if (advancementPacketGateway.register()) {
-            messageService.info("console.advancement_packet_enabled");
+            messageService.info(CodexLogTag.PACKET, "console.advancement_packet_enabled");
         } else {
-            messageService.info("console.advancement_packet_absent");
+            messageService.info(CodexLogTag.PACKET, "console.advancement_packet_absent");
         }
     }
 

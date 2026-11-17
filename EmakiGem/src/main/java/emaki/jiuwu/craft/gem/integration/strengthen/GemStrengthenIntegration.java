@@ -15,6 +15,9 @@ import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptContext;
 import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptOutcome;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
 
 public final class GemStrengthenIntegration {
 
@@ -72,7 +75,7 @@ public final class GemStrengthenIntegration {
                     EnhancementAttemptContext.of(recipeId, target, materials, operationId));
         } catch (RuntimeException | LinkageError exception) {
             if (plugin != null && plugin.getLogger() != null) {
-                plugin.getLogger().log(Level.WARNING, "[integration] 通过强化框架执行宝石升级失败", exception);
+                LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.gem_upgrade_via_strengthen_failed", Map.of(), exception);
             }
             return EmakiResult.internalError("strengthen.enhancement.internal");
         }
@@ -83,12 +86,11 @@ public final class GemStrengthenIntegration {
             EmakiResult<?> result = EmakiStrengthenApi.operations()
                     .registerEnhancementTarget(new GemEnhancementTargetProvider(plugin));
             if (!result.isSuccess() && plugin.getLogger() != null) {
-                plugin.getLogger().warning("[integration] 注册 gem 强化目标 Provider 未成功: " + result);
+                LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.register_gem_enhancement_target_provider_unsuccessful", Map.of("result", result));
             }
         } catch (RuntimeException | LinkageError exception) {
             if (plugin.getLogger() != null) {
-                plugin.getLogger().log(Level.WARNING,
-                        "[integration] 注册 gem 强化目标 Provider 失败; 宝石升级将无法通过强化框架执行", exception);
+                LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.register_gem_enhancement_target_provider_failed", Map.of(), exception);
             }
         }
     }

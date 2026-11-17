@@ -32,6 +32,10 @@ import io.papermc.paper.registry.data.dialog.type.DialogType;
 
 import net.kyori.adventure.text.event.ClickEvent;
 import emaki.jiuwu.craft.corelib.api.dialog.DialogDefinition;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class DialogService {
 
@@ -90,8 +94,7 @@ public final class DialogService {
             player.showDialog(build(definition));
             return true;
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[dialog] 无法向 " + player.getName()
-                    + " 显示 " + definition.id() + ": " + throwable.getMessage());
+            LogTags.send(plugin, LogTag.DIALOG, Level.WARNING, "dialog.show_failed", Map.of("player", player.getName(), "id", definition.id(), "error", throwable.getMessage()));
             return false;
         }
     }
@@ -104,8 +107,7 @@ public final class DialogService {
             player.showDialog(buildInteractive(definition, handler));
             return true;
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[dialog] 无法向 " + player.getName()
-                    + " 显示运行时对话 " + definition.id() + ": " + throwable.getMessage());
+            LogTags.send(plugin, LogTag.DIALOG, Level.WARNING, "dialog.show_runtime_failed", Map.of("player", player.getName(), "id", definition.id(), "error", throwable.getMessage()));
             return false;
         }
     }
@@ -118,8 +120,7 @@ public final class DialogService {
             player.closeDialog();
             return true;
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[dialog] 无法为 " + player.getName()
-                    + " 关闭对话: " + throwable.getMessage());
+            LogTags.send(plugin, LogTag.DIALOG, Level.WARNING, "dialog.close_failed", Map.of("player", player.getName(), "error", throwable.getMessage()));
             return false;
         }
     }
@@ -198,8 +199,7 @@ public final class DialogService {
             try {
                 handler.onSubmit(player, submission);
             } catch (RuntimeException exception) {
-                plugin.getLogger().warning("[dialog] 提交处理器执行失败, 玩家 "
-                        + player.getName() + ": " + exception.getMessage());
+                LogTags.send(plugin, LogTag.DIALOG, Level.WARNING, "dialog.submit_handler_failed", Map.of("player", player.getName(), "error", exception.getMessage()));
             }
         };
         if (executionDispatcher == null) {
@@ -239,8 +239,7 @@ public final class DialogService {
                     result.add(DialogBody.item(item).build());
                     continue;
                 }
-                plugin.getLogger().warning("[dialog] " + definition.id()
-                        + ": 未知的物品来源 '" + body.item() + "', 跳过该 body 条目");
+                LogTags.send(plugin, LogTag.DIALOG, Level.WARNING, "dialog.unknown_item_source", Map.of("id", definition.id(), "item", body.item()));
                 continue;
             }
             if (body.width() > 0) {

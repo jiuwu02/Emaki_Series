@@ -39,6 +39,9 @@ import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.StationStateStore.StationStorageBackend;
 import emaki.jiuwu.craft.cooking.service.StationStateStore.StoredState;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class StationStateFileStore {
 
@@ -117,7 +120,7 @@ final class StationStateFileStore {
             long version = Math.max(storedVersion == null ? 0L : storedVersion, stateVersion(section));
             return new StoredState(section, version, pdcTombstone || tombstone(section), StationStorageBackend.BLOCK_PDC);
         } catch (YamlLoadException exception) {
-            plugin.getLogger().warning("[persistence] 解析 PDC 工位状态失败 " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.parse_pdc_station_state_failed", Map.of("station", coordinates.runtimeKey(), "error", exception.getMessage()));
             return pdcTombstone
                     ? new StoredState(null, storedVersion == null ? 0L : storedVersion, true, StationStorageBackend.BLOCK_PDC)
                     : null;
@@ -195,7 +198,7 @@ final class StationStateFileStore {
             } catch (IOException ignored) {
                 fallbackVersion = System.currentTimeMillis();
             }
-            plugin.getLogger().warning("[persistence] 解析工位墓碑失败 " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.parse_station_tombstone_failed", Map.of("station", coordinates.runtimeKey(), "error", exception.getMessage()));
             StoredState result = new StoredState(null, fallbackVersion, true, null);
             tombstoneCache.put(coordinates, result);
             return result;
@@ -214,8 +217,7 @@ final class StationStateFileStore {
                 preloadYaml(target);
                 readTombstoneCandidate(target);
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("[persistence] 预加载工位状态失败 " + target.runtimeKey() + ": "
-                        + StationStateStore.rootCauseMessage(throwable));
+                LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.preload_station_state_failed", Map.of("station", target.runtimeKey(), "error", StationStateStore.rootCauseMessage(throwable)));
             }
         }
     }
@@ -256,7 +258,7 @@ final class StationStateFileStore {
             }
             return arbiter.isCurrentSave(coordinates, mutationVersion);
         } catch (Exception exception) {
-            plugin.getLogger().warning("[persistence] PDC 工位保存失败 " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.save_pdc_station_failed", Map.of("station", coordinates.runtimeKey(), "error", exception.getMessage()));
             return false;
         }
     }
@@ -282,7 +284,7 @@ final class StationStateFileStore {
             }
             return arbiter.isCurrentDelete(coordinates, mutationVersion);
         } catch (Exception exception) {
-            plugin.getLogger().warning("[persistence] PDC 工位删除失败 " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.delete_pdc_station_failed", Map.of("station", coordinates.runtimeKey(), "error", exception.getMessage()));
             return false;
         }
     }
@@ -351,7 +353,7 @@ final class StationStateFileStore {
             recordIndex(coordinates, type, StationStorageBackend.YAML_FALLBACK, source, savedAt, true);
             return true;
         }).exceptionally(throwable -> {
-            plugin.getLogger().warning("[persistence] 工位 YAML 回退保存失败 " + coordinates.runtimeKey() + ": " + StationStateStore.rootCauseMessage(throwable));
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.save_yaml_fallback_failed", Map.of("station", coordinates.runtimeKey(), "error", StationStateStore.rootCauseMessage(throwable)));
             return false;
         });
     }
@@ -370,7 +372,7 @@ final class StationStateFileStore {
             recordIndex(coordinates, stationType(section), StationStorageBackend.YAML_FALLBACK, stationSource(section), savedAt(section), true);
             return true;
         } catch (IOException exception) {
-            plugin.getLogger().warning("[persistence] 保存 YAML 回退状态失败 " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.save_yaml_fallback_state_failed", Map.of("station", coordinates.runtimeKey(), "error", exception.getMessage()));
             return false;
         }
     }
@@ -411,7 +413,7 @@ final class StationStateFileStore {
             YamlFiles.save(path.toFile(), tombstone);
             return arbiter.isCurrentDelete(coordinates, mutationVersion);
         } catch (IOException exception) {
-            plugin.getLogger().warning("[persistence] 持久化工位墓碑失败 " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.persist_station_tombstone_failed", Map.of("station", coordinates.runtimeKey(), "error", exception.getMessage()));
             return false;
         }
     }
@@ -446,7 +448,7 @@ final class StationStateFileStore {
                 throw new CompletionException(exception);
             }
         }).thenApply(_ -> deleted.get() && arbiter.isCurrentDelete(coordinates, mutationVersion)).exceptionally(throwable -> {
-            plugin.getLogger().warning("[persistence] 工位 YAML 回退删除失败 " + coordinates.runtimeKey() + ": " + StationStateStore.rootCauseMessage(throwable));
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.delete_yaml_fallback_failed", Map.of("station", coordinates.runtimeKey(), "error", StationStateStore.rootCauseMessage(throwable)));
             return false;
         });
     }
@@ -490,13 +492,13 @@ final class StationStateFileStore {
             try {
                 task.run();
             } catch (CompletionException exception) {
-                plugin.getLogger().warning("[persistence] 归档旧版工位 YAML 失败 " + coordinates.runtimeKey() + ": " + StationStateStore.rootCauseMessage(exception));
+                LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.archive_legacy_yaml_failed", Map.of("station", coordinates.runtimeKey(), "error", StationStateStore.rootCauseMessage(exception)));
             }
             return;
         }
         fileScope.write(source, "station-yaml-archive:" + coordinates.runtimeKey(), task)
                 .exceptionally(throwable -> {
-                    plugin.getLogger().warning("[persistence] 归档旧版工位 YAML 失败 " + coordinates.runtimeKey() + ": " + StationStateStore.rootCauseMessage(throwable));
+                    LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.archive_legacy_yaml_failed", Map.of("station", coordinates.runtimeKey(), "error", StationStateStore.rootCauseMessage(throwable)));
                     return null;
                 });
     }

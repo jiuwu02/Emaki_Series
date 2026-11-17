@@ -24,6 +24,8 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import java.util.logging.Level;
 
 public final class RewardDispatcher {
 
@@ -135,9 +137,7 @@ public final class RewardDispatcher {
                             String outcome = error != null ? "error=" + error
                                     : result == null ? "no result" : result.status().name();
                             if (error != null || failed(result)) {
-                                plugin.getLogger().warning("[EmakiKits] 礼包动作执行失败: kit=" + kitId
-                                        + ", entry=" + entry.id() + ", outcome=" + outcome
-                                        + ", line=" + line);
+                                LogTags.send(plugin, null, Level.WARNING, "console.kit_action_execution_failed", Map.of("kit", kitId, "entry", entry.id(), "outcome", outcome, "line", line));
                             }
                             store.recordAudit(new KitState.AuditRecord(
                                     store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),

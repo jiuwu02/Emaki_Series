@@ -12,12 +12,15 @@ import org.bukkit.event.Listener;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import io.lumine.mythic.api.adapters.AbstractItemStack;
 import io.lumine.mythic.api.config.MythicLineConfig;
 import io.lumine.mythic.api.drops.DropMetadata;
 import io.lumine.mythic.api.drops.IItemDrop;
 import io.lumine.mythic.bukkit.BukkitAdapter;
 import io.lumine.mythic.bukkit.events.MythicDropLoadEvent;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class MythicItemDropBridge implements Listener {
 
@@ -43,7 +46,7 @@ public final class MythicItemDropBridge implements Listener {
         String argument = event.getArgument();
         String id = value(config, argument, "id", "");
         if (Texts.isBlank(id)) {
-            plugin.getLogger().warning("[integration] MythicMobs 掉落物 '" + dropName + "' 缺少必需的 'id' 参数");
+            LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.mythic_drop_missing_id", Map.of("drop_name", dropName));
             return;
         }
         String amountText = value(config, argument, "amount", "1");
@@ -129,8 +132,7 @@ public final class MythicItemDropBridge implements Listener {
                     ? null
                     : plugin.itemFactory().create(id, finalAmount);
             if (itemStack == null) {
-                plugin.getLogger().warning("[integration] MythicMobs 掉落物 '" + dropName
-                        + "' 无法解析 EmakiItem ID '" + id + "'");
+                LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.mythic_drop_unresolved_item_id", Map.of("drop_name", dropName, "id", id));
                 return null;
             }
             itemStack.setAmount(Math.max(1, Math.min(finalAmount, itemStack.getMaxStackSize())));

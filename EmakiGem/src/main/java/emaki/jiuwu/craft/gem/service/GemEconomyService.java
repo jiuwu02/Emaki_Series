@@ -23,6 +23,9 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class GemEconomyService {
 
@@ -671,8 +674,7 @@ public final class GemEconomyService {
 
     private void logCompensationFailure(Player player, String phase) {
         if (plugin != null) {
-            plugin.getLogger().severe("[economy] 未能在 " + phase + " 阶段完全补偿宝石费用, 玩家 "
-                    + (player == null ? "未知" : player.getUniqueId()));
+            LogTags.send(plugin, LogTag.ECONOMY, Level.SEVERE, "economy.gem_cost_compensation_incomplete", Map.of("phase", phase, "player", (player == null ? "未知" : player.getUniqueId())));
         }
     }
 

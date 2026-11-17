@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class ConfigPrecheckMessages {
 
@@ -31,9 +32,9 @@ public final class ConfigPrecheckMessages {
         }
         Map<String, Object> summaryReplacements = summaryReplacements(module, report);
         if (report.success()) {
-            messages.info(PASSED_KEY, summaryReplacements);
+            messages.info(LogTag.CONFIG, PASSED_KEY, summaryReplacements);
         } else {
-            messages.warning(FAILED_KEY, summaryReplacements);
+            messages.warning(LogTag.CONFIG, FAILED_KEY, summaryReplacements);
         }
         for (ConfigPrecheckIssue issue : report.issues()) {
             logIssue(messages, issue);
@@ -47,11 +48,11 @@ public final class ConfigPrecheckMessages {
         Map<String, Object> replacements = issueReplacements(messages, issue);
         String key = issueKey(messages, issue.severity());
         if (issue.severity().blocking()) {
-            messages.severe(key, replacements);
+            messages.severe(LogTag.CONFIG, key, replacements);
         } else if (issue.severity() == ConfigPrecheckSeverity.WARN) {
-            messages.warning(key, replacements);
+            messages.warning(LogTag.CONFIG, key, replacements);
         } else {
-            messages.info(key, replacements);
+            messages.info(LogTag.CONFIG, key, replacements);
         }
     }
 

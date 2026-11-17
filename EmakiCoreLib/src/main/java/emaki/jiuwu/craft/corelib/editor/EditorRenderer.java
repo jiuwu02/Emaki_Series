@@ -21,6 +21,9 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class EditorRenderer {
 
@@ -323,7 +326,7 @@ public final class EditorRenderer {
                 }
             }
         } catch (RuntimeException failure) {
-            Logger.getLogger("EmakiCoreLib").fine("[editor] 列表提示键解析失败: " + failure);
+            LogTags.send(Logger.getLogger("EmakiCoreLib"), LogTag.EDITOR, Level.FINE, "editor.list_hint_key_failed", Map.of("error", failure));
         }
         return "editor.field.hint.list";
     }

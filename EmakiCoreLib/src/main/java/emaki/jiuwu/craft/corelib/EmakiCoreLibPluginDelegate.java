@@ -129,8 +129,11 @@ import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 import java.util.LinkedHashMap;
 import org.bukkit.Bukkit;
+import java.util.logging.Level;
 
 final class EmakiCoreLibPluginDelegate {
 
@@ -207,8 +210,7 @@ final class EmakiCoreLibPluginDelegate {
             String name = entry.getKey();
             CoreStageKind kind = ownerRef.stageRegistry == null ? null : ownerRef.stageRegistry.kindOf(name);
             if (kind != null) {
-                ownerRef.getLogger().warning("[pipeline] 动作别名 '" + name
-                        + "' 与已注册段 id 同名, 已忽略该别名以免静默遮蔽原段");
+                LogTags.send(ownerRef, LogTag.PIPELINE, Level.WARNING, "pipeline.action_alias_ignored", Map.of("name", name));
                 continue;
             }
             accepted.put(name, entry.getValue());
@@ -220,9 +222,8 @@ final class EmakiCoreLibPluginDelegate {
         if (ownerRef.stageRebuildListeners.size() == 0) {
             return;
         }
-        int replayed = ownerRef.stageRebuildListeners.notifyRebuilt(failure -> ownerRef.getLogger().warning(
-                "[pipeline] 段重新注册失败, 插件 " + failure.owner() + ": " + failure.error()));
-        ownerRef.getLogger().info("[pipeline] 已重放管道段注册, 共 " + replayed + " 个插件");
+        int replayed = ownerRef.stageRebuildListeners.notifyRebuilt(failure -> LogTags.send(ownerRef, LogTag.PIPELINE, Level.WARNING, "pipeline.stage_reregistration_failed", Map.of("plugin", failure.owner(), "error", failure.error())));
+        LogTags.send(ownerRef, LogTag.PIPELINE, Level.INFO, "pipeline.stage_reregistration_replayed", Map.of("count", replayed));
     }
 
     void loadScriptsSafely() {
@@ -255,10 +256,10 @@ final class EmakiCoreLibPluginDelegate {
         String detail = throwable.getClass().getSimpleName()
                 + (reason == null || reason.isBlank() ? "" : (": " + reason));
         if (ownerRef.messageService != null) {
-            ownerRef.messageService.warning("console.scripts.engine_unavailable", Map.of("reason", detail));
+            ownerRef.messageService.warning(LogTag.SCRIPT, "console.scripts.engine_unavailable", Map.of("reason", detail));
             return;
         }
-        ownerRef.getLogger().warning("[script] 脚本扩展不可用: " + throwable);
+        LogTags.send(ownerRef, LogTag.SCRIPT, Level.WARNING, "script.extension_unavailable", Map.of("error", throwable));
     }
 
     void logPrecheckReport(ConfigPrecheckReport report) {
@@ -284,7 +285,7 @@ final class EmakiCoreLibPluginDelegate {
                 Set.of(ApiCapability.of("emakicorelib:itemsource_registry"))
         );
         if (!registration.successful()) {
-            ownerRef.getLogger().warning("[startup] 发布自身能力失败: " + registration.reasonKey());
+            LogTags.send(ownerRef, LogTag.STARTUP, Level.WARNING, "startup.publish_capabilities_failed", Map.of("reason", registration.reasonKey()));
         }
     }
 
@@ -300,11 +301,11 @@ final class EmakiCoreLibPluginDelegate {
             return;
         }
         for (String providerId : ownerRef.economyManager.availableProviderIds()) {
-            ownerRef.messageService.info("console.economy_bridge_ready", Map.of("provider", providerId));
+            ownerRef.messageService.info(LogTag.INTEGRATION, "console.economy_bridge_ready", Map.of("provider", providerId));
         }
         for (String blockProvider : new String[]{"CraftEngine", "ItemsAdder", "Nexo", "Oraxen"}) {
             if (ownerRef.getServer().getPluginManager().isPluginEnabled(blockProvider)) {
-                ownerRef.messageService.info("console.block_source_bridge_ready", Map.of("provider", blockProvider));
+                ownerRef.messageService.info(LogTag.INTEGRATION, "console.block_source_bridge_ready", Map.of("provider", blockProvider));
             }
         }
     }
@@ -328,7 +329,7 @@ final class EmakiCoreLibPluginDelegate {
         try {
             step.run();
         } catch (Throwable throwable) {
-            ownerRef.getLogger().warning("[shutdown] " + name + " 关闭失败: " + AsyncFailures.describe(throwable));
+            LogTags.send(ownerRef, LogTag.SHUTDOWN, Level.WARNING, "shutdown.step_failed", Map.of("name", name, "error", AsyncFailures.describe(throwable)));
         }
     }
 
@@ -338,23 +339,23 @@ final class EmakiCoreLibPluginDelegate {
             boolean copied = YamlFiles.copyResourceIfMissing(ownerRef, relativePath, target);
             if (!copied && !target.exists()) {
                 if (ownerRef.messageService != null) {
-                    ownerRef.messageService.warning("loader.bundled_resource_missing", Map.of(
+                    ownerRef.messageService.warning(LogTag.LOADER, "loader.bundled_resource_missing", Map.of(
                             "type", "资源",
                             "path", target.getPath(),
                             "resource", relativePath
                     ));
                 } else {
-                    ownerRef.getLogger().warning("[loader] 内置资源缺失: " + relativePath);
+                    LogTags.send(ownerRef, LogTag.LOADER, Level.WARNING, "loader.bundled_resource_release_missing", Map.of("resource", relativePath));
                 }
             }
         } catch (Exception exception) {
             if (ownerRef.messageService != null) {
-                ownerRef.messageService.warning("loader.bundled_resource_write_failed", Map.of(
+                ownerRef.messageService.warning(LogTag.LOADER, "loader.bundled_resource_write_failed", Map.of(
                         "path", target.getPath(),
                         "error", String.valueOf(exception.getMessage())
                 ));
             } else {
-                ownerRef.getLogger().warning("[loader] 写入内置资源失败 " + relativePath + ": " + exception.getMessage());
+                LogTags.send(ownerRef, LogTag.LOADER, Level.WARNING, "loader.bundled_resource_release_write_failed", Map.of("resource", relativePath, "error", exception.getMessage()));
             }
         }
     }
@@ -375,11 +376,11 @@ final class EmakiCoreLibPluginDelegate {
             return CoreLibConfig.fromConfig(versionedFile == null ? YamlFiles.load(file) : versionedFile.root());
         } catch (Exception exception) {
             if (ownerRef.messageService != null) {
-                ownerRef.messageService.warning("console.action_config_load_failed", Map.of(
+                ownerRef.messageService.warning(LogTag.CONFIG, "console.action_config_load_failed", Map.of(
                         "error", String.valueOf(exception.getMessage())
                 ));
             } else {
-                ownerRef.getLogger().warning("[配置] 加载 CoreLib 配置失败: " + exception.getMessage());
+                LogTags.send(ownerRef, LogTag.CONFIG, Level.WARNING, "config.load_corelib_config_failed", Map.of("error", exception.getMessage()));
             }
             return CoreLibConfig.defaults();
         }
@@ -390,15 +391,13 @@ final class EmakiCoreLibPluginDelegate {
             return;
         }
         if (ownerRef.messageService != null) {
-            ownerRef.messageService.info("console.versioned_file_updated", Map.of(
+            ownerRef.messageService.info(LogTag.LOADER, "console.versioned_file_updated", Map.of(
                     "path", relativePath,
                     "old_version", versionedFile.previousVersion().isBlank() ? "未知" : versionedFile.previousVersion(),
                     "new_version", versionedFile.updatedVersion()
             ));
         } else {
-            ownerRef.getLogger().info("[配置] 已更新内置文件版本: " + relativePath + " ("
-                    + (versionedFile.previousVersion().isBlank() ? "未知" : versionedFile.previousVersion())
-                    + " -> " + versionedFile.updatedVersion() + ")");
+            LogTags.send(ownerRef, LogTag.CONFIG, Level.INFO, "config.versioned_file_updated", Map.of("path", relativePath, "old_version", (versionedFile.previousVersion().isBlank() ? "未知" : versionedFile.previousVersion()), "new_version", versionedFile.updatedVersion()));
         }
     }
 
@@ -455,7 +454,7 @@ final class EmakiCoreLibPluginDelegate {
     }
 
     void reportTargetIdentityFailure(String message) {
-        ownerRef.getLogger().warning("[integration] " + message);
+        LogTags.sendRaw(ownerRef, LogTag.INTEGRATION, Level.WARNING, message);
     }
 
     boolean contentReady() {
@@ -463,8 +462,7 @@ final class EmakiCoreLibPluginDelegate {
     }
 
     void logReadinessFailure(ModuleReadinessRegistry.Failure failure) {
-        ownerRef.getLogger().warning("[startup] 就绪回调失败, 插件 " + failure.owner()
-                + " 正在等待 " + failure.moduleName() + ": " + failure.error());
+        LogTags.send(ownerRef, LogTag.STARTUP, Level.WARNING, "startup.readiness_callback_failed", Map.of("plugin", failure.owner(), "module", failure.moduleName(), "error", failure.error()));
     }
 
     ActionEngine actionEngine() {
@@ -499,13 +497,12 @@ final class EmakiCoreLibPluginDelegate {
                     String reason = result.diagnostics().isEmpty()
                             ? "未通过编译"
                             : ownerRef.messageService().renderFirstDiagnostic(result.diagnostics());
-                    ownerRef.getLogger().warning("[pipeline] 序列 '" + sequence + "' 的行被拒绝: " + reason
-                            + " <- " + line);
+                    LogTags.send(ownerRef, LogTag.PIPELINE, Level.WARNING, "pipeline.sequence_line_rejected", Map.of("sequence", sequence, "reason", reason, "line", line));
                     return null;
                 });
         List<String> failed = ownerRef.sequenceRepository.failed();
         if (!failed.isEmpty()) {
-            ownerRef.getLogger().warning("[pipeline] 序列不可用, 因为某行未通过编译: " + failed);
+            LogTags.send(ownerRef, LogTag.PIPELINE, Level.WARNING, "pipeline.sequence_unavailable", Map.of("failed", failed));
         }
         if (ownerRef.pipelineTaskService != null) {
             CoreLibConfig.LoopConfig loop = ownerRef.configModel.loopConfig();
@@ -539,8 +536,7 @@ final class EmakiCoreLibPluginDelegate {
         try {
             PacketBackendInstaller.install(ownerRef, ownerRef.guiBackendRegistry, ownerRef.executionDispatcher);
         } catch (LinkageError | RuntimeException exception) {
-            ownerRef.getLogger().warning("[gui] 注册 packet GUI 后端失败: " + exception.getMessage()
-                    + ", EmakiCoreLib 将使用 Bukkit(实体)后端");
+            LogTags.send(ownerRef, LogTag.GUI, Level.WARNING, "gui.packet_backend_registration_failed", Map.of("error", exception.getMessage()));
         }
     }
 
@@ -604,12 +600,11 @@ final class EmakiCoreLibPluginDelegate {
                     new VanillaLanguageDownloader(ownerRef.getLogger(), cacheDirectory);
             Map<String, String> table = downloader.load(minecraftVersion, locale);
             if (table.isEmpty()) {
-                ownerRef.getLogger().info("[text] 原版语言表('" + locale
-                        + "')不可用; 需要本地化原版名称的功能将保持禁用");
+                LogTags.send(ownerRef, LogTag.TEXT, Level.INFO, "text.vanilla_table_unavailable", Map.of("lang", locale));
                 return;
             }
             ownerRef.vanillaTranslationService.install(table);
-            ownerRef.getLogger().info("[text] 已加载 " + table.size() + " 条原版翻译, 语言 '" + locale + "'");
+            LogTags.send(ownerRef, LogTag.TEXT, Level.INFO, "text.vanilla_translations_loaded", Map.of("count", table.size(), "lang", locale));
         });
     }
 

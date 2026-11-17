@@ -27,6 +27,9 @@ import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class ResourceManagementService {
 
@@ -497,7 +500,7 @@ final class ResourceManagementService {
             resetHealthDisplayScaling(player);
             if (!healthDisplayScalingWarningLogged) {
                 healthDisplayScalingWarningLogged = true;
-                service.plugin().getLogger().warning("[配置] 配置项 health_display_scaling.target 无效 '" + target + "': " + exception.getMessage());
+                LogTags.send(service.plugin(), LogTag.CONFIG, Level.WARNING, "config.health_display_scaling_target_invalid", Map.of("value", target, "error", exception.getMessage()));
             }
         }
     }

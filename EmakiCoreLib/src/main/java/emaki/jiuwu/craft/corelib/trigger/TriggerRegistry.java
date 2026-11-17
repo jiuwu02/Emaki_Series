@@ -6,6 +6,9 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class TriggerRegistry {
 
@@ -35,7 +38,7 @@ public final class TriggerRegistry {
         if (def != null) {
             return def.displayName();
         }
-        LOGGER.warning("[trigger] 触发器 '" + id + "' 未注册; 回退为 [" + id + "]");
+        LogTags.send(LOGGER, LogTag.TRIGGER, Level.WARNING, "trigger.unregistered_fallback", Map.of("id", id));
         return "[" + id + "]";
     }
 

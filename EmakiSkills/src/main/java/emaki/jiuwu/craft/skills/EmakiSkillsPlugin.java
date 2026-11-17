@@ -67,8 +67,12 @@ import emaki.jiuwu.craft.skills.listener.CastModeKeyListener;
 import emaki.jiuwu.craft.skills.listener.PlayerJoinQuitListener;
 import emaki.jiuwu.craft.skills.papi.SkillsPlaceholderExpansion;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 
 import org.bukkit.Bukkit;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.skills.log.SkillsLogTag;
+import java.util.logging.Level;
 
 public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -147,13 +151,14 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
                 STARTUP_ASCII_START_COLOR,
                 STARTUP_ASCII_END_COLOR
         );
+        LogTags.registerTags(this, SkillsLogTag.values());
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         registerConfigPrecheckContributor();
         if (languageLoader != null) {
             languageLoader.load();
             languageLoader.setLanguage(appConfig().language());
         }
-        messageService.info("console.plugin_starting");
+        messageService.info(LogTag.STARTUP, "console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
         ensureScriptBridge();
@@ -166,7 +171,7 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
             actionBarService.startRefreshTask();
         }
         metrics = coreLib().registerBStats(this, BSTATS_PLUGIN_ID);
-        messageService.info("console.plugin_started");
+        messageService.info(LogTag.STARTUP, "console.plugin_started");
     }
 
     @Override
@@ -248,7 +253,7 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("[startup] 已跳过 EmakiSkills 就绪状态发布: " + exception);
+            LogTags.send(getLogger(), LogTag.STARTUP, Level.FINE, "startup.emaki_skills_readiness_publish_skipped", Map.of("error", exception));
         }
     }
 
@@ -360,7 +365,7 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
         placeholderExpansion = new SkillsPlaceholderExpansion(
                 this, playerSkillDataStore, skillRegistryService, localResourceDefinitionLoader);
         placeholderExpansion.register();
-        messageService.info("console.papi_registered");
+        messageService.info(LogTag.INTEGRATION, "console.papi_registered");
     }
 
     public YamlConfigLoader<AppConfig> appConfigLoader() {

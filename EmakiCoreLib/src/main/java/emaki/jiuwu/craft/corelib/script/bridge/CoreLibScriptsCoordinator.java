@@ -22,6 +22,9 @@ import emaki.jiuwu.craft.corelib.script.host.ScriptHost;
 import emaki.jiuwu.craft.corelib.script.host.ScriptHostSettings;
 import emaki.jiuwu.craft.corelib.script.host.ScriptLoadReport;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class CoreLibScriptsCoordinator implements AutoCloseable {
 
@@ -58,7 +61,7 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
             return;
         }
         if (!ScriptHost.isEngineAvailable()) {
-            messageService.warning("console.scripts.engine_unavailable",
+            messageService.warning(LogTag.SCRIPT, "console.scripts.engine_unavailable",
                     Map.of("reason", ENGINE_MISSING_REASON));
             return;
         }
@@ -67,7 +70,7 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
         } catch (Throwable throwable) {
             host = null;
             settings = null;
-            messageService.warning("console.scripts.engine_unavailable",
+            messageService.warning(LogTag.SCRIPT, "console.scripts.engine_unavailable",
                     Map.of("reason", describeThrowable(throwable)));
             return;
         }
@@ -102,7 +105,7 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
     }
 
     private synchronized void disable() {
-        messageService.info("console.scripts.disabled");
+        messageService.info(LogTag.SCRIPT, "console.scripts.disabled");
         unregisterAll();
         closeHost();
     }
@@ -162,8 +165,7 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
         for (ScriptActionStage stage : scriptStages) {
             CoreStageRegistration registration = registry.registerAction(plugin, stage);
             if (registration == null || !registration.successful()) {
-                plugin.getLogger().warning("[script] 脚本动作段重新注册失败 '"
-                        + stage.id() + "': " + (registration == null ? "no_registration" : registration.reasonKey()));
+                LogTags.send(plugin, LogTag.SCRIPT, Level.WARNING, "script.stage_reregistration_failed", Map.of("id", stage.id(), "reason", (registration == null ? "no_registration" : registration.reasonKey())));
                 continue;
             }
             stageHandles.add(registration);
@@ -176,7 +178,7 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
             try {
                 handle.close();
             } catch (Exception exception) {
-                plugin.getLogger().warning("[script] 脚本条件注销失败: " + exception.getMessage());
+                LogTags.send(plugin, LogTag.SCRIPT, Level.WARNING, "script.condition_unregister_failed", Map.of("error", exception.getMessage()));
             }
         }
         conditionHandles.clear();
@@ -199,7 +201,7 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
             try {
                 handle.close();
             } catch (Exception exception) {
-                plugin.getLogger().warning("[script] 脚本段注销失败: " + exception.getMessage());
+                LogTags.send(plugin, LogTag.SCRIPT, Level.WARNING, "script.stage_unregister_failed", Map.of("error", exception.getMessage()));
             }
         }
         stageHandles.clear();
@@ -215,18 +217,18 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
     }
 
     private void outputReport(@NotNull ScriptLoadReport report) {
-        messageService.info("console.scripts.loaded", Map.of(
+        messageService.info(LogTag.SCRIPT, "console.scripts.loaded", Map.of(
                 "loaded", String.valueOf(report.filesLoaded()),
                 "skipped", String.valueOf(report.filesSkipped())));
         for (ScriptLoadReport.ScriptLoadError error : report.errors()) {
-            messageService.warning("console.scripts.file_error", Map.of(
+            messageService.warning(LogTag.SCRIPT, "console.scripts.file_error", Map.of(
                     "file", error.file(),
                     "error", error.message()));
         }
     }
 
     private void reportRegisterError(@NotNull String message) {
-        messageService.warning("console.scripts.register_error", Map.of("error", message));
+        messageService.warning(LogTag.SCRIPT, "console.scripts.register_error", Map.of("error", message));
     }
 
     private String resolveReason(@NotNull String reasonKey) {

@@ -21,6 +21,8 @@ import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.service.ActionBarService;
 import emaki.jiuwu.craft.skills.service.CastModeService;
 import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class PlayerJoinQuitListener implements Listener {
 
@@ -128,9 +130,7 @@ public final class PlayerJoinQuitListener implements Listener {
             return;
         }
         Throwable cause = AsyncFailures.unwrapOnce(throwable);
-        plugin.getLogger().log(Level.WARNING,
-                "[persistence] 异步 " + operation + " 失败: " + playerId,
-                cause);
+        LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.async_operation_failed", Map.of("operation", operation, "player", playerId), cause);
     }
 
     private record ConnectionSession(Player player, long generation) {

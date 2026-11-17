@@ -8,6 +8,7 @@ import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class CookingStageRegistrar {
 
@@ -25,7 +26,7 @@ public final class CookingStageRegistrar {
             if (registration.successful()) {
                 handles.add(registration);
             } else {
-                plugin.messageService().warning("console.stage_register_failed", Map.of(
+                plugin.messageService().warning(LogTag.STARTUP, "console.stage_register_failed", Map.of(
                         "stage", stage.id(),
                         "reason", String.valueOf(registration.reasonKey())));
             }

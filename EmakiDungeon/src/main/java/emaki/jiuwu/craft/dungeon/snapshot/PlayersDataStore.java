@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import java.util.function.Consumer;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.log.DungeonLogTag;
 
 public final class PlayersDataStore {
 
@@ -133,7 +134,7 @@ public final class PlayersDataStore {
             YamlFiles.save(file, values);
             return true;
         } catch (IOException exception) {
-            messages.warning("console.player_data_save_failed", Map.of(
+            messages.warning(DungeonLogTag.STORAGE, "console.player_data_save_failed", Map.of(
                     "file", String.valueOf(file.getAbsolutePath()),
                     "error", String.valueOf(exception.getMessage())));
             return false;

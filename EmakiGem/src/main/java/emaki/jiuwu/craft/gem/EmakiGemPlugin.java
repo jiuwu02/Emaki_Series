@@ -58,6 +58,10 @@ import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 import emaki.jiuwu.craft.gem.apiimpl.DefaultEmakiGemApi;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -134,7 +138,7 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
             languageLoader.load();
             languageLoader.setLanguage(appConfig().language());
         }
-        messageService.info("console.plugin_starting");
+        messageService.info(LogTag.STARTUP, "console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
         registerCommandHandler();
@@ -145,7 +149,7 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
         strengthenIntegration.initialize();
         ensurePlaceholderExpansion();
         metrics = coreLib().registerBStats(this, BSTATS_PLUGIN_ID);
-        messageService.info("console.plugin_started");
+        messageService.info(LogTag.STARTUP, "console.plugin_started");
     }
 
     @Override
@@ -222,7 +226,7 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
+            LogTags.send(getLogger(), LogTag.STARTUP, Level.FINE, "startup.readiness_publish_skipped", Map.of("error", exception));
         }
     }
 
@@ -301,7 +305,7 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
         }
         placeholderExpansion = new GemPlaceholderExpansion(this, stateService, gemItemLoader);
         placeholderExpansion.register();
-        messageService.info("console.papi_registered");
+        messageService.info(LogTag.INTEGRATION, "console.papi_registered");
     }
 
     public YamlConfigLoader<AppConfig> appConfigLoader() {

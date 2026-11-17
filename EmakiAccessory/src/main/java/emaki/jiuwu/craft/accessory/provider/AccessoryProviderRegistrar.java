@@ -9,6 +9,10 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.accessory.service.AccessoryContributionService;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.attribute.api.extension.ContributionProviderRegistration;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class AccessoryProviderRegistrar {
 
@@ -69,11 +73,11 @@ public final class AccessoryProviderRegistrar {
             if (value instanceof AccessoryOptionalProviderIntegration integration) {
                 return integration;
             }
-            logger.warning("[integration] EmakiSkills 集成实现类型无效");
+            LogTags.send(logger, LogTag.INTEGRATION, Level.WARNING, "integration.emaki_skills_integration_type_invalid");
         } catch (ClassNotFoundException | LinkageError exception) {
-            logger.info("[integration] EmakiSkills 集成不可用; 将在没有技能贡献的情况下继续");
+            LogTags.send(logger, LogTag.INTEGRATION, Level.INFO, "integration.emaki_skills_integration_unavailable");
         } catch (ReflectiveOperationException | SecurityException exception) {
-            logger.warning("[integration] EmakiSkills 集成失败: " + exception.getMessage());
+            LogTags.send(logger, LogTag.INTEGRATION, Level.WARNING, "integration.emaki_skills_integration_failed", Map.of("error", exception.getMessage()));
         }
         return null;
     }

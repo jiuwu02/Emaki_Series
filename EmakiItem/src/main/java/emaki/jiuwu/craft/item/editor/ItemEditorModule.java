@@ -43,6 +43,9 @@ import emaki.jiuwu.craft.corelib.item.ProfileComponentSupport;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinitionParser;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class ItemEditorModule implements EditorModule {
 
@@ -214,7 +217,7 @@ public final class ItemEditorModule implements EditorModule {
             return service.open(player, file.toPath(), itemId, documentValidator(),
                     new ItemReturnTarget(packId, returnPage));
         } catch (RuntimeException failure) {
-            plugin.messageService().warning("console.editor_open_failed",
+            plugin.messageService().warning(LogTag.EDITOR, "console.editor_open_failed",
                     Map.of("item", itemId, "error", String.valueOf(failure)));
             return null;
         }
@@ -245,7 +248,7 @@ public final class ItemEditorModule implements EditorModule {
             plugin.messageService().send(player, "editor.create.success", Map.of("id", itemId));
             openItem(player, itemId, packId == null ? "" : packId, returnPage);
         } catch (IOException failure) {
-            plugin.messageService().warning("console.editor_create_failed",
+            plugin.messageService().warning(LogTag.EDITOR, "console.editor_create_failed",
                     Map.of("path", String.valueOf(file), "error", String.valueOf(failure)));
             plugin.messageService().send(player, "editor.create.failed");
         }
@@ -436,7 +439,7 @@ public final class ItemEditorModule implements EditorModule {
                         Map.of("id", itemId));
                 EditorFeedback.play(session.player(), true);
             } catch (IOException failure) {
-                plugin.messageService().warning("console.editor_delete_failed",
+                plugin.messageService().warning(LogTag.EDITOR, "console.editor_delete_failed",
                         Map.of("error", String.valueOf(failure)));
                 plugin.messageService().send(session.player(), "editor.delete.failed");
                 EditorFeedback.play(session.player(), false);
@@ -465,7 +468,7 @@ public final class ItemEditorModule implements EditorModule {
                         }
                     }
                 } catch (RuntimeException failure) {
-                    plugin.getLogger().warning("[editor] 读取套装引用失败: " + file + ": " + failure);
+                    LogTags.send(plugin, LogTag.EDITOR, Level.WARNING, "editor.read_set_references_failed", Map.of("file", file, "error", failure));
                 }
             }
         }
@@ -482,7 +485,7 @@ public final class ItemEditorModule implements EditorModule {
                     }
                 }
             } catch (RuntimeException failure) {
-                plugin.getLogger().warning("[editor] 读取 alias 引用失败: " + aliasFile + ": " + failure);
+                LogTags.send(plugin, LogTag.EDITOR, Level.WARNING, "editor.read_alias_references_failed", Map.of("file", aliasFile, "error", failure));
             }
         }
         return found;
@@ -497,7 +500,7 @@ public final class ItemEditorModule implements EditorModule {
         try {
             session.attach(SET_SCOPE, service.editService().openDetached(file.toPath(), SET_VALIDATOR));
         } catch (IOException failure) {
-            plugin.messageService().warning("console.editor_set_open_failed",
+            plugin.messageService().warning(LogTag.EDITOR, "console.editor_set_open_failed",
                     Map.of("file", String.valueOf(file), "error", String.valueOf(failure)));
             plugin.messageService().send(session.player(), "editor.set.missing", Map.of("id", setId));
             return;
@@ -780,7 +783,7 @@ public final class ItemEditorModule implements EditorModule {
                     ids.add(id);
                 }
             } catch (RuntimeException failure) {
-                plugin.getLogger().warning("[editor] 读取套装定义失败: " + file + ": " + failure);
+                LogTags.send(plugin, LogTag.EDITOR, Level.WARNING, "editor.read_set_definitions_failed", Map.of("file", file, "error", failure));
             }
         }
         return ids;

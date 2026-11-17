@@ -31,6 +31,9 @@ import emaki.jiuwu.craft.skills.model.BoundSkillTrigger;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSourceType;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.skills.log.SkillsLogTag;
+import java.util.logging.Level;
 
 public final class EquipmentSkillCollector {
 
@@ -323,10 +326,7 @@ public final class EquipmentSkillCollector {
             }
             loggedLoreFailures.put(key, Boolean.TRUE);
         }
-        logger.warning("[collector] 读取 Lore 失败: player=" + playerId
-                + ", slot=" + slotName
-                + ", material=" + material
-                + ", exception=" + failure.getClass().getName());
+        LogTags.send(logger, SkillsLogTag.COLLECTOR, Level.WARNING, "collector.lore_read_failed", Map.of("player", playerId, "slot", slotName, "material", material, "error", failure.getClass().getName()));
     }
 
     private record ItemSkills(Map<String, String> loreAliases,

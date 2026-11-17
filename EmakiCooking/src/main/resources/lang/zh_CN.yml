@@ -2,7 +2,12 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.2"
+version: "5.0.3"
+
+tags:
+  completion: '[ 完成 ]'
+  cooking: '[ 烹饪 ]'
+  reward: '[ 奖励 ]'
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
@@ -68,14 +73,14 @@ nutrition:
   modify_failed: "<red>营养值修改失败: <gray>%reason%</gray></red>"
 
 console:
-  plugin_starting: "[startup] <gray>正在启动...</gray>"
-  plugin_started: "[startup] <green>启动完成</green>"
-  plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
-  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "<gray>正在启动...</gray>"
+  plugin_started: "<green>启动完成</green>"
+  plugin_stopped: "<yellow>已关闭</yellow>"
+  config_precheck_passed: "<gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "<red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -99,60 +104,60 @@ console:
       station_storage_inspect_anchor: "后端取决于实际锚点 BlockState; 请检查已放置的工位"
       station_storage_block_pdc: "已放置的原版 %material% 支持 BLOCK_PDC"
       station_storage_yaml_fallback: "除非已放置方块是 TileState, 否则回退到 YAML"
-  bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
-  bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  bootstrap_skip: "[loader] <yellow>已跳过默认数据写入</yellow>"
-  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
-  directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
+  bootstrap_start: "<gray>开始检查默认文件...</gray>"
+  bootstrap_complete: "<green>默认文件检查完成</green>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  bootstrap_skip: "<yellow>已跳过默认数据写入</yellow>"
+  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
   loader_config_load_error:
-    "[loader] <yellow>读取 EmakiCooking 配置失败: <red>%path%</red>
+    "<yellow>读取 EmakiCooking 配置失败: <red>%path%</red>
     <gray> (%error%)</gray></yellow>"
-  station_recipes_loaded: "[loader] <gray>已加载%station% <yellow>%count%</yellow> 个配方</gray>"
-  block_source_bridge_ready: "[integration] <gray>已接入方块源: <aqua>%provider%</aqua></gray>"
-  block_source_bridge_unavailable: "[integration] <yellow>方块源不可用: %provider%  (%error%)</yellow>"
-  nutrition_bridge_ready: "[integration] <gray>已接入营养食用源: <aqua>%provider%</aqua></gray>"
-  nutrition_bridge_unavailable: "[integration] <yellow>营养食用源不可用: %provider%  (%error%)</yellow>"
+  station_recipes_loaded: "<gray>已加载%station% <yellow>%count%</yellow> 个配方</gray>"
+  block_source_bridge_ready: "<gray>已接入方块源: <aqua>%provider%</aqua></gray>"
+  block_source_bridge_unavailable: "<yellow>方块源不可用: %provider%  (%error%)</yellow>"
+  nutrition_bridge_ready: "<gray>已接入营养食用源: <aqua>%provider%</aqua></gray>"
+  nutrition_bridge_unavailable: "<yellow>营养食用源不可用: %provider%  (%error%)</yellow>"
   # 控制台: 工位恢复类型不匹配; 占位符: %type%, %coordinate%
-  station_restore_skipped_mismatch: "[persistence] <gray>工位恢复报告: 类型不匹配 type=%type% coordinate=%coordinate%</gray>"
+  station_restore_skipped_mismatch: "<gray>工位恢复报告: 类型不匹配 type=%type% coordinate=%coordinate%</gray>"
   # 控制台: 工位方块实体丢失已替换; 占位符: %type%, %coordinate%
-  station_restore_lost_block_entity: "[persistence] <gray>工位恢复报告: 方块实体丢失已替换 type=%type% coordinate=%coordinate%</gray>"
+  station_restore_lost_block_entity: "<gray>工位恢复报告: 方块实体丢失已替换 type=%type% coordinate=%coordinate%</gray>"
   # 控制台: 重载进度-加载配置
-  reload_loading_configs: "[reload] <gray>正在加载配置...</gray>"
+  reload_loading_configs: "<gray>正在加载配置...</gray>"
   # 控制台: 重载进度-应用配置
-  reload_applying: "[reload] <gray>正在应用配置...</gray>"
+  reload_applying: "<gray>正在应用配置...</gray>"
   # 控制台: 重载进度-完成
-  reload_complete: "[reload] <gray>重载完成</gray>"
+  reload_complete: "<gray>重载完成</gray>"
   # 控制台: 重载阶段失败; 占位符: %stage%, %error%
-  reload_stage_failed: "[reload] <yellow>重载阶段 %stage% 失败: %error%</yellow>"
+  reload_stage_failed: "<yellow>重载阶段 %stage% 失败: %error%</yellow>"
   # 控制台: 烹饪完成恢复失败; 占位符: %error%
-  completion_recovery_failed: "[completion] <yellow>烹饪完成恢复失败: %error%</yellow>"
+  completion_recovery_failed: "<yellow>烹饪完成恢复失败: %error%</yellow>"
   # 控制台: 流水线阶段注册失败; 占位符: %stage%, %reason%
-  stage_register_failed: "[startup] <yellow>注册流水线阶段 '%stage%' 失败: %reason%</yellow>"
+  stage_register_failed: "<yellow>注册流水线阶段 '%stage%' 失败: %reason%</yellow>"
   # 控制台: 执行旧版烹饪奖励失败; 占位符: %error%
-  reward_legacy_execute_failed: "[reward] <yellow>执行旧版烹饪奖励失败: %error%</yellow>"
+  reward_legacy_execute_failed: "<yellow>执行旧版烹饪奖励失败: %error%</yellow>"
   # 控制台: 烹饪奖励输出物品无效; 占位符: %output%, %recipe%
-  reward_output_invalid: "[reward] <yellow>输出物品为空或空气, output_map=%output% recipe=%recipe%</yellow>"
+  reward_output_invalid: "<yellow>输出物品为空或空气, output_map=%output% recipe=%recipe%</yellow>"
   # 控制台: 创建来源物品返回 null; 占位符: %source%, %amount%
-  reward_source_create_null: "[reward] <yellow>itemSourceService.createItem 对 source=%source% amount=%amount% 返回 null</yellow>"
+  reward_source_create_null: "<yellow>itemSourceService.createItem 对 source=%source% amount=%amount% 返回 null</yellow>"
   # 控制台: 组装预览与直接创建均返回 null; 占位符: %source%, %type%, %id%
-  reward_source_resolve_null: "[reward] <yellow>组装预览与直接 createItem 对 source=%source% type=%type% id=%id% 均返回 null</yellow>"
+  reward_source_resolve_null: "<yellow>组装预览与直接 createItem 对 source=%source% type=%type% id=%id% 均返回 null</yellow>"
   # 控制台: 跳过营养阈值评估; 占位符: %player%
-  nutrition_threshold_skipped: "[scheduler] <yellow>已跳过 %player% 的营养阈值评估: 调用线程不拥有该玩家且无可用执行调度器</yellow>"
+  nutrition_threshold_skipped: "<yellow>已跳过 %player% 的营养阈值评估: 调用线程不拥有该玩家且无可用执行调度器</yellow>"
   # 控制台: 营养阈值评估重新路由失败; 占位符: %player%
-  nutrition_threshold_reroute_failed: "[scheduler] <yellow>重新路由 %player% 的营养阈值评估失败: 实体任务调度被拒绝</yellow>"
+  nutrition_threshold_reroute_failed: "<yellow>重新路由 %player% 的营养阈值评估失败: 实体任务调度被拒绝</yellow>"
   # 控制台: 发酵桶恢复时状态无效; 占位符: %coordinate%
-  station_restore_rejected_invalid_fermentation_state: "[persistence] <gray>工位恢复报告: 发酵桶状态无效 coordinate=%coordinate%</gray>"
+  station_restore_rejected_invalid_fermentation_state: "<gray>工位恢复报告: 发酵桶状态无效 coordinate=%coordinate%</gray>"
   # 控制台: 发酵桶恢复时槽位 ID 迁移被拒; 占位符: %coordinate%, %recipe%
-  station_restore_rejected_slot_migration: "[persistence] <gray>工位恢复报告: 发酵桶槽位 ID 迁移被拒绝 coordinate=%coordinate% recipe=%recipe%</gray>"
+  station_restore_rejected_slot_migration: "<gray>工位恢复报告: 发酵桶槽位 ID 迁移被拒绝 coordinate=%coordinate% recipe=%recipe%</gray>"
   # 控制台: 发酵桶破坏时槽位 ID 迁移被拒; 占位符: %coordinate%
-  station_break_rejected_slot_migration: "[persistence] <gray>工位破坏报告: 发酵桶槽位 ID 迁移被拒绝 coordinate=%coordinate%</gray>"
+  station_break_rejected_slot_migration: "<gray>工位破坏报告: 发酵桶槽位 ID 迁移被拒绝 coordinate=%coordinate%</gray>"
   # 控制台: 发酵桶交互时槽位 ID 迁移被拒; 占位符: %coordinate%
-  station_interaction_rejected_slot_migration: "[persistence] <gray>工位交互报告: 发酵桶槽位 ID 迁移被拒绝 coordinate=%coordinate%</gray>"
+  station_interaction_rejected_slot_migration: "<gray>工位交互报告: 发酵桶槽位 ID 迁移被拒绝 coordinate=%coordinate%</gray>"
   # 控制台: 发酵桶 GUI 身份迁移被拒; 占位符: %coordinate%
-  station_gui_rejected_identity_migration: "[persistence] <gray>工位 GUI 报告: 发酵桶身份迁移被拒绝 coordinate=%coordinate%</gray>"
+  station_gui_rejected_identity_migration: "<gray>工位 GUI 报告: 发酵桶身份迁移被拒绝 coordinate=%coordinate%</gray>"
   station_name:
     chopping_board: "砧板"
     wok: "炒锅"
@@ -162,11 +167,11 @@ console:
     juicer: "榨汁机"
     fermentation_barrel: "发酵桶"
   # 控制台: 编辑器打开失败, 模板缺失与浏览器增删失败
-  editor_open_failed: "[editor] <red>无法打开 EmakiCooking 编辑界面: %item%  (%error%)</red>"
-  editor_template_missing: "[editor] <red>缺少 EmakiCooking 编辑界面模板: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
+  editor_open_failed: "<red>无法打开 EmakiCooking 编辑界面: %item%  (%error%)</red>"
+  editor_template_missing: "<red>缺少 EmakiCooking 编辑界面模板: %template%</red>"
+  editor_browser_create_failed: "<red>无法创建定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>无法删除定义: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>无法列举定义目录: %path%  (%error%)</red>"
 
 loader:
   type:
@@ -182,12 +187,12 @@ loader:
   error:
     empty_document: "空文档"
     missing_field: "缺少字段: %path%"
-  lang_directory_create_failed: "[loader] <yellow>无法创建语言目录: <red>%path%</red></yellow>"
-  bundled_language_load_failed: "[loader] <yellow>读取内置语言失败: <red>%error%</red></yellow>"
-  directory_create_failed: "[loader] <yellow>无法创建 %type% 目录: <red>%path%</red></yellow>"
-  invalid_blank_id: "[loader] <yellow>%type% ID 为空: <red>%file%</red></yellow>"
-  duplicate_id: "[loader] <yellow>重复的 %type% ID <red>%id%</red>, 来源 <gray>%file%</gray></yellow>"
-  load_failed: "[loader] <yellow>读取 %type% 文件失败: <red>%file%</red> <gray> (%error%)</gray></yellow>"
+  lang_directory_create_failed: "<yellow>无法创建语言目录: <red>%path%</red></yellow>"
+  bundled_language_load_failed: "<yellow>读取内置语言失败: <red>%error%</red></yellow>"
+  directory_create_failed: "<yellow>无法创建 %type% 目录: <red>%path%</red></yellow>"
+  invalid_blank_id: "<yellow>%type% ID 为空: <red>%file%</red></yellow>"
+  duplicate_id: "<yellow>重复的 %type% ID <red>%id%</red>, 来源 <gray>%file%</gray></yellow>"
+  load_failed: "<yellow>读取 %type% 文件失败: <red>%file%</red> <gray> (%error%)</gray></yellow>"
 
 chopping_board:
   too_fast: "<yellow>操作太快了, 请稍等一下</yellow>"
@@ -662,10 +667,10 @@ editor:
   modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
+    chat: '<yellow>请在聊天栏输入"%label%"的内容, 输入 cancel 取消</yellow>'
+    map_entry: '<yellow>请在聊天栏输入"键=值"新增一条映射, 输入 cancel 取消</yellow>'
   map:
-    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
+    bad_entry: '<red>格式错误, 请按"键=值"输入</red>'
   value:
     unset: "未设置 (空)"
     integer: "整数"
@@ -693,6 +698,60 @@ editor:
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
     delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
-    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
+    delete_confirm: '<red>再次点击"删除"以确认删除</red>'
     delete_success: "<green>已删除定义 %id%</green>"
     delete_failed: "<red>删除失败, 详见控制台</red>"
+persistence:
+  station_index_rebuild_partial_failed: "工位索引重建部分失败: %failure_summary%"
+  station_index_rebuild_failed: "工位索引重建失败: %error%"
+  load_player_nutrition_data_failed: "加载玩家营养数据失败: %player%"
+  save_player_nutrition_data_failed: "保存玩家营养数据失败: %player%"
+  chunk_scan_failed: "区块 %world% %chunk_x%,%chunk_z% 的 TileState 扫描失败: %error%"
+  schedule_chunk_scan_failed: "区块 %world% %chunk_x%,%chunk_z% 的 TileState 扫描调度失败: %error%"
+  loaded_pdc_reindex_failed: "已加载 TileState 的 PDC 重建索引失败: %error%"
+  legacy_yaml_scan_failed: "旧版工位 YAML 扫描失败: %error%"
+  parse_legacy_yaml_failed: "旧版工位 YAML %file% 解析失败: %error%"
+  scan_legacy_yaml_failed: "扫描旧版工位 YAML 失败: %error%"
+  load_index_failed: "加载工位索引失败: %error%"
+  write_index_failed: "写入工位索引失败, 世界 %world%: %error%"
+  schedule_index_flush_failed: "调度工位索引刷写失败: %error%"
+  archive_legacy_yaml_failed: "归档旧版工位 YAML 失败 %station%: %error%"
+  delete_yaml_fallback_failed: "工位 YAML 回退删除失败 %station%: %error%"
+  persist_station_tombstone_failed: "持久化工位墓碑失败 %station%: %error%"
+  save_yaml_fallback_state_failed: "保存 YAML 回退状态失败 %station%: %error%"
+  save_yaml_fallback_failed: "工位 YAML 回退保存失败 %station%: %error%"
+  delete_pdc_station_failed: "PDC 工位删除失败 %station%: %error%"
+  save_pdc_station_failed: "PDC 工位保存失败 %station%: %error%"
+  preload_station_state_failed: "预加载工位状态失败 %station%: %error%"
+  parse_station_tombstone_failed: "解析工位墓碑失败 %station%: %error%"
+  parse_pdc_station_state_failed: "解析 PDC 工位状态失败 %station%: %error%"
+  restore_lost_block_entity_replaced: "工位恢复报告: 方块实体丢失已替换 type=%type% coordinate=%coordinate%"
+  async_delete_failed: "工位异步删除失败 %station%: %error%"
+  async_save_failed: "工位异步保存失败 %station%: %error%"
+  preload_station_states_failed: "工位状态预加载失败: %error%"
+  restore_batch_failed: "工位恢复批次失败: %error%"
+cooking:
+  config_reload_failed: "配置重载失败: %error%"
+reload:
+  cooking_reload_failed_rolled_back: "烹饪重载失败, 已回滚到旧配置: %error%"
+  cooking_reload_failed_readiness_restored: "烹饪重载失败, 就绪状态已恢复为 %readiness%: %error%"
+startup:
+  readiness_publish_skipped: "就绪状态发布已跳过: %error%"
+shutdown:
+  station_state_drain_incomplete: "工位状态排空未完成: pending=%pending%, failures=%failures%"
+  completion_journal_drain_incomplete: "烹饪完成日志排空未完成: pending=%pending%, failures=%failures%"
+  nutrition_data_drain_incomplete: "营养数据排空未完成: pending=%pending%, dirty=%dirty%, failures=%failures%"
+completion:
+  quarantine_completion: "隔离烹饪完成 %operation%: %reason%"
+  abandon_completion_input_unavailable: "放弃烹饪完成 %operation%, 经 %attempts% 次尝试后所需物品栏输入始终不可用 (未消耗任何物品, 工位状态未变)"
+  advance_failed: "烹饪完成推进失败 %operation%: %error%"
+  schedule_advance_failed: "调度烹饪完成推进失败 %operation%: %error%"
+  start_completion_unhandled_failure: "启动烹饪完成时发生未处理失败 %operation%: %error%"
+  persist_prepared_completion_failed: "持久化 PREPARED 烹饪完成失败 %operation%: %error%"
+  prepare_completion_failed: "准备烹饪完成失败, 位置 %station%: %error%"
+journal:
+  load_completion_journal_failed: "加载烹饪完成日志失败 '%file%': %error%; 隔离移动失败: %move_error%"
+  quarantine_corrupt_completion_journal: "已隔离损坏的烹饪完成日志 '%file%': %error%"
+config:
+  deprecated_matcher_keys: "%path%.%legacy_sources%/%legacy_matcher% 处的旧版烹饪匹配键已弃用; 请使用 %path%.%nested%.item_sources 与 .matcher, %hint%"
+  deprecated_moisture_rule_matcher_keys: "stations.steamer.moisture_rules[%index%] 处的旧版烹饪匹配键已弃用; 请使用 input.item_sources 与 input.matcher, %hint%"

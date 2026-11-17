@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class GuiBackendRegistry {
 
@@ -166,9 +167,9 @@ public final class GuiBackendRegistry {
         }
         warnedNames.put(dedupeKey, Boolean.TRUE);
         if (value == null) {
-            messageService.warning(messageKey);
+            messageService.warning(LogTag.GUI, messageKey);
         } else {
-            messageService.warning(messageKey, Map.of("value", value));
+            messageService.warning(LogTag.GUI, messageKey, Map.of("value", value));
         }
     }
 
@@ -264,7 +265,7 @@ public final class GuiBackendRegistry {
             return;
         }
         try {
-            messageService.warning(messageKey, replacements);
+            messageService.warning(LogTag.GUI, messageKey, replacements);
         } catch (RuntimeException ignored) {
             return;
         }

@@ -2,7 +2,13 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "5.0.2"
+version: "5.0.3"
+
+tags:
+  affix: '[ affix ]'
+  attempt: '[ attempt ]'
+  lifecycle: '[ lifecycle ]'
+  mastery: '[ mastery ]'
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -86,14 +92,14 @@ command:
   admin_state_failed: "<red>Failed to write strengthen state back to main-hand item</red>"
 
 console:
-  plugin_starting: "[startup] <gray>Starting...</gray>"
-  plugin_started: "[startup] <green>Started</green>"
-  plugin_stopped: "[shutdown] <yellow>Stopped</yellow>"
-  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
-  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
-  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started</green>"
+  plugin_stopped: "<yellow>Stopped</yellow>"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -131,63 +137,88 @@ console:
       forge_variable_legacy_missing: "legacy forge variable '%variable%' is no longer produced, breaking existing recipes"
       # Console: forge PDC namespace mismatch; placeholders: %namespace%
       forge_pdc_namespace_mismatch: "forge pdc namespace expected 'emakiforge' but was '%namespace%'"
-  bootstrap_start: "[loader] <gray>Checking default files...</gray>"
-  bootstrap_complete: "[loader] <green>Default file check complete</green>"
-  bootstrap_skip: "[loader] <yellow>release_default_data=false, skipped default data generation</yellow>"
-  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource:
+  bootstrap_start: "<gray>Checking default files...</gray>"
+  bootstrap_complete: "<green>Default file check complete</green>"
+  bootstrap_skip: "<yellow>release_default_data=false, skipped default data generation</yellow>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "<yellow>Failed to copy default resource:
     <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>Failed to save merged resource:
+  bootstrap_save_failed: "<yellow>Failed to save merged resource:
     <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  default_file_missing: "[loader] <yellow>Missing bundled default resource: <red>%path%</red></yellow>"
-  directory_create_failed: "[loader] <yellow>Failed to create directory: <red>%path%</red></yellow>"
-  loader_config_load_error: "[loader] <yellow>Failed to load strengthen config:
+  default_file_missing: "<yellow>Missing bundled default resource: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
+  loader_config_load_error: "<yellow>Failed to load strengthen config:
     <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  recipe_action_failed: "[attempt] <yellow>Strengthen action chain failed:
+  recipe_action_failed: "<yellow>Strengthen action chain failed:
     <red>%recipe%</red> <gray>phase %phase% star %star%
     (%error%)</gray></yellow>"
-  pdc_source_registered: "[integration] <gray>PDC attribute source registered: <aqua>%source%</aqua></gray>"
-  recipes_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> strengthen recipe (s)</gray>"
-  papi_registered: "[integration] <gray>PlaceholderAPI expansion registered</gray>"
-  editor_open_failed: "[editor] <red>Could not open EmakiStrengthen editor for %item%  (%error%)</red>"
-  editor_template_missing: "[editor] <red>Missing EmakiStrengthen editor template: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>Could not create definition: %path%  (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>Could not delete definition: %path%  (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>Could not list definition directory: %path%  (%error%)</red>"
+  pdc_source_registered: "<gray>PDC attribute source registered: <aqua>%source%</aqua></gray>"
+  recipes_loaded: "<gray>Loaded <yellow>%count%</yellow> strengthen recipe (s)</gray>"
+  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
+  editor_open_failed: "<red>Could not open EmakiStrengthen editor for %item%  (%error%)</red>"
+  editor_template_missing: "<red>Missing EmakiStrengthen editor template: %template%</red>"
+  editor_browser_create_failed: "<red>Could not create definition: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>Could not delete definition: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>Could not list definition directory: %path%  (%error%)</red>"
   # Console: reload progress notice
-  reload_loading_files: "[reload] <gray>Loading configuration files...</gray>"
-  reload_loading_configs: "[reload] <gray>Loading configs...</gray>"
-  reload_applying: "[reload] <gray>Applying configuration...</gray>"
-  reload_complete: "[reload] <green>Reload complete</green>"
+  reload_loading_files: "<gray>Loading configuration files...</gray>"
+  reload_loading_configs: "<gray>Loading configs...</gray>"
+  reload_applying: "<gray>Applying configuration...</gray>"
+  reload_complete: "<green>Reload complete</green>"
   # Console: reload stage failed; placeholders: %stage%, %error%
-  reload_stage_failed: "[reload] <yellow>Stage %stage% failed: %error%</yellow>"
+  reload_stage_failed: "<yellow>Stage %stage% failed: %error%</yellow>"
   # Console: strengthen attempt failed closed; placeholders: %operation_id%, %error%
-  strengthen_attempt_failed_closed: "[attempt] <red>Strengthen attempt failed closed | operationId=%operation_id% | error=%error%</red>"
+  strengthen_attempt_failed_closed: "<red>Strengthen attempt failed closed | operationId=%operation_id% | error=%error%</red>"
   # Console: strengthen result event dispatch failed; placeholders: %operation_id%, %error%
-  strengthen_result_dispatch_failed: "[event] <yellow>Strengthen result event dispatch failed | operationId=%operation_id% | error=%error%</yellow>"
+  strengthen_result_dispatch_failed: "<yellow>Strengthen result event dispatch failed | operationId=%operation_id% | error=%error%</yellow>"
   # Console: GUI result action dispatch failed; placeholders: %operation_id%, %error%
-  gui_result_action_dispatch_failed: "[gui] <yellow>Strengthen result action dispatch failed | operationId=%operation_id% | error=%error%</yellow>"
+  gui_result_action_dispatch_failed: "<yellow>Strengthen result action dispatch failed | operationId=%operation_id% | error=%error%</yellow>"
   # Console: committed result owner retired; placeholders: %operation_id%
-  gui_owner_retired: "[gui] <yellow>Strengthen committed result owner retired; settlement remains pending | operationId=%operation_id%</yellow>"
+  gui_owner_retired: "<yellow>Strengthen committed result owner retired; settlement remains pending | operationId=%operation_id%</yellow>"
   # Console: committed result scheduling rejected; placeholders: %operation_id%
-  gui_schedule_rejected: "[gui] <red>Strengthen committed result scheduling was rejected; settlement remains pending | operationId=%operation_id%</red>"
+  gui_schedule_rejected: "<red>Strengthen committed result scheduling was rejected; settlement remains pending | operationId=%operation_id%</red>"
   # Console: committed result scheduling failed; placeholders: %operation_id%, %error%
-  gui_schedule_failed: "[gui] <red>Strengthen committed result scheduling failed; settlement remains pending | operationId=%operation_id% | error=%error%</red>"
+  gui_schedule_failed: "<red>Strengthen committed result scheduling failed; settlement remains pending | operationId=%operation_id% | error=%error%</red>"
   # Console: committed result settlement failed and will be retried; placeholders: %operation_id%, %error%
-  gui_settlement_retry: "[gui] <red>Strengthen committed result settlement failed and will be retried | operationId=%operation_id% | error=%error%</red>"
+  gui_settlement_retry: "<red>Strengthen committed result settlement failed and will be retried | operationId=%operation_id% | error=%error%</red>"
   # Console: result notification failed after settlement; placeholders: %operation_id%, %error%
-  gui_notification_failed: "[gui] <yellow>Strengthen committed result notification failed after settlement | operationId=%operation_id% | error=%error%</yellow>"
+  gui_notification_failed: "<yellow>Strengthen committed result notification failed after settlement | operationId=%operation_id% | error=%error%</yellow>"
   # Console: inventory-full notification failed; placeholders: %error%
-  gui_inventory_full_notify_failed: "[gui] <yellow>Strengthen inventory-full notification failed | error=%error%</yellow>"
+  gui_inventory_full_notify_failed: "<yellow>Strengthen inventory-full notification failed | error=%error%</yellow>"
+  target_provider_pre_writeback_failed: "Target provider pre-write-back failed"
+  refresh_changed_target_level_commit_rejected: "The refresh stage changed the target level, commit rejected"
+  strengthen_progression_resolve_failed: "Failed to resolve strengthen progression"
+  strengthen_pity_writeback_failed: "Failed to write back strengthen framework pity state"
+  strengthen_material_target_commit_failed: "Strengthen framework material/target commit failed"
+  strengthen_framework_execution_failed: "Strengthen framework execution failed"
+  target_rollback_after_readback_failed: "Target rollback after read-back failure failed"
+  target_provider_post_commit_readback_failed: "Target provider read-back after commit failed"
+  strengthen_charge_failed: "Strengthen framework charge failed"
+  material_in_external_container_rejected: "Strengthen material is in an external container, execution rejected"
+  identify_material_item_source_failed: "Failed to identify material item source"
+  target_matcher_check_threw_treated_as_mismatch: "Target matcher check threw, treated as a mismatch"
+  target_in_external_container_rejected: "Strengthen target is in an external container, execution rejected"
+  target_changed_before_charge_rejected: "Target changed between preview and confirmation, rejected before charging | operation=%operation%"
+  recipe_condition_evaluation_failed: "Recipe condition evaluation failed, treated as not met"
+  target_provider_refresh_failed_reason_key: "Target provider refresh stage failed, rejected before charging | reason_key=%reason%"
+  target_provider_refresh_threw: "Target provider threw during the refresh stage"
+  target_provider_canhandle_threw: "Target provider '%provider%' threw in canHandle"
+  read_target_level_for_pity_isolation_failed: "Failed to read target level for pity isolation"
+  read_affix_selection_for_pity_isolation_failed: "Failed to read affix selection for pity isolation"
+  mastery_clear_failed: "Mastery clear failed"
+  mastery_overwrite_failed: "Mastery overwrite failed"
+  mastery_read_failed: "Mastery read failed"
+  mastery_write_failed: "Mastery write failed, this strengthen result is unaffected"
+  pity_flush_consecutive_failures: "Pity state flush failed %count% times in a row, retries stopped, waiting for the next lifecycle flush"
 
 loader:
-  lang_directory_create_failed: "[loader] <yellow>Failed to create language directory: <red>%path%</red></yellow>"
-  bundled_language_load_failed: "[loader] <yellow>Failed to load bundled language: <red>%error%</red></yellow>"
-  directory_create_failed: "[loader] <yellow>Failed to create %type% directory: <red>%path%</red></yellow>"
-  invalid_blank_id: "[loader] <yellow>%type% ID is blank: <red>%file%</red></yellow>"
-  duplicate_id: "[loader] <yellow>Duplicate %type% ID <red>%id%</red>, source
+  lang_directory_create_failed: "<yellow>Failed to create language directory: <red>%path%</red></yellow>"
+  bundled_language_load_failed: "<yellow>Failed to load bundled language: <red>%error%</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create %type% directory: <red>%path%</red></yellow>"
+  invalid_blank_id: "<yellow>%type% ID is blank: <red>%file%</red></yellow>"
+  duplicate_id: "<yellow>Duplicate %type% ID <red>%id%</red>, source
     <gray>%file%</gray></yellow>"
-  load_failed: "[loader] <yellow>Failed to load %type% file: <red>%file%</red>
+  load_failed: "<yellow>Failed to load %type% file: <red>%file%</red>
     <gray> (%error%)</gray></yellow>"
   type:
     recipe: "strengthen recipe"
@@ -306,6 +337,8 @@ gui:
       hint: "<gray>Click to run this affix enhancement</gray>"
       ineligible_title: "<red>Cannot enhance this affix</red>"
       ineligible_hint: "<gray>Check affix selection, capacity, materials and cost</gray>"
+  close_all_strengthen_gui_sessions_failed: "Failed to close all strengthen GUI sessions: %error%"
+  close_all_affix_gui_sessions_failed: "Failed to close all affix GUI sessions: %error%"
 
 debug:
   affix:
@@ -552,3 +585,27 @@ editor:
     delete_confirm: "<red>Click the delete entry again to confirm</red>"
     delete_success: "<green>Deleted definition %id%</green>"
     delete_failed: "<red>Delete failed, see console</red>"
+startup:
+  stage_register_failed: "Failed to register pipeline stage '%stage%': %reason%"
+  readiness_publish_skipped: "Readiness publish skipped: %error%"
+affix:
+  affix_refresh_failed: "Affix enhancement refresh failed | reason=%reason% | item=%item% | error_key=%error_key%"
+integration:
+  affix_attribute_bridge_unavailable: "Affix enhancement attribute bridge unavailable | stage=%stage% | source=%source% | error_key=%error_key%"
+matcher:
+  material_check_threw_treated_as_mismatch: "Material check threw, treated as a mismatch: %error%"
+  star_material_rule_check_failed: "Star-tier material rule check failed, treated as a mismatch: %error%"
+  recipe_matcher_check_threw_treated_as_mismatch: "Recipe matcher check threw, treated as a mismatch: %error%"
+economy:
+  compensation_pending: "Strengthen compensation pending | operationId=%operation% | player=%player% | costs=%costs%"
+  economy_boundary_failed: "Strengthen economy boundary failed | operationId=%operation% | phase=%phase% | error=%error%"
+refresh:
+  rebuild_threw: "Refresh failed: rebuild threw | material=%item% | error=%error%"
+  rebuild_returned_null: "Refresh failed: rebuild returned null | material=%item%"
+scheduler:
+  schedule_player_refresh_failed: "Failed to schedule player refresh: %player%: %error%"
+  player_refresh_schedule_rejected: "Player refresh scheduling was rejected: %player%"
+event:
+  transfer_result_dispatch_failed: "Failed to dispatch strengthen transfer result event: %error%"
+lifecycle:
+  strengthen_drain_incomplete: "Strengthen drain incomplete | phase=%phase% | attempts=%attempts% | enhancements=%enhancements%"

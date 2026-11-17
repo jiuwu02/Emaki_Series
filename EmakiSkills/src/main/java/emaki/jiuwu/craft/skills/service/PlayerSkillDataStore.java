@@ -29,6 +29,8 @@ import emaki.jiuwu.craft.skills.model.PlayerLocalResourceState;
 import emaki.jiuwu.craft.skills.model.PlayerSkillLevelState;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class PlayerSkillDataStore {
 
@@ -499,7 +501,7 @@ public final class PlayerSkillDataStore {
     private File profileFile(UUID playerId) {
         File dataDirectory = new File(plugin.getDataFolder(), "data");
         if (!dataDirectory.exists() && !dataDirectory.mkdirs()) {
-            plugin.getLogger().warning("[persistence] 无法创建数据目录: " + dataDirectory);
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.create_data_directory_failed", Map.of("path", dataDirectory));
         }
         return new File(dataDirectory, playerId + ".yml");
     }
@@ -509,16 +511,11 @@ public final class PlayerSkillDataStore {
     }
 
     private void logLoadFailure(UUID playerId, Throwable throwable) {
-        plugin.getLogger().log(Level.WARNING,
-                "[persistence] 读取 " + playerId
-                        + " 失败; 本会话保持只读以保护现有文件",
-                throwable);
+        LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.read_player_profile_failed", Map.of("player", playerId), throwable);
     }
 
     private void logSaveFailure(UUID playerId, Throwable throwable) {
-        plugin.getLogger().log(Level.WARNING,
-                "[persistence] 保存玩家档案失败: " + playerId,
-                throwable);
+        LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.save_player_profile_failed", Map.of("player", playerId), throwable);
     }
 
     private static int toInt(Object value, int fallback) {

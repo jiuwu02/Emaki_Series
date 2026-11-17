@@ -7,6 +7,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.integration.MythicMobBridge;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class MythicMobBridgeProvider implements MythicMobBridge {
 
@@ -51,8 +55,7 @@ public final class MythicMobBridgeProvider implements MythicMobBridge {
             } catch (LinkageError exception) {
                 failed = true;
                 if (owner != null) {
-                    owner.getLogger().warning("[integration] 初始化 MythicMobs 生物 API 桥接失败: "
-                            + Texts.toStringSafe(exception.getMessage()));
+                    LogTags.send(owner, LogTag.INTEGRATION, Level.WARNING, "integration.mythicmobs_bridge_init_failed", Map.of("error", Texts.toStringSafe(exception.getMessage())));
                 }
                 return NOOP;
             }

@@ -7,6 +7,8 @@ import emaki.jiuwu.craft.mobs.service.MobFactory;
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
@@ -453,20 +455,17 @@ public final class MobsCommandRouter {
         TaskToken token;
         if (sender instanceof Player player) {
             token = plugin.executionDispatcher().runEntity(plugin, player, delivery,
-                    () -> plugin.messageService().warning("console.command_result_recipient_retired"));
+                    () -> plugin.messageService().warning(LogTag.COMMAND, "console.command_result_recipient_retired"));
         } else {
             token = plugin.executionDispatcher().runGlobal(plugin, delivery);
         }
         if (token == null || token.cancelled()) {
-            plugin.messageService().warning("console.command_result_schedule_failed");
+            plugin.messageService().warning(LogTag.COMMAND, "console.command_result_schedule_failed");
         }
     }
 
     private void reportOperationFailure(CommandSender sender, String operation, Throwable throwable) {
-        plugin.getLogger().log(Level.WARNING,
-                "[command] " + plugin.messageService().message("console.command_operation_failed",
-                        Map.of("operation", operation)),
-                throwable);
+        LogTags.sendRaw(plugin, LogTag.COMMAND, Level.WARNING, plugin.messageService().message("console.command_operation_failed", Map.of("operation", operation)));
         deliver(sender, "command.operation_failed", Map.of("operation", operation));
     }
 

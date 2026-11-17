@@ -4,6 +4,7 @@ import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.mobs.EmakiMobsPlugin;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -22,6 +23,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
 
 final class ManagedMobCommandService {
 
@@ -223,7 +226,7 @@ final class ManagedMobCommandService {
             return action.get();
         } catch (RuntimeException exception) {
             if (plugin.isEnabled() && !plugin.isShutdownStarted()) {
-                plugin.getLogger().log(Level.WARNING, "[command] 无法调度" + description, exception);
+                LogTags.send(plugin, LogTag.COMMAND, Level.WARNING, "command.unable_to_schedule", Map.of("description", description), exception);
             }
             return null;
         }

@@ -48,6 +48,7 @@ import java.nio.file.Path;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.plugin.java.JavaPlugin;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class EditorService implements Listener {
 
@@ -134,7 +135,7 @@ public final class EditorService implements Listener {
             return;
         }
         EditorSession session = new EditorSession(playerId, dungeonId, worldName,
-                new WorldCommandQueue(total -> messages.warning("console.world_command_deferred", Map.of(
+                new WorldCommandQueue(total -> messages.warning(null, "console.world_command_deferred", Map.of(
                         "world", worldName,
                         "count", String.valueOf(total)))));
         session.origin(player.getLocation());
@@ -469,7 +470,7 @@ public final class EditorService implements Listener {
                         command.execute();
                     } catch (Throwable throwable) {
                         command.fail(throwable);
-                        messages.warning("console.editor_fill_command_failed", Map.of(
+                        messages.warning(LogTag.EDITOR, "console.editor_fill_command_failed", Map.of(
                                 "error", String.valueOf(throwable)));
                     } finally {
                         session.inFlightAdd(-1);
@@ -771,13 +772,13 @@ public final class EditorService implements Listener {
             }
             configCache.put(dungeonId, loaded);
         } catch (RuntimeException exception) {
-            messages.warning("console.dungeon_config_invalid", Map.of(
+            messages.warning(null, "console.dungeon_config_invalid", Map.of(
                     "dungeon", dungeonId,
                     "error", String.valueOf(exception.getMessage())
             ));
             return;
         }
-        messages.info("console.editor_template_saved", Map.of(
+        messages.info(null, "console.editor_template_saved", Map.of(
                 "dungeon", dungeonId,
                 "generation", String.valueOf(states.generationOf(dungeonId))
         ));

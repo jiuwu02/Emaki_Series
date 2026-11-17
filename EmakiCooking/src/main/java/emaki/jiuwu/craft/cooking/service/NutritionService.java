@@ -28,6 +28,7 @@ import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
 import emaki.jiuwu.craft.cooking.model.NutritionSingleThreshold;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 import emaki.jiuwu.craft.cooking.model.PlayerNutritionData;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class NutritionService {
 
@@ -249,11 +250,11 @@ public final class NutritionService {
             return;
         }
         if (taskScheduler == null) {
-            plugin.messageService().warning("console.nutrition_threshold_skipped", Map.of("player", player.getName()));
+            plugin.messageService().warning(LogTag.SCHEDULER, "console.nutrition_threshold_skipped", Map.of("player", player.getName()));
             return;
         }
         if (taskScheduler.runForEntity(plugin, player, () -> evaluateCachedThresholds(player), null) == null) {
-            plugin.messageService().warning("console.nutrition_threshold_reroute_failed", Map.of("player", player.getName()));
+            plugin.messageService().warning(LogTag.SCHEDULER, "console.nutrition_threshold_reroute_failed", Map.of("player", player.getName()));
         }
     }
 

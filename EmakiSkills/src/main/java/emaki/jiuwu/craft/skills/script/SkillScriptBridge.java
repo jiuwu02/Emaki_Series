@@ -16,6 +16,8 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.api.SkillDefinitionRegistration;
 import emaki.jiuwu.craft.skills.config.AppConfig;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class SkillScriptBridge implements AutoCloseable {
 
@@ -43,7 +45,7 @@ public final class SkillScriptBridge implements AutoCloseable {
             return;
         }
         if (!ScriptHost.isEngineAvailable()) {
-            plugin.messageService().warning("console.scripts.engine_unavailable");
+            plugin.messageService().warning(LogTag.SCRIPT, "console.scripts.engine_unavailable");
             return;
         }
         registerErrors.clear();
@@ -109,15 +111,15 @@ public final class SkillScriptBridge implements AutoCloseable {
 
     private void report(ScriptLoadReport report) {
         MessageService messages = plugin.messageService();
-        messages.info("console.scripts.loaded", Map.of(
+        messages.info(LogTag.SCRIPT, "console.scripts.loaded", Map.of(
                 "files", String.valueOf(report.filesLoaded()),
                 "errors", String.valueOf(report.filesSkipped() + registerErrors.size())));
         for (ScriptLoadReport.ScriptLoadError error : report.errors()) {
-            messages.warning("console.scripts.file_error",
+            messages.warning(LogTag.SCRIPT, "console.scripts.file_error",
                     Map.of("file", error.file(), "error", error.message()));
         }
         for (String[] error : registerErrors) {
-            messages.warning("console.scripts.register_error",
+            messages.warning(LogTag.SCRIPT, "console.scripts.register_error",
                     Map.of("id", error[0], "error", messages.message(error[1])));
         }
         registerErrors.clear();
@@ -145,7 +147,7 @@ public final class SkillScriptBridge implements AutoCloseable {
             plugin.getLogger().warning(plugin.messageService().messageOrFallback(
                     "console.scripts.example_release_failed",
                     Map.of("path", EXAMPLE_RESOURCE, "error", String.valueOf(exception.getMessage())),
-                    "[script] 释放示例技能脚本失败: " + EXAMPLE_RESOURCE));
+                    LogTags.head(plugin, "script") + " 释放示例技能脚本失败: " + EXAMPLE_RESOURCE));
         }
     }
 }

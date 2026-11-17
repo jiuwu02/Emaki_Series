@@ -20,7 +20,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.furniture.FurnitureEvent;
 import emaki.jiuwu.craft.corelib.api.furniture.FurnitureEventListener;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import java.util.HashSet;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class FurnitureEventRelay implements Listener {
 
@@ -83,9 +86,7 @@ public final class FurnitureEventRelay implements Listener {
             try {
                 target.onFurnitureEvent(event);
             } catch (RuntimeException | LinkageError exception) {
-                owner.getLogger().warning("[integration] 家具事件订阅者处理失败: "
-                        + exception.getClass().getSimpleName()
-                        + (exception.getMessage() == null ? "" : ": " + exception.getMessage()));
+                LogTags.send(owner, LogTag.INTEGRATION, Level.WARNING, "integration.furniture_subscriber_failed", Map.of("error", exception.getClass().getSimpleName(), "detail", (exception.getMessage() == null ? "" : ": " + exception.getMessage())));
             }
         }
     }
@@ -112,8 +113,7 @@ public final class FurnitureEventRelay implements Listener {
             registeredSources.put(pluginName, listener);
         } catch (LinkageError error) {
             failedSources.add(pluginName);
-            owner.getLogger().warning("[integration] 初始化 " + pluginName + " 家具事件监听失败: "
-                    + (error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage()));
+            LogTags.send(owner, LogTag.INTEGRATION, Level.WARNING, "integration.furniture_listener_init_failed", Map.of("plugin", pluginName, "error", (error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage())));
         }
     }
 }

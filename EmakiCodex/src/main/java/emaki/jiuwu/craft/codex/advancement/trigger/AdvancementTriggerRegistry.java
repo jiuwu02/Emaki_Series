@@ -21,6 +21,9 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.codex.api.AdvancementTrigger;
 import emaki.jiuwu.craft.codex.api.AdvancementTriggerContext;
 import emaki.jiuwu.craft.codex.api.AdvancementTriggerRegistration;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class AdvancementTriggerRegistry implements Listener, AutoCloseable {
 
@@ -75,8 +78,7 @@ public final class AdvancementTriggerRegistry implements Listener, AutoCloseable
                 }
             } catch (RuntimeException | LinkageError exception) {
                 if (plugin != null) {
-                    plugin.getLogger().warning("[trigger] 成就触发器提供者 '" + entry.getKey().id()
-                            + "' 执行失败: " + exception.getMessage());
+                    LogTags.send(plugin, LogTag.TRIGGER, Level.WARNING, "trigger.provider_execution_failed", Map.of("provider", entry.getKey().id(), "error", exception.getMessage()));
                 }
             }
         }

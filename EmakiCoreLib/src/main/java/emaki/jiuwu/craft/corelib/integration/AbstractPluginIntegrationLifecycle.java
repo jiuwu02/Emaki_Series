@@ -8,6 +8,10 @@ import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public abstract class AbstractPluginIntegrationLifecycle<P extends JavaPlugin> implements Listener, AutoCloseable {
 
@@ -73,8 +77,7 @@ public abstract class AbstractPluginIntegrationLifecycle<P extends JavaPlugin> i
                 registration = closeable;
             }
         } catch (ReflectiveOperationException | LinkageError exception) {
-            plugin.getLogger().warning("[integration] 注册 " + integrationLabel + " 失败: "
-                    + IntegrationFailures.detail(exception));
+            LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.register_failed", Map.of("name", integrationLabel, "error", IntegrationFailures.detail(exception)));
         }
     }
 
@@ -87,8 +90,7 @@ public abstract class AbstractPluginIntegrationLifecycle<P extends JavaPlugin> i
         try {
             current.close();
         } catch (Exception | LinkageError exception) {
-            plugin.getLogger().warning("[integration] 释放 " + integrationLabel + " 失败: "
-                    + IntegrationFailures.detail(exception));
+            LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.release_failed", Map.of("name", integrationLabel, "error", IntegrationFailures.detail(exception)));
         }
     }
 

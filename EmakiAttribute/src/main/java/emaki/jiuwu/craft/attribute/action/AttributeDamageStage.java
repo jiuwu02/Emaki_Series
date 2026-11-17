@@ -23,6 +23,8 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class AttributeDamageStage implements CoreActionStage {
 
@@ -99,11 +101,7 @@ public final class AttributeDamageStage implements CoreActionStage {
                     if (throwable == null || attributeService.plugin() == null) {
                         return;
                     }
-                    attributeService.plugin().getLogger().log(
-                            Level.WARNING,
-                            "[action] 属性伤害结算失败: stage=" + id() + " target=" + target.getUniqueId(),
-                            throwable
-                    );
+                    LogTags.send(attributeService.plugin(), LogTag.ACTION, Level.WARNING, "action.attribute_damage_failed", Map.of("stage", id(), "target", target.getUniqueId()), throwable);
                 });
         return CoreActionOutcome.success(Map.of("damage_type", damageTypeId));
     }

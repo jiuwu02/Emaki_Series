@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class EditorService {
 
@@ -128,7 +129,7 @@ public final class EditorService {
             render(session, session.current());
             return session;
         } catch (IOException | RuntimeException failure) {
-            messages.warning("console.editor_open_failed",
+            messages.warning(LogTag.EDITOR, "console.editor_open_failed",
                     Map.of("item", label, "error", String.valueOf(failure)));
             return null;
         }
@@ -204,7 +205,7 @@ public final class EditorService {
         String templateId = module.templateId(ref.structural() ? null : ref.menuId());
         GuiTemplate template = templates.get(templateId);
         if (template == null) {
-            messages.warning("console.editor_template_missing", Map.of("template", templateId));
+            messages.warning(LogTag.EDITOR, "console.editor_template_missing", Map.of("template", templateId));
             return;
         }
         String menuTitle = renderer.titleText(session, ref);

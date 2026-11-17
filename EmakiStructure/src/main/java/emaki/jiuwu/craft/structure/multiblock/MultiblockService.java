@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import java.util.logging.Level;
 
 public final class MultiblockService {
 
@@ -108,8 +110,7 @@ public final class MultiblockService {
                     }
                 }
             } catch (RuntimeException exception) {
-                plugin.getLogger().warning("多方块实例校验失败 " + instance + ": "
-                        + exception.getMessage());
+                LogTags.send(plugin, null, Level.WARNING, "multiblock.instance_verification_failed", Map.of("instance", instance, "error", exception.getMessage()));
                 registry.remove(instance);
             }
         }
@@ -297,8 +298,7 @@ public final class MultiblockService {
             executeActions(definition, player, placeholders);
             return true;
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("多方块触发失败 " + instance + ": "
-                    + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "multiblock.trigger_failed", Map.of("instance", instance, "error", exception.getMessage()));
             return false;
         }
     }
@@ -311,8 +311,7 @@ public final class MultiblockService {
                     pose.worldName(), pose.anchorX(), pose.anchorY(), pose.anchorZ(),
                     pose.facing().configValue()));
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("多方块触发事件分发失败 " + definition.id() + ": "
-                    + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "multiblock.trigger_event_dispatch_failed", Map.of("id", definition.id(), "error", exception.getMessage()));
         }
         try {
             EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).eventBus().publish(new MultiblockTriggerEmakiEvent(
@@ -320,8 +319,7 @@ public final class MultiblockService {
                     pose.worldName(), pose.anchorX(), pose.anchorY(), pose.anchorZ(),
                     pose.facing().configValue()));
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("多方块触发总线事件发布失败 " + definition.id() + ": "
-                    + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "multiblock.trigger_bus_event_publish_failed", Map.of("id", definition.id(), "error", exception.getMessage()));
         }
     }
 
@@ -395,8 +393,7 @@ public final class MultiblockService {
             var context = runner.context(player, "structure", false, placeholders);
             runner.run(actions, context, false);
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("多方块动作执行失败 " + definition.id() + ": "
-                    + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "multiblock.action_execution_failed", Map.of("id", definition.id(), "error", exception.getMessage()));
         }
     }
 
@@ -431,8 +428,7 @@ public final class MultiblockService {
                     registry.degrade(instance);
                 }
             } catch (RuntimeException exception) {
-                plugin.getLogger().warning("抽样复验失败 " + instance + ": "
-                        + exception.getMessage());
+                LogTags.send(plugin, null, Level.WARNING, "multiblock.sample_recheck_failed", Map.of("instance", instance, "error", exception.getMessage()));
                 registry.remove(instance);
             }
         }

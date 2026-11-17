@@ -4,7 +4,7 @@
 # 修改后使用 /emakikits reload 热重载
 # 文件位置: plugins/EmakiKits/config.yml
 
-version: "1.0.1"
+version: "1.0.2"
 language: "zh_CN"
 
 # 首次启动或 kits/ 目录为空时是否释放内置示例礼包

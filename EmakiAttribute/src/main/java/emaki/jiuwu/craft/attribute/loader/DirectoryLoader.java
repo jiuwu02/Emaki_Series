@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public abstract class DirectoryLoader<T> {
 
@@ -162,7 +163,7 @@ public abstract class DirectoryLoader<T> {
         Map<String, ?> safeReplacements = replacements == null ? Map.of() : replacements;
         issues.add(localized(key, safeReplacements));
         if (plugin.messageService() != null) {
-            plugin.messageService().warning(key, safeReplacements);
+            plugin.messageService().warning(LogTag.LOADER, key, safeReplacements);
         }
     }
 

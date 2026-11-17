@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "2.0.1"
+version: "2.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
@@ -84,6 +84,12 @@ gui:
     failed: "<red>Withdrawal failed</red>"
   click:
     unsupported: "<red>That click type is not supported in the warehouse</red>"
+  template_not_loaded: "GUI template '%template%' is not loaded"
+  template_no_function_slots: "GUI template '%template%' declares no function slots; pagination and deposit buttons will be unavailable"
+  function_slot_offset_conflict: "Function slot '%slot%' reuses offset %offset% already claimed by '%previous%'; skipped"
+  function_slot_invalid_offset: "Function slot '%slot%' has no valid offset (expected 0-%max_offset%); skipped"
+  template_missing_slot_definition: "GUI template '%template%' is missing the '%slot_key%' definition; the display area cannot be built"
+  template_parse_failed: "Failed to parse GUI template '%template%'"
 
 dialog:
   confirm: "<green>Confirm</green>"
@@ -165,54 +171,54 @@ command:
     failed: "<red>Failed to export %player%'s warehouse. Check the console log</red>"
 
 console:
-  plugin_starting: "[startup] Starting EmakiStorage..."
-  plugin_started: "[startup] started"
-  bootstrap_start: "[loader] <gray>Installing default resources...</gray>"
-  bootstrap_skip: "[loader] <yellow>Skipped default data generation</yellow>"
-  bootstrap_complete: "[loader] <green>Default file check complete</green>"
-  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  loader_config_load_error: "[loader] <yellow>Failed to load Storage config: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>Failed to save merged resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  default_file_missing: "[loader] <yellow>Missing built-in default resource: <red>%path%</red></yellow>"
-  directory_create_failed: "[loader] <yellow>Failed to create directory: <red>%path%</red></yellow>"
+  plugin_starting: "Starting EmakiStorage..."
+  plugin_started: "started"
+  bootstrap_start: "<gray>Installing default resources...</gray>"
+  bootstrap_skip: "<yellow>Skipped default data generation</yellow>"
+  bootstrap_complete: "<green>Default file check complete</green>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  loader_config_load_error: "<yellow>Failed to load Storage config: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_copy_failed: "<yellow>Failed to copy default resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>Failed to save merged resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  default_file_missing: "<yellow>Missing built-in default resource: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
   # Console: capability publication was refused; placeholders: %reason%
-  capability_refused: "[integration] Capability publication was refused: %reason%"
+  capability_refused: "Capability publication was refused: %reason%"
   # Console: PlaceholderAPI expansion registration was refused
-  papi_registration_refused: "[integration] PlaceholderAPI expansion registration was refused"
+  papi_registration_refused: "PlaceholderAPI expansion registration was refused"
   # Console: PlaceholderAPI expansion unavailable; placeholders: %reason%
-  papi_unavailable: "[integration] PlaceholderAPI expansion unavailable: %reason%"
+  papi_unavailable: "PlaceholderAPI expansion unavailable: %reason%"
   # Console: failed to export storage; placeholders: %player%, %error%
-  export_failed: "[command] Failed to export storage for %player%: %error%"
+  export_failed: "Failed to export storage for %player%: %error%"
   # Console: GUI template loading issue; placeholders: %issue%
   gui_issue: "%issue%"
   # Console: paid expansion cost file missing; placeholders: %file%
-  cost_file_missing: "[economy] %file% is missing or empty; paid expansion is disabled until it is provided"
+  cost_file_missing: "%file% is missing or empty; paid expansion is disabled until it is provided"
   # Console: unlock tier has invalid count_range; placeholders: %range%
-  unlock_tier_invalid_range: "[economy] Skipping unlock tier with invalid count_range: %range%"
+  unlock_tier_invalid_range: "Skipping unlock tier with invalid count_range: %range%"
   # Console: unlock tier has no price; placeholders: %range%
-  unlock_tier_no_price: "[economy] Skipping unlock tier %range% with no price"
+  unlock_tier_no_price: "Skipping unlock tier %range% with no price"
   # Console: unlock fallback lacks a positive max_amount guard rail
-  unlock_fallback_invalid: "[economy] unlock_costs.yml fallback requires a positive max_amount guard rail; paid expansion beyond the defined tiers is disabled"
+  unlock_fallback_invalid: "unlock_costs.yml fallback requires a positive max_amount guard rail; paid expansion beyond the defined tiers is disabled"
   # Console: failed to open editor; placeholders: %item%, %error%
-  editor_open_failed: "[editor] <red>Could not open EmakiStorage editor for %item%  (%error%)</red>"
+  editor_open_failed: "<red>Could not open EmakiStorage editor for %item%  (%error%)</red>"
   # Console: editor GUI template missing; placeholders: %template%
-  editor_template_missing: "[editor] <red>Missing EmakiStorage editor GUI template: %template%</red>"
+  editor_template_missing: "<red>Missing EmakiStorage editor GUI template: %template%</red>"
   # Console: failed to create definition; placeholders: %path%, %error%
-  editor_browser_create_failed: "[editor] <red>Could not create definition: %path%  (%error%)</red>"
+  editor_browser_create_failed: "<red>Could not create definition: %path%  (%error%)</red>"
   # Console: failed to delete definition; placeholders: %path%, %error%
-  editor_browser_delete_failed: "[editor] <red>Could not delete definition: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>Could not delete definition: %path%  (%error%)</red>"
   # Console: failed to list definition directory; placeholders: %path%, %error%
-  editor_browser_list_failed: "[editor] <red>Could not list definition directory: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>Could not list definition directory: %path%  (%error%)</red>"
   # Console: failed to load storage; placeholders: %player%, %reason%
-  storage_load_failed: "[persistence] Failed to load storage for %player%: %reason%"
+  storage_load_failed: "Failed to load storage for %player%: %reason%"
   # Console: failed to register pipeline stage; placeholders: %stage%, %reason%
-  stage_register_failed: "[registry] Failed to register pipeline stage '%stage%': %reason%"
-  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
-  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> problem (s)</red>"
-  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  stage_register_failed: "Failed to register pipeline stage '%stage%': %reason%"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> problem (s)</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -333,3 +339,34 @@ editor:
     map_header: "Map  (%count% entries)"
     scalar: "%type%: %value%"
     more: "... %count% more"
+journal:
+  delete_empty_log_directory_failed: "Failed to delete the empty storage log directory %directory%: %error%"
+  cleanup_log_directory_failed: "Failed to clean up storage log directory %directory%: %error%"
+  scan_log_directory_failed: "Failed to scan the storage log directory: %error%"
+  write_log_failed_requeued: "Failed to write the storage log for player %player%; %count% log entries were put back into the pending queue: %error%"
+  append_log_failed: "Failed to append the storage log for player %player%: %error%"
+  entry_after_shutdown_flush_discarded: "A new entry arrived after the storage log was flushed at shutdown; the entry was discarded"
+  unflushed_entries_at_shutdown: "%count% storage log entries were still unflushed at shutdown%error%"
+startup:
+  readiness_publish_skipped: "Readiness publish skipped: %error%"
+shutdown:
+  log_flush_wait_timeout: "Storage log flush wait timed out: %error%"
+  log_flush_failed: "Storage log flush failed: %error%"
+  log_flush_wait_interrupted: "Interrupted while waiting for the storage log to flush"
+  log_flush_dirty: "Storage log was not flushed cleanly: written=%written% pending=%pending%"
+  log_flush_timed_out: "Storage log flush did not finish within %timeout% seconds; the shutdown result is incomplete"
+  close_flush_not_clean: "Shutdown flush did not complete cleanly: saved=%saved% failed=%failed% remainingDirty=%remaining_dirty% drained=%drained%"
+config:
+  storage_rows_below_min: "gui.storage_rows=%rows% is below the minimum %min%; clamped to %min%"
+  storage_rows_exceeds_max: "gui.storage_rows=%rows% exceeds the maximum %max% (the function row always occupies the last row); clamped to %max%"
+  legacy_key_renamed: "Config key %legacy_key% has been renamed to %key%; the old key value %value% is currently in effect and will be migrated to the new key at startup"
+  issue_reported: "%message%"
+persistence:
+  data_handling_failed: "Data handling for player %player% failed (%stage%): %error%"
+  storage_entry_count_warn: "Player %player% holds %count% entries, exceeding capacity.warn_entry_count=%limit%"
+  expired_reservations_released: "Released %count% expired reservations of player %player%"
+  duplicate_entries_merged: "Merged %count% duplicate entries for player %player%; after the component format change, two stored items are now considered equal"
+  storage_file_truncated: "The storage file of player %player% was truncated (%detail%); it is treated as a load failure and switched to read-only protection, and the original file is kept without being overwritten"
+  quarantine_unreadable_records: "Quarantined %count% unreadable records of player %player%%quarantine_target%"
+matcher:
+  deposit_filter_threw: "The deposit_filter matcher threw an exception and was treated as non-matching: %error%"

@@ -11,6 +11,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class BStatsService {
 
@@ -79,22 +81,22 @@ public final class BStatsService {
 
     private void info(String key, Map<String, ?> replacements) {
         if (messages == null) {
-            logger.info("[metrics] " + key);
+            LogTags.sendRaw(logger, LogTag.METRICS, Level.INFO, key);
             return;
         }
-        messages.info(key, replacements);
+        messages.info(LogTag.METRICS, key, replacements);
     }
 
     private void warning(String key, Map<String, ?> replacements) {
         if (messages == null) {
-            logger.warning("[metrics] " + key);
+            LogTags.sendRaw(logger, LogTag.METRICS, Level.WARNING, key);
             return;
         }
-        messages.warning(key, replacements);
+        messages.warning(LogTag.METRICS, key, replacements);
     }
 
     private void fine(String key, Map<String, ?> replacements, Throwable throwable) {
-        String message = messages == null ? "[metrics] " + key
+        String message = messages == null ? LogTags.head(logger, "metrics") + " " + key
                 : MiniMessages.plain(MiniMessages.parse(messages.message(key, replacements)));
         if (throwable == null) {
             logger.fine(message);

@@ -17,6 +17,9 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.model.ItemDirectoryConfig;
 import emaki.jiuwu.craft.item.model.ItemPackDefinition;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class ItemPackLoader {
 
@@ -53,8 +56,7 @@ public final class ItemPackLoader {
                     loaded.put(packId, definition);
                 }
             } catch (RuntimeException exception) {
-                plugin.getLogger().warning("[loader] 无法加载 EmakiItem 分包元数据 " + file.getPath()
-                        + ": " + Texts.toStringSafe(exception.getMessage()));
+                LogTags.send(plugin, LogTag.LOADER, Level.WARNING, "loader.load_pack_metadata_failed", Map.of("path", file.getPath(), "error", Texts.toStringSafe(exception.getMessage())));
             }
         }
         if (!allowed(allowed)) {

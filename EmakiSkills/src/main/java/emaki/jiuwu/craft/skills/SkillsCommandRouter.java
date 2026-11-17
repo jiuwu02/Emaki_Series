@@ -26,6 +26,7 @@ import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
 import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 final class SkillsCommandRouter implements TabExecutor {
 
@@ -275,7 +276,7 @@ final class SkillsCommandRouter implements TabExecutor {
             return changed;
         }).whenComplete((changed, throwable) -> runForSender(sender, () -> {
             if (throwable != null) {
-                plugin.messageService().warning("console.command_grant_revoke_failed",
+                plugin.messageService().warning(LogTag.COMMAND, "console.command_grant_revoke_failed",
                         Map.of("error", Texts.toStringSafe(throwable.getMessage())));
                 plugin.messageService().send(sender, "general.invalid_args");
                 return;
@@ -358,7 +359,7 @@ final class SkillsCommandRouter implements TabExecutor {
             return removed;
         }).whenComplete((removed, throwable) -> runForSender(sender, () -> {
             if (throwable != null) {
-                plugin.messageService().warning("console.command_reset_failed",
+                plugin.messageService().warning(LogTag.COMMAND, "console.command_reset_failed",
                         Map.of("error", Texts.toStringSafe(throwable.getMessage())));
                 plugin.messageService().send(sender, "general.invalid_args");
                 return;
@@ -399,7 +400,7 @@ final class SkillsCommandRouter implements TabExecutor {
                     "general.reload_elapsed", Map.of("elapsed", elapsedMs)));
         })).exceptionally(throwable -> {
             runForSender(sender, () -> plugin.messageService().send(sender, "general.reload_failed"));
-            plugin.messageService().warning("console.reload_async_failed",
+            plugin.messageService().warning(LogTag.RELOAD, "console.reload_async_failed",
                     Map.of("error", Texts.toStringSafe(throwable.getMessage())));
             return null;
         });
@@ -465,7 +466,7 @@ final class SkillsCommandRouter implements TabExecutor {
             String messageKey) {
         runForSender(sender, () -> {
             if (throwable != null) {
-                plugin.messageService().warning("console.command_level_failed",
+                plugin.messageService().warning(LogTag.COMMAND, "console.command_level_failed",
                         Map.of("error", Texts.toStringSafe(throwable.getMessage())));
                 plugin.messageService().send(sender, "general.invalid_args");
             } else if (placeholders == null) {
@@ -492,7 +493,7 @@ final class SkillsCommandRouter implements TabExecutor {
             }
             plugin.scheduling().runGlobal(plugin, task);
         } catch (Throwable throwable) {
-            plugin.messageService().warning("console.command_schedule_failed",
+            plugin.messageService().warning(LogTag.COMMAND, "console.command_schedule_failed",
                     Map.of("error", Texts.toStringSafe(throwable.getMessage())));
         }
     }

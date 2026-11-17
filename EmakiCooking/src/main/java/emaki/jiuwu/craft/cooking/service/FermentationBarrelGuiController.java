@@ -26,6 +26,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 final class FermentationBarrelGuiController {
 
@@ -53,7 +54,7 @@ final class FermentationBarrelGuiController {
         debug(player, coordinates, "gui.fermentation_barrel.open_requested");
         FermentationBarrelState state = runtimeService.loadStateOrEmpty(coordinates);
         if (state == null || !state.valid() || !state.slotIdsResolved()) {
-            messageService.warning("console.station_gui_rejected_identity_migration", Map.of(
+            messageService.warning(LogTag.PERSISTENCE, "console.station_gui_rejected_identity_migration", Map.of(
                     "coordinate", coordinates.runtimeKey()));
             return true;
         }

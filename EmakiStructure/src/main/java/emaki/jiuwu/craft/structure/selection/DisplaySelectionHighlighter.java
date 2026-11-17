@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.bukkit.World;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import java.util.logging.Level;
 
 public final class DisplaySelectionHighlighter implements SelectionHighlighter {
 
@@ -170,7 +172,7 @@ public final class DisplaySelectionHighlighter implements SelectionHighlighter {
             debug(player, "highlight_degraded", Map.of(
                     "reason", "type=" + exception.getClass().getSimpleName()
                             + " message=" + exception.getMessage()));
-            plugin.getLogger().warning("选区线框创建失败: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "selection.highlight_create_failed", Map.of("error", exception.getMessage()));
             return false;
         }
     }

@@ -24,6 +24,9 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class ParentAttributeDataStore {
 
@@ -310,9 +313,7 @@ public final class ParentAttributeDataStore {
     private CompletableFuture<ParentAttributeData> startLoad(UUID uuid, String name, SessionEntry entry) {
         AsyncYamlFiles files = asyncYamlFiles();
         if (files == null) {
-            plugin.getLogger().warning("[persistence] CoreLib 异步 YAML 服务不可用; "
-                    + "无法为 " + uuid + " 加载父级属性数据, "
-                    + "本次会话保持只读以保护现有文件");
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.parent_attribute_load_unavailable", Map.of("player", uuid));
             synchronized (entry) {
                 entry.lifecycle = Lifecycle.LOAD_FAILED;
             }
@@ -321,9 +322,7 @@ public final class ParentAttributeDataStore {
         return files.load(file(uuid))
                 .handle((section, throwable) -> {
                     if (throwable != null) {
-                        plugin.getLogger().warning("[persistence] 加载父级属性数据失败: "
-                                + uuid + "; 本次会话保持只读以保护现有文件: "
-                                + throwable.getMessage());
+                        LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.parent_attribute_load_failed", Map.of("player", uuid, "error", throwable.getMessage()));
                         synchronized (entry) {
                             entry.lifecycle = Lifecycle.LOAD_FAILED;
                             return entry.data;
@@ -340,9 +339,7 @@ public final class ParentAttributeDataStore {
                 return data;
             }
             if (data.revision() > entry.loadBaselineRevision) {
-                plugin.getLogger().warning("[persistence] 父级属性数据 " + uuid
-                        + " 在文件仍加载时被修改; "
-                        + "保留内存中的编辑并丢弃文件内容");
+                LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.parent_attribute_modified_while_loading", Map.of("player", uuid));
                 entry.lifecycle = Lifecycle.ACTIVE;
                 return data;
             }
@@ -374,8 +371,7 @@ public final class ParentAttributeDataStore {
             try {
                 pending.join();
             } catch (RuntimeException exception) {
-                plugin.getLogger().warning("[persistence] 加载未完成: "
-                        + uuid + ": " + exception.getMessage());
+                LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.parent_attribute_load_incomplete", Map.of("player", uuid, "error", exception.getMessage()));
             }
             pendingLoads.remove(uuid, pending);
         }
@@ -447,8 +443,7 @@ public final class ParentAttributeDataStore {
     private CompletableFuture<Boolean> writeTicket(SaveTicket ticket) {
         AsyncYamlFiles files = asyncYamlFiles();
         if (files == null) {
-            plugin.getLogger().warning("[persistence] CoreLib 异步 YAML 服务不可用; "
-                    + "已丢弃 " + ticket.uuid() + " 的保存");
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.parent_attribute_save_unavailable", Map.of("player", ticket.uuid()));
             return CompletableFuture.completedFuture(false);
         }
         return files.save(file(ticket.uuid()), serialize(ticket.snapshot()))
@@ -477,8 +472,7 @@ public final class ParentAttributeDataStore {
     }
 
     private void commitFailed(SaveTicket ticket, Throwable throwable) {
-        plugin.getLogger().warning("[persistence] 保存父级属性数据失败: "
-                + ticket.uuid() + ": " + (throwable == null ? "写入报告失败" : throwable.getMessage()));
+        LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.parent_attribute_save_failed", Map.of("player", ticket.uuid(), "error", (throwable == null ? "写入报告失败" : throwable.getMessage())));
         SessionEntry entry = entries.get(ticket.uuid());
         if (entry == null) {
             return;

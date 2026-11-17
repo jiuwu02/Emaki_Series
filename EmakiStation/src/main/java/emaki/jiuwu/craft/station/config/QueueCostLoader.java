@@ -11,6 +11,9 @@ import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.station.recipe.RecipeCost;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class QueueCostLoader {
 
@@ -21,8 +24,7 @@ public final class QueueCostLoader {
         YamlSection section = file == null ? null : YamlFiles.load(file);
         if (section == null || section.isEmpty()) {
             if (reportMissingFile && logger != null) {
-                logger.warning("[配置] " + (file == null ? "queue_costs.yml" : file.getName())
-                        + " 缺失或为空; 在提供之前付费队列槽位将被禁用");
+                LogTags.send(logger, LogTag.CONFIG, Level.WARNING, "config.queue_costs_missing_or_empty", Map.of("file", (file == null ? "queue_costs.yml" : file.getName())));
             }
             return QueueCostConfig.empty();
         }
@@ -152,7 +154,7 @@ public final class QueueCostLoader {
 
     private static void warn(Logger logger, String message) {
         if (logger != null) {
-            logger.warning("[配置] " + message);
+            LogTags.send(logger, LogTag.CONFIG, Level.WARNING, "config.warn_message", Map.of("message", message));
         }
     }
 }

@@ -43,6 +43,8 @@ import emaki.jiuwu.craft.corelib.schedule.cron.CronScheduler;
 import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class PassiveTriggerSource {
 
@@ -249,11 +251,7 @@ public final class PassiveTriggerSource {
                 } catch (Throwable throwable) {
                     if (!timerDispatchWarningLogged) {
                         timerDispatchWarningLogged = true;
-                        plugin.getLogger().log(Level.WARNING,
-                                "[scheduler] 被动触发器派发失败: trigger=timer, player=" + player.getName()
-                                        + ", operation=timer_dispatch, cause=" + throwable
-                                        + "(后续相同警告将在下次成功派发前抑制)",
-                                throwable);
+                        LogTags.send(plugin, LogTag.SCHEDULER, Level.WARNING, "scheduler.passive_trigger_dispatch_failed", Map.of("player", player.getName(), "error", throwable), throwable);
                     }
                 }
             }
@@ -293,9 +291,7 @@ public final class PassiveTriggerSource {
                     }
                 });
             } catch (CronParseException e) {
-                plugin.getLogger().warning(
-                        "[trigger] 无效的定时表达式 '" + skill.cronExpression()
-                                + "'(技能 '" + skill.id() + "'): " + e.getMessage());
+                LogTags.send(plugin, LogTag.TRIGGER, Level.WARNING, "trigger.invalid_cron_expression", Map.of("expression", skill.cronExpression(), "skill", skill.id(), "error", e.getMessage()));
             }
         }
     }

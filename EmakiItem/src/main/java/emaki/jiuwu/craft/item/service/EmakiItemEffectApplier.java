@@ -13,6 +13,9 @@ import emaki.jiuwu.craft.item.api.effect.ItemEffect;
 import emaki.jiuwu.craft.item.api.effect.ItemEffectApplyContext;
 import emaki.jiuwu.craft.item.api.effect.ItemEffectType;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.item.log.ItemLogTag;
+import java.util.logging.Level;
 
 public final class EmakiItemEffectApplier {
 
@@ -62,8 +65,7 @@ public final class EmakiItemEffectApplier {
             effect.clear(context);
             effect.apply(context);
         } catch (RuntimeException | LinkageError exception) {
-            logger.warning("[effect] 自定义效果 '" + typeId + "' (物品 '" + definition.id()
-                    + "')执行失败: " + exception.getMessage());
+            LogTags.send(logger, ItemLogTag.EFFECT, Level.WARNING, "effect.custom_effect_apply_failed", Map.of("effect", typeId, "item", definition.id(), "error", exception.getMessage()));
         }
     }
 

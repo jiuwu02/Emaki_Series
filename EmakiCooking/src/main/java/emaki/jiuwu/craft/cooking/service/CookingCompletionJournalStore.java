@@ -43,6 +43,9 @@ import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.Status;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.Unit;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitKind;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitState;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class CookingCompletionJournalStore {
 
@@ -255,7 +258,7 @@ public final class CookingCompletionJournalStore {
         }
         List<CompletableFuture<Void>> moves = new ArrayList<>();
         for (LoadedOperation duplicate : duplicates) {
-            String error = "[journal] 日志加载时出现重复的活动完成键: "
+            String error = LogTags.head(logger, "journal") + " 日志加载时出现重复的活动完成键: "
                     + duplicate.operation().completionKey();
             logger.warning(error + " operation=" + duplicate.operation().operationId());
             CookingCompletionOperation quarantined = duplicate.operation()
@@ -299,11 +302,9 @@ public final class CookingCompletionJournalStore {
         try {
             Files.createDirectories(quarantineDirectory);
             moveReplacing(source, target);
-            logger.warning("[journal] 已隔离损坏的烹饪完成日志 '" + fileName + "': "
-                    + rootCauseMessage(throwable));
+            LogTags.send(logger, LogTag.JOURNAL, Level.WARNING, "journal.quarantine_corrupt_completion_journal", Map.of("file", fileName, "error", rootCauseMessage(throwable)));
         } catch (IOException moveFailure) {
-            logger.warning("[journal] 加载烹饪完成日志失败 '" + fileName + "': "
-                    + rootCauseMessage(throwable) + "; 隔离移动失败: " + rootCauseMessage(moveFailure));
+            LogTags.send(logger, LogTag.JOURNAL, Level.WARNING, "journal.load_completion_journal_failed", Map.of("file", fileName, "error", rootCauseMessage(throwable), "move_error", rootCauseMessage(moveFailure)));
         }
     }
 

@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.api.effect.ItemEffectRegistration;
 import emaki.jiuwu.craft.item.config.ScriptSettings;
 import emaki.jiuwu.craft.item.service.EmakiItemEffectRegistry;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class ItemScriptBridge implements AutoCloseable {
 
@@ -34,11 +35,11 @@ public final class ItemScriptBridge implements AutoCloseable {
     public synchronized void loadFromConfig() {
         ScriptSettings settings = plugin.appConfig().scripts();
         if (!settings.enabled()) {
-            plugin.messageService().info("console.scripts.disabled");
+            plugin.messageService().info(LogTag.SCRIPT, "console.scripts.disabled");
             return;
         }
         if (!ScriptHost.isEngineAvailable()) {
-            plugin.messageService().warning("console.scripts.engine_unavailable");
+            plugin.messageService().warning(LogTag.SCRIPT, "console.scripts.engine_unavailable");
             return;
         }
         host = createHost(settings);
@@ -50,12 +51,12 @@ public final class ItemScriptBridge implements AutoCloseable {
         ScriptSettings settings = plugin.appConfig().scripts();
         if (!settings.enabled()) {
             closeHost();
-            plugin.messageService().info("console.scripts.disabled");
+            plugin.messageService().info(LogTag.SCRIPT, "console.scripts.disabled");
             return;
         }
         if (!ScriptHost.isEngineAvailable()) {
             closeHost();
-            plugin.messageService().warning("console.scripts.engine_unavailable");
+            plugin.messageService().warning(LogTag.SCRIPT, "console.scripts.engine_unavailable");
             return;
         }
         if (host == null) {
@@ -80,13 +81,13 @@ public final class ItemScriptBridge implements AutoCloseable {
                     EmakiItemApi.extensions().registerEffectType(plugin, type);
             EmakiItemEffectRegistry registry = plugin.effectRegistry();
             if (registration == null || registry == null || registry.find(spec.id()) != type) {
-                plugin.messageService().warning("console.scripts.register_error",
+                plugin.messageService().warning(LogTag.SCRIPT, "console.scripts.register_error",
                         Map.of("id", spec.id(), "error", "注册被拒绝"));
                 return;
             }
             registrations.add(registration);
         } catch (IllegalArgumentException exception) {
-            plugin.messageService().warning("console.scripts.register_error",
+            plugin.messageService().warning(LogTag.SCRIPT, "console.scripts.register_error",
                     Map.of("id", reportedId == null ? "unknown" : reportedId,
                             "error", String.valueOf(exception.getMessage())));
         }
@@ -115,10 +116,10 @@ public final class ItemScriptBridge implements AutoCloseable {
 
     private void report(ScriptLoadReport report) {
         for (ScriptLoadReport.ScriptLoadError error : report.errors()) {
-            plugin.messageService().warning("console.scripts.file_error",
+            plugin.messageService().warning(LogTag.SCRIPT, "console.scripts.file_error",
                     Map.of("file", error.file(), "error", error.message()));
         }
-        plugin.messageService().info("console.scripts.loaded",
+        plugin.messageService().info(LogTag.SCRIPT, "console.scripts.loaded",
                 Map.of("loaded", report.filesLoaded(), "errors", report.filesSkipped()));
     }
 }

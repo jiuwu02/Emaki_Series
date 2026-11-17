@@ -23,6 +23,9 @@ import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class TargetSelectorLoader {
 
@@ -346,10 +349,10 @@ public final class TargetSelectorLoader {
     private void warn(String key, Map<String, ?> replacements) {
         if (messageService != null) {
             issues.add(messageService.message(key, replacements));
-            messageService.warning(key, replacements);
+            messageService.warning(LogTag.LOADER, key, replacements);
             return;
         }
         issues.add(key + " " + replacements);
-        plugin.getLogger().warning("[loader] " + key + " " + replacements);
+        LogTags.sendRaw(plugin, LogTag.LOADER, Level.WARNING, key + " " + replacements);
     }
 }

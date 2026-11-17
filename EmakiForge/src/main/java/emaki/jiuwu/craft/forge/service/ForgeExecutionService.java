@@ -25,6 +25,9 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 import emaki.jiuwu.craft.forge.model.ValidationResult;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.forge.log.ForgeLogTag;
+import java.util.logging.Level;
 
 final class ForgeExecutionService {
 
@@ -230,8 +233,7 @@ final class ForgeExecutionService {
             try {
                 deliveryCommit.run();
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("[delivery] 锻造结果发放提交回调失败: "
-                        + Texts.toStringSafe(throwable.getMessage()));
+                LogTags.send(plugin, ForgeLogTag.DELIVERY, Level.WARNING, "delivery.forge_result_commit_callback_failed", Map.of("error", Texts.toStringSafe(throwable.getMessage())));
             }
         }
 
@@ -340,8 +342,7 @@ final class ForgeExecutionService {
         try {
             deliveryRollback.run();
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[delivery] 锻造结果发放回滚回调失败: "
-                    + Texts.toStringSafe(throwable.getMessage()));
+            LogTags.send(plugin, ForgeLogTag.DELIVERY, Level.WARNING, "delivery.forge_result_rollback_callback_failed", Map.of("error", Texts.toStringSafe(throwable.getMessage())));
         }
     }
 

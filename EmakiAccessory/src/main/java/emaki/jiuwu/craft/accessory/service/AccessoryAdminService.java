@@ -9,6 +9,9 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.accessory.model.PlayerAccessories;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class AccessoryAdminService {
 
@@ -45,16 +48,10 @@ public final class AccessoryAdminService {
         }
         String operatorName = operator == null ? "控制台" : operator.getName();
         if (cleared.isEmpty()) {
-            logger.info("[command] 饰品清空: 操作者 " + operatorName + ", 目标 " + targetId
-                    + " (" + accessories.playerName() + "): 没有可移除的物品");
+            LogTags.send(logger, LogTag.COMMAND, Level.INFO, "command.accessory_clear_empty", Map.of("operator", operatorName, "target", targetId, "player", accessories.playerName()));
             return;
         }
         cleared.forEach((pageId, items) -> items.forEach((slotInstanceId, item) ->
-                logger.info("[command] 饰品清空: 操作者 " + operatorName
-                        + ", 目标 " + targetId + " (" + accessories.playerName() + "): page=" + pageId
-                        + " slot=" + slotInstanceId
-                        + " type=" + item.getType().name()
-                        + " amount=" + item.getAmount()
-                        + " name=" + ItemTextBridge.effectiveNamePlain(item))));
+                LogTags.send(logger, LogTag.COMMAND, Level.INFO, "command.accessory_clear_item", Map.of("operator", operatorName, "target", targetId, "player", accessories.playerName(), "page", pageId, "slot", slotInstanceId, "type", item.getType().name(), "amount", item.getAmount(), "item_name", ItemTextBridge.effectiveNamePlain(item)))));
     }
 }

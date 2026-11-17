@@ -2,7 +2,12 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "2.0.1"
+version: "2.0.2"
+
+tags:
+  advancement: '[ advancement ]'
+  packet: '[ packet ]'
+  provider: '[ provider ]'
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -107,49 +112,49 @@ emaki:
     wrong_thread: "The current thread does not own that player; the operation was refused"
 
 console:
-  plugin_starting: "[startup] <gray>Starting EmakiCodex...</gray>"
-  plugin_started: "[startup] <green>started</green>"
-  bootstrap_start: "[loader] <gray>Releasing default resources...</gray>"
-  bootstrap_skip: "[loader] <yellow>Skipped default data generation</yellow>"
-  bootstrap_complete: "[loader] <green>Default file check complete</green>"
-  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  loader_config_load_error: "[loader] <yellow>Failed to load Codex config: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>Failed to save merged resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  default_file_missing: "[loader] <yellow>Missing built-in default resource: <red>%path%</red></yellow>"
-  directory_create_failed: "[loader] <yellow>Failed to create directory: <red>%path%</red></yellow>"
-  editor_open_failed: "[editor] <red>Could not open EmakiCodex editor for %item%  (%error%)</red>"
-  editor_template_missing: "[editor] <red>Missing EmakiCodex editor template: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>Could not create definition: %path%  (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>Could not delete definition: %path%  (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>Could not list definition directory: %path%  (%error%)</red>"
-  advancements_registered: "[advancement] Registered %count% advancements"
-  codex_categories_loaded: "[loader] Loaded %count% codex categories"
+  plugin_starting: "<gray>Starting EmakiCodex...</gray>"
+  plugin_started: "<green>started</green>"
+  bootstrap_start: "<gray>Releasing default resources...</gray>"
+  bootstrap_skip: "<yellow>Skipped default data generation</yellow>"
+  bootstrap_complete: "<green>Default file check complete</green>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  loader_config_load_error: "<yellow>Failed to load Codex config: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_copy_failed: "<yellow>Failed to copy default resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>Failed to save merged resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  default_file_missing: "<yellow>Missing built-in default resource: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
+  editor_open_failed: "<red>Could not open EmakiCodex editor for %item%  (%error%)</red>"
+  editor_template_missing: "<red>Missing EmakiCodex editor template: %template%</red>"
+  editor_browser_create_failed: "<red>Could not create definition: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>Could not delete definition: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>Could not list definition directory: %path%  (%error%)</red>"
+  advancements_registered: "Registered %count% advancements"
+  codex_categories_loaded: "Loaded %count% codex categories"
   # Console: GUI template not loaded; placeholders: %template%
-  gui_template_missing: "[gui] Codex GUI template '%template%' is not loaded"
+  gui_template_missing: "Codex GUI template '%template%' is not loaded"
   # Console: command response dispatch failed; placeholders: %sender%, %cause%
-  command_dispatch_failed: "[command] command response dispatch failed: sender=%sender%, operation=send_to_sender, cause=%cause%"
-  advancements_resynced: "[advancement] Re-pushed advancements to %count% online player (s) via PacketEvents; no relog needed"
-  advancements_need_relog: "[advancement] Advancements registered, but PacketEvents was not detected, so online players cannot be refreshed live; they must reconnect to see the updated advancement screen"
-  advancement_packet_enabled: "[packet] Advancement packet coordinate injection enabled  (PacketEvents)"
-  advancement_packet_absent: "[packet] PacketEvents not detected; advancement x/y coordinates are ignored and the client auto-lays-out nodes"
-  script_engine_unavailable: "[script] GraalJS runtime not detected; the codex script extension is unavailable and the rest of the plugin is unaffected"
-  script_disabled: "[script] The codex script extension is disabled in config.yml  (scripts.enabled=false)"
-  script_loaded: "[script] Codex scripts loaded: %loaded% file (s) succeeded, %skipped% failed"
-  script_file_error: "[script] Script file %file% failed to load: %reason%"
-  script_release_failed: "[script] Failed to release the example trigger script: %reason%"
-  script_register_invalid_payload: "[script] Script trigger registration failed: payload must be an object"
-  script_register_id_blank: "[script] Script trigger registration failed: id must be a non-blank string"
-  script_register_advancements_missing: "[script] Script trigger %id% registration failed: advancements must be an executable function"
-  script_register_priority_invalid: "[script] Script trigger %id% registration failed: priority must be an integer"
-  script_register_failed: "[script] Script trigger %id% registration failed: %reason%"
-  script_callback_failed: "[script] Script trigger %id% execution failed: %reason%"
-  script_callback_invalid_element: "[script] Script trigger %id% returned %count% non-string element (s); skipped"
-  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> hint (s)</gray>"
-  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
-  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  command_dispatch_failed: "command response dispatch failed: sender=%sender%, operation=send_to_sender, cause=%cause%"
+  advancements_resynced: "Re-pushed advancements to %count% online player (s) via PacketEvents; no relog needed"
+  advancements_need_relog: "Advancements registered, but PacketEvents was not detected, so online players cannot be refreshed live; they must reconnect to see the updated advancement screen"
+  advancement_packet_enabled: "Advancement packet coordinate injection enabled  (PacketEvents)"
+  advancement_packet_absent: "PacketEvents not detected; advancement x/y coordinates are ignored and the client auto-lays-out nodes"
+  script_engine_unavailable: "GraalJS runtime not detected; the codex script extension is unavailable and the rest of the plugin is unaffected"
+  script_disabled: "The codex script extension is disabled in config.yml  (scripts.enabled=false)"
+  script_loaded: "Codex scripts loaded: %loaded% file (s) succeeded, %skipped% failed"
+  script_file_error: "Script file %file% failed to load: %reason%"
+  script_release_failed: "Failed to release the example trigger script: %reason%"
+  script_register_invalid_payload: "Script trigger registration failed: payload must be an object"
+  script_register_id_blank: "Script trigger registration failed: id must be a non-blank string"
+  script_register_advancements_missing: "Script trigger %id% registration failed: advancements must be an executable function"
+  script_register_priority_invalid: "Script trigger %id% registration failed: priority must be an integer"
+  script_register_failed: "Script trigger %id% registration failed: %reason%"
+  script_callback_failed: "Script trigger %id% execution failed: %reason%"
+  script_callback_invalid_element: "Script trigger %id% returned %count% non-string element (s); skipped"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> hint (s)</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -231,10 +236,10 @@ editor:
   modify_failed_parse: "<red>Failed to modify %item%: definition_parse_failed. Check the console for details</red>"
   open_failed: "<red>Could not open the editor for %id%</red>"
   prompt:
-    chat: "<yellow>Type the value for \"%label%\" in chat, or type cancel to abort</yellow>"
-    map_entry: "<yellow>Type \"key=value\" to add a mapping, or type cancel to abort</yellow>"
+    chat: '<yellow>Type the value for "%label%" in chat, or type cancel to abort</yellow>'
+    map_entry: '<yellow>Type "key=value" to add a mapping, or type cancel to abort</yellow>'
   map:
-    bad_entry: "<red>Bad format, use \"key=value\"</red>"
+    bad_entry: '<red>Bad format, use "key=value"</red>'
   value:
     unset: "Not set  (empty)"
     integer: "Integer"
@@ -265,3 +270,41 @@ editor:
     delete_confirm: "<red>Click the delete entry again to confirm</red>"
     delete_success: "<green>Deleted definition %id%</green>"
     delete_failed: "<red>Delete failed, see console</red>"
+persistence:
+  timestamp_parse_failed: "Failed to parse codex timestamp '%timestamp%': %error%"
+  entry_missing_unlocked_at_discarded: "Discarded codex entry '%entry%': missing a valid unlocked_at (player %player%)"
+  unparsable_entry_discarded: "Discarded unparsable codex entry '%raw_key%' (player %player%)"
+  flush_missed_drain_deadline: "Codex data flush did not finish before the drain deadline"
+  save_progress_to_file_failed: "Failed to save codex progress to %file%: %error%"
+  save_progress_failed: "Failed to save codex progress for player %player%: %error%"
+  load_progress_failed: "Failed to load codex progress for player %player%: %error%"
+startup:
+  pipeline_stage_registration_failed: "Failed to register pipeline stage '%stage%'; reason: %reason%"
+  readiness_publish_skipped: "Readiness publish skipped: %error%"
+advancement:
+  page_invalid_root_skipped: "Advancement page '%page%' has no valid root node '%root%'; skipped"
+  configured_missing_on_server: "Of the %total% configured advancements, %missing% were accepted by platform '%platform%' but do not exist on the server and cannot be granted; a program may have rebuilt the advancement tree from disk after registration; affected: %missing_list%"
+  reload_data_failed: "reloadData failed: %error%"
+  mirror_to_singular_dir_failed: "Failed to mirror advancement %key% to the singular directory of world %world%: %error%"
+  enumerate_namespace_failed: "Failed to enumerate advancements of namespace %namespace%: %error%"
+  remove_failed: "Failed to remove advancement %key%: %error%"
+  query_failed: "Failed to query advancement %key%: %error%"
+  register_failed: "Failed to register advancement %key%: %error%"
+packet:
+  advancement_coordinate_injection_skipped: "Skipped advancement coordinate injection: %error%"
+  player_advancement_resync_skipped: "Skipped advancement resync for %player%: %error%"
+  advancement_resync_skipped: "Skipped advancement resync: %error%"
+  coordinate_channel_unavailable: "Advancement coordinate channel unavailable; skipped: %error%"
+  advancement_holder_skipped: "Skipped advancement holder %holder%: %error%"
+  advancement_resync_failed: "Failed to resync advancements for %player%: %error%"
+  advancement_resync_schedule_failed: "Failed to schedule advancement resync for %player%: %error%"
+trigger:
+  provider_execution_failed: "Advancement trigger provider '%provider%' failed: %error%"
+provider:
+  attribute_bonus_calc_failed: "Attribute bonus calculation failed: player %player%, reason: %error%"
+config:
+  advancement_legacy_key_renamed: "Config key advancement.%legacy_key% has been renamed to advancement.%key%; the old key value %value% is currently in effect and will be migrated to the new key at startup"
+shutdown:
+  progress_flush_dirty: "Unflushed data remained when the progress flush ended: saved=%saved% failed=%failed% remaining=%remaining%"
+script:
+  trigger_unregister_failed: "Failed to unregister script trigger: %error%"

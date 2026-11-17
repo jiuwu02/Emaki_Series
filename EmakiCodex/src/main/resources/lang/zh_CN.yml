@@ -2,7 +2,12 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "2.0.1"
+version: "2.0.2"
+
+tags:
+  advancement: '[ 成就 ]'
+  packet: '[ 数据包 ]'
+  provider: '[ 提供方 ]'
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -107,49 +112,49 @@ emaki:
     wrong_thread: "当前线程不拥有该玩家, 操作被拒绝"
 
 console:
-  plugin_starting: "[startup] <gray>正在启动 EmakiCodex...</gray>"
-  plugin_started: "[startup] <green>已启动</green>"
-  bootstrap_start: "[loader] <gray>正在释放默认资源...</gray>"
-  bootstrap_skip: "[loader] <yellow>已跳过默认数据写入</yellow>"
-  bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  loader_config_load_error: "[loader] <yellow>读取 Codex 配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
-  directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
-  editor_open_failed: "[editor] <red>无法打开 EmakiCodex 编辑界面: %item%  (%error%)</red>"
-  editor_template_missing: "[editor] <red>缺少 EmakiCodex 编辑界面模板: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
-  advancements_registered: "[advancement] 已注册成就 %count% 个"
-  codex_categories_loaded: "[loader] 已加载图鉴分类 %count% 个"
+  plugin_starting: "<gray>正在启动 EmakiCodex...</gray>"
+  plugin_started: "<green>已启动</green>"
+  bootstrap_start: "<gray>正在释放默认资源...</gray>"
+  bootstrap_skip: "<yellow>已跳过默认数据写入</yellow>"
+  bootstrap_complete: "<green>默认文件检查完成</green>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  loader_config_load_error: "<yellow>读取 Codex 配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
+  editor_open_failed: "<red>无法打开 EmakiCodex 编辑界面: %item%  (%error%)</red>"
+  editor_template_missing: "<red>缺少 EmakiCodex 编辑界面模板: %template%</red>"
+  editor_browser_create_failed: "<red>无法创建定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>无法删除定义: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>无法列举定义目录: %path%  (%error%)</red>"
+  advancements_registered: "已注册成就 %count% 个"
+  codex_categories_loaded: "已加载图鉴分类 %count% 个"
   # 控制台: GUI 模板未加载; 占位符: %template%
-  gui_template_missing: "[gui] 图鉴 GUI 模板 '%template%' 未加载"
+  gui_template_missing: "图鉴 GUI 模板 '%template%' 未加载"
   # 控制台: 命令响应发送失败; 占位符: %sender%, %cause%
-  command_dispatch_failed: "[command] 命令响应发送失败: sender=%sender%, operation=send_to_sender, cause=%cause%"
-  advancements_resynced: "[advancement] 已向 %count% 名在线玩家重新推送成就 (PacketEvents), 无需重连"
-  advancements_need_relog: "[advancement] 成就已注册, 但未检测到 PacketEvents, 无法向在线玩家实时推送; 在线玩家需重新登录后才能在成就界面看到更新"
-  advancement_packet_enabled: "[packet] 成就发包坐标注入已启用 (PacketEvents)"
-  advancement_packet_absent: "[packet] 未检测到 PacketEvents, 成就 x/y 坐标不生效, 节点位置由客户端自动排布"
-  script_engine_unavailable: "[script] 未检测到 GraalJS 运行库, 图鉴脚本扩展不可用, 插件其余功能不受影响"
-  script_disabled: "[script] 图鉴脚本扩展已在 config.yml 中关闭 (scripts.enabled=false)"
-  script_loaded: "[script] 图鉴脚本加载完成: 成功 %loaded% 个文件, 失败 %skipped% 个"
-  script_file_error: "[script] 脚本文件 %file% 加载失败: %reason%"
-  script_release_failed: "[script] 释放示例触发器脚本失败: %reason%"
-  script_register_invalid_payload: "[script] 脚本触发器注册失败: payload 必须是对象"
-  script_register_id_blank: "[script] 脚本触发器注册失败: id 必须是非空字符串"
-  script_register_advancements_missing: "[script] 脚本触发器 %id% 注册失败: advancements 必须是可执行函数"
-  script_register_priority_invalid: "[script] 脚本触发器 %id% 注册失败: priority 必须是整数"
-  script_register_failed: "[script] 脚本触发器 %id% 注册失败: %reason%"
-  script_callback_failed: "[script] 脚本触发器 %id% 执行失败: %reason%"
-  script_callback_invalid_element: "[script] 脚本触发器 %id% 返回了 %count% 个非字符串元素, 已跳过"
-  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  command_dispatch_failed: "命令响应发送失败: sender=%sender%, operation=send_to_sender, cause=%cause%"
+  advancements_resynced: "已向 %count% 名在线玩家重新推送成就 (PacketEvents), 无需重连"
+  advancements_need_relog: "成就已注册, 但未检测到 PacketEvents, 无法向在线玩家实时推送; 在线玩家需重新登录后才能在成就界面看到更新"
+  advancement_packet_enabled: "成就发包坐标注入已启用 (PacketEvents)"
+  advancement_packet_absent: "未检测到 PacketEvents, 成就 x/y 坐标不生效, 节点位置由客户端自动排布"
+  script_engine_unavailable: "未检测到 GraalJS 运行库, 图鉴脚本扩展不可用, 插件其余功能不受影响"
+  script_disabled: "图鉴脚本扩展已在 config.yml 中关闭 (scripts.enabled=false)"
+  script_loaded: "图鉴脚本加载完成: 成功 %loaded% 个文件, 失败 %skipped% 个"
+  script_file_error: "脚本文件 %file% 加载失败: %reason%"
+  script_release_failed: "释放示例触发器脚本失败: %reason%"
+  script_register_invalid_payload: "脚本触发器注册失败: payload 必须是对象"
+  script_register_id_blank: "脚本触发器注册失败: id 必须是非空字符串"
+  script_register_advancements_missing: "脚本触发器 %id% 注册失败: advancements 必须是可执行函数"
+  script_register_priority_invalid: "脚本触发器 %id% 注册失败: priority 必须是整数"
+  script_register_failed: "脚本触发器 %id% 注册失败: %reason%"
+  script_callback_failed: "脚本触发器 %id% 执行失败: %reason%"
+  script_callback_invalid_element: "脚本触发器 %id% 返回了 %count% 个非字符串元素, 已跳过"
+  config_precheck_passed: "<gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "<red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -231,10 +236,10 @@ editor:
   modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
+    chat: '<yellow>请在聊天栏输入"%label%"的内容, 输入 cancel 取消</yellow>'
+    map_entry: '<yellow>请在聊天栏输入"键=值"新增一条映射, 输入 cancel 取消</yellow>'
   map:
-    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
+    bad_entry: '<red>格式错误, 请按"键=值"输入</red>'
   value:
     unset: "未设置 (空)"
     integer: "整数"
@@ -262,6 +267,44 @@ editor:
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
     delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
-    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
+    delete_confirm: '<red>再次点击"删除"以确认删除</red>'
     delete_success: "<green>已删除定义 %id%</green>"
     delete_failed: "<red>删除失败, 详见控制台</red>"
+persistence:
+  timestamp_parse_failed: "无法解析图鉴时间戳 '%timestamp%': %error%"
+  entry_missing_unlocked_at_discarded: "已丢弃图鉴条目 '%entry%': 缺少有效的 unlocked_at(玩家 %player%)"
+  unparsable_entry_discarded: "已丢弃无法解析的图鉴条目 '%raw_key%'(玩家 %player%)"
+  flush_missed_drain_deadline: "图鉴数据刷新未在排空截止时间前完成"
+  save_progress_to_file_failed: "保存图鉴进度到 %file% 失败: %error%"
+  save_progress_failed: "保存玩家 %player% 的图鉴进度失败: %error%"
+  load_progress_failed: "加载玩家 %player% 的图鉴进度失败: %error%"
+startup:
+  pipeline_stage_registration_failed: "注册管道阶段失败: '%stage%', 原因: %reason%"
+  readiness_publish_skipped: "就绪状态发布已跳过: %error%"
+advancement:
+  page_invalid_root_skipped: "成就页面 '%page%' 没有有效的根节点 '%root%', 已跳过"
+  configured_missing_on_server: "已配置的 %total% 个成就中有 %missing% 个被平台 '%platform%' 接受, 但服务端上不存在, 无法授予; 可能是有程序在注册后从磁盘重建了成就树, 受影响: %missing_list%"
+  reload_data_failed: "reloadData 失败: %error%"
+  mirror_to_singular_dir_failed: "将成就 %key% 镜像到世界 %world% 的单数目录失败: %error%"
+  enumerate_namespace_failed: "枚举命名空间 %namespace% 的成就失败: %error%"
+  remove_failed: "移除成就 %key% 失败: %error%"
+  query_failed: "查询成就 %key% 失败: %error%"
+  register_failed: "注册成就 %key% 失败: %error%"
+packet:
+  advancement_coordinate_injection_skipped: "已跳过成就坐标注入: %error%"
+  player_advancement_resync_skipped: "已跳过对 %player% 的成就重同步: %error%"
+  advancement_resync_skipped: "已跳过成就重同步: %error%"
+  coordinate_channel_unavailable: "成就坐标通道不可用, 已跳过: %error%"
+  advancement_holder_skipped: "已跳过成就持有者 %holder%: %error%"
+  advancement_resync_failed: "为 %player% 重同步成就失败: %error%"
+  advancement_resync_schedule_failed: "为 %player% 安排成就重同步失败: %error%"
+trigger:
+  provider_execution_failed: "成就触发器提供者 '%provider%' 执行失败: %error%"
+provider:
+  attribute_bonus_calc_failed: "属性加成计算失败: 玩家 %player%, 原因: %error%"
+config:
+  advancement_legacy_key_renamed: "配置键 advancement.%legacy_key% 已更名为 advancement.%key%, 当前按旧键值 %value% 生效, 启动时会自动迁移到新键"
+shutdown:
+  progress_flush_dirty: "进度刷新结束时仍有未落盘数据: saved=%saved% failed=%failed% remaining=%remaining%"
+script:
+  trigger_unregister_failed: "脚本触发器注销失败: %error%"

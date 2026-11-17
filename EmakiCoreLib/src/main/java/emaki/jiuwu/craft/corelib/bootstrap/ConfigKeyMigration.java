@@ -6,6 +6,10 @@ import java.util.logging.Logger;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class ConfigKeyMigration {
 
@@ -90,7 +94,7 @@ public final class ConfigKeyMigration {
 
     private static void warn(Logger logger, String message) {
         if (logger != null) {
-            logger.warning("[配置] " + message);
+            LogTags.send(logger, LogTag.CONFIG, Level.WARNING, "config.message", Map.of("message", message));
         }
     }
 }

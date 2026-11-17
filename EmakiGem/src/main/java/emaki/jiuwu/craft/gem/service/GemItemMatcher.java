@@ -22,6 +22,9 @@ import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
 import emaki.jiuwu.craft.gem.model.SocketOpenerConfig;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class GemItemMatcher {
 
@@ -161,8 +164,7 @@ public final class GemItemMatcher {
         try {
             return matcher.test(MatchContext.of(itemStack, identified, null));
         } catch (RuntimeException | LinkageError failure) {
-            plugin.getLogger().warning("[matcher] 宝石匹配器求值失败, 将该物品视为不匹配: "
-                    + failure.getMessage());
+            LogTags.send(plugin, LogTag.MATCHER, Level.WARNING, "matcher.gem_matcher_evaluation_failed", Map.of("error", failure.getMessage()));
             return false;
         }
     }
@@ -174,8 +176,7 @@ public final class GemItemMatcher {
         try {
             return requirement.test(itemStack, identified, null);
         } catch (RuntimeException | LinkageError failure) {
-            plugin.getLogger().warning("[matcher] 宝石识别求值失败, 将该物品视为不匹配: "
-                    + failure.getMessage());
+            LogTags.send(plugin, LogTag.MATCHER, Level.WARNING, "matcher.gem_recognition_evaluation_failed", Map.of("error", failure.getMessage()));
             return false;
         }
     }

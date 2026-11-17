@@ -2,7 +2,14 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.9"
+version: "1.0.10"
+
+tags:
+  cache: '[ 缓存 ]'
+  export: '[ 导出 ]'
+  furniture: '[ 家具 ]'
+  replace: '[ 替换 ]'
+  rollback: '[ 回滚 ]'
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#F97316>EmakiStructure</gradient> ]</gray>"
@@ -12,54 +19,54 @@ general:
   unknown_command: "<red>未知命令, 请使用 /ems help 查看帮助</red>"
 
 console:
-  plugin_starting: "[startup] <gray>正在启动...</gray>"
-  plugin_started: "[startup] <green>启动完成</green>"
-  plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
-  bootstrap_start: "[loader] <gray>正在同步默认资源...</gray>"
-  bootstrap_skip: "[loader] 已按配置跳过默认数据释放"
-  bootstrap_complete: "[loader] 默认资源同步完成"
-  bootstrap_copy_failed: "[loader] 复制默认资源失败: %path%  (%error%)"
-  bootstrap_save_failed: "[loader] 保存版本化资源失败: %path%  (%error%)"
-  default_file_missing: "[loader] <yellow>默认资源缺失, 已重新释放: <white>%path%</white></yellow>"
-  directory_create_failed: "[loader] <red>创建目录失败: <white>%path%</white> (%error%)</red>"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  loader_config_load_error: "[loader] <yellow>读取 Structure 配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  plugin_starting: "<gray>正在启动...</gray>"
+  plugin_started: "<green>启动完成</green>"
+  plugin_stopped: "<yellow>已关闭</yellow>"
+  bootstrap_start: "<gray>正在同步默认资源...</gray>"
+  bootstrap_skip: "已按配置跳过默认数据释放"
+  bootstrap_complete: "默认资源同步完成"
+  bootstrap_copy_failed: "复制默认资源失败: %path%  (%error%)"
+  bootstrap_save_failed: "保存版本化资源失败: %path%  (%error%)"
+  default_file_missing: "<yellow>默认资源缺失, 已重新释放: <white>%path%</white></yellow>"
+  directory_create_failed: "<red>创建目录失败: <white>%path%</white> (%error%)</red>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  loader_config_load_error: "<yellow>读取 Structure 配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   # 占位符: %count%
-  templates_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个结构模板</gray>"
+  templates_loaded: "<gray>已加载 <yellow>%count%</yellow> 个结构模板</gray>"
   # 占位符: %path%, %value%, %expected%
-  config_issue: "[配置] <yellow>配置项 <white>%path%</white> 取值 <white>%value%</white> 非法 (期望 <white>%expected%</white>), 已按合法值处理</yellow>"
+  config_issue: "<yellow>配置项 <white>%path%</white> 取值 <white>%value%</white> 非法 (期望 <white>%expected%</white>), 已按合法值处理</yellow>"
   # 占位符: %template%
-  cache_rejected: "[cache] <yellow>模板 <white>%template%</white> 估算体积超出缓存上限, 本次用完即弃</yellow>"
+  cache_rejected: "<yellow>模板 <white>%template%</white> 估算体积超出缓存上限, 本次用完即弃</yellow>"
   # 占位符: %count%
-  reload_complete: "[reload] <green>重载完成, 共 <white>%count%</white> 个结构模板</green>"
+  reload_complete: "<green>重载完成, 共 <white>%count%</white> 个结构模板</green>"
   # 占位符: %template%, %index%, %type%, %error%
-  spawn_entry_failed: "[spawn] <yellow>模板 %template% 条目 #%index% 生物 %type% 生成失败: %error%</yellow>"
+  spawn_entry_failed: "<yellow>模板 %template% 条目 #%index% 生物 %type% 生成失败: %error%</yellow>"
   # 占位符: %file%, %index%, %reason%
-  spawn_entry_issue: "[spawn] <yellow>生物点位 %file% 条目 #%index% 被跳过: %reason%</yellow>"
+  spawn_entry_issue: "<yellow>生物点位 %file% 条目 #%index% 被跳过: %reason%</yellow>"
   # 占位符: %file%, %error%
-  config_reload_failed: "[reload] <red>配置文件 %file% 解析失败, 保留旧配置继续运行: %error%</red>"
+  config_reload_failed: "<red>配置文件 %file% 解析失败, 保留旧配置继续运行: %error%</red>"
   # 占位符: %template%, %count%
-  template_legacy_skipped: "[loader] <yellow>模板 <white>%template%</white> 有 %count% 个方块状态无法在当前版本解析, 已按 legacy_policy 跳过</yellow>"
+  template_legacy_skipped: "<yellow>模板 <white>%template%</white> 有 %count% 个方块状态无法在当前版本解析, 已按 legacy_policy 跳过</yellow>"
   # 占位符: %source%
-  furniture_source_ready: "[loader] <gray>已接入家具源: <aqua>%source%</aqua></gray>"
+  furniture_source_ready: "<gray>已接入家具源: <aqua>%source%</aqua></gray>"
   # 占位符: %namespace%
-  custom_block_source_ready: "[loader] <gray>已接入自定义方块命名空间: <aqua>%namespace%</aqua></gray>"
+  custom_block_source_ready: "<gray>已接入自定义方块命名空间: <aqua>%namespace%</aqua></gray>"
   # 占位符: %template%, %structure%
-  replace_template_missing: "[replace] <yellow>替换规则引用的模板 <white>%template%</white> 不存在 (结构 %structure%), 已放行原版生成</yellow>"
+  replace_template_missing: "<yellow>替换规则引用的模板 <white>%template%</white> 不存在 (结构 %structure%), 已放行原版生成</yellow>"
   # 占位符: %count%
-  rollback_recovering: "[rollback] <yellow>检测到 %count% 个未完成事务, 启动期回滚进行中, 生成能力暂不可用</yellow>"
+  rollback_recovering: "<yellow>检测到 %count% 个未完成事务, 启动期回滚进行中, 生成能力暂不可用</yellow>"
   # 占位符: %count%
-  rollback_recovered: "[rollback] <green>启动期回滚完成, 共 %count% 个事务</green>"
+  rollback_recovered: "<green>启动期回滚完成, 共 %count% 个事务</green>"
   # 占位符: %file%
-  rollback_partial: "[rollback] <red>事务 %file% 回滚未完全成功, 已标记 rollback-partial (可用 /ems debug 查看), 不再自动重试</red>"
+  rollback_partial: "<red>事务 %file% 回滚未完全成功, 已标记 rollback-partial (可用 /ems debug 查看), 不再自动重试</red>"
   # 占位符: %template%, %index%, %id%
-  furniture_source_absent: "[furniture] <yellow>模板 %template% 家具条目 #%index% (%id%) 所需家具源未安装, 已跳过</yellow>"
+  furniture_source_absent: "<yellow>模板 %template% 家具条目 #%index% (%id%) 所需家具源未安装, 已跳过</yellow>"
   # 占位符: %template%, %index%, %id%
-  furniture_place_failed: "[furniture] <yellow>模板 %template% 家具条目 #%index% (%id%) 放置失败, 已跳过该条</yellow>"
+  furniture_place_failed: "<yellow>模板 %template% 家具条目 #%index% (%id%) 放置失败, 已跳过该条</yellow>"
   # 占位符: %file%, %index%, %reason%
-  furniture_entry_issue: "[furniture] <yellow>家具点位 %file% 条目 #%index% 被跳过: %reason%</yellow>"
+  furniture_entry_issue: "<yellow>家具点位 %file% 条目 #%index% 被跳过: %reason%</yellow>"
   # 占位符: 无
-  export_furniture_absent: "[export] <gray>家具 0 条 (无家具插件在场), 已有家具附属配置保持不变</gray>"
+  export_furniture_absent: "<gray>家具 0 条 (无家具插件在场), 已有家具附属配置保持不变</gray>"
   # 占位符: 无
 
 command:
@@ -366,3 +373,47 @@ debug:
   highlight_destroy: "选区高亮清除: 玩家 %player%, 边数 %edges%, 边框 %box%, 世界 %world%"
   # 占位符: %player%, %edges%, %box%, %player_position%, %view_distance%
   highlight_first_render: "选区高亮首次渲染: 玩家 %player%, 边数 %edges%, 边框 %box%, 玩家位置 %player_position%, 视距 %view_distance%"
+generate:
+  post_processing_task_submit_failed: "生成后处理任务提交失败: %error%"
+  furniture_journal_write_failed: "家具回滚日志写入失败 %template%"
+  template_entity_generation_failed: "模板实体生成失败 %type%: %error%"
+  template_entity_journal_write_failed: "模板实体回滚日志写入失败 %type%"
+  post_processing_skipped_after_journal_failure: "回滚日志已写入失败, 跳过生成后处理, 事务 %transaction%"
+  rollback_journal_commit_failed: "回滚日志提交失败, 事务 %transaction% 已中止, 模板 %template%"
+  write_budget_throttled: "TPS 低于阈值, 生成写入限额已下调至 %limit%/%budget%"
+  batch_write_failed: "生成批次写入失败: %error%"
+  batch_submit_failed: "生成批次提交失败: %error%"
+  journal_create_failed: "journal 创建失败: %error%"
+  precheck_task_submit_failed: "生成预检任务提交失败: %error%"
+  precheck_callback_submit_failed: "生成预检回调提交失败: %error%"
+multiblock:
+  candidate_check_task_failed: "多方块候选校验任务异常: %error%"
+  entity_change_block_detection_error: "多方块实体改块检测异常: %error%"
+  burn_detection_error: "多方块燃烧检测异常: %error%"
+  explosion_detection_error: "多方块爆炸检测异常: %error%"
+  piston_detection_error: "多方块活塞检测异常: %error%"
+  break_detection_error: "多方块破坏检测异常: %error%"
+  place_detection_error: "多方块放置检测异常: %error%"
+  interact_listener_error: "多方块交互监听异常: %error%"
+  sample_recheck_failed: "抽样复验失败 %instance%: %error%"
+  action_execution_failed: "多方块动作执行失败 %id%: %error%"
+  trigger_bus_event_publish_failed: "多方块触发总线事件发布失败 %id%: %error%"
+  trigger_event_dispatch_failed: "多方块触发事件分发失败 %id%: %error%"
+  trigger_failed: "多方块触发失败 %instance%: %error%"
+  instance_verification_failed: "多方块实例校验失败 %instance%: %error%"
+rollback:
+  partial_marker_write_failed: "rollback-partial 标记失败 %file%: %error%"
+  unfinished_transaction_rolled_back: "已回滚未完成事务 %transaction%"
+  journal_read_failed: "journal 读取失败 %file%: %error%"
+  journal_scan_failed: "journal 扫描失败: %error%"
+  journal_commit_failed_kept_and_compensated: "回滚日志提交失败, 已保留日志并立即补偿回滚 %file%"
+  journal_delete_failed_kept_for_startup: "回滚日志删除失败, 已保留日志供下次启动处理 %file%"
+  journal_not_reliably_flushed: "回滚日志未可靠落盘, 仍按现有内容回滚 %file%"
+selection:
+  highlight_create_failed: "选区线框创建失败: %error%"
+spawn:
+  journal_write_failed: "生物回滚日志写入失败 %template%"
+  execution_error: "生物生成异常"
+  soft_dependency_entry_unavailable: "软依赖生物生成入口不可用: %error%"
+  batch_submit_error: "生物生成批次提交异常"
+  batch_submit_failed: "生物生成批次提交失败, 坐标 %x%,%y%,%z%"

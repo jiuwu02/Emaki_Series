@@ -23,6 +23,8 @@ import java.util.stream.Stream;
 
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.storage.config.AppConfig;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class StorageOperationLog {
 
@@ -62,7 +64,7 @@ public final class StorageOperationLog {
             return;
         }
         if (sealed.get()) {
-            warn("存储日志停服落盘后仍收到新条目, 已丢弃该条目", null);
+            LogTags.send(logger, LogTag.JOURNAL, Level.WARNING, "journal.entry_after_shutdown_flush_discarded", Map.of());
             return;
         }
         List<StorageLogEntry> queue = pending.computeIfAbsent(entry.playerId(), id -> new ArrayList<>());
@@ -100,7 +102,7 @@ public final class StorageOperationLog {
         }).exceptionally(throwable -> {
             gate.set(false);
             flushScheduled.remove(playerId, gate);
-            warn("为玩家 " + playerId + " 追加存储日志失败", throwable);
+            LogTags.send(logger, LogTag.JOURNAL, Level.WARNING, "journal.append_log_failed", Map.of("player", playerId, "error", describeFailure(throwable)));
             return null;
         });
     }
@@ -129,8 +131,7 @@ public final class StorageOperationLog {
             entriesWritten.addAndGet(batch.size());
         } catch (IOException failure) {
             requeue(playerId, batch);
-            warn("为玩家 " + playerId + " 写入存储日志失败, 已将 " + batch.size()
-                    + " 条日志放回待写队列", failure);
+            LogTags.send(logger, LogTag.JOURNAL, Level.WARNING, "journal.write_log_failed_requeued", Map.of("player", playerId, "count", batch.size(), "error", describeFailure(failure)));
         }
     }
 
@@ -159,8 +160,7 @@ public final class StorageOperationLog {
                         unsaved = pendingEntries();
                     }
                     if (unsaved > 0) {
-                        logger.warning("[journal] 停服时仍有 " + unsaved + " 条存储日志未落盘"
-                                + (throwable == null ? "" : ": " + describeFailure(throwable)));
+                        LogTags.send(logger, LogTag.JOURNAL, Level.WARNING, "journal.unflushed_entries_at_shutdown", Map.of("count", unsaved, "error", (throwable == null ? "" : ": " + describeFailure(throwable))));
                     }
                     return new DrainReport(entriesWritten.get(), throwable == null && unsaved == 0, unsaved);
                 });
@@ -204,7 +204,7 @@ public final class StorageOperationLog {
                 deleted += purgeDirectory(directory, cutoff);
             }
         } catch (IOException failure) {
-            warn("扫描存储日志目录失败", failure);
+            LogTags.send(logger, LogTag.JOURNAL, Level.WARNING, "journal.scan_log_directory_failed", Map.of("error", describeFailure(failure)));
         }
         return deleted;
     }
@@ -224,14 +224,14 @@ public final class StorageOperationLog {
                 }
             }
         } catch (IOException failure) {
-            warn("清理存储日志目录 " + directory.getFileName() + " 失败", failure);
+            LogTags.send(logger, LogTag.JOURNAL, Level.WARNING, "journal.cleanup_log_directory_failed", Map.of("directory", directory.getFileName(), "error", describeFailure(failure)));
             return deleted;
         }
         if (!remaining) {
             try {
                 Files.deleteIfExists(directory);
             } catch (IOException failure) {
-                warn("删除空的存储日志目录 " + directory.getFileName() + " 失败", failure);
+                LogTags.send(logger, LogTag.JOURNAL, Level.WARNING, "journal.delete_empty_log_directory_failed", Map.of("directory", directory.getFileName(), "error", describeFailure(failure)));
             }
         }
         return deleted;
@@ -248,8 +248,4 @@ public final class StorageOperationLog {
         }
     }
 
-    private void warn(String message, Throwable throwable) {
-        logger.log(Level.WARNING, "[journal] " + message
-                + (throwable == null ? "" : ": " + describeFailure(throwable)));
-    }
 }

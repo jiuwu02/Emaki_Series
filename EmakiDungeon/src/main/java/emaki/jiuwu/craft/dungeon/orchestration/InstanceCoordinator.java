@@ -109,7 +109,7 @@ public final class InstanceCoordinator {
             store.load();
         } catch (RuntimeException exception) {
             loaded = false;
-            messages.warning("console.instances_load_failed", Map.of(
+            messages.warning(null, "console.instances_load_failed", Map.of(
                     "error", String.valueOf(exception.getMessage())
             ));
         }
@@ -132,14 +132,14 @@ public final class InstanceCoordinator {
             if (disposer.deleteResidual(worldName)) {
                 cleaned++;
             } else {
-                messages.warning("console.residual_delete_failed", Map.of("world", worldName));
+                messages.warning(null, "console.residual_delete_failed", Map.of("world", worldName));
             }
         }
         store.snapshot().clear();
         store.saveSync();
         allocator.reset();
         if (cleaned > 0) {
-            messages.info("console.residual_cleaned", Map.of("count", String.valueOf(cleaned)));
+            messages.info(null, "console.residual_cleaned", Map.of("count", String.valueOf(cleaned)));
         }
     }
 
@@ -181,7 +181,7 @@ public final class InstanceCoordinator {
                 long seconds = since == null ? 0L : (now - since) / 1000L;
                 if (since != null && seconds >= 60L
                         && disposingAlerted.add(instance.instanceId())) {
-                    messages.warning("console.instance_disposing_stuck", Map.of(
+                    messages.warning(null, "console.instance_disposing_stuck", Map.of(
                             "instance", instance.instanceId(),
                             "seconds", String.valueOf(seconds)
                     ));
@@ -195,7 +195,7 @@ public final class InstanceCoordinator {
                 }
             }
             if (instance.state() == InstanceState.RUNNING && Bukkit.getWorld(instance.instanceId()) == null) {
-                messages.warning("console.active_world_missing", Map.of(
+                messages.warning(null, "console.active_world_missing", Map.of(
                         "dungeon", instance.dungeonId(),
                         "world", instance.instanceId()
                 ));
@@ -263,7 +263,7 @@ public final class InstanceCoordinator {
             boolean held = error != null || result != WorldDisposer.Result.DISPOSED;
             if (held) {
                 allocator.markHeld(dungeonId);
-                messages.warning("console.world_dispose_held", Map.of(
+                messages.warning(null, "console.world_dispose_held", Map.of(
                         "dungeon", dungeonId,
                         "world", instanceId
                 ));
@@ -348,7 +348,7 @@ public final class InstanceCoordinator {
         registry.clear();
         store.snapshot().clear();
         if (removed > 0) {
-            messages.info("console.shutdown_cleaned", Map.of("count", String.valueOf(removed)));
+            messages.info(null, "console.shutdown_cleaned", Map.of("count", String.valueOf(removed)));
         }
         return store.saveSync();
     }

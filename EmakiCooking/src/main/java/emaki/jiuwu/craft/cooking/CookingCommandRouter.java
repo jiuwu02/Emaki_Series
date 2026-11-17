@@ -21,6 +21,10 @@ import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
 import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.cooking.log.CookingLogTag;
+import java.util.logging.Level;
 
 final class CookingCommandRouter implements TabExecutor {
 
@@ -165,7 +169,7 @@ final class CookingCommandRouter implements TabExecutor {
         long startTime = System.currentTimeMillis();
         plugin.reloadPluginStateAsync().whenComplete((_, failure) -> runForSender(sender, () -> {
             if (failure != null) {
-                plugin.getLogger().warning("[cooking] 配置重载失败: " + AsyncFailures.describe(failure));
+                LogTags.send(plugin, CookingLogTag.COOKING, Level.WARNING, "cooking.config_reload_failed", Map.of("error", AsyncFailures.describe(failure)));
                 plugin.messageService().send(sender, "general.reload_failed", Map.of(
                         "reason", AsyncFailures.describe(failure)
                 ));
@@ -235,7 +239,7 @@ final class CookingCommandRouter implements TabExecutor {
         plugin.messageService().send(sender, "command.station.reindex_started");
         plugin.stationStateStore().reindexAsync().whenComplete((report, failure) -> runForSender(sender, () -> {
             if (failure != null) {
-                plugin.getLogger().warning("[persistence] 工位索引重建失败: " + AsyncFailures.describe(failure));
+                LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.station_index_rebuild_failed", Map.of("error", AsyncFailures.describe(failure)));
                 plugin.messageService().send(sender, "command.station.reindex_failed", Map.of(
                         "reason", AsyncFailures.describe(failure)
                 ));
@@ -248,7 +252,7 @@ final class CookingCommandRouter implements TabExecutor {
                 return;
             }
             if (!report.success()) {
-                plugin.getLogger().warning("[persistence] 工位索引重建部分失败: " + report.failureSummary());
+                LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.station_index_rebuild_partial_failed", Map.of("failure_summary", report.failureSummary()));
                 plugin.messageService().send(sender, "command.station.reindex_partial", Map.of(
                         "legacy_yaml", report.legacyYamlStates(),
                         "loaded_pdc", report.loadedPdcStates(),

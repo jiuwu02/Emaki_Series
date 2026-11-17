@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptMaterial;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptPreview;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 final class StrengthenGuiInteractionController {
 
@@ -138,7 +139,7 @@ final class StrengthenGuiInteractionController {
         try {
             actions = triggerResultActions(state, result, itemTarget);
         } catch (RuntimeException | LinkageError exception) {
-            plugin.messageService().warning("console.gui_result_action_dispatch_failed", Map.of(
+            plugin.messageService().warning(LogTag.GUI, "console.gui_result_action_dispatch_failed", Map.of(
                     "operation_id", result.operationId(),
                     "error", String.valueOf(exception.getMessage())));
             pending.markReady();
@@ -194,21 +195,21 @@ final class StrengthenGuiInteractionController {
                     () -> settlePendingOnOwner(pending),
                     () -> {
                         pending.releaseSchedule();
-                        plugin.messageService().warning("console.gui_owner_retired", Map.of(
+                        plugin.messageService().warning(LogTag.GUI, "console.gui_owner_retired", Map.of(
                                 "operation_id", pending.operationId()));
                     },
                     1L
             );
             if (scheduled == null) {
                 pending.releaseSchedule();
-                plugin.messageService().severe("console.gui_schedule_rejected", Map.of(
+                plugin.messageService().severe(LogTag.GUI, "console.gui_schedule_rejected", Map.of(
                         "operation_id", pending.operationId()));
                 return false;
             }
             return true;
         } catch (RuntimeException | LinkageError exception) {
             pending.releaseSchedule();
-            plugin.messageService().severe("console.gui_schedule_failed", Map.of(
+            plugin.messageService().severe(LogTag.GUI, "console.gui_schedule_failed", Map.of(
                     "operation_id", pending.operationId(),
                     "error", String.valueOf(exception.getMessage())));
             return false;
@@ -223,7 +224,7 @@ final class StrengthenGuiInteractionController {
                 completed = pending.settle(player);
             }
         } catch (RuntimeException | LinkageError exception) {
-            plugin.messageService().severe("console.gui_settlement_retry", Map.of(
+            plugin.messageService().severe(LogTag.GUI, "console.gui_settlement_retry", Map.of(
                     "operation_id", pending.operationId(),
                     "error", String.valueOf(exception.getMessage())));
         } finally {
@@ -266,7 +267,7 @@ final class StrengthenGuiInteractionController {
                 plugin.messageService().send(player, "gui.attempt_failed", Map.of("star", result.resultingStar()));
             }
         } catch (RuntimeException | LinkageError exception) {
-            plugin.messageService().warning("console.gui_notification_failed", Map.of(
+            plugin.messageService().warning(LogTag.GUI, "console.gui_notification_failed", Map.of(
                     "operation_id", result.operationId(),
                     "error", String.valueOf(exception.getMessage())));
         }
@@ -281,7 +282,7 @@ final class StrengthenGuiInteractionController {
             try {
                 plugin.messageService().send(player, "gui.inventory_full");
             } catch (RuntimeException | LinkageError exception) {
-                plugin.messageService().warning("console.gui_inventory_full_notify_failed", Map.of(
+                plugin.messageService().warning(LogTag.GUI, "console.gui_inventory_full_notify_failed", Map.of(
                         "error", String.valueOf(exception.getMessage())));
             }
         }

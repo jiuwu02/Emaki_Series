@@ -37,6 +37,9 @@ import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class AttributeService extends AbstractAttributeServiceFacade {
 
@@ -225,9 +228,9 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         if (parentAttributeService != null && parentAttributeService.dataStore() != null) {
             ParentAttributeDataStore.DrainReport report = parentAttributeService.dataStore().flushAndSeal();
             if (report.clean()) {
-                plugin.getLogger().info("[shutdown] 父级属性数据排空: " + report);
+                LogTags.send(plugin, LogTag.SHUTDOWN, Level.INFO, "shutdown.parent_attribute_data_drained", Map.of("report", report));
             } else {
-                plugin.getLogger().warning("[shutdown] 父级属性数据排空未完成: " + report);
+                LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.parent_attribute_data_drain_incomplete", Map.of("report", report));
             }
         }
         temporaryAttributeService.close();

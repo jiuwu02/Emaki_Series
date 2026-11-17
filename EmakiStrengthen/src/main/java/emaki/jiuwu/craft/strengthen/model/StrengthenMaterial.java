@@ -17,6 +17,9 @@ import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class StrengthenMaterial {
 
@@ -216,7 +219,7 @@ public final class StrengthenMaterial {
         try {
             return requirement.test(context);
         } catch (RuntimeException | LinkageError exception) {
-            LOGGER.warning("[matcher] 材料判定抛出异常, 视为不匹配: " + String.valueOf(exception.getMessage()));
+            LogTags.send(LOGGER, LogTag.MATCHER, Level.WARNING, "matcher.material_check_threw_treated_as_mismatch", Map.of("error", String.valueOf(exception.getMessage())));
             return false;
         }
     }

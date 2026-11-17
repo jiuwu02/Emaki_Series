@@ -66,6 +66,9 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiAttributePlugin, AttributeRuntimeComponents> {
 
@@ -404,9 +407,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             plugin.setPlaceholderExpansion(null);
         }
         if (plugin.messageService() != null) {
-            plugin.messageService().info("console.plugin_stopped");
+            plugin.messageService().info(LogTag.SHUTDOWN, "console.plugin_stopped");
         } else {
-            plugin.getLogger().info("[shutdown] 已关闭");
+            LogTags.send(plugin, LogTag.SHUTDOWN, Level.INFO, "shutdown.closed");
         }
     }
 
@@ -432,7 +435,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                         plugin.dataPath("gui/editor_browser_gui.yml").toFile()
                 );
             } catch (Exception exception) {
-                plugin.messageService().warning("loader.bundled_resource_write_failed", Map.of(
+                plugin.messageService().warning(LogTag.LOADER, "loader.bundled_resource_write_failed", Map.of(
                         "type", "gui",
                         "path", plugin.dataPath("gui").toString(),
                         "error", Texts.toStringSafe(exception.getMessage())
@@ -443,7 +446,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
     }
 
     private BiConsumer<String, Exception> failureHandler(EmakiAttributePlugin plugin) {
-        return (stageName, exception) -> plugin.messageService().warning("console.reload_stage_failed", Map.of(
+        return (stageName, exception) -> plugin.messageService().warning(LogTag.RELOAD, "console.reload_stage_failed", Map.of(
                 "stage", stageName,
                 "error", String.valueOf(exception.getMessage())
         ));
@@ -472,7 +475,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             );
             logVersionUpdate(plugin, "config.yml", versionedFile);
             if (!file.exists()) {
-                plugin.messageService().warning("loader.bundled_resource_missing", Map.of(
+                plugin.messageService().warning(LogTag.LOADER, "loader.bundled_resource_missing", Map.of(
                         "type", "配置",
                         "path", file.getPath(),
                         "resource", "config.yml"
@@ -480,7 +483,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             }
             return AttributeConfig.fromConfig(versionedFile == null ? YamlFiles.load(file) : versionedFile.root());
         } catch (Exception exception) {
-            plugin.messageService().warning("console.config_load_failed", Map.of(
+            plugin.messageService().warning(LogTag.CONFIG, "console.config_load_failed", Map.of(
                     "error", String.valueOf(exception.getMessage())
             ));
             return AttributeConfig.defaults();
@@ -491,7 +494,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         if (versionedFile == null || !versionedFile.versionUpdated()) {
             return;
         }
-        plugin.messageService().info("console.versioned_file_updated", Map.of(
+        plugin.messageService().info(LogTag.LOADER, "console.versioned_file_updated", Map.of(
                 "path", relativePath,
                 "old_version", versionedFile.previousVersion().isBlank() ? "unknown" : versionedFile.previousVersion(),
                 "new_version", versionedFile.updatedVersion()

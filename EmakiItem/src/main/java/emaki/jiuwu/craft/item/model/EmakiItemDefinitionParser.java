@@ -27,6 +27,9 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class EmakiItemDefinitionParser {
 
@@ -81,7 +84,7 @@ public final class EmakiItemDefinitionParser {
         }
         String id = Texts.normalizeId(root.getString("id"));
         if (Texts.isBlank(id)) {
-            warning("[loader] 跳过物品定义 " + source + ": ID 无效或缺失");
+            LogTags.send(logger, LogTag.LOADER, Level.WARNING, "loader.item_definition_skipped_invalid_id", Map.of("source", source));
             return null;
         }
         warnRetiredFields(root, source);
@@ -89,7 +92,7 @@ public final class EmakiItemDefinitionParser {
         try {
             itemDefinition = parseConfiguredItem(root, id);
         } catch (IllegalArgumentException exception) {
-            warning("[loader] 跳过物品定义 " + source + ": " + exception.getMessage());
+            LogTags.send(logger, LogTag.LOADER, Level.WARNING, "loader.item_definition_skipped_parse_error", Map.of("source", source, "error", exception.getMessage()));
             return null;
         }
         List<Map<?, ?>> effects = root.getMapList("effects");
@@ -100,7 +103,7 @@ public final class EmakiItemDefinitionParser {
                     ? Map.of()
                     : ExpressionEngine.resolveMixedVariables(variables, Map.of());
         } catch (RuntimeException exception) {
-            warning("[loader] 跳过物品定义 " + source + ": 变量校验失败: " + exception.getMessage());
+            LogTags.send(logger, LogTag.LOADER, Level.WARNING, "loader.item_definition_skipped_variable_validation", Map.of("source", source, "error", exception.getMessage()));
             return null;
         }
         if (!validateConfiguredItem(itemDefinition, source, resolvedValidationVariables)) {
@@ -151,10 +154,10 @@ public final class EmakiItemDefinitionParser {
             Map<String, Object> variables) {
         ItemBuildResult result = EmakiCoreLibApi.createConfiguredItem(resolveValidationDefinition(definition, variables));
         for (ItemBuildIssue issue : result.issues()) {
-            warning("[loader] 物品定义 " + source + " [" + Texts.toStringSafe(issue.componentId()) + "]: " + issue.message());
+            LogTags.send(logger, LogTag.LOADER, Level.WARNING, "loader.item_definition_build_issue", Map.of("source", source, "component", Texts.toStringSafe(issue.componentId()), "message", issue.message()));
         }
         if (!result.success() || result.hasErrors() || result.itemStack() == null) {
-            warning("[loader] 跳过物品定义 " + source + ": 物品来源或组件校验失败");
+            LogTags.send(logger, LogTag.LOADER, Level.WARNING, "loader.item_definition_skipped_validation_failed", Map.of("source", source));
             return false;
         }
         return true;
@@ -272,7 +275,7 @@ public final class EmakiItemDefinitionParser {
             return ItemUpdatePolicy.defaults();
         }
         if (configuredVersion == null || configuredVersion < 1) {
-            warning("[loader] 物品定义 " + source + " 为 '" + itemId + "' 启用了更新, 但缺少有效的 update.version; 物品更新已禁用");
+            LogTags.send(logger, LogTag.LOADER, Level.WARNING, "loader.item_definition_update_version_missing", Map.of("source", source, "item", itemId));
             return ItemUpdatePolicy.defaults();
         }
         return new ItemUpdatePolicy(
@@ -306,8 +309,7 @@ public final class EmakiItemDefinitionParser {
         if (isSupportedEquipSlot(normalized)) {
             return normalized;
         }
-        warning("[loader] 物品定义 " + source + " 为 '" + itemId + "' 配置了不支持的 equip_slot '" + configured
-                + "'; 回退为 'all'");
+        LogTags.send(logger, LogTag.LOADER, Level.WARNING, "loader.item_definition_unsupported_equip_slot", Map.of("source", source, "item", itemId, "slot", configured));
         return EquipmentSlotMatcher.SLOT_ALL;
     }
 
@@ -645,9 +647,7 @@ public final class EmakiItemDefinitionParser {
             }
         }
         if (!present.isEmpty()) {
-            warning("[loader] 物品定义 " + source + " 声明了已停用的字段 " + String.join(", ", present)
-                    + "; 这些字段会被忽略, 请将基础物品声明为 'item.source' + 'item.components', 将效果写成 'effects' 条目"
-                    + ", 并把堆叠数量传给 give 命令");
+            LogTags.send(logger, LogTag.LOADER, Level.WARNING, "loader.item_definition_retired_fields", Map.of("source", source, "fields", String.join(", ", present)));
         }
     }
 

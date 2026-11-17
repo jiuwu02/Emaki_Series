@@ -9,6 +9,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.mobs.api.event.EmakiMobSkillTriggerEvent;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
@@ -21,6 +22,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class MobSkillExecutor {
 
@@ -97,9 +100,7 @@ public final class MobSkillExecutor {
                     compiled.add(r.pipeline());
                 } else {
                     int lineNum = i + 1;
-                    logger.warning("[script] 技能编译错误: 生物='" + mobId
-                            + "' 触发器='" + trigger + "' 行=" + lineNum
-                            + " 原因=" + r.diagnostics());
+                    LogTags.send(logger, LogTag.SCRIPT, Level.WARNING, "script.skill_compile_error", Map.of("mob", mobId, "trigger", trigger, "line", lineNum, "reason", r.diagnostics()));
                 }
             }
             if (!compiled.isEmpty()) {

@@ -20,8 +20,11 @@ import emaki.jiuwu.craft.corelib.api.item.ItemBuildIssue;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import io.papermc.paper.datacomponent.DataComponentType;
 import io.papermc.paper.datacomponent.DataComponentTypes;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class PaperItemComponentBridge {
 
@@ -118,8 +121,7 @@ final class PaperItemComponentBridge {
                 addType(destination, value);
             }
         } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
-            LOGGER.warning("[component] 静态 Paper 数据组件发现失败, 回退为仅使用注册表发现: "
-                    + message(exception));
+            LogTags.send(LOGGER, LogTag.COMPONENT, Level.WARNING, "component.static_discovery_failed", Map.of("error", message(exception)));
         }
     }
 
@@ -129,8 +131,7 @@ final class PaperItemComponentBridge {
                 addType(destination, value);
             }
         } catch (RuntimeException | LinkageError exception) {
-            LOGGER.warning("[component] 基于注册表的 Paper 数据组件发现失败, 组件支持可能不完整: "
-                    + message(exception));
+            LogTags.send(LOGGER, LogTag.COMPONENT, Level.WARNING, "component.registry_discovery_failed", Map.of("error", message(exception)));
         }
     }
 

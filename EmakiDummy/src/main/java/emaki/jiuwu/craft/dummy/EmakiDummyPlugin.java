@@ -35,6 +35,7 @@ import emaki.jiuwu.craft.dummy.transport.mcpl.McplTransport;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public class EmakiDummyPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> {
 
@@ -71,12 +72,12 @@ public class EmakiDummyPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 AppConfig::parse);
         appConfigLoader.load();
         AppConfig appConfig = appConfigLoader.current();
-        messageService.info("console.plugin_starting");
+        messageService.info(LogTag.STARTUP, "console.plugin_starting");
         dummyLogger = new DummyLogger(dataPath("logs", "dummy"), appConfig.logRetentionDays(),
                 appConfig.perDummyLogFiles());
         int removed = dummyLogger.open();
         if (removed > 0) {
-            messageService.info("console.log_retention_removed", Map.of("count", removed));
+            messageService.info(null, "console.log_retention_removed", Map.of("count", removed));
         }
         DummyTransport transport = new McplTransport();
         ExecutionDispatcher dispatcher = null;
@@ -99,19 +100,19 @@ public class EmakiDummyPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         getServer().getPluginManager().registerEvents(bridge, this);
         extractScenarios();
         int loaded = engine.reload(dataPath("scenarios"));
-        messageService.info("console.scenarios_loaded", Map.of("count", loaded));
+        messageService.info(null, "console.scenarios_loaded", Map.of("count", loaded));
         for (String failure : engine.loadFailures()) {
             int separator = failure.indexOf(": ");
             String file = separator >= 0 ? failure.substring(0, separator) : failure;
             String reason = separator >= 0 ? failure.substring(separator + 2) : "";
-            messageService.warning("console.scenario_load_failed",
+            messageService.warning(null, "console.scenario_load_failed",
                     Map.of("file", file, "reason", reason));
         }
         router = new DummyCommandRouter(messageService, manager, engine);
         registerCommandHandler();
         startTimers(appConfig);
         runtimeInitialized = true;
-        messageService.info("console.plugin_started", Map.of(
+        messageService.info(LogTag.STARTUP, "console.plugin_started", Map.of(
                 "mode", appConfig.connectionMode(),
                 "host", "velocity".equalsIgnoreCase(appConfig.connectionMode())
                         ? appConfig.velocityHost()
@@ -159,7 +160,7 @@ public class EmakiDummyPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
         runtimeInitialized = false;
         if (messageService != null) {
-            messageService.info("console.plugin_stopped");
+            messageService.info(LogTag.SHUTDOWN, "console.plugin_stopped");
         }
     }
 
@@ -232,7 +233,7 @@ public class EmakiDummyPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             Files.createDirectories(directory);
         } catch (IOException failure) {
-            messageService.warning("console.scenario_load_failed", Map.of(
+            messageService.warning(null, "console.scenario_load_failed", Map.of(
                     "file", "scenarios", "reason", String.valueOf(failure.getMessage())));
             return;
         }
@@ -245,7 +246,7 @@ public class EmakiDummyPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 }
                 Files.copy(bundled, target, StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException failure) {
-                messageService.warning("console.scenario_load_failed", Map.of(
+                messageService.warning(null, "console.scenario_load_failed", Map.of(
                         "file", fileName, "reason", String.valueOf(failure.getMessage())));
             }
         }

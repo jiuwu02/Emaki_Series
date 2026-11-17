@@ -58,6 +58,7 @@ import emaki.jiuwu.craft.dungeon.ticket.TicketService;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.dungeon.log.DungeonLogTag;
 import java.util.Locale;
 import org.bukkit.Location;
 import org.bukkit.scoreboard.Scoreboard;
@@ -601,7 +602,7 @@ public final class ChallengeService {
                 }
             }, () -> {
             }, throwable -> {
-                messages.warning("console.instance_crashed", Map.of(
+                messages.warning(null, "console.instance_crashed", Map.of(
                         "instance", instance.instanceId(),
                         "error", String.valueOf(throwable.getMessage())
                 ));
@@ -700,7 +701,7 @@ public final class ChallengeService {
                 tempItems.grant(instanceId, member, tempItem.itemId(), tempItem.amount());
             }
         } catch (RuntimeException exception) {
-            messages.warning("console.challenge_enter_failed", Map.of(
+            messages.warning(DungeonLogTag.CHALLENGE, "console.challenge_enter_failed", Map.of(
                     "instance", String.valueOf(instanceId),
                     "player", String.valueOf(memberId),
                     "error", String.valueOf(exception.getMessage())));

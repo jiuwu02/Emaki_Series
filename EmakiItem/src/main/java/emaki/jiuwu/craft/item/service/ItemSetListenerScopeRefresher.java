@@ -49,6 +49,9 @@ import emaki.jiuwu.craft.item.service.ItemSetPresentationCalculator.SetItemMutat
 import emaki.jiuwu.craft.item.service.ItemSetPresentationCalculator.SetPresentationInspection;
 import emaki.jiuwu.craft.item.service.ItemSetPresentationCalculator.SetPresentationTarget;
 import emaki.jiuwu.craft.item.api.event.ItemSetBonusChangeEvent;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.item.log.ItemLogTag;
+import java.util.logging.Level;
 
 final class ItemSetListenerScopeRefresher {
 
@@ -540,9 +543,7 @@ final class ItemSetListenerScopeRefresher {
         }
         if (logger != null) {
             List<String> sample = newlyMissing.stream().limit(10).toList();
-            logger.warning("[set] 套装刷新时检测到缺失的 EmakiItem 定义; 保留现有展示, "
-                    + "count=" + newlyMissing.size() + ", definitions=" + sample
-                    + (newlyMissing.size() > sample.size() ? ", additional=" + (newlyMissing.size() - sample.size()) : ""));
+            LogTags.send(logger, ItemLogTag.SET, Level.WARNING, "set.missing_definitions_detected", Map.of("count", newlyMissing.size(), "definitions", sample, "additional", (newlyMissing.size() > sample.size() ? ", additional=" + (newlyMissing.size() - sample.size()) : "")));
         }
         DebugLogger debugLogger = debugLoggerSupplier.get();
         if (debugLogger != null && debugLogger.shouldLog("set", player)) {

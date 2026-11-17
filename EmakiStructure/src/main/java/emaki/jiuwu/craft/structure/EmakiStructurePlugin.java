@@ -34,6 +34,9 @@ import org.bukkit.event.HandlerList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.structure.log.StructureLogTag;
 
 public class EmakiStructurePlugin extends AbstractConfigurableEmakiPlugin<AppConfig> {
 
@@ -68,22 +71,23 @@ public class EmakiStructurePlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     @Override
     public void onEnable() {
+        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII, STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
+        LogTags.registerTags(this, StructureLogTag.values());
         shutdownStarted.set(false);
         components = lifecycleCoordinator.initialize(this);
         runtimeInitialized = true;
         setDebugLogger(new DebugLogger(this, components.languageLoader()));
         debugLogger().setFallbackLoader(EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII, STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
         ConfigPrecheckLifecycleSupport.register(new StructureConfigPrecheckContributor(this));
-        components.messageService().info("console.plugin_starting");
+        components.messageService().info(LogTag.STARTUP, "console.plugin_starting");
         components.bootstrapService().bootstrap();
         reloadContent();
         registerCommandHandler();
         registerListeners();
         installPublicApi();
         metrics = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
-        components.messageService().info("console.plugin_started");
+        components.messageService().info(LogTag.STARTUP, "console.plugin_started");
     }
 
     @Override
@@ -108,7 +112,7 @@ public class EmakiStructurePlugin extends AbstractConfigurableEmakiPlugin<AppCon
         HandlerList.unregisterAll(this);
         debugCommand = null;
         runtimeInitialized = false;
-        components.messageService().info("console.plugin_stopped");
+        components.messageService().info(LogTag.SHUTDOWN, "console.plugin_stopped");
     }
 
     @Override

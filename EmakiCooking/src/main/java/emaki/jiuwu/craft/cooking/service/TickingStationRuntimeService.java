@@ -25,6 +25,7 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 abstract class TickingStationRuntimeService<S> {
 
@@ -185,7 +186,7 @@ abstract class TickingStationRuntimeService<S> {
         if (!blockMatcher.matches(block, stationType(), stationSource)) {
             closeOpenInventories(coordinates, true);
             removeState(coordinates, false);
-            plugin.messageService().warning("console.station_restore_skipped_mismatch", Map.of(
+            plugin.messageService().warning(LogTag.PERSISTENCE, "console.station_restore_skipped_mismatch", Map.of(
                     "type", stationType().folderName(),
                     "coordinate", coordinates.runtimeKey()));
             return false;

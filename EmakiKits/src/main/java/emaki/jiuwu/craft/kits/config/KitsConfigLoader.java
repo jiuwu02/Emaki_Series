@@ -13,6 +13,8 @@ import emaki.jiuwu.craft.kits.model.KitType;
 import emaki.jiuwu.craft.kits.model.OpenMilestone;
 import emaki.jiuwu.craft.kits.model.RewardEntry;
 import emaki.jiuwu.craft.kits.model.RewardGroup;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.kits.log.KitsLogTag;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 public final class KitsConfigLoader extends YamlDirectoryLoader<KitDefinition> {
 
@@ -135,16 +138,14 @@ public final class KitsConfigLoader extends YamlDirectoryLoader<KitDefinition> {
         }
         String rawId = node.getString("id", "");
         if (!KitIds.valid(rawId)) {
-            plugin.getLogger().warning("[kits] " + file.getName()
-                    + " 礼包 id 非法或缺失: " + rawId);
+            LogTags.send(plugin, KitsLogTag.KITS, Level.WARNING, "kits.kit_id_invalid", Map.of("file", file.getName(), "id", rawId));
             return null;
         }
         String id = KitIds.normalize(rawId);
         List<KitDefinition.ConfigIssue> issues = new ArrayList<>();
         KitDefinition def = parseKit(id, node, base, issues);
         for (KitDefinition.ConfigIssue issue : issues) {
-            plugin.getLogger().warning("[kits] " + file.getName() + " 礼包 " + id
-                    + " 的 " + issue.path() + " 校验失败: " + issue.reasonKey());
+            LogTags.send(plugin, KitsLogTag.KITS, Level.WARNING, "kits.kit_validation_failed", Map.of("file", file.getName(), "id", id, "path", issue.path(), "reason", issue.reasonKey()));
         }
         if (!issues.isEmpty()) {
             return null;

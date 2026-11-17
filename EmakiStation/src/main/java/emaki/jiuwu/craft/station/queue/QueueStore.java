@@ -21,6 +21,9 @@ import emaki.jiuwu.craft.station.api.model.ConsumedMaterial;
 import emaki.jiuwu.craft.station.api.model.MaterialChannel;
 import emaki.jiuwu.craft.station.api.model.PendingOutput;
 import emaki.jiuwu.craft.station.api.model.QueueEntryState;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class QueueStore {
 
@@ -234,7 +237,7 @@ public final class QueueStore {
             return;
         }
         if (!file.delete()) {
-            plugin.getLogger().warning("[persistence] 无法删除过期的队列文件: " + file.getPath());
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.delete_expired_queue_file_failed", Map.of("path", file.getPath()));
             return;
         }
         File parent = file.getParentFile();

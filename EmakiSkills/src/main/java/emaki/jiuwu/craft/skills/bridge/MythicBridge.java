@@ -12,6 +12,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 import io.lumine.mythic.api.skills.SkillMetadata;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
@@ -143,11 +145,7 @@ public final class MythicBridge {
             try {
                 metadata.getParameters().putAll(variables);
             } catch (RuntimeException exception) {
-                plugin.getLogger().log(Level.WARNING,
-                        "[integration] MythicMobs 技能元数据参数被拒绝: provider=MythicMobs, parameters="
-                                + variables.keySet()
-                                + ", operation=apply_skill_metadata_parameters, cause=" + exception,
-                        exception);
+                LogTags.send(plugin, LogTag.INTEGRATION, Level.WARNING, "integration.mythic_metadata_parameters_rejected", Map.of("parameters", variables.keySet(), "error", exception), exception);
             }
             for (Map.Entry<String, String> entry : variables.entrySet()) {
                 metadata.getVariables().putString(entry.getKey(), entry.getValue());
@@ -162,14 +160,14 @@ public final class MythicBridge {
 
     private void info(String key) {
         if (messages != null) {
-            messages.info(key);
+            messages.info(LogTag.INTEGRATION, key);
             return;
         }
-        plugin.getLogger().info("[integration] " + key);
+        LogTags.sendRaw(plugin, LogTag.INTEGRATION, Level.INFO, key);
     }
 
     private void warning(String key, Map<String, ?> replacements, Throwable throwable) {
-        String text = messages == null ? "[integration] " + key
+        String text = messages == null ? LogTags.head(plugin, "integration") + " " + key
                 : MiniMessages.plainText(messages.message(key, replacements == null ? Map.of() : replacements));
         if (throwable == null) {
             plugin.getLogger().warning(text);

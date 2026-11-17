@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 final class VanillaAttributeSynchronizer {
 
     private static final double DEFAULT_WALK_SPEED_BLOCKS_PER_SECOND = 4.317D;
@@ -50,7 +51,7 @@ final class VanillaAttributeSynchronizer {
         ResolvedVanillaAttribute resolved = resolveVanillaAttribute(definition.targetId());
         if (resolved == null || resolved.attribute() == null) {
             if (plugin.messageService() != null) {
-                plugin.messageService().warning("console.vanilla_attribute_resolve_failed", Map.of(
+                plugin.messageService().warning(LogTag.LOADER, "console.vanilla_attribute_resolve_failed", Map.of(
                         "attribute", definition.id(),
                         "target", definition.targetId()
                 ));

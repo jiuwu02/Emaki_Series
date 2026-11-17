@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import java.io.IOException;
 import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class EditorStateStore {
 
@@ -154,7 +155,7 @@ public final class EditorStateStore {
         try {
             YamlFiles.save(stateFile(dungeonId), root);
         } catch (IOException exception) {
-            messages.warning("console.editor_state_save_failed", Map.of(
+            messages.warning(LogTag.EDITOR, "console.editor_state_save_failed", Map.of(
                     "dungeon", String.valueOf(dungeonId),
                     "error", String.valueOf(exception.getMessage())));
         }

@@ -13,6 +13,9 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlLoadException;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class AccessoryPartLoader {
 
@@ -94,10 +97,10 @@ public final class AccessoryPartLoader {
     private void warn(String key, Map<String, ?> replacements) {
         if (messageService != null) {
             issues.add(messageService.message(key, replacements));
-            messageService.warning(key, replacements);
+            messageService.warning(LogTag.LOADER, key, replacements);
             return;
         }
         issues.add(key + " " + replacements);
-        plugin.getLogger().warning("[loader] " + key + " " + replacements);
+        LogTags.sendRaw(plugin, LogTag.LOADER, Level.WARNING, key + " " + replacements);
     }
 }

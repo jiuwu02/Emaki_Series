@@ -46,6 +46,7 @@ import java.nio.file.Path;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.plugin.java.JavaPlugin;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 final class EditorServiceDelegate {
 
@@ -204,7 +205,7 @@ final class EditorServiceDelegate {
                     session.regionSnapshot().put(sub + "/" + file.getName(), file.lastModified());
                     changed = true;
                 } catch (IOException exception) {
-                    ownerRef.messages.warning("console.editor_region_writeback_failed", Map.of(
+                    ownerRef.messages.warning(LogTag.EDITOR, "console.editor_region_writeback_failed", Map.of(
                             "file", String.valueOf(sub + "/" + file.getName()),
                             "error", String.valueOf(exception.getMessage())));
                 }
@@ -356,7 +357,7 @@ final class EditorServiceDelegate {
                 }
             }
             if (removed > 0) {
-                ownerRef.messages.info("console.editor_worlds_swept", Map.of("count", String.valueOf(removed)));
+                ownerRef.messages.info(null, "console.editor_worlds_swept", Map.of("count", String.valueOf(removed)));
             }
         });
     }
@@ -379,7 +380,7 @@ final class EditorServiceDelegate {
             Files.move(source.toPath(), new File(originDir, source.getName()).toPath(),
                     StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException exception) {
-            ownerRef.messages.warning("console.editor_playerdata_handoff_failed", Map.of(
+            ownerRef.messages.warning(LogTag.EDITOR, "console.editor_playerdata_handoff_failed", Map.of(
                     "player", String.valueOf(session.playerId()),
                     "error", String.valueOf(exception.getMessage())));
         }

@@ -51,6 +51,7 @@ import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionNode;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 import emaki.jiuwu.craft.corelib.condition.ConditionNode;
+import emaki.jiuwu.craft.strengthen.log.StrengthenLogTag;
 
 public final class StrengthenAttemptService {
 
@@ -215,7 +216,7 @@ public final class StrengthenAttemptService {
             preview = preview(player, safeContext);
             result = attemptOnce(player, safeContext, preview, operationId);
         } catch (RuntimeException | LinkageError exception) {
-            plugin.messageService().severe("console.strengthen_attempt_failed_closed", Map.of(
+            plugin.messageService().severe(StrengthenLogTag.ATTEMPT, "console.strengthen_attempt_failed_closed", Map.of(
                     "operation_id", Texts.toStringSafe(operationId),
                     "error", String.valueOf(exception.getMessage())));
             result = internalFailure(player, safeContext, preview, operationId);

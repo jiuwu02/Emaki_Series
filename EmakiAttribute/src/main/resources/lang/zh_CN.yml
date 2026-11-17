@@ -2,20 +2,23 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.6"
+version: "5.0.7"
+
+tags:
+  combat: '[ 战斗 ]'
 
 general:
   prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
 
 console:
-  plugin_starting: "[startup] <gray>正在启动...</gray>"
-  plugin_started: "[startup] <green>启动完成</green>"
-  plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
-  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "<gray>正在启动...</gray>"
+  plugin_started: "<green>启动完成</green>"
+  plugin_stopped: "<yellow>已关闭</yellow>"
+  config_precheck_passed: "<gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "<red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -34,70 +37,67 @@ console:
       attribute_sources_disabled: "Lore 与 PDC 物品属性来源均已关闭, 所有物品属性都会失效"
       attribute_sources_match_requires_both: "一致模式要求同时启用 Lore 与 PDC 属性读取, 否则所有物品属性都会失效"
       scaling_curve_type_unknown: "属性 %attribute% 的衰减曲线类型 %curve_type% 无法识别, 已回退为 logarithmic"
-  combat_debug_line: "<gray>[战斗][<aqua>%phase%</aqua>]</gray> %message%"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  config_load_failed: "[配置] <red>配置读取失败: %error%</red>"
-  reload_stage_failed: "[reload] <yellow>重载阶段 %stage% 失败: <red>%error%</red></yellow>"
-  vanilla_attribute_resolve_failed: "[loader] <yellow>无法解析原版属性映射: <red>%attribute%</red> -> <red>%target%</red></yellow>"
-  attribute_key_contains_conflict:
-    "[loader] <yellow>[属性注册] 检测到词条关键字包含冲突:
+  combat_debug_line: "<gray>[ <aqua>%phase%</aqua> ]</gray> %message%"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  config_load_failed: "<red>配置读取失败: %error%</red>"
+  reload_stage_failed: "<yellow>重载阶段 %stage% 失败: <red>%error%</red></yellow>"
+  vanilla_attribute_resolve_failed: "<yellow>无法解析原版属性映射: <red>%attribute%</red> -> <red>%target%</red></yellow>"
+  attribute_key_contains_conflict: "<yellow>[属性注册] 检测到词条关键字包含冲突:
     <aqua>%lower_display_name%</aqua>  (<white>%lower_id%</white>, 优先级
     %lower_priority%) 的关键字 <white>%lower_key%</white> 包含了
     <aqua>%higher_display_name%</aqua>  (<white>%higher_id%</white>, 优先级
     %higher_priority%) 的关键字
     <white>%higher_key%</white>, 这会因为优先级较低导致读取失效, 请提高优先级或修改
     display_name</yellow>"
-  mmoitems_bridge_unavailable: "[integration] <yellow>MMOItems 属性映射桥初始化失败: <red>%error%</red></yellow>"
-  mmoitems_stat_resolve_failed:
-    "[integration] <yellow>MMOItems 属性映射无法解析统计项: 属性
+  mmoitems_bridge_unavailable: "<yellow>MMOItems 属性映射桥初始化失败: <red>%error%</red></yellow>"
+  mmoitems_stat_resolve_failed: "<yellow>MMOItems 属性映射无法解析统计项: 属性
     <aqua>%attribute%</aqua> -> <red>%stat%</red></yellow>"
-  mmoitems_stat_read_failed:
-    "[integration] <yellow>MMOItems 属性映射读取失败: 属性
+  mmoitems_stat_read_failed: "<yellow>MMOItems 属性映射读取失败: 属性
     <aqua>%attribute%</aqua> -> <red>%stat%</red>  (<red>%error%</red>)</yellow>"
-  attribute_registry_empty: "[loader] <yellow>未加载到任何属性</yellow>"
-  attribute_registry_summary: "[loader] <gray>已加载 <yellow>%count%</yellow> 个属性</gray>"
-  attribute_registry_entry: "[loader] <gray>[属性注册]</gray>
+  attribute_registry_empty: "<yellow>未加载到任何属性</yellow>"
+  attribute_registry_summary: "<gray>已加载 <yellow>%count%</yellow> 个属性</gray>"
+  attribute_registry_entry: "<gray>[属性注册]</gray>
     <white>%index%</white> <dark_gray>|</dark_gray> <aqua>%display_name%</aqua>
     <dark_gray> (</dark_gray><white>%id%</white><dark_gray>)</dark_gray>
     <dark_gray>|</dark_gray> <gray>默认值</gray> <yellow>%default_value%</yellow>
     <dark_gray>|</dark_gray> <gray>战力系数</gray>
     <yellow>%attribute_power%</yellow>"
-  papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
-  editor_open_failed: "[editor] <red>无法打开 EmakiAttribute 编辑界面: %item%  (%error%)</red>"
-  editor_template_missing: "[editor] <red>缺少 EmakiAttribute 编辑界面模板: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
+  papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
+  editor_open_failed: "<red>无法打开 EmakiAttribute 编辑界面: %item%  (%error%)</red>"
+  editor_template_missing: "<red>缺少 EmakiAttribute 编辑界面模板: %template%</red>"
+  editor_browser_create_failed: "<red>无法创建定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>无法删除定义: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>无法列举定义目录: %path%  (%error%)</red>"
 
 loader:
-  lang_directory_create_failed: "[loader] <red>无法创建语言目录: %path%</red>"
-  bundled_language_load_failed: "[loader] <red>读取内置语言失败: %error%</red>"
-  bundled_resource_missing: "[loader] <red>内置资源缺失: %resource%, 无法写入 %path%</red>"
-  bundled_resource_sync_failed: "[loader] <red>同步内置资源失败: %path%  (%error%)</red>"
-  bundled_resource_write_failed: "[loader] <red>写入内置资源失败: %path%  (%error%)</red>"
-  directory_create_failed: "[loader] <red>无法创建%type%目录: %path%</red>"
-  schema_missing_id: "[loader] <red>%type%文件 %file% 缺少 ID 字段</red>"
-  schema_missing_section: "[loader] <red>%type%文件 %file% 缺少必要的 %field% 节点</red>"
-  schema_invalid_section: "[loader] <red>%type%文件 %file% 的 %field% 结构无效</red>"
-  schema_invalid_enum: "[loader] <red>%type%文件 %file% 的 %field% 枚举值无效</red>"
-  schema_invalid_number: "[loader] <red>%type%文件 %file% 的 %field% 不是有效数字</red>"
-  schema_unsupported_field: "[loader] <red>%type%文件 %file% 仍包含当前版本不支持的 %field% 字段</red>"
-  invalid_blank_id: "[loader] <red>%type%文件 %file% 的 ID 为空</red>"
-  duplicate_id: "[loader] <red>%type%文件 %file% 的 ID 重复: %id%</red>"
-  invalid_lore_pattern: "[loader] <red>%attribute% 的词条正则无效: %pattern%  (%error%)</red>"
-  load_failed: "[loader] <red>读取%type%文件 %file% 失败: %error%</red>"
-  parent_child_bonus_on_non_parent: "[loader] <red>%attribute% 配置了 child_bonuses, 但不是父级属性</red>"
-  parent_child_bonus_unknown: "[loader] <red>父级属性 %parent% 指向了不存在的子属性: %child%</red>"
-  parent_child_bonus_parent_target: "[loader] <red>父级属性 %parent% 的 child_bonuses 不能指向另一个父级属性: %child%</red>"
-  damage_type_parent_attribute_forbidden: "[loader] <red>伤害类型阶段不能直接引用父级属性: %attribute%</red>"
+  lang_directory_create_failed: "<red>无法创建语言目录: %path%</red>"
+  bundled_language_load_failed: "<red>读取内置语言失败: %error%</red>"
+  bundled_resource_missing: "<red>内置资源缺失: %resource%, 无法写入 %path%</red>"
+  bundled_resource_sync_failed: "<red>同步内置资源失败: %path%  (%error%)</red>"
+  bundled_resource_write_failed: "<red>写入内置资源失败: %path%  (%error%)</red>"
+  directory_create_failed: "<red>无法创建%type%目录: %path%</red>"
+  schema_missing_id: "<red>%type%文件 %file% 缺少 ID 字段</red>"
+  schema_missing_section: "<red>%type%文件 %file% 缺少必要的 %field% 节点</red>"
+  schema_invalid_section: "<red>%type%文件 %file% 的 %field% 结构无效</red>"
+  schema_invalid_enum: "<red>%type%文件 %file% 的 %field% 枚举值无效</red>"
+  schema_invalid_number: "<red>%type%文件 %file% 的 %field% 不是有效数字</red>"
+  schema_unsupported_field: "<red>%type%文件 %file% 仍包含当前版本不支持的 %field% 字段</red>"
+  invalid_blank_id: "<red>%type%文件 %file% 的 ID 为空</red>"
+  duplicate_id: "<red>%type%文件 %file% 的 ID 重复: %id%</red>"
+  invalid_lore_pattern: "<red>%attribute% 的词条正则无效: %pattern%  (%error%)</red>"
+  load_failed: "<red>读取%type%文件 %file% 失败: %error%</red>"
+  parent_child_bonus_on_non_parent: "<red>%attribute% 配置了 child_bonuses, 但不是父级属性</red>"
+  parent_child_bonus_unknown: "<red>父级属性 %parent% 指向了不存在的子属性: %child%</red>"
+  parent_child_bonus_parent_target: "<red>父级属性 %parent% 的 child_bonuses 不能指向另一个父级属性: %child%</red>"
+  damage_type_parent_attribute_forbidden: "<red>伤害类型阶段不能直接引用父级属性: %attribute%</red>"
 
 script:
-  engine_unavailable: "<yellow>[script] GraalJS 引擎不可用, 脚本属性加载已跳过: %reason%</yellow>"
-  disabled: "<gray>[script] 脚本属性支持已关闭  (scripts.enabled = false)</gray>"
-  loaded: "<gray>[script] 脚本属性加载完成: 成功 %loaded% 个, 跳过 %skipped% 个</gray>"
-  file_error: "<red>[script] 脚本 %file% 加载失败: %error%</red>"
-  register_error: "<red>[script] 属性注册被跳过: %error%</red>"
-  register_override: "<yellow>[script] 脚本属性 %id% 覆盖了已注册的同名属性</yellow>"
+  engine_unavailable: "<yellow>GraalJS 引擎不可用, 脚本属性加载已跳过: %reason%</yellow>"
+  disabled: "<gray>脚本属性支持已关闭  (scripts.enabled = false)</gray>"
+  loaded: "<gray>脚本属性加载完成: 成功 %loaded% 个, 跳过 %skipped% 个</gray>"
+  file_error: "<red>脚本 %file% 加载失败: %error%</red>"
+  register_error: "<red>属性注册被跳过: %error%</red>"
+  register_override: "<yellow>脚本属性 %id% 覆盖了已注册的同名属性</yellow>"
   payload_missing_id: "<gray>%file% 缺少必填的 id 字段</gray>"
   payload_invalid_enum: "<gray>%file% 的字段 %field% 枚举值无效: %value%</gray>"
   payload_invalid_number: "<gray>%file% 的字段 %field% 不是有效数字: %value%</gray>"
@@ -672,3 +672,45 @@ debug:
     bukkit_after: "写入 Bukkit 后 | 玩家=%player% | 原因=%reason% | 资源当前值=%resource_value% | 资源上限=%resource_max% | Bukkit生命=%bukkit_health% | Bukkit最大生命基础=%bukkit_max_health_base% | Bukkit最大生命实际=%bukkit_max_health_value%"
     bukkit_skipped_dead: "跳过写入 Bukkit (玩家已死亡) | 玩家=%player% | 原因=%reason% | 资源当前值=%resource_value% | 资源上限=%resource_max% | Bukkit生命=%bukkit_health%"
     regen: "生命自然回复 | 玩家=%player% | 资源=%resource% | 旧当前值=%old_value% | 引擎基线值=%baseline_value% | 单次回复量=%regen_amount% | 结算间隔tick=%interval_ticks% | 候选值=%candidate_value% | 同步状态存在=%synced_present% | 同步资源=%synced_resource_id% | 同步默认上限=%synced_default_max% | 同步加成上限=%synced_bonus_max% | 同步当前上限=%synced_current_max% | 同步当前值=%synced_current_value% | 同步来源签名=%synced_source_signature% | 同步模式版本=%synced_schema_version%"
+startup:
+  pipeline_stage_register_failed: "注册管线阶段 '%stage%' 失败: %reason%"
+  readiness_publish_skipped: "就绪状态发布已跳过: %error%"
+shutdown:
+  closed: "已关闭"
+  parent_attribute_data_drain_incomplete: "父级属性数据排空未完成: %report%"
+  parent_attribute_data_drained: "父级属性数据排空: %report%"
+integration:
+  mythic_skill_rejected: "Mythic 技能被拒绝: mechanic=%mechanic%, status=%status%, group=%group%, attribute=%attribute%, detail=%detail%"
+  mythic_skill_parse_rejected_non_finite_value: "Mythic 技能在解析时被拒绝: mechanic=%mechanic%, reason=non_finite_value, value=%value%"
+  mythic_skill_parse_rejected_unknown_stack_mode: "Mythic 技能在解析时被拒绝: mechanic=%mechanic%, reason=unknown_stack_mode, stack_mode=%stack_mode%"
+  mythic_mob_attribute_expression_failed: "Mythic 生物属性表达式执行失败: expression=%expression%, cause=%error%"
+  skip_mythic_mob_attribute_non_finite_value: "已跳过 Mythic 生物属性: source=%source%, attribute=%attribute%, expression=%expression%, reason=non_finite_value"
+  skip_mythic_mob_attribute_unparsable_value: "已跳过 Mythic 生物属性: source=%source%, attribute=%attribute%, expression=%expression%, reason=unparsable_value"
+  skip_mythic_mob_attribute_unregistered_attribute: "已跳过 Mythic 生物属性: source=%source%, attribute=%attribute%, reason=unregistered_attribute"
+  skip_mythic_mob_attribute_blank_attribute_or_value: "已跳过 Mythic 生物属性: source=%source%, entry=%entry%, reason=blank_attribute_or_value"
+  skip_mythic_mob_attribute_missing_separator: "已跳过 Mythic 生物属性: source=%source%, entry=%entry%, reason=missing_separator"
+  mythic_damage_failed: "Mythic 伤害结算失败: mechanic=%mechanic%target=%target%"
+registry:
+  attribute_slot_provider_failed: "属性槽位提供器 '%slot%' 执行失败; 跳过该槽位"
+  item_contribution_gate_failed: "物品属性贡献门控 '%id%' 执行失败; 按物品有效处理"
+combat:
+  debug_line: "[%phase%] %message%"
+  damage_debug_anchor_output_failed: "伤害调试锚点输出失败; 伤害计算不受影响"
+  post_damage_effect_failed: "伤害后置效果 '%phase%' 执行失败; 其余终结效果将继续处理"
+  sync_damage_wrong_thread: "同步伤害入口被非实体所有者线程调用; 已拒绝, 请改用 applyDamageAsync; target=%target%"
+  vanilla_damage_modifier_zero_failed: "原版伤害修饰符归零失败: entity=%entity%, modifier=%modifier%, operation=zero_damage_modifier, cause=%error%"
+persistence:
+  parent_attribute_save_failed: "保存父级属性数据失败: %player%: %error%"
+  parent_attribute_save_unavailable: "CoreLib 异步 YAML 服务不可用; 已丢弃 %player% 的保存"
+  parent_attribute_load_incomplete: "加载未完成: %player%: %error%"
+  parent_attribute_modified_while_loading: "父级属性数据 %player% 在文件仍加载时被修改; 保留内存中的编辑并丢弃文件内容"
+  parent_attribute_load_failed: "加载父级属性数据失败: %player%; 本次会话保持只读以保护现有文件: %error%"
+  parent_attribute_load_unavailable: "CoreLib 异步 YAML 服务不可用; 无法为 %player% 加载父级属性数据, 本次会话保持只读以保护现有文件"
+  pdc_attribute_write_unregistered_source: "忽略未注册来源的 PDC 属性写入: %source%"
+config:
+  health_display_scaling_target_invalid: "配置项 health_display_scaling.target 无效 '%value%': %error%"
+temporary_attribute:
+  cleanup_expired_failed: "[temporary_attribute] 临时属性清理失败: trackedEntities=%count%, operation=cleanup_expired, cause=%error%"
+skip:
+action:
+  attribute_damage_failed: "属性伤害结算失败: stage=%stage%target=%target%"

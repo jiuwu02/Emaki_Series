@@ -23,6 +23,9 @@ import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementMaterialVariables;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.TargetCompareEnum;
 import emaki.jiuwu.craft.strengthen.model.StarStageMaterialRule;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class MaterialPlanResolver {
 
@@ -273,8 +276,7 @@ final class MaterialPlanResolver {
 
     private void warnRuleFailure(Throwable throwable) {
         if (plugin != null && plugin.getLogger() != null) {
-            plugin.getLogger().warning("[matcher] 星级材料规则判定失败, 视为不匹配: "
-                    + String.valueOf(throwable.getMessage()));
+            LogTags.send(plugin, LogTag.MATCHER, Level.WARNING, "matcher.star_material_rule_check_failed", Map.of("error", String.valueOf(throwable.getMessage())));
         }
     }
 

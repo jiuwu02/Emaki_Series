@@ -36,6 +36,9 @@ import emaki.jiuwu.craft.gem.model.GemItemInstance;
 import emaki.jiuwu.craft.gem.model.GemResonanceDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.model.ResonanceEffects;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class GemInlayService {
 
@@ -433,13 +436,11 @@ public final class GemInlayService {
             return;
         }
         if (!actor.isOnline()) {
-            plugin.getLogger().warning("[scheduler] 已跳过宝石完成事件, 因为操作执行者离线: "
-                    + actor.getUniqueId());
+            LogTags.send(plugin, LogTag.SCHEDULER, Level.WARNING, "scheduler.skip_gem_complete_event_actor_offline", Map.of("player", actor.getUniqueId()));
             return;
         }
         scheduling.runForEntity(plugin, actor, eventCall,
-                () -> plugin.getLogger().warning("[scheduler] 已跳过宝石完成事件, 因为执行者调度已退役: "
-                        + actor.getUniqueId()));
+                () -> LogTags.send(plugin, LogTag.SCHEDULER, Level.WARNING, "scheduler.skip_gem_complete_event_actor_scheduler_retired", Map.of("player", actor.getUniqueId())));
     }
 
     private ItemStack createReturnedGem(GemDefinition gemDefinition, GemItemInstance instance) {

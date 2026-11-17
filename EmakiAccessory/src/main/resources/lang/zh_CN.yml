@@ -1,26 +1,26 @@
 # EmakiAccessory 简体中文语言资源
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
-version: "2.0.2"
+version: "2.0.3"
 
 console:
-  plugin_starting: "[startup] <gray>正在启动 EmakiAccessory...</gray>"
-  plugin_started: "[startup] <green>已启动</green>"
-  plugin_stopped: "[shutdown] <yellow>已停止</yellow>"
-  bootstrap_start: "[loader] <gray>正在检查配置文件...</gray>"
-  bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
-  bootstrap_skip: "[loader] <yellow>已跳过默认数据写入</yellow>"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  loader_config_load_error: "[loader] <yellow>读取 Accessory 配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
-  directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
-  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "<gray>正在启动 EmakiAccessory...</gray>"
+  plugin_started: "<green>已启动</green>"
+  plugin_stopped: "<yellow>已停止</yellow>"
+  bootstrap_start: "<gray>正在检查配置文件...</gray>"
+  bootstrap_complete: "<green>默认文件检查完成</green>"
+  bootstrap_skip: "<yellow>已跳过默认数据写入</yellow>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  loader_config_load_error: "<yellow>读取 Accessory 配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
+  config_precheck_passed: "<gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "<red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -37,15 +37,15 @@ console:
       path_not_directory: "指定路径不是目录"
       directory_not_readable: "目录不可读"
   # 控制台: 打开编辑界面失败; 占位符: %item%, %error%
-  editor_open_failed: "[editor] <red>无法打开 EmakiAccessory 编辑界面: %item%  (%error%)</red>"
+  editor_open_failed: "<red>无法打开 EmakiAccessory 编辑界面: %item%  (%error%)</red>"
   # 控制台: 编辑界面模板缺失; 占位符: %template%
-  editor_template_missing: "[editor] <red>缺少 EmakiAccessory 编辑界面模板: %template%</red>"
+  editor_template_missing: "<red>缺少 EmakiAccessory 编辑界面模板: %template%</red>"
   # 控制台: 创建定义失败; 占位符: %path%, %error%
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
+  editor_browser_create_failed: "<red>无法创建定义: %path%  (%error%)</red>"
   # 控制台: 删除定义失败; 占位符: %path%, %error%
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>无法删除定义: %path%  (%error%)</red>"
   # 控制台: 列举定义目录失败; 占位符: %path%, %error%
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>无法列举定义目录: %path%  (%error%)</red>"
 
 general:
   prefix: "<gray>[ <gradient:#F472B6:#C084FC>EmakiAccessory</gradient> ]</gray>"
@@ -119,30 +119,32 @@ command:
   admin_clear_failed: "<red>清空 <white>%player%</white> 的饰品失败, 数据可能未加载</red>"
   admin_save_done: "<green>已保存 <yellow>%count%</yellow> 份饰品数据</green>"
   debug_unavailable: "<red>调试功能当前不可用</red>"
+  accessory_clear_empty: "饰品清空: 操作者 %operator%, 目标 %target% (%player%): 没有可移除的物品"
+  accessory_clear_item: "饰品清空: 操作者 %operator%, 目标 %target% (%player%): page=%page% slot=%slot% type=%type% amount=%amount% name=%item_name%"
 
 accessory:
-  parts_load_failed: "[loader] 读取 %file% 失败: %error%"
-  parts_section_missing: "[loader] %file% 缺少 parts 段, 没有任何饰品部位生效"
-  part_id_illegal: "[loader] 部位 id 不合法, 已跳过: %part%  (只能用小写字母, 数字, 下划线, 且不能以 _<数字> 结尾)"
-  part_count_invalid: "[loader] 部位 %part% 的 count 不合法  (%count%), 已跳过"
-  part_instance_conflict: "[loader] 部位 %part% 展开出的槽位 %slot% 与已有槽位重名, 该部位已跳过"
-  gui_template_missing: "[gui] 缺少界面布局 %template%, 饰品栏无法打开"
-  gui_slot_multi_cell: "[gui] 槽位 %slot% 占了 %count% 格, 只有第一格生效"
-  gui_cell_conflict: "[gui] 槽位 %slot% 想占用第 %cell% 格, 但该格已被占用, 已跳过"
-  gui_slot_unplaced: "[gui] 饰品页 %page% 的槽位 %slot% 没有在界面布局里摆放, 玩家无法使用"
-  pages_missing: "[loader] pages 目录里没有任何有效的饰品页, 饰品栏无法打开"
-  page_without_parts: "[loader] %file% 里的饰品页 %page% 没有列出任何部位, 已跳过"
-  page_unknown_part: "[loader] 饰品页 %page% 引用了未定义的部位 %part%, 该部位不会出现在本页"
-  invalid_slot_pattern: "[loader] 槽位 Lore 正则 %pattern% 编译失败, 已跳过: %error%"
-  set_without_pieces: "[loader] %file% 里的套装 %set% 没有任何成员, 已跳过"
-  set_piece_invalid: "[loader] %file% 里套装 %set% 的成员 %piece% 缺少 item, 已跳过"
-  set_threshold_not_numeric: "[loader] %file% 里套装 %set% 的阈值 %threshold% 不是整数, 已跳过"
-  set_threshold_out_of_range: "[loader] %file% 里套装 %set% 的阈值 %threshold% 超出范围  (成员总数 %total%), 已跳过"
+  parts_load_failed: "读取 %file% 失败: %error%"
+  parts_section_missing: "%file% 缺少 parts 段, 没有任何饰品部位生效"
+  part_id_illegal: "部位 id 不合法, 已跳过: %part%  (只能用小写字母, 数字, 下划线, 且不能以 _<数字> 结尾)"
+  part_count_invalid: "部位 %part% 的 count 不合法  (%count%), 已跳过"
+  part_instance_conflict: "部位 %part% 展开出的槽位 %slot% 与已有槽位重名, 该部位已跳过"
+  gui_template_missing: "缺少界面布局 %template%, 饰品栏无法打开"
+  gui_slot_multi_cell: "槽位 %slot% 占了 %count% 格, 只有第一格生效"
+  gui_cell_conflict: "槽位 %slot% 想占用第 %cell% 格, 但该格已被占用, 已跳过"
+  gui_slot_unplaced: "饰品页 %page% 的槽位 %slot% 没有在界面布局里摆放, 玩家无法使用"
+  pages_missing: "pages 目录里没有任何有效的饰品页, 饰品栏无法打开"
+  page_without_parts: "%file% 里的饰品页 %page% 没有列出任何部位, 已跳过"
+  page_unknown_part: "饰品页 %page% 引用了未定义的部位 %part%, 该部位不会出现在本页"
+  invalid_slot_pattern: "槽位 Lore 正则 %pattern% 编译失败, 已跳过: %error%"
+  set_without_pieces: "%file% 里的套装 %set% 没有任何成员, 已跳过"
+  set_piece_invalid: "%file% 里套装 %set% 的成员 %piece% 缺少 item, 已跳过"
+  set_threshold_not_numeric: "%file% 里套装 %set% 的阈值 %threshold% 不是整数, 已跳过"
+  set_threshold_out_of_range: "%file% 里套装 %set% 的阈值 %threshold% 超出范围  (成员总数 %total%), 已跳过"
 
 debug:
   accessory:
-    recompute: "<gray>[调试][Accessory] 玩家 <player> 饰品贡献重算完成: 属性 <attributes> 项, 技能 <skills> 项, 套装 <sets> 组</gray>"
-    inactive_slot: "<gray>[调试][Accessory] 玩家 <player> 的槽位 <slot> 不参与贡献: 条件满足 <condition>, 耐久完好 <durability_intact></gray>"
+    recompute: "<gray>玩家 <player> 饰品贡献重算完成: 属性 <attributes> 项, 技能 <skills> 项, 套装 <sets> 组</gray>"
+    inactive_slot: "<gray>玩家 <player> 的槽位 <slot> 不参与贡献: 条件满足 <condition>, 耐久完好 <durability_intact></gray>"
 
 editor:
   menu:
@@ -225,10 +227,10 @@ editor:
   modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
+    chat: '<yellow>请在聊天栏输入"%label%"的内容, 输入 cancel 取消</yellow>'
+    map_entry: '<yellow>请在聊天栏输入"键=值"新增一条映射, 输入 cancel 取消</yellow>'
   map:
-    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
+    bad_entry: '<red>格式错误, 请按"键=值"输入</red>'
   value:
     unset: "未设置 (空)"
     integer: "整数"
@@ -256,6 +258,26 @@ editor:
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
     delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
-    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
+    delete_confirm: '<red>再次点击"删除"以确认删除</red>'
     delete_success: "<green>已删除定义 %id%</green>"
     delete_failed: "<red>删除失败, 详见控制台</red>"
+startup:
+  skipped_readiness_publish: "已跳过就绪状态发布: %error%"
+shutdown:
+  accessory_data_flush_incomplete: "饰品数据写入未正常结束: saved=%saved% failed=%failed% remainingDirty=%remaining_dirty%"
+integration:
+  accessory_attribute_collect_failed: "饰品属性收集失败: %error%"
+  emaki_skills_integration_failed: "EmakiSkills 集成失败: %error%"
+  emaki_skills_integration_unavailable: "EmakiSkills 集成不可用; 将在没有技能贡献的情况下继续"
+  emaki_skills_integration_type_invalid: "EmakiSkills 集成实现类型无效"
+  accessory_skill_collect_failed: "饰品技能收集失败: %error%"
+skip:
+persistence:
+  accessory_slot_discarded: "已丢弃玩家 %player%槽位 %slot%中无法解码的饰品: %error%"
+  accessory_structure_unrecognized: "无法识别玩家 %player%的饰品数据结构; 文件保持原样, 本次会话从空数据开始"
+  accessory_migration_no_pages: "无法迁移玩家 %player%的饰品数据: 未配置任何饰品页, 文件保持原样"
+  accessory_write_timeout: "饰品数据写入未在排空截止时间前完成"
+  accessory_file_save_failed: "保存饰品到文件 %file%失败: %error%"
+  accessory_save_failed: "保存玩家 %player%的饰品失败: %error%"
+  accessory_save_skipped_unrecognized: "已跳过保存玩家 %player%的饰品: 其数据文件结构无法识别"
+  accessory_load_failed: "加载玩家 %player%的饰品失败: %error%"

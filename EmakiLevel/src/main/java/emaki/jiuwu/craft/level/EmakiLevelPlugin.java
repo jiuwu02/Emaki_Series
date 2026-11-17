@@ -63,6 +63,9 @@ import emaki.jiuwu.craft.level.service.LevelTypeRegistry;
 import emaki.jiuwu.craft.level.service.PlayerLevelDataStore;
 import emaki.jiuwu.craft.level.service.PlayerLevelService;
 import emaki.jiuwu.craft.level.service.RequirementService;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.level.log.LevelLogTag;
 
 public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider {
 
@@ -168,11 +171,12 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
                 STARTUP_ASCII_START_COLOR,
                 STARTUP_ASCII_END_COLOR
         );
+        LogTags.registerTags(this, LevelLogTag.values());
         coreLib = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         scheduling = EmakiCoreLibApi.scheduling();
         initializeServices();
         registerConfigPrecheckContributor();
-        messages.info("console.plugin_starting");
+        messages.info(LogTag.STARTUP, "console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState();
         registerCommand();
@@ -183,7 +187,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
         registerPlaceholderExpansion();
         registerMythicDrops();
         metrics = coreLib.registerBStats(this, BSTATS_PLUGIN_ID);
-        messages.info("console.plugin_started");
+        messages.info(LogTag.STARTUP, "console.plugin_started");
     }
 
     @Override
@@ -224,11 +228,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
         if (dataStore != null) {
             PlayerLevelDataStore.FlushResult flushResult = dataStore.flushAndSeal(5L, TimeUnit.SECONDS);
             if (!flushResult.clean()) {
-                getLogger().warning("[shutdown] 等级数据排空未完成: pending="
-                        + flushResult.drainResult().pendingOperations()
-                        + ", ioFailures=" + flushResult.drainResult().failures().size()
-                        + ", saveFailures=" + flushResult.failedEntries()
-                        + ", remainingDirty=" + flushResult.remainingDirtyEntries());
+                LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.level_data_drain_incomplete", Map.of("pending", flushResult.drainResult().pendingOperations(), "io_failures", flushResult.drainResult().failures().size(), "save_failures", flushResult.failedEntries(), "remaining_dirty", flushResult.remainingDirtyEntries()));
             }
         }
         if (stageRegistrar != null) {
@@ -240,7 +240,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
             metrics = null;
         }
         if (messages != null) {
-            messages.info("console.plugin_stopped");
+            messages.info(LogTag.SHUTDOWN, "console.plugin_stopped");
         }
     }
 
@@ -278,12 +278,12 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
             playerDataListener.ensureSession(player);
         }
         topService.rebuildAsync().exceptionally(throwable -> {
-            getLogger().log(Level.WARNING, "[leaderboard] " + messages.message("console.leaderboard_rebuild_failed"), throwable);
+            LogTags.sendRaw(getLogger(), LevelLogTag.LEADERBOARD, Level.WARNING, messages.message("console.leaderboard_rebuild_failed"));
             return null;
         });
         levelService.syncAllOnline();
-        messages.info("console.types_loaded", Map.of("count", String.valueOf(typeRegistry.all().size())));
-        messages.info("console.sources_loaded", Map.of("count", String.valueOf(sourceRuleLoader.rules().size())));
+        messages.info(LogTag.LOADER, "console.types_loaded", Map.of("count", String.valueOf(typeRegistry.all().size())));
+        messages.info(LogTag.LOADER, "console.sources_loaded", Map.of("count", String.valueOf(sourceRuleLoader.rules().size())));
         contentReady = true;
         publishReady();
     }
@@ -308,7 +308,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
+            LogTags.send(getLogger(), LogTag.STARTUP, Level.FINE, "startup.readiness_publish_skipped", Map.of("error", exception));
         }
     }
 
@@ -419,7 +419,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
     private void registerActions() {
         stageRegistrar = new LevelStageRegistrar(this);
         stageRegistrar.register();
-        messages.info("console.actions_registered");
+        messages.info(LogTag.INTEGRATION, "console.actions_registered");
     }
 
     private void registerCorePlaceholders() {
@@ -439,7 +439,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
         }
         placeholderExpansion = new LevelPlaceholderExpansion(this);
         placeholderExpansion.register();
-        messages.info("console.papi_registered");
+        messages.info(LogTag.INTEGRATION, "console.papi_registered");
     }
 
     private void registerAttributeBridge() {
@@ -448,7 +448,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
             return;
         }
         if (!Bukkit.getPluginManager().isPluginEnabled("EmakiAttribute")) {
-            messages.info("console.attribute_bridge_unavailable");
+            messages.info(LogTag.INTEGRATION, "console.attribute_bridge_unavailable");
             return;
         }
         try {
@@ -460,21 +460,21 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
                     appConfig);
             if (!bridge.register()) {
                 bridge.close();
-                messages.warning("console.attribute_bridge_register_failed",
+                messages.warning(LogTag.INTEGRATION, "console.attribute_bridge_register_failed",
                         Map.of("cause", "bridge.register() 返回 false"));
-                messages.info("console.attribute_bridge_unavailable");
+                messages.info(LogTag.INTEGRATION, "console.attribute_bridge_unavailable");
                 return;
             }
             attributeBridgeClose = bridge::close;
             attributeRefreshAll = bridge::resyncAll;
             attributeRefreshPlayer = bridge::resync;
-            messages.info("console.attribute_bridge_ready");
+            messages.info(LogTag.INTEGRATION, "console.attribute_bridge_ready");
         } catch (RuntimeException | LinkageError exception) {
             getLogger().log(Level.WARNING,
                     messages.message("console.attribute_bridge_register_failed",
                             Map.of("cause", String.valueOf(exception))),
                     exception);
-            messages.info("console.attribute_bridge_unavailable");
+            messages.info(LogTag.INTEGRATION, "console.attribute_bridge_unavailable");
         }
     }
 
@@ -502,7 +502,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
         }
         mythicDropBridge = new MythicLevelDropBridge(this);
         getServer().getPluginManager().registerEvents(mythicDropBridge, this);
-        messages.info("console.mythic_drops_registered");
+        messages.info(LogTag.INTEGRATION, "console.mythic_drops_registered");
     }
 
     public AppConfig appConfig() {

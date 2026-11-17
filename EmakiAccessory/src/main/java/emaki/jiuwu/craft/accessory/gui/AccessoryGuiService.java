@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class AccessoryGuiService {
 
@@ -413,7 +414,7 @@ public final class AccessoryGuiService {
     private void warn(String key, Map<String, ?> replacements) {
         if (messageService != null) {
             issues.add(messageService.message(key, replacements));
-            messageService.warning(key, replacements);
+            messageService.warning(LogTag.GUI, key, replacements);
             return;
         }
         issues.add(key + " " + replacements);

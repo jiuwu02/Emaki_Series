@@ -16,6 +16,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import java.util.logging.Level;
 
 public final class InstanceRegistry {
 
@@ -171,7 +173,7 @@ public final class InstanceRegistry {
                 try {
                     check.run();
                 } catch (RuntimeException exception) {
-                    plugin.getLogger().warning("多方块候选校验任务异常: " + exception.getMessage());
+                    LogTags.send(plugin, null, Level.WARNING, "multiblock.candidate_check_task_failed", Map.of("error", exception.getMessage()));
                 }
             }, delayTicks);
         });

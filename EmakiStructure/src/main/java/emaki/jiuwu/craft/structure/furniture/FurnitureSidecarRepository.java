@@ -5,6 +5,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.structure.EmakiStructurePlugin;
 import emaki.jiuwu.craft.structure.config.AppConfig;
 import emaki.jiuwu.craft.structure.template.StructureTemplate;
+import emaki.jiuwu.craft.structure.log.StructureLogTag;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -57,7 +58,7 @@ public final class FurnitureSidecarRepository {
             report(result, fileName);
             return result;
         } catch (RuntimeException exception) {
-            plugin.messageService().warning("error.furniture.rejected",
+            plugin.messageService().warning(null, "error.furniture.rejected",
                     Map.of("file", fileName, "reason", String.valueOf(exception.getMessage())));
             return FurnitureSidecarParser.fileRejectedResult(templateId,
                     "error.furniture.read_failed",
@@ -67,14 +68,14 @@ public final class FurnitureSidecarRepository {
 
     private void report(FurnitureSidecarParser.Result result, String fileName) {
         if (result.fileRejected()) {
-            plugin.messageService().warning("error.furniture.rejected", Map.of(
+            plugin.messageService().warning(null, "error.furniture.rejected", Map.of(
                     "file", fileName,
                     "reason", plugin.messageService().message(result.fileRejectKey(),
                             result.fileRejectPlaceholders())));
             return;
         }
         for (FurnitureSidecarParser.Issue issue : result.issues()) {
-            plugin.messageService().warning("console.furniture_entry_issue", Map.of(
+            plugin.messageService().warning(StructureLogTag.FURNITURE, "console.furniture_entry_issue", Map.of(
                     "file", fileName,
                     "index", issue.index(),
                     "reason", plugin.messageService().message(issue.reasonKey(),

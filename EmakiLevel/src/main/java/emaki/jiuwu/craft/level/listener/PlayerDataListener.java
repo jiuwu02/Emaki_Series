@@ -17,6 +17,8 @@ import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class PlayerDataListener implements Listener {
 
@@ -122,10 +124,7 @@ public final class PlayerDataListener implements Listener {
             return;
         }
         Throwable cause = AsyncFailures.unwrapOnce(throwable);
-        plugin.getLogger().log(Level.WARNING,
-                "[persistence] " + plugin.messages().message("console.async_operation_failed",
-                        Map.of("operation", operation, "player", playerId)),
-                cause);
+        LogTags.sendRaw(plugin, LogTag.PERSISTENCE, Level.WARNING, plugin.messages().message("console.async_operation_failed", Map.of("operation", operation, "player", playerId)));
     }
 
     private record ConnectionSession(Player player, long generation) {

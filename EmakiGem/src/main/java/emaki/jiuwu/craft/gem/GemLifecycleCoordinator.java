@@ -58,6 +58,9 @@ import emaki.jiuwu.craft.gem.service.GemSnapshotBuilder;
 import emaki.jiuwu.craft.gem.service.GemStateService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGemPlugin, GemRuntimeComponents> {
 
@@ -226,8 +229,8 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         loadResonances(plugin);
         plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
         refreshOnlinePlayerItems(plugin);
-        plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
-        plugin.messageService().info("console.gems_loaded", Map.of(
+        plugin.messageService().info(LogTag.LOADER, "console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
+        plugin.messageService().info(LogTag.LOADER, "console.gems_loaded", Map.of(
                 "count", String.valueOf(plugin.gemLoader().all().size())
         ));
     }
@@ -272,8 +275,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                         }
                     },
                     null,
-                    (stage, ex) -> plugin.getLogger().warning(
-                            "[reload] 阶段 " + stage + " 失败: " + ex.getMessage())
+                    (stage, ex) -> LogTags.send(plugin, LogTag.RELOAD, Level.WARNING, "reload.stage_failed", Map.of("stage", stage, "error", ex.getMessage()))
             )).thenCompose(_ -> {
                 notifyProgress(progressListener, "正在应用配置...");
                 return submitGlobalStage(plugin, () -> {
@@ -283,8 +285,8 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                     loadResonances(plugin);
                     plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
                     refreshOnlinePlayerItems(plugin);
-                    plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
-                    plugin.messageService().info("console.gems_loaded", Map.of(
+                    plugin.messageService().info(LogTag.LOADER, "console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
+                    plugin.messageService().info(LogTag.LOADER, "console.gems_loaded", Map.of(
                             "count", String.valueOf(plugin.gemLoader().all().size())
                     ));
                     notifyProgress(progressListener, "重载完成.");
@@ -315,15 +317,13 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 continue;
             }
             if (plugin.scheduling() == null) {
-                plugin.getLogger().warning("[scheduler] 已跳过玩家 " + player.getName()
-                        + " 的宝石物品刷新: 当前线程不拥有该玩家且没有可用的调度器");
+                LogTags.send(plugin, LogTag.SCHEDULER, Level.WARNING, "scheduler.skipped_gem_item_refresh", Map.of("player", player.getName()));
                 continue;
             }
             var task = plugin.scheduling().runForEntity(plugin, player,
                     () -> GemItemObtainListener.refreshInventory(plugin, player), null);
             if (task.cancelled()) {
-                plugin.getLogger().warning("[scheduler] 无法为玩家 " + player.getName()
-                        + " 重新安排宝石物品刷新: 实体任务调度被拒绝");
+                LogTags.send(plugin, LogTag.SCHEDULER, Level.WARNING, "scheduler.reschedule_gem_item_refresh_rejected", Map.of("player", player.getName()));
             }
         }
     }
@@ -339,7 +339,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         }
         if (plugin.gemGuiService() != null) {
             plugin.gemGuiService().clearAllSessionsAsync().exceptionally(throwable -> {
-                plugin.getLogger().warning("[shutdown] 关闭阶段无法关闭宝石 GUI 会话: " + throwable.getMessage());
+                LogTags.send(plugin, LogTag.SHUTDOWN, Level.WARNING, "shutdown.close_gem_gui_sessions_failed", Map.of("error", throwable.getMessage()));
                 return null;
             });
         }
@@ -392,9 +392,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         }
         if (permission != null && permission.contains("op_bypass")) {
             boolean legacyValue = permission.getBoolean("op_bypass", fallback);
-            JavaPlugin.getPlugin(EmakiGemPlugin.class).getLogger().warning("[配置] 配置键 permission.op_bypass"
-                    + " 已移到顶层 op_bypass, 当前按旧键值 " + legacyValue
-                    + " 生效, 启动时会自动迁移到新键");
+            LogTags.send(JavaPlugin.getPlugin(EmakiGemPlugin.class), LogTag.CONFIG, Level.WARNING, "config.legacy_permission_op_bypass_key", Map.of("value", legacyValue));
             return legacyValue;
         }
         return fallback;

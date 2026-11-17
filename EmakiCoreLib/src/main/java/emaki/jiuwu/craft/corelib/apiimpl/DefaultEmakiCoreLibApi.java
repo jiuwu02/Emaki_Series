@@ -64,6 +64,9 @@ import emaki.jiuwu.craft.corelib.library.NmsBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
 
@@ -337,8 +340,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     @Override
     public ReadinessRegistration whenReady(Plugin owner, String moduleName, Runnable callback) {
         return plugin.moduleReadinessRegistry().whenReady(owner, moduleName, callback,
-                failure -> plugin.getLogger().warning("[startup] 就绪回调失败, 插件 " + failure.owner()
-                        + " 正在等待 " + failure.moduleName() + ": " + failure.error()));
+                failure -> LogTags.send(plugin, LogTag.STARTUP, Level.WARNING, "startup.readiness_callback_failed", Map.of("plugin", failure.owner(), "module", failure.moduleName(), "error", failure.error())));
     }
 
     @Override

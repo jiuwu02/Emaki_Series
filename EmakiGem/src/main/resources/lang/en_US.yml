@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "3.0.2"
+version: "3.0.3"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -18,13 +18,13 @@ general:
     templates.</gray>"
 
 console:
-  plugin_starting: "[startup] <gray>Starting...</gray>"
-  plugin_started: "[startup] <green>Started</green>"
-  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
-  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
-  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started</green>"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -40,47 +40,47 @@ console:
       required_directory_missing: "The required directory is missing"
       path_not_directory: "The specified path is not a directory"
       directory_not_readable: "The directory is not readable"
-  bootstrap_start: "[loader] <gray>Checking default files...</gray>"
-  bootstrap_skip: "[loader] <gray>release_default_data=false, skipped default data file
+  bootstrap_start: "<gray>Checking default files...</gray>"
+  bootstrap_skip: "<gray>release_default_data=false, skipped default data file
     generation</gray>"
-  bootstrap_complete: "[loader] <green>Default file check complete</green>"
-  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  default_file_missing: "[loader] <yellow>Missing built-in default resource, skipped:
+  bootstrap_complete: "<green>Default file check complete</green>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  default_file_missing: "<yellow>Missing built-in default resource, skipped:
     <red>%path%</red></yellow>"
-  bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource:
+  bootstrap_copy_failed: "<yellow>Failed to copy default resource:
     <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>Failed to save default resource:
+  bootstrap_save_failed: "<yellow>Failed to save default resource:
     <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  directory_create_failed: "[loader] <yellow>Unable to create directory: <red>%path%</red></yellow>"
-  loader_config_load_error: "[loader] <red>Failed to load config: %path%  (%error%)</red>"
-  pdc_source_registered: "[loader] <gray>PDC attribute source registered: <aqua>%source%</aqua></gray>"
-  gems_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> gem (s)</gray>"
-  editor_open_failed: "[editor] <red>Could not open EmakiGem editor for %item%  (%error%)</red>"
-  editor_template_missing: "[editor] <red>Missing EmakiGem editor template: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>Could not create definition: %path%  (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>Could not delete definition: %path%  (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>Could not list definition directory: %path%  (%error%)</red>"
-  papi_registered: "[integration] <gray>PlaceholderAPI expansion registered</gray>"
-  reroll_refresh_degraded: "[persistence] <yellow>Gem refresh after the reroll write-back did not take effect | operation=%operation_id% | instance=%instance_id% | refresh=%outcome% | reason=%reason% | expected fingerprint=%expected_fingerprint% | presented fingerprint=%presented_fingerprint%</yellow>"
+  directory_create_failed: "<yellow>Unable to create directory: <red>%path%</red></yellow>"
+  loader_config_load_error: "<red>Failed to load config: %path%  (%error%)</red>"
+  pdc_source_registered: "<gray>PDC attribute source registered: <aqua>%source%</aqua></gray>"
+  gems_loaded: "<gray>Loaded <yellow>%count%</yellow> gem (s)</gray>"
+  editor_open_failed: "<red>Could not open EmakiGem editor for %item%  (%error%)</red>"
+  editor_template_missing: "<red>Missing EmakiGem editor template: %template%</red>"
+  editor_browser_create_failed: "<red>Could not create definition: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>Could not delete definition: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>Could not list definition directory: %path%  (%error%)</red>"
+  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
+  reroll_refresh_degraded: "<yellow>Gem refresh after the reroll write-back did not take effect | operation=%operation_id% | instance=%instance_id% | refresh=%outcome% | reason=%reason% | expected fingerprint=%expected_fingerprint% | presented fingerprint=%presented_fingerprint%</yellow>"
 
 loader:
   type:
     gem: "Gem"
     gem_item: "Gem Item"
     resonance: "Resonance"
-  lang_directory_create_failed: "[loader] <red>Unable to create language directory: %path%</red>"
-  bundled_language_load_failed: "[loader] <red>Failed to load bundled language: %error%</red>"
-  bundled_resource_missing: "[loader] <red>Bundled resource missing: %resource%, cannot write to %path%</red>"
-  directory_create_failed: "[loader] <red>Unable to create directory: %path%</red>"
-  invalid_blank_id: "[loader] <red>%type% file %file% is missing a valid ID</red>"
-  duplicate_id: "[loader] <red>%type% file %file% has duplicate ID: %id%</red>"
-  load_failed: "[loader] <red>Failed to load %type% file %file%: %error%</red>"
-  invalid_config: "[loader] <red>%type% file %file% has invalid config, skipped loading</red>"
-  gem_legacy_item_sources: "[loader] <yellow>Gem file %file% uses deprecated top-level item_sources as its construction base; use base_item_source instead: %id%</yellow>"
-  gem_missing_item_source: "[loader] <red>Gem file %file% has missing or invalid
+  lang_directory_create_failed: "<red>Unable to create language directory: %path%</red>"
+  bundled_language_load_failed: "<red>Failed to load bundled language: %error%</red>"
+  bundled_resource_missing: "<red>Bundled resource missing: %resource%, cannot write to %path%</red>"
+  directory_create_failed: "<red>Unable to create directory: %path%</red>"
+  invalid_blank_id: "<red>%type% file %file% is missing a valid ID</red>"
+  duplicate_id: "<red>%type% file %file% has duplicate ID: %id%</red>"
+  load_failed: "<red>Failed to load %type% file %file%: %error%</red>"
+  invalid_config: "<red>%type% file %file% has invalid config, skipped loading</red>"
+  gem_legacy_item_sources: "<yellow>Gem file %file% uses deprecated top-level item_sources as its construction base; use base_item_source instead: %id%</yellow>"
+  gem_missing_item_source: "<red>Gem file %file% has missing or invalid
     item_sources; loading rejected: %id%, current value: %item_sources%</red>"
-  gem_relationship_self_reference: "[loader] <red>Gem file %file% references itself in required_gems or conflicting_gems; loading rejected: %id%</red>"
-  gem_relationship_conflict: "[loader] <red>Gem file %file% declares %related_gem% as both a dependency and a conflict; loading rejected: %id%</red>"
+  gem_relationship_self_reference: "<red>Gem file %file% references itself in required_gems or conflicting_gems; loading rejected: %id%</red>"
+  gem_relationship_conflict: "<red>Gem file %file% declares %related_gem% as both a dependency and a conflict; loading rejected: %id%</red>"
 
 gem:
   error:
@@ -226,6 +226,9 @@ gui:
     invalid_opener: "<red>The placed item is not a valid socket opener</red>"
     hold_opener: "<red>Please place a usable socket opener first</red>"
     no_slot_selected: "<red>Please select a locked slot to open first</red>"
+  open_gem_gui_outside_player_ownership: "Cannot open the gem GUI outside player ownership: %player%"
+  close_gem_gui_outside_player_ownership: "Cannot close the gem GUI outside player ownership: %player%"
+  open_socket_gui_outside_player_ownership: "Cannot open the socket GUI outside player ownership: %player%"
 
 gui_text:
   common:
@@ -559,10 +562,10 @@ editor:
   modify_failed_parse: "<red>Failed to modify %item%: definition_parse_failed. Check the console for details</red>"
   open_failed: "<red>Could not open the editor for %id%</red>"
   prompt:
-    chat: "<yellow>Type the value for \"%label%\" in chat, or type cancel to abort</yellow>"
-    map_entry: "<yellow>Type \"key=value\" to add a mapping, or type cancel to abort</yellow>"
+    chat: '<yellow>Type the value for "%label%" in chat, or type cancel to abort</yellow>'
+    map_entry: '<yellow>Type "key=value" to add a mapping, or type cancel to abort</yellow>'
   map:
-    bad_entry: "<red>Bad format, use \"key=value\"</red>"
+    bad_entry: '<red>Bad format, use "key=value"</red>'
   value:
     unset: "Not set  (empty)"
     integer: "Integer"
@@ -593,3 +596,32 @@ editor:
     delete_confirm: "<red>Click the delete entry again to confirm</red>"
     delete_success: "<green>Deleted definition %id%</green>"
     delete_failed: "<red>Delete failed, see console</red>"
+startup:
+  register_pipeline_stage_failed: "Failed to register pipeline stage '%stage%': %reason%"
+  readiness_publish_skipped: "Readiness publish skipped: %error%"
+config:
+  legacy_permission_op_bypass_key: "Config key permission.op_bypass has moved to the top-level op_bypass; it currently takes effect with the legacy key value %value% and will be migrated to the new key automatically at startup"
+shutdown:
+  close_gem_gui_sessions_failed: "Could not close gem GUI sessions during shutdown: %error%"
+scheduler:
+  reschedule_gem_item_refresh_rejected: "Could not reschedule gem item refresh for player %player%: entity task scheduling was rejected"
+  skipped_gem_item_refresh: "Skipped gem item refresh for player %player%: the current thread does not own the player and no scheduler is available"
+  skip_gem_extract_event_target_scheduler_retired: "Skipped the gem extract completed event because the target scheduling has retired: %player%"
+  skip_gem_extract_event_target_offline: "Skipped the gem extract completed event because the target player is offline: %player%"
+  skip_gem_complete_event_actor_scheduler_retired: "Skipped the gem completed event because the actor's scheduling has retired: %player%"
+  skip_gem_complete_event_actor_offline: "Skipped the gem completed event because the actor is offline: %player%"
+reload:
+  stage_failed: "Stage %stage% failed: %error%"
+integration:
+  register_gem_enhancement_target_provider_failed: "Failed to register the gem enhancement target provider; gem upgrades cannot be executed via the strengthen framework"
+  register_gem_enhancement_target_provider_unsuccessful: "Registering the gem enhancement target provider was unsuccessful: %result%"
+  gem_upgrade_via_strengthen_failed: "Gem upgrade via the strengthen framework failed"
+action:
+  gem_action_stage_failed: "Gem action stage '%phase%' failed: %message%"
+economy:
+  gem_cost_compensation_incomplete: "Could not fully compensate gem costs in stage %phase% for player %player%"
+matcher:
+  gem_recognition_evaluation_failed: "Gem recognition evaluation failed; treating the item as non-matching: %error%"
+  gem_matcher_evaluation_failed: "Gem matcher evaluation failed; treating the item as non-matching: %error%"
+journal:
+  recoverable_gem_operations: "Recoverable gem operations: %operations%"

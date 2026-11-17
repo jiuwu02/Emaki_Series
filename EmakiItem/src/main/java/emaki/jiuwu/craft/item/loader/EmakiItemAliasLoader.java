@@ -14,6 +14,9 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.item.model.EmakiItemAlias;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class EmakiItemAliasLoader {
 
@@ -55,7 +58,7 @@ public final class EmakiItemAliasLoader {
                     Texts.toStringSafe(data.getOrDefault("expires_after", "never"))
             );
             if (!alias.valid()) {
-                plugin.getLogger().warning("[loader] 无效的 EmakiItem alias '" + oldId + "' (位于 " + file.getPath() + "), 已跳过");
+                LogTags.send(plugin, LogTag.LOADER, Level.WARNING, "loader.invalid_alias_skipped", Map.of("alias", oldId, "path", file.getPath()));
                 continue;
             }
             loaded.put(alias.oldId(), alias);
@@ -115,7 +118,7 @@ public final class EmakiItemAliasLoader {
         try {
             YamlFiles.save(plugin.getDataFolder().toPath().resolve("id_aliases.yml").toFile(), root);
         } catch (IOException e) {
-            plugin.getLogger().warning("[loader] 保存 id_aliases.yml 失败: " + e.getMessage());
+            LogTags.send(plugin, LogTag.LOADER, Level.WARNING, "loader.save_id_aliases_failed", Map.of("error", e.getMessage()));
         }
     }
 

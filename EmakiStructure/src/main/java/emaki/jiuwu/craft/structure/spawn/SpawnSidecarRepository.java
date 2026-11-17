@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class SpawnSidecarRepository {
 
@@ -59,7 +60,7 @@ public final class SpawnSidecarRepository {
             report(result, fileName);
             return result;
         } catch (RuntimeException exception) {
-            plugin.messageService().warning("error.spawn.rejected",
+            plugin.messageService().warning(null, "error.spawn.rejected",
                     Map.of("file", fileName, "reason", String.valueOf(exception.getMessage())));
             return SpawnSidecarParser.fileRejectedResult(templateId, "error.template.read_failed",
                     Map.of("file", fileName, "error", String.valueOf(exception.getMessage())));
@@ -68,14 +69,14 @@ public final class SpawnSidecarRepository {
 
     private void report(SpawnSidecarParser.Result result, String fileName) {
         if (result.fileRejected()) {
-            plugin.messageService().warning("error.spawn.rejected", Map.of(
+            plugin.messageService().warning(null, "error.spawn.rejected", Map.of(
                     "file", fileName,
                     "reason", plugin.messageService().message(result.fileRejectKey(),
                             result.fileRejectPlaceholders())));
             return;
         }
         for (SpawnSidecarParser.Issue issue : result.issues()) {
-            plugin.messageService().warning("console.spawn_entry_issue", Map.of(
+            plugin.messageService().warning(LogTag.SPAWN, "console.spawn_entry_issue", Map.of(
                     "file", fileName,
                     "index", issue.index(),
                     "reason", plugin.messageService().message(issue.reasonKey(), issue.placeholders())));

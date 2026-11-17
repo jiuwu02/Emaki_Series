@@ -41,6 +41,9 @@ import emaki.jiuwu.craft.storage.model.PlayerStorage;
 import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
 import emaki.jiuwu.craft.storage.model.StorageReservation;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class StorageTransactionService {
 
@@ -688,8 +691,7 @@ public final class StorageTransactionService {
         try (ItemComponentSnapshotScope _ = ItemComponentSnapshotScope.open()) {
             return matcher.test(MatchContext.of(template, actual, null));
         } catch (RuntimeException exception) {
-            LOGGER.warning("[matcher] deposit_filter 匹配器抛出异常, 已按不匹配处理: "
-                    + exception.getClass().getSimpleName());
+            LogTags.send(LOGGER, LogTag.MATCHER, Level.WARNING, "matcher.deposit_filter_threw", Map.of("error", exception.getClass().getSimpleName()));
             return false;
         }
     }

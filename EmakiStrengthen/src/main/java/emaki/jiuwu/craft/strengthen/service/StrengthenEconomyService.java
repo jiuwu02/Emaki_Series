@@ -21,6 +21,9 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptCost;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class StrengthenEconomyService {
 
@@ -421,13 +424,11 @@ public final class StrengthenEconomyService {
     }
 
     private void logProviderFailure(String phase, String operationId, Throwable throwable) {
-        plugin.getLogger().warning("[economy] 强化经济边界失败 | operationId=" + safeOperationId(operationId)
-                + " | phase=" + phase + " | error=" + (throwable == null ? "未知" : throwable.getMessage()));
+        LogTags.send(plugin, LogTag.ECONOMY, Level.WARNING, "economy.economy_boundary_failed", Map.of("operation", safeOperationId(operationId), "phase", phase, "error", (throwable == null ? "未知" : throwable.getMessage())));
     }
 
     private void logCompensationPending(Player player, String operationId, List<AttemptCost> pending) {
-        plugin.getLogger().severe("[economy] 强化补偿待处理 | operationId=" + safeOperationId(operationId)
-                + " | player=" + (player == null ? "-" : player.getUniqueId()) + " | costs=" + pending);
+        LogTags.send(plugin, LogTag.ECONOMY, Level.SEVERE, "economy.compensation_pending", Map.of("operation", safeOperationId(operationId), "player", (player == null ? "-" : player.getUniqueId()), "costs", pending));
     }
 
     private String safeOperationId(String operationId) {

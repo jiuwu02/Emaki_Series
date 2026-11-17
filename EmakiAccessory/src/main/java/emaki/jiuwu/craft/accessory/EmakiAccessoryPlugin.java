@@ -62,6 +62,9 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider, AccessoryGuiHandler.Callbacks {
@@ -120,7 +123,7 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         registerServices(components);
         ConfigPrecheckLifecycleSupport.register(new AccessoryConfigPrecheckContributor(this));
-        components.messageService().info("console.plugin_starting");
+        components.messageService().info(LogTag.STARTUP, "console.plugin_starting");
         components.bootstrapService().bootstrap();
         reloadContent();
         registerCommandHandler();
@@ -129,7 +132,7 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         installPublicApi();
         scheduleAutoSave();
         metrics = coreLib().registerBStats(this, BSTATS_PLUGIN_ID);
-        components.messageService().info("console.plugin_started");
+        components.messageService().info(LogTag.STARTUP, "console.plugin_started");
     }
 
     @Override
@@ -164,14 +167,12 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         PlayerAccessoryStore.FlushResult result = components.accessoryStore()
                 .flushAndSeal(appConfig().drainTimeoutSeconds(), TimeUnit.SECONDS);
         if (!result.clean()) {
-            getLogger().warning("[shutdown] 饰品数据写入未正常结束: saved=" + result.savedEntries()
-                    + " failed=" + result.failedEntries()
-                    + " remainingDirty=" + result.remainingDirtyEntries());
+            LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.accessory_data_flush_incomplete", Map.of("saved", result.savedEntries(), "failed", result.failedEntries(), "remaining_dirty", result.remainingDirtyEntries()));
         }
         partRegistry.set(AccessoryPartRegistry.empty());
         pageRegistry.set(AccessoryPageRegistry.empty());
         runtimeInitialized = false;
-        components.messageService().info("console.plugin_stopped");
+        components.messageService().info(LogTag.SHUTDOWN, "console.plugin_stopped");
     }
 
     public int reloadContent() {
@@ -207,7 +208,7 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         try {
             action.accept(EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class));
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("[startup] 已跳过就绪状态发布: " + exception);
+            LogTags.send(getLogger(), LogTag.STARTUP, Level.FINE, "startup.skipped_readiness_publish", Map.of("error", exception));
         }
     }
 

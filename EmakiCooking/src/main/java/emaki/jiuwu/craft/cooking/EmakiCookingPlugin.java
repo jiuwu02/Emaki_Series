@@ -78,6 +78,10 @@ import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.apiimpl.DefaultEmakiCookingApi;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.cooking.log.CookingLogTag;
+import java.util.logging.Level;
 
 public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -168,8 +172,9 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 STARTUP_ASCII_START_COLOR,
                 STARTUP_ASCII_END_COLOR
         );
+        LogTags.registerTags(this, CookingLogTag.values());
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
-        messageService.info("console.plugin_starting");
+        messageService.info(LogTag.STARTUP, "console.plugin_starting");
         bootstrapService.bootstrap();
         registerConfigPrecheckContributor();
         reloadPluginState();
@@ -180,7 +185,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         registerPublicApiService();
         registerPlaceholderExpansion();
         metrics = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
-        messageService.info("console.plugin_started");
+        messageService.info(LogTag.STARTUP, "console.plugin_started");
     }
 
     @Override
@@ -205,10 +210,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (nutritionDataStore != null) {
             var flushResult = nutritionDataStore.flushAndSeal(5L, TimeUnit.SECONDS);
             if (!flushResult.success()) {
-                getLogger().warning("[shutdown] 营养数据排空未完成: pending="
-                        + flushResult.pendingFileOperations()
-                        + ", dirty=" + flushResult.remainingDirtyEntries()
-                        + ", failures=" + flushResult.failures().size());
+                LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.nutrition_data_drain_incomplete", Map.of("pending", flushResult.pendingFileOperations(), "dirty", flushResult.remainingDirtyEntries(), "failures", flushResult.failures().size()));
             }
         }
         if (grinderRuntimeService != null) {
@@ -229,17 +231,13 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (completionCoordinator != null) {
             var drainResult = completionCoordinator.sealAndDrain(5L, TimeUnit.SECONDS);
             if (!drainResult.drained() || !drainResult.failures().isEmpty()) {
-                getLogger().warning("[shutdown] 烹饪完成日志排空未完成: pending="
-                        + drainResult.pendingOperations()
-                        + ", failures=" + drainResult.failures().size());
+                LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.completion_journal_drain_incomplete", Map.of("pending", drainResult.pendingOperations(), "failures", drainResult.failures().size()));
             }
         }
         if (stationStateStore != null) {
             var drainResult = stationStateStore.sealAndDrain(5L, TimeUnit.SECONDS);
             if (!drainResult.drained() || !drainResult.failures().isEmpty()) {
-                getLogger().warning("[shutdown] 工位状态排空未完成: pending="
-                        + drainResult.pendingOperations()
-                        + ", failures=" + drainResult.failures().size());
+                LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.station_state_drain_incomplete", Map.of("pending", drainResult.pendingOperations(), "failures", drainResult.failures().size()));
             }
         }
         if (displayService != null) {
@@ -259,7 +257,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             chatInputService.close();
         }
         if (messageService != null) {
-            messageService.info("console.plugin_stopped");
+            messageService.info(LogTag.SHUTDOWN, "console.plugin_stopped");
         }
     }
 
@@ -307,8 +305,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         } else {
             publishLoading();
         }
-        getLogger().warning("[reload] 烹饪重载失败, 就绪状态已恢复为 "
-                + (previousReady ? "ready" : "loading") + ": " + AsyncFailures.describe(failure));
+        LogTags.send(getLogger(), LogTag.RELOAD, Level.WARNING, "reload.cooking_reload_failed_readiness_restored", Map.of("readiness", (previousReady ? "ready" : "loading"), "error", AsyncFailures.describe(failure)));
     }
 
     private void publishReady() {
@@ -327,7 +324,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         try {
             action.accept(EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class));
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
+            LogTags.send(getLogger(), LogTag.STARTUP, Level.FINE, "startup.readiness_publish_skipped", Map.of("error", exception));
         }
     }
 
@@ -337,7 +334,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
         completionCoordinator.recover().whenComplete((_, error) -> {
             if (error != null) {
-                messageService.warning("console.completion_recovery_failed", Map.of("error", String.valueOf(error.getMessage())));
+                messageService.warning(CookingLogTag.COMPLETION, "console.completion_recovery_failed", Map.of("error", String.valueOf(error.getMessage())));
             }
         });
     }
@@ -471,9 +468,9 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
         try {
             getServer().getPluginManager().registerEvents(new MmoItemsNutritionListener(this), this);
-            messageService.info("console.nutrition_bridge_ready", Map.of("provider", "MMOItems"));
+            messageService.info(LogTag.INTEGRATION, "console.nutrition_bridge_ready", Map.of("provider", "MMOItems"));
         } catch (LinkageError exception) {
-            messageService.warning("console.nutrition_bridge_unavailable", Map.of("provider", "MMOItems", "error", String.valueOf(exception.getMessage())));
+            messageService.warning(LogTag.INTEGRATION, "console.nutrition_bridge_unavailable", Map.of("provider", "MMOItems", "error", String.valueOf(exception.getMessage())));
         }
     }
 
@@ -483,9 +480,9 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
         try {
             getServer().getPluginManager().registerEvents(new NeigeItemsNutritionListener(this), this);
-            messageService.info("console.nutrition_bridge_ready", Map.of("provider", "NeigeItems"));
+            messageService.info(LogTag.INTEGRATION, "console.nutrition_bridge_ready", Map.of("provider", "NeigeItems"));
         } catch (LinkageError exception) {
-            messageService.warning("console.nutrition_bridge_unavailable", Map.of("provider", "NeigeItems", "error", String.valueOf(exception.getMessage())));
+            messageService.warning(LogTag.INTEGRATION, "console.nutrition_bridge_unavailable", Map.of("provider", "NeigeItems", "error", String.valueOf(exception.getMessage())));
         }
     }
 
@@ -508,9 +505,9 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
         try {
             getServer().getPluginManager().registerEvents(new CraftEngineCookingStationListener(stationListener), this);
-            messageService.info("console.block_source_bridge_ready", Map.of("provider", "CraftEngine"));
+            messageService.info(LogTag.INTEGRATION, "console.block_source_bridge_ready", Map.of("provider", "CraftEngine"));
         } catch (LinkageError exception) {
-            messageService.warning("console.block_source_bridge_unavailable", Map.of("provider", "CraftEngine", "error", String.valueOf(exception.getMessage())));
+            messageService.warning(LogTag.INTEGRATION, "console.block_source_bridge_unavailable", Map.of("provider", "CraftEngine", "error", String.valueOf(exception.getMessage())));
         }
     }
 
@@ -520,9 +517,9 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
         try {
             getServer().getPluginManager().registerEvents(new ItemsAdderCookingStationListener(stationListener), this);
-            messageService.info("console.block_source_bridge_ready", Map.of("provider", "ItemsAdder"));
+            messageService.info(LogTag.INTEGRATION, "console.block_source_bridge_ready", Map.of("provider", "ItemsAdder"));
         } catch (LinkageError exception) {
-            messageService.warning("console.block_source_bridge_unavailable", Map.of("provider", "ItemsAdder", "error", String.valueOf(exception.getMessage())));
+            messageService.warning(LogTag.INTEGRATION, "console.block_source_bridge_unavailable", Map.of("provider", "ItemsAdder", "error", String.valueOf(exception.getMessage())));
         }
     }
 
@@ -532,9 +529,9 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
         try {
             getServer().getPluginManager().registerEvents(new NexoCookingStationListener(stationListener), this);
-            messageService.info("console.block_source_bridge_ready", Map.of("provider", "Nexo"));
+            messageService.info(LogTag.INTEGRATION, "console.block_source_bridge_ready", Map.of("provider", "Nexo"));
         } catch (LinkageError exception) {
-            messageService.warning("console.block_source_bridge_unavailable", Map.of("provider", "Nexo", "error", String.valueOf(exception.getMessage())));
+            messageService.warning(LogTag.INTEGRATION, "console.block_source_bridge_unavailable", Map.of("provider", "Nexo", "error", String.valueOf(exception.getMessage())));
         }
     }
 
@@ -544,9 +541,9 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
         try {
             getServer().getPluginManager().registerEvents(new OraxenCookingStationListener(stationListener), this);
-            messageService.info("console.block_source_bridge_ready", Map.of("provider", "Oraxen"));
+            messageService.info(LogTag.INTEGRATION, "console.block_source_bridge_ready", Map.of("provider", "Oraxen"));
         } catch (LinkageError exception) {
-            messageService.warning("console.block_source_bridge_unavailable", Map.of("provider", "Oraxen", "error", String.valueOf(exception.getMessage())));
+            messageService.warning(LogTag.INTEGRATION, "console.block_source_bridge_unavailable", Map.of("provider", "Oraxen", "error", String.valueOf(exception.getMessage())));
         }
     }
 

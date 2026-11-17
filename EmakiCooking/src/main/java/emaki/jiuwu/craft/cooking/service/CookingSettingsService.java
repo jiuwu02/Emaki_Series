@@ -38,6 +38,9 @@ import emaki.jiuwu.craft.cooking.model.NutritionSingleThreshold;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationInteractionType;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class CookingSettingsService {
 
@@ -122,9 +125,7 @@ public final class CookingSettingsService {
             Map<String, Object> rule = MapYamlSection.normalizeMap(raw);
             if (rule.containsKey("input_item_sources") || rule.containsKey("input_matcher")) {
                 boolean nested = rule.get("input") instanceof Map<?, ?>;
-                plugin.getLogger().warning("[配置] stations.steamer.moisture_rules[" + index
-                        + "] 处的旧版烹饪匹配键已弃用; 请使用 input.item_sources 与 input.matcher, "
-                        + deprecatedKeyHint(nested, "嵌套输入配置优先"));
+                LogTags.send(plugin, LogTag.CONFIG, Level.WARNING, "config.deprecated_moisture_rule_matcher_keys", Map.of("index", index, "hint", deprecatedKeyHint(nested, "嵌套输入配置优先")));
             }
             index++;
         }
@@ -138,9 +139,7 @@ public final class CookingSettingsService {
             return;
         }
         YamlSection nested = owner.getSection(nestedKey);
-        plugin.getLogger().warning("[配置] " + ownerPath + "." + legacySourcesKey + "/" + legacyMatcherKey
-                + " 处的旧版烹饪匹配键已弃用; 请使用 " + ownerPath + "." + nestedKey + ".item_sources 与 .matcher, "
-                + deprecatedKeyHint(nested != null && !nested.isEmpty(), "嵌套配置优先"));
+        LogTags.send(plugin, LogTag.CONFIG, Level.WARNING, "config.deprecated_matcher_keys", Map.of("path", ownerPath, "legacy_sources", legacySourcesKey, "legacy_matcher", legacyMatcherKey, "nested", nestedKey, "hint", deprecatedKeyHint(nested != null && !nested.isEmpty(), "嵌套配置优先")));
     }
 
     public List<ItemSourceRef> stationBlockSources(StationType stationType) { return new CookingSettingsServiceDelegate(this).stationBlockSources(stationType); }

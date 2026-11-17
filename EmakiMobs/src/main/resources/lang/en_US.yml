@@ -2,7 +2,10 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "2.0.2"
+version: "2.0.3"
+
+tags:
+  loot: '[ loot ]'
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -15,42 +18,42 @@ general:
   reload_success: "<green>Configuration reloaded</green>"
 
 console:
-  plugin_starting: "[startup] <gray>Starting...</gray>"
-  plugin_started: "[startup] <green>Started</green>"
-  plugin_stopped: "[shutdown] <yellow>Stopped</yellow>"
-  bootstrap_start: "[loader] <gray>Syncing default resources...</gray>"
-  bootstrap_complete: "[loader] Default resource sync complete"
-  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  loader_config_load_error: "[loader] <yellow>Failed to load Mobs config: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_skip: "[loader] Default data release skipped by configuration"
-  default_file_missing: "[loader] Bundled resource not found: %path%"
-  bootstrap_copy_failed: "[loader] Failed to copy default resource: %path%  (%error%)"
-  bootstrap_save_failed: "[loader] Failed to save versioned resource: %path%  (%error%)"
-  directory_create_failed: "[loader] Failed to create directory: %path%"
-  mobs_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> mob definition (s)</gray>"
-  reload_complete: "[reload] <green>Reload complete with <white>%count%</white> mob definition (s)</green>"
-  custom_actions_registered: "[integration] <gray>Registered <yellow>%registered%</yellow>/<yellow>%expected%</yellow> custom action component (s) with CoreLib</gray>"
-  custom_action_registration_failed: "[integration] <yellow>Failed to register CoreLib %kind% <white>%id%</white>: <red>%reason%</red></yellow>"
-  custom_action_rebuild_hook_failed: "[integration] <yellow>Could not install the CoreLib action rebuild callback; custom actions may be unavailable after a CoreLib reload</yellow>"
-  target_identity_registration_failed: "[integration] <yellow>Failed to register the CoreLib target identity provider <white>%id%</white>: <red>%reason%</red></yellow>"
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started</green>"
+  plugin_stopped: "<yellow>Stopped</yellow>"
+  bootstrap_start: "<gray>Syncing default resources...</gray>"
+  bootstrap_complete: "Default resource sync complete"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  loader_config_load_error: "<yellow>Failed to load Mobs config: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_skip: "Default data release skipped by configuration"
+  default_file_missing: "Bundled resource not found: %path%"
+  bootstrap_copy_failed: "Failed to copy default resource: %path%  (%error%)"
+  bootstrap_save_failed: "Failed to save versioned resource: %path%  (%error%)"
+  directory_create_failed: "Failed to create directory: %path%"
+  mobs_loaded: "<gray>Loaded <yellow>%count%</yellow> mob definition (s)</gray>"
+  reload_complete: "<green>Reload complete with <white>%count%</white> mob definition (s)</green>"
+  custom_actions_registered: "<gray>Registered <yellow>%registered%</yellow>/<yellow>%expected%</yellow> custom action component (s) with CoreLib</gray>"
+  custom_action_registration_failed: "<yellow>Failed to register CoreLib %kind% <white>%id%</white>: <red>%reason%</red></yellow>"
+  custom_action_rebuild_hook_failed: "<yellow>Could not install the CoreLib action rebuild callback; custom actions may be unavailable after a CoreLib reload</yellow>"
+  target_identity_registration_failed: "<yellow>Failed to register the CoreLib target identity provider <white>%id%</white>: <red>%reason%</red></yellow>"
   # Console: custom spawner replaced; placeholders: %id%, %old_owner%, %new_owner%
-  custom_spawner_replaced: "[spawn] Replaced custom spawner '%id%' from owner '%old_owner%' with owner '%new_owner%'"
+  custom_spawner_replaced: "Replaced custom spawner '%id%' from owner '%old_owner%' with owner '%new_owner%'"
   # Console: custom spawner reload failed; placeholders: %id%, %owner%
   custom_spawner_reload_failed: "Custom spawner '%id%' from owner '%owner%' failed during reload"
   # Console: command result recipient retired before delivery
-  command_result_recipient_retired: "[command] Command result recipient retired before delivery"
+  command_result_recipient_retired: "Command result recipient retired before delivery"
   # Console: command result delivery could not be scheduled
-  command_result_schedule_failed: "[command] Unable to schedule command result delivery"
+  command_result_schedule_failed: "Unable to schedule command result delivery"
   # Console: managed mob command operation failed; placeholder: %operation%
   command_operation_failed: "Managed mob command operation %operation% failed"
-  model_backend_selected: "[integration] <gray>Model backend: <yellow>%backend%</yellow></gray>"
-  model_backend_unavailable: "[integration] <yellow>Configured model backend <white>%backend%</white> is unavailable; models are disabled</yellow>"
-  model_blueprint_missing: "[integration] <yellow>Blueprint <white>%blueprint%</white> referenced by mob %mob_id% does not exist; model attach skipped</yellow>"
-  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> note (s)</gray>"
-  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> problem (s)</red>"
-  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  model_backend_selected: "<gray>Model backend: <yellow>%backend%</yellow></gray>"
+  model_backend_unavailable: "<yellow>Configured model backend <white>%backend%</white> is unavailable; models are disabled</yellow>"
+  model_blueprint_missing: "<yellow>Blueprint <white>%blueprint%</white> referenced by mob %mob_id% does not exist; model attach skipped</yellow>"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> note (s)</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> problem (s)</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "FATAL"
@@ -69,43 +72,50 @@ console:
       mobs_max_health_stacking: "Mob %mob_id% configures both components.max_health and ea_attributes.max_health_vanilla; they stack, so the final cap is their sum"
       model_api_invalid: "model.api value %api% is invalid; expected auto, model_engine, or better_model. Falling back to auto"
   # Console: could not open the editor; placeholders: %item%, %error%
-  editor_open_failed: "[editor] <red>Could not open EmakiMobs editor for %item%  (%error%)</red>"
+  editor_open_failed: "<red>Could not open EmakiMobs editor for %item%  (%error%)</red>"
   # Console: missing editor GUI template; placeholder: %template%
-  editor_template_missing: "[editor] <red>Missing EmakiMobs editor GUI template: %template%</red>"
+  editor_template_missing: "<red>Missing EmakiMobs editor GUI template: %template%</red>"
   # Console: could not create a definition file; placeholders: %path%, %error%
-  editor_browser_create_failed: "[editor] <red>Could not create definition: %path%  (%error%)</red>"
+  editor_browser_create_failed: "<red>Could not create definition: %path%  (%error%)</red>"
   # Console: could not delete a definition file; placeholders: %path%, %error%
-  editor_browser_delete_failed: "[editor] <red>Could not delete definition: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>Could not delete definition: %path%  (%error%)</red>"
   # Console: could not list a definition directory; placeholders: %path%, %error%
-  editor_browser_list_failed: "[editor] <red>Could not list definition directory: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>Could not list definition directory: %path%  (%error%)</red>"
 
 loader:
-  lang_directory_create_failed: "[loader] Failed to create language directory: %path%"
-  bundled_language_load_failed: "[loader] Failed to read bundled language file: %error%"
-  bundled_resource_missing: "[loader] Bundled resource missing: %resource%, cannot write to %path%"
-  directory_create_failed: "[loader] Failed to create %type% directory: %path%"
-  invalid_blank_id: "[loader] %type% ID is blank: %file%"
-  duplicate_id: "[loader] Duplicate %type% ID %id% from %file%"
-  load_failed: "[loader] Failed to read %type% file: %file%  (%error%)"
+  lang_directory_create_failed: "Failed to create language directory: %path%"
+  bundled_language_load_failed: "Failed to read bundled language file: %error%"
+  bundled_resource_missing: "Bundled resource missing: %resource%, cannot write to %path%"
+  directory_create_failed: "Failed to create %type% directory: %path%"
+  invalid_blank_id: "%type% ID is blank: %file%"
+  duplicate_id: "Duplicate %type% ID %id% from %file%"
+  load_failed: "Failed to read %type% file: %file%  (%error%)"
   invalid_config: "Invalid %type% configuration: %file%"
-  unknown_entity_type: "[loader] Unknown entity type %type%: %file%"
+  unknown_entity_type: "Unknown entity type %type%: %file%"
   deprecated_key: "%file% still uses the legacy key %old_key%; rename it to %new_key%  (the legacy key will be removed in the next major version)"
-  target_selectors_load_failed: "[loader] Failed to read target selector file %file%: %error%"
-  target_selectors_section_missing: "[loader] Target selector file %file% is missing the selectors section"
-  target_selector_invalid_slot: "[loader] Equipment weight table %table% contains invalid slot %slot%; skipped"
-  target_selector_invalid_item: "[loader] Equipment weight table %table% contains unavailable item %item%; skipped"
-  target_selector_invalid_mode: "[loader] Target selector %selector% contains invalid mode %mode%; skipped"
-  target_selector_invalid_score: "[loader] Target selector %selector% contains invalid score type %type%; skipped"
-  target_selector_unknown_table: "[loader] Target selector %selector% references missing equipment weight table %table%; skipped"
-  target_selector_invalid_expression: "[loader] Target selector %selector% contains invalid expression %expression%; skipped"
-  model_missing_blueprint: "[loader] model section of mob %file% has no blueprint; the model config is ignored"
-  model_api_invalid: "[loader] model.api value %api% of mob %file% is invalid, expected one of auto, model_engine or better_model; fell back to the global config"
-  model_invalid_duration: "[loader] duration_ticks of animation %animation% in mob %file% is invalid  (%duration%); the keyframe timeline is ignored"
-  model_keyframe_missing_tick: "[loader] Animation %animation% in mob %file% has a keyframe without tick; the frame is skipped"
+  target_selectors_load_failed: "Failed to read target selector file %file%: %error%"
+  target_selectors_section_missing: "Target selector file %file% is missing the selectors section"
+  target_selector_invalid_slot: "Equipment weight table %table% contains invalid slot %slot%; skipped"
+  target_selector_invalid_item: "Equipment weight table %table% contains unavailable item %item%; skipped"
+  target_selector_invalid_mode: "Target selector %selector% contains invalid mode %mode%; skipped"
+  target_selector_invalid_score: "Target selector %selector% contains invalid score type %type%; skipped"
+  target_selector_unknown_table: "Target selector %selector% references missing equipment weight table %table%; skipped"
+  target_selector_invalid_expression: "Target selector %selector% contains invalid expression %expression%; skipped"
+  model_missing_blueprint: "model section of mob %file% has no blueprint; the model config is ignored"
+  model_api_invalid: "model.api value %api% of mob %file% is invalid, expected one of auto, model_engine or better_model; fell back to the global config"
+  model_invalid_duration: "duration_ticks of animation %animation% in mob %file% is invalid  (%duration%); the keyframe timeline is ignored"
+  model_keyframe_missing_tick: "Animation %animation% in mob %file% has a keyframe without tick; the frame is skipped"
   type:
     mob: "mob"
     loot_table: "loot table"
     spawn_rule: "spawn rule"
+  mob_file_legacy_key_in_use: "Mob file '%file%' still uses the legacy key '%old_key%'; please switch to '%new_key%'. The legacy key will be removed in the next major version"
+  biome_unknown: "Biome '%name%' is unknown (file '%file%'); skipped (the rule will not be limited by it)"
+  structure_unknown: "Structure '%key%' is unknown (file '%file%'); skipped"
+  spawn_trigger_unknown: "Trigger '%trigger%' is unknown (mob '%mob%', file '%file%'); skipped"
+  autonomous_rule_missing_trigger: "Autonomous spawn rule '%mob%' (file '%file%') is missing trigger; skipped"
+  spawn_type_unknown: "Spawn type '%type%' is unknown (file '%file%'); skipped"
+  spawn_rule_file_missing_fields: "Spawn rule file '%file%' is missing mob_id or type; skipped"
 
 command:
   spawn_success: "<green>Spawned <white>%mob_id%</white> at target location</green>"
@@ -127,6 +137,7 @@ command:
   kill_success: "<green>Removed <white>%count%</white> managed <white>%mob_id%</white> mob (s)</green>"
   kill_all_success: "<green>Removed all managed mobs, <white>%count%</white> in total</green>"
   find_usage: "<gray>Usage: /emakimobs find &lt;mob_id&gt; [radius] - list managed mobs in range  (click an entry to teleport)</gray>"
+  unable_to_schedule: "Unable to schedule %description%"
   # placeholders: %mob_id%, %count%, %radius%
   find_header: "<gray>Managed mobs in range for <white>%mob_id%</white>: <white>%count%</white>  (radius %radius%):</gray>"
   find_empty: "<yellow>No matching managed mobs in range</yellow>"
@@ -431,3 +442,22 @@ editor:
     delete_confirm: "<red>Click the delete entry again to confirm</red>"
     delete_success: "<green>Deleted definition %id%</green>"
     delete_failed: "<red>Delete failed, see console</red>"
+loot:
+  invalid_rolls_value: "Invalid rolls value: %value%"
+  emaki_item_api_unavailable: "The EmakiItem API is unavailable; emaki_item drops are disabled"
+integration:
+  model_backend_init_failed: "Model backend %name% failed to initialize: %error%"
+  model_backend_class_unavailable: "The class of model backend %name% is unavailable; model features are disabled"
+  model_backend_bridge_invalid: "The bridge implementation of model backend %name% is invalid"
+  model_backend_not_installed: "Model backend '%name%' is not installed; model features are disabled"
+  model_backend_not_found: "No usable model backend found; EmakiMobs model features are disabled"
+  emaki_attribute_integration_failed: "The EmakiAttribute integration failed: %error%"
+  emaki_attribute_integration_unavailable: "The EmakiAttribute integration is unavailable; continuing without attribute contributions"
+  emaki_attribute_integration_type_invalid: "The EmakiAttribute integration implementation type is invalid"
+script:
+  skill_compile_error: "Skill compile error: mob='%mob%' trigger='%trigger%' line=%line% reason=%reason%"
+spawn:
+  unable_to_schedule: "Unable to schedule %description%"
+  mob_cron_expression_invalid: "The cron expression '%expression%' of mob '%mob%' is invalid: %error%"
+  mob_cron_expression_missing: "The cron trigger of mob '%mob%' is missing a cron expression"
+skip:

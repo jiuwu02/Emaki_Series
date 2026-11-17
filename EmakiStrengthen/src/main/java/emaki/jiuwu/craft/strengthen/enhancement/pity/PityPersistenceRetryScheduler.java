@@ -10,6 +10,9 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class PityPersistenceRetryScheduler {
 
@@ -82,7 +85,7 @@ public final class PityPersistenceRetryScheduler {
         }
         int maxAttempts = plugin.appConfig() == null ? 0 : plugin.appConfig().enhancementPityRetryMaxAttempts();
         if (attempt >= maxAttempts) {
-            warn("保底状态落盘连续失败 " + attempt + " 次, 已停止重试, 等待下一次生命周期 flush");
+            warn(LogTags.text(plugin, "console.pity_flush_consecutive_failures", Map.of("count", attempt)));
             stop();
         }
     }
@@ -96,7 +99,7 @@ public final class PityPersistenceRetryScheduler {
 
     private void warn(@Nullable String message) {
         if (plugin.getLogger() != null) {
-            plugin.getLogger().warning("[persistence] " + message);
+            LogTags.sendRaw(plugin, LogTag.PERSISTENCE, Level.WARNING, message);
         }
     }
 }

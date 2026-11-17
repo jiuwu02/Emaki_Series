@@ -13,6 +13,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.skills.integration.SkillsAttributeBridge;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class EaBridge {
 
@@ -195,14 +197,14 @@ public final class EaBridge {
 
     private void info(String key, Map<String, ?> replacements) {
         if (messages != null) {
-            messages.info(key, replacements == null ? Map.of() : replacements);
+            messages.info(LogTag.INTEGRATION, key, replacements == null ? Map.of() : replacements);
             return;
         }
-        plugin.getLogger().info("[integration] " + key);
+        LogTags.sendRaw(plugin, LogTag.INTEGRATION, Level.INFO, key);
     }
 
     private void warning(String key, Map<String, ?> replacements, Throwable throwable) {
-        String text = messages == null ? "[integration] " + key
+        String text = messages == null ? LogTags.head(plugin, "integration") + " " + key
                 : MiniMessages.plainText(messages.message(key, replacements == null ? Map.of() : replacements));
         if (throwable == null) {
             plugin.getLogger().warning(text);

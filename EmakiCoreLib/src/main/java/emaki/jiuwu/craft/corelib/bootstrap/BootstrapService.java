@@ -13,6 +13,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class BootstrapService {
 
@@ -77,8 +80,7 @@ public final class BootstrapService {
         if (result.success()) {
             info("console.bootstrap_complete");
         } else {
-            plugin.getLogger().warning("[loader] 关键默认资源缺失或写入失败: "
-                    + String.join(", ", result.criticalFailures()));
+            LogTags.send(plugin, LogTag.LOADER, Level.WARNING, "loader.critical_resource_missing_or_write_failed", Map.of("failures", String.join(", ", result.criticalFailures())));
         }
         return result;
     }
@@ -204,19 +206,19 @@ public final class BootstrapService {
 
     private void info(String key) {
         if (messages != null) {
-            messages.info(key);
+            messages.info(LogTag.LOADER, key);
         }
     }
 
     private void info(String key, Map<String, ?> replacements) {
         if (messages != null) {
-            messages.info(key, replacements);
+            messages.info(LogTag.LOADER, key, replacements);
         }
     }
 
     private void warning(String key, Map<String, ?> replacements) {
         if (messages != null) {
-            messages.warning(key, replacements);
+            messages.warning(LogTag.LOADER, key, replacements);
         }
     }
 

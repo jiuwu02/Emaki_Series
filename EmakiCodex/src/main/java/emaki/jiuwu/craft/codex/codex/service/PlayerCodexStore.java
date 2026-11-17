@@ -21,6 +21,9 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class PlayerCodexStore {
 
@@ -97,8 +100,7 @@ public final class PlayerCodexStore {
                     pendingLoads.remove(playerId);
                     if (throwable != null) {
                         cache.installLoadFailure(ticket, new PlayerCodex(playerId));
-                        warn("加载玩家 " + playerId + " 的图鉴进度失败: "
-                                + Texts.toStringSafe(throwable.getMessage()));
+                        LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.load_progress_failed", Map.of("player", playerId, "error", Texts.toStringSafe(throwable.getMessage())));
                         future.complete(null);
                         return;
                     }
@@ -178,8 +180,7 @@ public final class PlayerCodexStore {
         return asyncYamlFiles.save(file, values)
                 .handle((ignored, throwable) -> {
                     if (throwable != null) {
-                        warn("保存玩家 " + ticket.key() + " 的图鉴进度失败: "
-                                + Texts.toStringSafe(throwable.getMessage()));
+                        LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.save_progress_failed", Map.of("player", ticket.key(), "error", Texts.toStringSafe(throwable.getMessage())));
                         return false;
                     }
                     return true;
@@ -192,8 +193,7 @@ public final class PlayerCodexStore {
             YamlFiles.save(file, values);
             return true;
         } catch (IOException | RuntimeException exception) {
-            warn("保存图鉴进度到 " + file.getName() + " 失败: "
-                    + Texts.toStringSafe(exception.getMessage()));
+            LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.save_progress_to_file_failed", Map.of("file", file.getName(), "error", Texts.toStringSafe(exception.getMessage())));
             return false;
         }
     }
@@ -240,16 +240,11 @@ public final class PlayerCodexStore {
         future.whenComplete((ignored, throwable) -> latch.countDown());
         try {
             if (!latch.await(remaining, TimeUnit.NANOSECONDS)) {
-                warn("图鉴数据刷新未在排空截止时间前完成");
+                LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.flush_missed_drain_deadline", Map.of());
             }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
         }
     }
 
-    private void warn(String message) {
-        if (logger != null) {
-            logger.warning("[persistence] " + message);
-        }
-    }
 }

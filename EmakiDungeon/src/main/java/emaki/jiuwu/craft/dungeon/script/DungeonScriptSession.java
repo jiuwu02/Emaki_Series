@@ -332,7 +332,7 @@ public final class DungeonScriptSession implements AutoCloseable {
         }
         disabled = true;
         runtime.setScriptTakeover(false);
-        messages.warning("console.script_stopped", Map.of(
+        messages.warning(null, "console.script_stopped", Map.of(
                 "instance", instance.instanceId(),
                 "script", scriptName,
                 "trigger", triggerName == null ? "-" : triggerName,

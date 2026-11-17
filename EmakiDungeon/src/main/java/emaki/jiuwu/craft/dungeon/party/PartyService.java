@@ -109,7 +109,7 @@ public final class PartyService {
         try {
             store.load();
         } catch (RuntimeException exception) {
-            messages.warning("console.parties_load_failed", Map.of(
+            messages.warning(null, "console.parties_load_failed", Map.of(
                     "error", String.valueOf(exception.getMessage())
             ));
         }

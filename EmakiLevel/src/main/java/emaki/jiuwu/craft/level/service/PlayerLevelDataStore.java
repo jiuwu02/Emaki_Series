@@ -33,6 +33,8 @@ import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
 import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class PlayerLevelDataStore {
 
@@ -595,16 +597,11 @@ public final class PlayerLevelDataStore {
     }
 
     private void logLoadFailure(UUID playerId, Throwable throwable) {
-        logger.log(Level.WARNING,
-                "[persistence] 加载失败 " + playerId
-                        + "; 该会话保持只读以保护现有文件",
-                throwable);
+        LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.player_data_load_failed", Map.of("player", playerId), throwable);
     }
 
     private void logSaveFailure(UUID playerId, Throwable throwable) {
-        logger.log(Level.WARNING,
-                "[persistence] 保存失败 " + playerId,
-                throwable);
+        LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.player_data_save_failed", Map.of("player", playerId), throwable);
     }
 
     private static long toLong(Object value, long fallback) {

@@ -2,26 +2,26 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "2.0.2"
+version: "2.0.3"
 
 console:
-  plugin_starting: "[startup] 正在启动 EmakiStation..."
-  plugin_started: "[startup] 启动完成"
-  plugin_stopped: "[shutdown] 已停止"
-  bootstrap_start: "[loader] <gray>正在检查配置文件...</gray>"
-  bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
-  bootstrap_skip: "[loader] <yellow>已跳过默认数据写入</yellow>"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
-  directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
-  loader_config_load_error: "[配置] <yellow>读取 config.yml 失败, 已回退到默认配置</yellow>"
-  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "正在启动 EmakiStation..."
+  plugin_started: "启动完成"
+  plugin_stopped: "已停止"
+  bootstrap_start: "<gray>正在检查配置文件...</gray>"
+  bootstrap_complete: "<green>默认文件检查完成</green>"
+  bootstrap_skip: "<yellow>已跳过默认数据写入</yellow>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
+  loader_config_load_error: "<yellow>读取 config.yml 失败, 已回退到默认配置</yellow>"
+  config_precheck_passed: "<gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "<red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -38,11 +38,11 @@ console:
       path_not_directory: "指定路径不是目录"
       directory_not_readable: "目录不可读"
       storage_unreachable_material: "配方 %recipe% 的第 %index% 个材料只写了 matcher, 没有 item_sources, 只能从背包供料, 不计入仓库检索"
-  editor_open_failed: "[editor] <red>无法打开 EmakiStation 编辑界面: %item%  (%error%)</red>"
-  editor_template_missing: "[editor] <red>缺少 EmakiStation 编辑界面模板: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
+  editor_open_failed: "<red>无法打开 EmakiStation 编辑界面: %item%  (%error%)</red>"
+  editor_template_missing: "<red>缺少 EmakiStation 编辑界面模板: %template%</red>"
+  editor_browser_create_failed: "<red>无法创建定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>无法删除定义: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>无法列举定义目录: %path%  (%error%)</red>"
 
 general:
   prefix: "<gray>[ <gradient:#A3E635:#22D3EE>EmakiStation</gradient> ]</gray>"
@@ -84,29 +84,29 @@ command:
   debug_unavailable: "<red>调试功能当前不可用</red>"
 
 station:
-  station_missing_id: "[loader] <yellow>工作站文件缺少 id: %file%</yellow>"
-  station_no_channel: "[loader] <yellow>工作站 %station% 的两个材料通道都被关闭, 已跳过  (%file%)</yellow>"
-  recipe_missing_id: "[loader] <yellow>配方文件缺少 id: %file%</yellow>"
-  recipe_no_materials: "[loader] <yellow>配方 %recipe% 没有任何可用材料, 已跳过  (%file%)</yellow>"
-  recipe_no_outputs: "[loader] <yellow>配方 %recipe% 没有任何产物, 已跳过  (%file%)</yellow>"
-  recipe_bad_amount: "[loader] <yellow>配方 %recipe% 的数量 %amount% 无效, 已跳过该条</yellow>"
-  recipe_bad_source: "[loader] <yellow>配方 %recipe% 的物品源 %source% 无法解析  (%file%)</yellow>"
-  recipe_legacy_item_source: "[loader] <yellow>配方 %recipe% 使用旧版 item_source, 仍会兼容读取; 请迁移到 item_sources  (%file%)</yellow>"
-  recipe_derived_material_identity: "[loader] <yellow>配方 %recipe% 的第 %index% 个材料缺少显式 material_id, requirement_id 或 count_key, 当前按索引兼容读取; 请补齐稳定身份  (%file%)</yellow>"
-  recipe_source_field_conflict: "[loader] <red>配方 %recipe% 同时声明 item_source 与 item_sources, 已阻塞加载  (%file%)</red>"
-  recipe_duplicate_material_identity: "[loader] <red>配方 %recipe% 的材料身份 %identity% 重复或冲突, 已阻塞加载  (%file%)</red>"
-  recipe_many_materials: "[loader] <yellow>配方 %recipe% 有 %count% 种材料, 超过警告阈值 %limit%</yellow>"
-  recipe_cost_missing_currency: "[loader] <yellow>配方 %recipe% 的 cost 节缺少 currency 子节, 该配方按免费处理; 正确写法为 cost.currency.type / amount  (%file%)</yellow>"
+  station_missing_id: "<yellow>工作站文件缺少 id: %file%</yellow>"
+  station_no_channel: "<yellow>工作站 %station% 的两个材料通道都被关闭, 已跳过  (%file%)</yellow>"
+  recipe_missing_id: "<yellow>配方文件缺少 id: %file%</yellow>"
+  recipe_no_materials: "<yellow>配方 %recipe% 没有任何可用材料, 已跳过  (%file%)</yellow>"
+  recipe_no_outputs: "<yellow>配方 %recipe% 没有任何产物, 已跳过  (%file%)</yellow>"
+  recipe_bad_amount: "<yellow>配方 %recipe% 的数量 %amount% 无效, 已跳过该条</yellow>"
+  recipe_bad_source: "<yellow>配方 %recipe% 的物品源 %source% 无法解析  (%file%)</yellow>"
+  recipe_legacy_item_source: "<yellow>配方 %recipe% 使用旧版 item_source, 仍会兼容读取; 请迁移到 item_sources  (%file%)</yellow>"
+  recipe_derived_material_identity: "<yellow>配方 %recipe% 的第 %index% 个材料缺少显式 material_id, requirement_id 或 count_key, 当前按索引兼容读取; 请补齐稳定身份  (%file%)</yellow>"
+  recipe_source_field_conflict: "<red>配方 %recipe% 同时声明 item_source 与 item_sources, 已阻塞加载  (%file%)</red>"
+  recipe_duplicate_material_identity: "<red>配方 %recipe% 的材料身份 %identity% 重复或冲突, 已阻塞加载  (%file%)</red>"
+  recipe_many_materials: "<yellow>配方 %recipe% 有 %count% 种材料, 超过警告阈值 %limit%</yellow>"
+  recipe_cost_missing_currency: "<yellow>配方 %recipe% 的 cost 节缺少 currency 子节, 该配方按免费处理; 正确写法为 cost.currency.type / amount  (%file%)</yellow>"
 
-  dismantle_recipe_missing_id: "[loader] <yellow>分解配方文件缺少 id: %file%</yellow>"
-  dismantle_recipe_no_input: "[loader] <yellow>分解配方 %recipe% 缺少 item_sources 或 matcher, 已跳过  (%file%)</yellow>"
-  dismantle_recipe_bad_input: "[loader] <yellow>分解配方 %recipe% 的输入物品源 %source% 无法解析  (%file%)</yellow>"
-  dismantle_recipe_legacy_input_source: "[loader] <yellow>分解配方 %recipe% 使用旧版 input_source, 仍会兼容读取; 请迁移到 item_sources  (%file%)</yellow>"
-  dismantle_recipe_bad_source: "[loader] <yellow>分解配方 %recipe% 的 pool 物品源 %source% 无法解析  (%file%)</yellow>"
-  dismantle_recipe_empty_pool: "[loader] <yellow>分解配方 %recipe% 的 pool 为空或全部无效, 已跳过  (%file%)</yellow>"
-  dismantle_recipe_cost_missing_currency: "[loader] <yellow>分解配方 %recipe% 的 cost 节缺少 currency 子节, 该配方按免费处理; 正确写法为 cost.currency.type / amount  (%file%)</yellow>"
-  dismantle_recipe_bad_cost_amount: "[loader] <yellow>分解配方 %recipe% 的费用金额 %amount% 无效, 该配方按免费处理</yellow>"
-  dismantle_recipe_bad_currency: "[loader] <yellow>分解配方 %recipe% 的货币类型 %type% 未知, 该配方按免费处理  (支持 vault / excellent)</yellow>"
+  dismantle_recipe_missing_id: "<yellow>分解配方文件缺少 id: %file%</yellow>"
+  dismantle_recipe_no_input: "<yellow>分解配方 %recipe% 缺少 item_sources 或 matcher, 已跳过  (%file%)</yellow>"
+  dismantle_recipe_bad_input: "<yellow>分解配方 %recipe% 的输入物品源 %source% 无法解析  (%file%)</yellow>"
+  dismantle_recipe_legacy_input_source: "<yellow>分解配方 %recipe% 使用旧版 input_source, 仍会兼容读取; 请迁移到 item_sources  (%file%)</yellow>"
+  dismantle_recipe_bad_source: "<yellow>分解配方 %recipe% 的 pool 物品源 %source% 无法解析  (%file%)</yellow>"
+  dismantle_recipe_empty_pool: "<yellow>分解配方 %recipe% 的 pool 为空或全部无效, 已跳过  (%file%)</yellow>"
+  dismantle_recipe_cost_missing_currency: "<yellow>分解配方 %recipe% 的 cost 节缺少 currency 子节, 该配方按免费处理; 正确写法为 cost.currency.type / amount  (%file%)</yellow>"
+  dismantle_recipe_bad_cost_amount: "<yellow>分解配方 %recipe% 的费用金额 %amount% 无效, 该配方按免费处理</yellow>"
+  dismantle_recipe_bad_currency: "<yellow>分解配方 %recipe% 的货币类型 %type% 未知, 该配方按免费处理  (支持 vault / excellent)</yellow>"
 
   unknown_station: "工作站不存在"
   unknown_recipe: "配方不存在"
@@ -153,7 +153,7 @@ precheck:
 
 debug:
   station:
-    submit: "<gray>[调试][Station] 玩家 <player> 在工作站 <station> 提交配方 <recipe>, 批量 <batch>, 队列位置 <queue_index></gray>"
+    submit: "<gray>[Station] 玩家 <player> 在工作站 <station> 提交配方 <recipe>, 批量 <batch>, 队列位置 <queue_index></gray>"
 
 # 编辑器: 游戏内定义编辑器 (菜单/字段/浏览器/反馈)
 editor:
@@ -322,10 +322,10 @@ editor:
   modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
+    chat: '<yellow>请在聊天栏输入"%label%"的内容, 输入 cancel 取消</yellow>'
+    map_entry: '<yellow>请在聊天栏输入"键=值"新增一条映射, 输入 cancel 取消</yellow>'
   map:
-    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
+    bad_entry: '<red>格式错误, 请按"键=值"输入</red>'
   value:
     unset: "未设置 (空)"
     integer: "整数"
@@ -353,6 +353,17 @@ editor:
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
     delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
-    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
+    delete_confirm: '<red>再次点击"删除"以确认删除</red>'
     delete_success: "<green>已删除定义 %id%</green>"
     delete_failed: "<red>删除失败, 详见控制台</red>"
+config:
+  legacy_key_renamed: "配置键 %legacy_key% 已更名为 %key%, 当前按旧键值 %value% 生效, 启动时会自动迁移到新键"
+  warn_message: "%message%"
+  queue_costs_missing_or_empty: "%file% 缺失或为空; 在提供之前付费队列槽位将被禁用"
+startup:
+  skip_publish_readiness: "已跳过就绪状态发布: %error%"
+shutdown:
+  queue_flush_incomplete: "队列数据刷写未正常完成: %error%"
+  queue_unlock_flush_incomplete: "队列解锁数据刷写未正常完成: %error%"
+persistence:
+  delete_expired_queue_file_failed: "无法删除过期的队列文件: %path%"

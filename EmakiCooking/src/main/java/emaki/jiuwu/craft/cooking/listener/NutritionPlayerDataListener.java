@@ -15,6 +15,9 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
 
 public final class NutritionPlayerDataListener implements Listener {
 
@@ -62,9 +65,7 @@ public final class NutritionPlayerDataListener implements Listener {
             if (throwable == null || sessions.get(playerId) != session) {
                 return;
             }
-            plugin.getLogger().log(Level.WARNING,
-                    "[persistence] 加载玩家营养数据失败: " + playerId,
-                    AsyncFailures.unwrap(throwable));
+            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.load_player_nutrition_data_failed", Map.of("player", playerId), AsyncFailures.unwrap(throwable));
         });
     }
 

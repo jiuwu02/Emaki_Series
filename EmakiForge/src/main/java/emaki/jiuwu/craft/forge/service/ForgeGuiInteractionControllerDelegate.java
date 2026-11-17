@@ -26,6 +26,9 @@ import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.Recipe;
 import emaki.jiuwu.craft.forge.model.RecipeMatch;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class ForgeGuiInteractionControllerDelegate {
 
@@ -137,8 +140,7 @@ final class ForgeGuiInteractionControllerDelegate {
                     errorKey,
                     replacements == null ? Map.of() : replacements);
         } catch (Throwable throwable) {
-            ownerRef.plugin.getLogger().warning("[gui] 锻造失败消息派发失败: "
-                    + Texts.toStringSafe(throwable.getMessage()));
+            LogTags.send(ownerRef.plugin, LogTag.GUI, Level.WARNING, "gui.forge_failure_message_dispatch_failed", Map.of("error", Texts.toStringSafe(throwable.getMessage())));
         }
         ownerRef.stateSupport.returnItems(state);
     }

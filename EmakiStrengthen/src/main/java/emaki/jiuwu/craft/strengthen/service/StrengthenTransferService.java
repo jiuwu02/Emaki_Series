@@ -11,6 +11,10 @@ import emaki.jiuwu.craft.strengthen.api.event.StrengthenTransferEvent;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenTransferOutcome;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class StrengthenTransferService {
 
@@ -100,7 +104,7 @@ public final class StrengthenTransferService {
                     request.decayRate(),
                     outcome));
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("[event] 强化转移结果事件分发失败: " + exception.getMessage());
+            LogTags.send(plugin, LogTag.EVENT, Level.WARNING, "event.transfer_result_dispatch_failed", Map.of("error", exception.getMessage()));
         }
         return new TransferResult(true, "", outcome.resultItem(), outcome.transferredStar());
     }

@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class ItemIdentifierService {
 
@@ -145,7 +146,7 @@ public final class ItemIdentifierService {
         replacements.put("status", probe.status().name());
         replacements.put("detail", probe.detail());
         if (plugin != null && plugin.messageService() != null) {
-            plugin.messageService().warning("console.item_source_unavailable", replacements);
+            plugin.messageService().warning(LogTag.INTEGRATION, "console.item_source_unavailable", replacements);
         }
     }
 
@@ -153,7 +154,7 @@ public final class ItemIdentifierService {
         if (plugin == null || plugin.messageService() == null || source == null) {
             return;
         }
-        plugin.messageService().warning(messageKey, Map.of(
+        plugin.messageService().warning(LogTag.INTEGRATION, messageKey, Map.of(
                 "source", ItemSourceUtil.toShorthand(source),
                 "operation", Texts.toStringSafe(operation)
         ));

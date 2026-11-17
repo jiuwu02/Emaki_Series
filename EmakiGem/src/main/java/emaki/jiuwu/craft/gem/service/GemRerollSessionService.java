@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.gem.api.model.GemRerollSessionView;
 import emaki.jiuwu.craft.gem.listener.GemItemObtainListener;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class GemRerollSessionService {
 
@@ -455,7 +456,7 @@ public final class GemRerollSessionService {
                 "presented_fingerprint", presentedFingerprint
         );
         if (plugin.messageService() != null) {
-            plugin.messageService().warning("console.reroll_refresh_degraded", fields);
+            plugin.messageService().warning(LogTag.PERSISTENCE, "console.reroll_refresh_degraded", fields);
         }
         if (plugin.debugLogger() != null) {
             plugin.debugLogger().log(DEBUG_REROLL_MODULE, player, "state.reroll_refresh_degraded", fields);

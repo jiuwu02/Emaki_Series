@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.editor.YamlTextDocument;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class EditorModuleMarkers {
 
@@ -86,7 +87,7 @@ public final class EditorModuleMarkers {
         clear(session);
         World world = Bukkit.getWorld(session.editWorldName());
         if (world == null) {
-            messages.warning("console.editor_markers_world_missing", Map.of(
+            messages.warning(LogTag.EDITOR, "console.editor_markers_world_missing", Map.of(
                     "world", String.valueOf(session.editWorldName())));
             return 0;
         }
@@ -100,14 +101,14 @@ public final class EditorModuleMarkers {
                 try {
                     renderSection(world, session, view, type, section, spawned);
                 } catch (RuntimeException exception) {
-                    messages.warning("console.editor_markers_render_failed", Map.of(
+                    messages.warning(LogTag.EDITOR, "console.editor_markers_render_failed", Map.of(
                             "type", String.valueOf(type),
                             "error", String.valueOf(exception)));
                 }
             }
             session.markers(spawned);
             if (!spawned.isEmpty()) {
-                messages.info("console.editor_markers_spawned", Map.of(
+                messages.info(LogTag.EDITOR, "console.editor_markers_spawned", Map.of(
                         "world", String.valueOf(session.editWorldName()),
                         "count", String.valueOf(spawned.size())));
             }
@@ -146,7 +147,7 @@ public final class EditorModuleMarkers {
         for (Map.Entry<?, ?> moduleEntry : value.entrySet()) {
             String moduleId = String.valueOf(moduleEntry.getKey());
             if (!(moduleEntry.getValue() instanceof Map<?, ?> module)) {
-                messages.info("console.editor_markers_skip_not_map", Map.of(
+                messages.info(LogTag.EDITOR, "console.editor_markers_skip_not_map", Map.of(
                         "section", String.valueOf(section),
                         "id", String.valueOf(moduleId)));
                 continue;
@@ -159,7 +160,7 @@ public final class EditorModuleMarkers {
             Map<?, ?> module, List<Entity> out) {
         Box box = boxOf(module);
         if (box == null) {
-            messages.info("console.editor_markers_skip_no_box", Map.of(
+            messages.info(LogTag.EDITOR, "console.editor_markers_skip_no_box", Map.of(
                     "type", String.valueOf(type),
                     "id", String.valueOf(moduleId)));
             return;

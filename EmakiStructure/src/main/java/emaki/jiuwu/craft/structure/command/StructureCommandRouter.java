@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.structure.template.StructureTemplate;
 import emaki.jiuwu.craft.structure.template.TemplateRepository;
 import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
+import emaki.jiuwu.craft.structure.log.StructureLogTag;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -425,7 +426,7 @@ public final class StructureCommandRouter {
                         "furniture", furnitureCount,
                         "furniture_skipped", furnitureSkipped));
                 if (!furnitureAdapter.anySourcePresent()) {
-                    plugin.messageService().send(sender, "console.export_furniture_absent");
+                    plugin.messageService().send(sender, StructureLogTag.EXPORT, "console.export_furniture_absent");
                 }
             });
         });

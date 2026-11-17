@@ -53,6 +53,7 @@ import emaki.jiuwu.craft.strengthen.enhancement.progression.EnhancementProgressi
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipe;
 import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
 import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 
 final class EnhancementAttemptServiceDelegate2 {
 
@@ -106,7 +107,7 @@ final class EnhancementAttemptServiceDelegate2 {
         try {
             return Texts.lower(ownerRef.plugin.affixSelectionService().selected(player.getUniqueId(), List.of()));
         } catch (RuntimeException | LinkageError exception) {
-            ownerRef.warn("读取词条选择用于 pity 隔离失败", exception);
+            ownerRef.warn(LogTags.text(ownerRef.plugin, "console.read_affix_selection_for_pity_isolation_failed", Map.of()), exception);
             return "";
         }
     }
@@ -118,7 +119,7 @@ final class EnhancementAttemptServiceDelegate2 {
         try {
             return Math.max(0, provider.readLevel(player, target));
         } catch (RuntimeException | LinkageError exception) {
-            ownerRef.warn("读取目标等级用于 pity 隔离失败", exception);
+            ownerRef.warn(LogTags.text(ownerRef.plugin, "console.read_target_level_for_pity_isolation_failed", Map.of()), exception);
             return 0;
         }
     }

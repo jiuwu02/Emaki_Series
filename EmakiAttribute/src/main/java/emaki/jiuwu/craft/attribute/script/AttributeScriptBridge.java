@@ -15,6 +15,9 @@ import emaki.jiuwu.craft.corelib.script.host.ScriptHostSettings;
 import emaki.jiuwu.craft.corelib.script.host.ScriptLoadReport;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class AttributeScriptBridge {
 
@@ -207,17 +210,17 @@ public final class AttributeScriptBridge {
 
     private void info(String key, Map<String, ?> replacements) {
         if (messageService != null) {
-            messageService.info(key, replacements);
+            messageService.info(LogTag.SCRIPT, key, replacements);
             return;
         }
-        plugin.getLogger().info("[script] " + key);
+        LogTags.sendRaw(plugin, LogTag.SCRIPT, Level.INFO, key);
     }
 
     private void warning(String key, Map<String, ?> replacements) {
         if (messageService != null) {
-            messageService.warning(key, replacements);
+            messageService.warning(LogTag.SCRIPT, key, replacements);
             return;
         }
-        plugin.getLogger().warning("[script] " + key);
+        LogTags.sendRaw(plugin, LogTag.SCRIPT, Level.WARNING, key);
     }
 }

@@ -16,6 +16,9 @@ import emaki.jiuwu.craft.attribute.api.model.DamageContext;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.attribute.log.AttributeLogTag;
+import java.util.logging.Level;
 
 final class CombatDebugService {
 
@@ -74,13 +77,13 @@ final class CombatDebugService {
         String safePhase = phase == null || phase.isBlank() ? "TRACE" : phase;
         String safeMessage = message == null ? "" : message;
         if (service.plugin().messageService() != null) {
-            service.plugin().messageService().info("console.combat_debug_line", Map.of(
+            service.plugin().messageService().info(AttributeLogTag.COMBAT, "console.combat_debug_line", Map.of(
                     "phase", safePhase,
                     "message", safeMessage
             ));
             return;
         }
-        service.plugin().getLogger().info("[战斗] [" + safePhase + "] " + safeMessage);
+        LogTags.send(service.plugin(), AttributeLogTag.COMBAT, Level.INFO, "combat.debug_line", Map.of("phase", safePhase, "message", safeMessage));
     }
 
     public void logMessage(String phase, String messageKey, Map<String, ?> replacements) {

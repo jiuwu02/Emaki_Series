@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.mobs.apiimpl;
 import emaki.jiuwu.craft.mobs.EmakiMobsPlugin;
 import emaki.jiuwu.craft.mobs.api.MobExtensions;
 import emaki.jiuwu.craft.mobs.api.MobSpawnerRegistration;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
@@ -48,7 +50,7 @@ public final class DefaultMobExtensions implements MobExtensions, Listener, Auto
             replaced = spawners.put(normalizedId, new RegisteredSpawner(owner, spawner, generation));
         }
         if (replaced != null) {
-            plugin.messageService().warning("console.custom_spawner_replaced", Map.of(
+            plugin.messageService().warning(LogTag.SPAWN, "console.custom_spawner_replaced", Map.of(
                     "id", normalizedId,
                     "old_owner", ownerName(replaced.owner()),
                     "new_owner", ownerName(owner)));
@@ -105,9 +107,7 @@ public final class DefaultMobExtensions implements MobExtensions, Listener, Auto
         try {
             spawner.onReload();
         } catch (RuntimeException exception) {
-            plugin.getLogger().log(Level.WARNING,
-                    "[spawn] " + plugin.messageService().message("console.custom_spawner_reload_failed",
-                            Map.of("id", id, "owner", ownerName(owner))), exception);
+            LogTags.sendRaw(plugin, LogTag.SPAWN, Level.WARNING, plugin.messageService().message("console.custom_spawner_reload_failed", Map.of("id", id, "owner", ownerName(owner))));
         }
     }
 

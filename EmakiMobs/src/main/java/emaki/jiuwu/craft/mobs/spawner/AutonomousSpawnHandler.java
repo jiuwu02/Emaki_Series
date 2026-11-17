@@ -8,6 +8,7 @@ import emaki.jiuwu.craft.corelib.schedule.cron.CronParseException;
 import emaki.jiuwu.craft.corelib.schedule.cron.CronScheduler;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -33,6 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongConsumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class AutonomousSpawnHandler implements SpawnHandler {
 
@@ -73,16 +75,14 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
             case CRON -> {
                 String expr = r.cronExpression();
                 if (expr == null || expr.isBlank()) {
-                    plugin.getLogger().warning(
-                            "[spawn] 生物 '" + r.mobId() + "' 的 cron 触发器缺少 cron 表达式");
+                    LogTags.send(plugin, LogTag.SPAWN, Level.WARNING, "spawn.mob_cron_expression_missing", Map.of("mob", r.mobId()));
                     return;
                 }
                 try {
                     cronScheduler.schedule(plugin, expr,
                             () -> withGlobalLimit(r, expected, () -> dispatchPlayers(r, expected, null)));
                 } catch (CronParseException e) {
-                    plugin.getLogger().warning(
-                            "[spawn] 生物 '" + r.mobId() + "' 的 cron 表达式 '" + expr + "' 无效: " + e.getMessage());
+                    LogTags.send(plugin, LogTag.SPAWN, Level.WARNING, "spawn.mob_cron_expression_invalid", Map.of("mob", r.mobId(), "expression", expr, "error", e.getMessage()));
                 }
             }
         }
@@ -105,8 +105,7 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
             return action.get();
         } catch (RuntimeException exception) {
             if (plugin.isEnabled()) {
-                plugin.getLogger().log(Level.WARNING,
-                        "[spawn] 无法调度" + description, exception);
+                LogTags.send(plugin, LogTag.SPAWN, Level.WARNING, "spawn.unable_to_schedule", Map.of("description", description), exception);
             }
             return null;
         }

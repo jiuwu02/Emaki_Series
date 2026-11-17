@@ -25,6 +25,9 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.cost.CostReceipt;
 import emaki.jiuwu.craft.corelib.cost.CostTransaction;
 import emaki.jiuwu.craft.corelib.craft.CraftOperationJournal;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class LevelOperationJournal {
 
@@ -135,9 +138,7 @@ final class LevelOperationJournal {
                     .thenCompose(_ -> advanceAsync(operationId, Phase.COMPLETED))
                     .whenComplete((_, failure) -> {
                         if (failure != null) {
-                            plugin.getLogger().severe("[journal] 等级操作 " + operationId
-                                    + " 已完成动作但操作日志写入失败; 该条目保留在 active 中"
-                                    + ", 等待下次恢复处理: " + rootCauseMessage(failure));
+                            LogTags.send(plugin, LogTag.JOURNAL, Level.SEVERE, "journal.level_operation_write_failed", Map.of("operation", operationId, "error", rootCauseMessage(failure)));
                         }
                     });
         });
@@ -300,7 +301,7 @@ final class LevelOperationJournal {
         for (Entry entry : entries) {
             operationIds.add(entry.operationId() + "(" + entry.phase().name() + ")");
         }
-        plugin.getLogger().info("[journal] 可恢复的等级操作: " + String.join(", ", operationIds));
+        LogTags.send(plugin, LogTag.JOURNAL, Level.INFO, "journal.recoverable_level_operations", Map.of("operations", String.join(", ", operationIds)));
     }
 
     private String rootCauseMessage(Throwable throwable) {

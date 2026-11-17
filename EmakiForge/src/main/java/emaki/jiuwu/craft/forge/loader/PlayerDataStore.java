@@ -29,6 +29,8 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.PlayerData;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class PlayerDataStore {
 
@@ -87,7 +89,7 @@ public final class PlayerDataStore {
         try {
             YamlFiles.ensureDirectory(directory.toPath());
         } catch (IOException exception) {
-            plugin.messageService().warning("console.player_data_directory_create_failed", Map.of(
+            plugin.messageService().warning(LogTag.PERSISTENCE, "console.player_data_directory_create_failed", Map.of(
                     "path", directory.getPath()
             ));
             return;
@@ -630,14 +632,11 @@ public final class PlayerDataStore {
     }
 
     private void logLoadFailure(String uuid, Throwable throwable) {
-        plugin.getLogger().log(Level.WARNING,
-                "[persistence] 加载玩家数据失败: " + uuid
-                        + "; 本次会话将保持只读以保护现有文件",
-                throwable);
+        LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.load_player_data_failed", Map.of("player", uuid), throwable);
     }
 
     private void logSaveFailure(String uuid, Throwable throwable) {
-        plugin.messageService().warning("console.player_data_save_failed", Map.of(
+        plugin.messageService().warning(LogTag.PERSISTENCE, "console.player_data_save_failed", Map.of(
                 "uuid", uuid,
                 "error", String.valueOf(throwable == null ? "unknown" : throwable.getMessage())
         ));

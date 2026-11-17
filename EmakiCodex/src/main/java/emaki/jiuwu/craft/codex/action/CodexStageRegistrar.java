@@ -8,6 +8,10 @@ import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class CodexStageRegistrar {
 
@@ -33,8 +37,7 @@ public final class CodexStageRegistrar {
             if (registration.successful()) {
                 handles.add(registration);
             } else {
-                plugin.getLogger().warning("[startup] 注册管道阶段失败: '" + stage.id()
-                        + "', 原因: " + registration.reasonKey());
+                LogTags.send(plugin, LogTag.STARTUP, Level.WARNING, "startup.pipeline_stage_registration_failed", Map.of("stage", stage.id(), "reason", registration.reasonKey()));
             }
         }
         EmakiCoreLibApi.onStageRegistryRebuilt(plugin, this::register);

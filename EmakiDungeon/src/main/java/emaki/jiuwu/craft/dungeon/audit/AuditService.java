@@ -70,7 +70,7 @@ public final class AuditService implements AutoCloseable {
             } catch (IOException exception) {
                 if (!writeFailed) {
                     writeFailed = true;
-                    messages.warning("console.audit_write_failed", Map.of(
+                    messages.warning(null, "console.audit_write_failed", Map.of(
                             "file", currentFile,
                             "error", String.valueOf(exception.getMessage())));
                 }

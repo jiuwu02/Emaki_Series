@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptResult;
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipe;
+import emaki.jiuwu.craft.strengthen.log.StrengthenLogTag;
 
 public final class StrengthenActionCoordinator {
 
@@ -158,7 +159,7 @@ public final class StrengthenActionCoordinator {
             Boolean success,
             Throwable throwable) {
         if (throwable != null) {
-            plugin.messageService().warning("console.recipe_action_failed", Map.of(
+            plugin.messageService().warning(StrengthenLogTag.ATTEMPT, "console.recipe_action_failed", Map.of(
                     "operation_id", operationId == null ? "" : operationId,
                     "recipe", recipe == null ? "-" : recipe.id(),
                     "phase", phase,
@@ -168,7 +169,7 @@ public final class StrengthenActionCoordinator {
             return;
         }
         if (success == null || !success) {
-            plugin.messageService().warning("console.recipe_action_failed", Map.of(
+            plugin.messageService().warning(StrengthenLogTag.ATTEMPT, "console.recipe_action_failed", Map.of(
                     "operation_id", operationId == null ? "" : operationId,
                     "recipe", recipe == null ? "-" : recipe.id(),
                     "phase", phase,
@@ -186,7 +187,7 @@ public final class StrengthenActionCoordinator {
         if (throwable == null && Boolean.TRUE.equals(success)) {
             return;
         }
-        plugin.messageService().warning("console.recipe_action_failed", Map.of(
+        plugin.messageService().warning(StrengthenLogTag.ATTEMPT, "console.recipe_action_failed", Map.of(
                 "operation_id", operationId == null ? "" : operationId,
                 "recipe", recipe == null ? "-" : recipe.id(),
                 "phase", phase,

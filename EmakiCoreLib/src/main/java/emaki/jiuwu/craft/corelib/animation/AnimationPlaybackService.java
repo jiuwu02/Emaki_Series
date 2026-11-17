@@ -37,6 +37,8 @@ import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class AnimationPlaybackService {
 
@@ -180,7 +182,7 @@ public final class AnimationPlaybackService {
             try {
                 action.accept(listener);
             } catch (RuntimeException exception) {
-                plugin.getLogger().log(Level.WARNING, "[animation] 动画监听器抛出异常", exception);
+                LogTags.send(plugin, LogTag.ANIMATION, Level.WARNING, "animation.listener_exception", Map.of(), exception);
             }
         }
     }
@@ -304,14 +306,13 @@ public final class AnimationPlaybackService {
                 });
                 if (pipeline == null) {
                     if (failedFrames.add(frame.actionLine())) {
-                        plugin.getLogger().warning("[animation] 动画关键帧行未通过编译: " + frame.actionLine());
+                        LogTags.send(plugin, LogTag.ANIMATION, Level.WARNING, "animation.keyframe_line_compile_failed", Map.of("line", frame.actionLine()));
                     }
                     return;
                 }
                 engine.run(owner, pipeline, buildContext());
             } catch (RuntimeException exception) {
-                plugin.getLogger().log(Level.WARNING,
-                        "[animation] 动画关键帧行执行失败: " + frame.actionLine(), exception);
+                LogTags.send(plugin, LogTag.ANIMATION, Level.WARNING, "animation.keyframe_line_execution_failed", Map.of("line", frame.actionLine()), exception);
             }
         }
 

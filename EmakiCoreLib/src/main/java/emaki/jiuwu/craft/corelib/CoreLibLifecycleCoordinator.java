@@ -35,6 +35,9 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class CoreLibLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiCoreLibPlugin, CoreLibRuntimeComponents> {
@@ -51,6 +54,10 @@ final class CoreLibLifecycleCoordinator
         LanguageLoader languageLoader =
                 new LanguageLoader(plugin, "lang", "lang", config.language(), FALLBACK_LANGUAGE);
         MessageService messageService = new MessageService(plugin, languageLoader);
+        LogTags.registerFallback(key -> {
+            String value = messageService.message(key);
+            return key.equals(value) ? null : value;
+        });
         BStatsService bStatsService = new BStatsService(plugin, messageService);
         DebugLogger debugLogger = new DebugLogger(plugin, languageLoader);
         ItemSourceIntegrationCoordinator itemSourceIntegrationCoordinator =
@@ -149,8 +156,7 @@ final class CoreLibLifecycleCoordinator
                 YamlFiles.copyResourceIfMissing(plugin, "dialogs/" + fileName,
                         dialogsDirectory.resolve(fileName).toFile());
             } catch (Exception exception) {
-                plugin.getLogger().warning("[loader] 释放示例对话 dialogs/" + fileName + " 失败: "
-                        + exception.getMessage());
+                LogTags.send(plugin, LogTag.LOADER, Level.WARNING, "loader.release_example_dialog_failed", Map.of("file", fileName, "error", exception.getMessage()));
             }
         }
     }

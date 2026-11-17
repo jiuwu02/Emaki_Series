@@ -11,6 +11,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class CronScheduler {
 
@@ -67,7 +71,7 @@ public final class CronScheduler {
             try {
                 task.run();
             } catch (Throwable t) {
-                plugin.getLogger().warning("[scheduler] 任务抛出异常: " + t.getMessage());
+                LogTags.send(plugin, LogTag.SCHEDULER, Level.WARNING, "scheduler.task_exception", Map.of("error", t.getMessage()));
             }
 
             int remaining = handle.decrementAndGet();

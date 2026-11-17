@@ -37,6 +37,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.structure.log.StructureLogTag;
 
 public final class GenerationFinalizer {
 
@@ -140,8 +142,7 @@ public final class GenerationFinalizer {
     }
 
     private void reportSettleFailure(GenerationService.Request request, GenerationJob job) {
-        plugin.getLogger().warning("回滚日志提交失败, 事务 " + job.id()
-                + " 已中止, 模板 " + request.template().id());
+        LogTags.send(plugin, null, Level.WARNING, "generate.rollback_journal_commit_failed", Map.of("transaction", job.id(), "template", request.template().id()));
         plugin.messageService().send(request.initiator(), "error.generate.failed",
                 Map.of("reason", DETAIL_JOURNAL_FAILED));
     }
@@ -154,7 +155,7 @@ public final class GenerationFinalizer {
         if (journal.isHealthy()) {
             return true;
         }
-        plugin.getLogger().warning("回滚日志已写入失败, 跳过生成后处理, 事务 " + job.id());
+        LogTags.send(plugin, null, Level.WARNING, "generate.post_processing_skipped_after_journal_failure", Map.of("transaction", job.id()));
         return false;
     }
 
@@ -253,9 +254,9 @@ public final class GenerationFinalizer {
                         location.getBlockX(), location.getBlockY(), location.getBlockZ());
             }
         } catch (GenerationJournal.JournalWriteException exception) {
-            plugin.getLogger().log(Level.WARNING, "模板实体回滚日志写入失败 " + entity.type(), exception);
+            LogTags.send(plugin, null, Level.WARNING, "generate.template_entity_journal_write_failed", Map.of("type", entity.type()), exception);
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("模板实体生成失败 " + entity.type() + ": " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "generate.template_entity_generation_failed", Map.of("type", entity.type(), "error", exception.getMessage()));
         }
     }
 
@@ -282,7 +283,7 @@ public final class GenerationFinalizer {
         for (FurnitureEntry entry : sidecar.entries()) {
             String namespace = FurnitureIdAdapter.namespaceOf(entry.id());
             if (!furniturePlacer.sourcePresent(namespace)) {
-                plugin.messageService().warning("console.furniture_source_absent", Map.of(
+                plugin.messageService().warning(StructureLogTag.FURNITURE, "console.furniture_source_absent", Map.of(
                         "template", template.id(),
                         "index", index,
                         "id", entry.id()));
@@ -314,7 +315,7 @@ public final class GenerationFinalizer {
         try {
             Entity placed = furniturePlacer.place(id, location);
             if (placed == null) {
-                plugin.messageService().warning("console.furniture_place_failed", Map.of(
+                plugin.messageService().warning(StructureLogTag.FURNITURE, "console.furniture_place_failed", Map.of(
                         "template", templateId,
                         "index", entryIndex,
                         "id", id));
@@ -327,9 +328,9 @@ public final class GenerationFinalizer {
                         entityLocation.getBlockZ());
             }
         } catch (GenerationJournal.JournalWriteException exception) {
-            plugin.getLogger().log(Level.WARNING, "家具回滚日志写入失败 " + templateId, exception);
+            LogTags.send(plugin, null, Level.WARNING, "generate.furniture_journal_write_failed", Map.of("template", templateId), exception);
         } catch (RuntimeException exception) {
-            plugin.messageService().warning("console.furniture_place_failed", Map.of(
+            plugin.messageService().warning(StructureLogTag.FURNITURE, "console.furniture_place_failed", Map.of(
                     "template", templateId,
                     "index", entryIndex,
                     "id", id));
@@ -356,7 +357,7 @@ public final class GenerationFinalizer {
         try {
             dispatcher.runAtLocation(plugin, new Location(world, x, y, z), task);
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("生成后处理任务提交失败: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "generate.post_processing_task_submit_failed", Map.of("error", exception.getMessage()));
         }
     }
 }

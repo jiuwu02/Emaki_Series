@@ -49,6 +49,7 @@ import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionNode;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 import emaki.jiuwu.craft.corelib.condition.ConditionNode;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 final class StrengthenAttemptServiceDelegate {
 
@@ -81,7 +82,7 @@ final class StrengthenAttemptServiceDelegate {
             try {
                 Bukkit.getPluginManager().callEvent(new StrengthenAttemptEvent(player, result));
             } catch (RuntimeException | LinkageError exception) {
-                ownerRef.plugin.messageService().warning("console.strengthen_result_dispatch_failed", Map.of(
+                ownerRef.plugin.messageService().warning(LogTag.EVENT, "console.strengthen_result_dispatch_failed", Map.of(
                         "operation_id", Texts.toStringSafe(result.operationId()),
                         "error", String.valueOf(exception.getMessage())));
             }

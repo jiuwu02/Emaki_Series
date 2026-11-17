@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class MobModelManager implements Listener {
 
@@ -102,7 +103,7 @@ public final class MobModelManager implements Listener {
             return;
         }
         if (!bridge.hasBlueprint(model.blueprint())) {
-            messageService.warning("console.model_blueprint_missing",
+            messageService.warning(LogTag.INTEGRATION, "console.model_blueprint_missing",
                     Map.of("mob_id", mobId, "blueprint", model.blueprint()));
             return;
         }
@@ -151,7 +152,7 @@ public final class MobModelManager implements Listener {
             return;
         }
         if (!target.hasBlueprint(blueprintId)) {
-            messageService.warning("console.model_blueprint_missing",
+            messageService.warning(LogTag.INTEGRATION, "console.model_blueprint_missing",
                     Map.of("mob_id", mobId, "blueprint", blueprintId));
             return;
         }

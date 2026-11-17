@@ -40,6 +40,7 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class GrinderRuntimeService {
 
@@ -152,7 +153,7 @@ public final class GrinderRuntimeService {
         if (!blockMatcher.matches(block, StationType.GRINDER, stationSource)) {
             activeStations.remove(coordinates.runtimeKey());
             textDisplayService.removeStation(StationType.GRINDER, coordinates);
-            plugin.messageService().warning("console.station_restore_skipped_mismatch", Map.of(
+            plugin.messageService().warning(LogTag.PERSISTENCE, "console.station_restore_skipped_mismatch", Map.of(
                     "type", "grinder",
                     "coordinate", coordinates.runtimeKey()));
             return false;

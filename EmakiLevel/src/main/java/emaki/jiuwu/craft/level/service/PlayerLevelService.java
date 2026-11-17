@@ -40,6 +40,9 @@ import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
 import emaki.jiuwu.craft.corelib.cost.CostReceipt;
 import emaki.jiuwu.craft.corelib.cost.CostTransaction;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class PlayerLevelService {
 
@@ -569,16 +572,16 @@ public final class PlayerLevelService {
             return CompletableFuture.completedFuture(true);
         }
         if (actionLines == null) {
-            plugin.getLogger().warning("[action] 动作阶段 '" + phase + "' 失败: 动作执行器不可用");
+            LogTags.send(plugin, LogTag.ACTION, Level.WARNING, "action.action_stage_failed_executor_unavailable", Map.of("phase", phase));
             return CompletableFuture.completedFuture(false);
         }
         return actionLines.run(lines, player, phase, silent, placeholders, true).handle((success, throwable) -> {
             if (throwable != null) {
-                plugin.getLogger().warning("[action] 动作阶段 '" + phase + "' 失败: " + throwable.getMessage());
+                LogTags.send(plugin, LogTag.ACTION, Level.WARNING, "action.action_stage_failed", Map.of("phase", phase, "error", throwable.getMessage()));
                 return false;
             }
             if (success == null || !success) {
-                plugin.getLogger().warning("[action] 动作阶段 '" + phase + "' 失败: 动作批次未成功");
+                LogTags.send(plugin, LogTag.ACTION, Level.WARNING, "action.action_stage_failed_batch_not_successful", Map.of("phase", phase));
                 return false;
             }
             return true;

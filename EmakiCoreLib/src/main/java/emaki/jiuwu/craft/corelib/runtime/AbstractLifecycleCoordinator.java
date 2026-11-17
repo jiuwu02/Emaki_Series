@@ -22,6 +22,9 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
 
 public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponents> {
 
@@ -182,11 +185,7 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
             Exception stageFailure,
             Exception rollbackFailure) {
         Logger logger = rollbackLogOwner == null ? EmakiLog.of("EmakiCoreLib") : rollbackLogOwner.getLogger();
-        logger.log(Level.SEVERE,
-                "[reload] 阶段失败后重载回滚失败; 模块可能既未应用新配置也未应用旧配置: stage=" + stageName
-                        + ", stageFailure=" + stageFailure
-                        + ", rollbackFailure=" + rollbackFailure,
-                rollbackFailure);
+        LogTags.send(logger, LogTag.RELOAD, Level.SEVERE, "reload.rollback_failed", Map.of("stage", stageName, "stage_failure", stageFailure, "rollback_failure", rollbackFailure), rollbackFailure);
     }
 
     private static <T> CompletableFuture<T> failedFuture(Throwable throwable) {

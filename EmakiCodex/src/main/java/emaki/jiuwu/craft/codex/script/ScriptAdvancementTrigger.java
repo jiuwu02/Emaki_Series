@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.codex.api.AdvancementTriggerContext;
 import emaki.jiuwu.craft.corelib.script.host.ScriptCallbackException;
 import emaki.jiuwu.craft.corelib.script.host.ScriptCallbackRunner;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 final class ScriptAdvancementTrigger implements AdvancementTrigger {
 
@@ -73,7 +74,7 @@ final class ScriptAdvancementTrigger implements AdvancementTrigger {
         List<String> ids = TriggerScriptLogic.collectStringIds(elements);
         int skipped = elements.size() - ids.size();
         if (skipped > 0) {
-            messages.warning("console.script_callback_invalid_element",
+            messages.warning(LogTag.SCRIPT, "console.script_callback_invalid_element",
                     Map.of("id", id, "count", skipped));
         }
         return ids;
@@ -116,6 +117,6 @@ final class ScriptAdvancementTrigger implements AdvancementTrigger {
     }
 
     private void warnFailure(String reason) {
-        messages.warning("console.script_callback_failed", Map.of("id", id, "reason", reason));
+        messages.warning(LogTag.SCRIPT, "console.script_callback_failed", Map.of("id", id, "reason", reason));
     }
 }

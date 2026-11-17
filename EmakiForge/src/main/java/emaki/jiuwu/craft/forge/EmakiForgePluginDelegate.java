@@ -49,6 +49,9 @@ import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 import emaki.jiuwu.craft.forge.apiimpl.DefaultEmakiForgeApi;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class EmakiForgePluginDelegate {
 
@@ -60,16 +63,15 @@ final class EmakiForgePluginDelegate {
 
     void registerCoreShutdownBarrier(EmakiCoreLibPlugin coreLibPlugin, CompletableFuture<Void> shutdownFuture) {
         if (coreLibPlugin == null) {
-            ownerRef.getLogger().warning("[shutdown] CoreLib 依赖关闭屏障不可用");
+            LogTags.send(ownerRef, LogTag.SHUTDOWN, Level.WARNING, "shutdown.corelib_shutdown_barrier_unavailable");
             return;
         }
         try {
             if (!coreLibPlugin.registerDependentShutdown("forge", shutdownFuture)) {
-                ownerRef.getLogger().warning("[shutdown] CoreLib 拒绝了 Forge 依赖关闭屏障");
+                LogTags.send(ownerRef, LogTag.SHUTDOWN, Level.WARNING, "shutdown.corelib_shutdown_barrier_rejected");
             }
         } catch (Throwable throwable) {
-            ownerRef.getLogger().warning("[shutdown] CoreLib 依赖关闭屏障注册失败: "
-                    + String.valueOf(throwable.getMessage()));
+            LogTags.send(ownerRef, LogTag.SHUTDOWN, Level.WARNING, "shutdown.corelib_shutdown_barrier_register_failed", Map.of("error", String.valueOf(throwable.getMessage())));
         }
     }
 

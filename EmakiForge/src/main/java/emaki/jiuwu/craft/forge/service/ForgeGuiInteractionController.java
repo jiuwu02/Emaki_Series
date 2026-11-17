@@ -28,6 +28,9 @@ import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.Recipe;
 import emaki.jiuwu.craft.forge.model.RecipeMatch;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class ForgeGuiInteractionController {
 
@@ -418,13 +421,12 @@ final class ForgeGuiInteractionController {
                     "recipe", activeRecipe.id(),
                     "reason", Texts.toStringSafe(throwable.getMessage())));
             try {
-                state.runtimeSnapshot().messageService().warning("console.forge_execution_failed", Map.of(
+                state.runtimeSnapshot().messageService().warning(LogTag.ACTION, "console.forge_execution_failed", Map.of(
                         "recipe", activeRecipe.id(),
                         "error", String.valueOf(throwable.getMessage())
                 ));
             } catch (Throwable messageFailure) {
-                plugin.getLogger().warning("[gui] 锻造执行失败日志记录失败: "
-                        + Texts.toStringSafe(messageFailure.getMessage()));
+                LogTags.send(plugin, LogTag.GUI, Level.WARNING, "gui.forge_execution_failure_log_failed", Map.of("error", Texts.toStringSafe(messageFailure.getMessage())));
             }
             if (committedDelivery) {
                 state.setForgeCompleted(true);
@@ -642,8 +644,7 @@ final class ForgeGuiInteractionController {
         String playerId = state == null || state.playerId() == null
                 ? "unknown"
                 : state.playerId().toString();
-        plugin.getLogger().warning("[gui] Forge GUI 结算无法在玩家所有者线程上运行: player="
-                + playerId + " reason=" + Texts.toStringSafe(reason));
+        LogTags.send(plugin, LogTag.GUI, Level.WARNING, "gui.settlement_owner_thread_unavailable", Map.of("player", playerId, "reason", Texts.toStringSafe(reason)));
     }
 
     void returnFailedAttempt(ForgeGuiSession state, String errorKey, Map<String, ?> replacements) { new ForgeGuiInteractionControllerDelegate(this).returnFailedAttempt(state, errorKey, replacements); }

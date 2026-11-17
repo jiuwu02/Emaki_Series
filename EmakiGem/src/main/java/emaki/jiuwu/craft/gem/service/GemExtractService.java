@@ -23,6 +23,9 @@ import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
 import emaki.jiuwu.craft.gem.model.GemState;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class GemExtractService {
 
@@ -158,13 +161,11 @@ public final class GemExtractService {
             return;
         }
         if (!target.isOnline()) {
-            plugin.getLogger().warning("[scheduler] 已跳过宝石取出完成事件, 因为目标玩家离线: "
-                    + target.getUniqueId());
+            LogTags.send(plugin, LogTag.SCHEDULER, Level.WARNING, "scheduler.skip_gem_extract_event_target_offline", Map.of("player", target.getUniqueId()));
             return;
         }
         scheduling.runForEntity(plugin, target, eventCall,
-                () -> plugin.getLogger().warning("[scheduler] 已跳过宝石取出完成事件, 因为目标调度已退役: "
-                        + target.getUniqueId()));
+                () -> LogTags.send(plugin, LogTag.SCHEDULER, Level.WARNING, "scheduler.skip_gem_extract_event_target_scheduler_retired", Map.of("player", target.getUniqueId())));
     }
 
     private ItemStack createReturnedGem(GemDefinition gemDefinition, GemItemInstance instance) {

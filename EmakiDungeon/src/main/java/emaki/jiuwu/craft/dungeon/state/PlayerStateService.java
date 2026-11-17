@@ -168,7 +168,7 @@ public final class PlayerStateService {
                 "player", String.valueOf(playerId),
                 "remaining", String.valueOf(remaining)
         ));
-        messages.warning("player.died", Map.of(
+        messages.warning(null, "player.died", Map.of(
                 "player", String.valueOf(playerId),
                 "remaining", String.valueOf(remaining)
         ));

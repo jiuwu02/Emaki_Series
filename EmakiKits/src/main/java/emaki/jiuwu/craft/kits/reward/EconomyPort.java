@@ -7,6 +7,8 @@ import emaki.jiuwu.craft.kits.config.AppConfig;
 import org.bukkit.entity.Player;
 
 import java.util.logging.Level;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import java.util.Map;
 
 public final class EconomyPort {
 
@@ -40,9 +42,7 @@ public final class EconomyPort {
                     settings.currencyId(), amount);
             return result != null && result.success();
         } catch (RuntimeException | LinkageError exception) {
-            coreLib.getLogger().log(Level.WARNING,
-                    "[EmakiKits] 扣款失败: operation=debit, player=" + player.getUniqueId()
-                            + ", amount=" + amount + ", cause=" + exception, exception);
+            LogTags.send(coreLib, null, Level.WARNING, "console.debit_failed", Map.of("player", player.getUniqueId(), "amount", amount, "error", exception), exception);
             return false;
         }
     }
@@ -55,9 +55,7 @@ public final class EconomyPort {
         try {
             manager.add(player, settings.provider(), settings.currencyId(), amount);
         } catch (RuntimeException | LinkageError exception) {
-            coreLib.getLogger().log(Level.SEVERE,
-                    "[EmakiKits] 扣款补偿失败: operation=refund, player=" + player.getUniqueId()
-                            + ", amount=" + amount + ", cause=" + exception, exception);
+            LogTags.send(coreLib, null, Level.SEVERE, "console.debit_refund_failed", Map.of("player", player.getUniqueId(), "amount", amount, "error", exception), exception);
         }
     }
 }

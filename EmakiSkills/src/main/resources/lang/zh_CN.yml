@@ -2,7 +2,13 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "3.0.2"
+version: "3.0.3"
+
+tags:
+  actionbar: '[ 动作栏 ]'
+  cast: '[ 施法 ]'
+  collector: '[ 收集 ]'
+  upgrade: '[ 升级 ]'
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
@@ -20,13 +26,13 @@ general:
   reload_summary: "<gray>技能: %skills% | 资源: %resources% | GUI: %guis%</gray>"
 
 console:
-  plugin_starting: "[startup] <gray>正在启动...</gray>"
-  plugin_started: "[startup] <green>启动完成</green>"
-  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "<gray>正在启动...</gray>"
+  plugin_started: "<green>启动完成</green>"
+  config_precheck_passed: "<gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "<red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -47,104 +53,104 @@ console:
       script_action_unknown: "技能 %skill% 第 %line% 行使用了不存在的动作 '%action%'"
       script_syntax_error: "技能 %skill% 第 %line% 行脚本语法错误: %detail%"
       script_argument_missing: "技能 %skill% 第 %line% 行动作 '%action%' 缺少必填参数 '%argument%'"
-  reload_loading_files: "[reload] <gray>正在加载配置文件...</gray>"
-  reload_loading_configs: "[reload] <gray>正在读取配置...</gray>"
-  reload_applying: "[reload] <gray>正在应用配置...</gray>"
-  reload_complete: "[reload] <green>重载完成</green>"
-  bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
-  bootstrap_complete: "[loader] 默认文件检查完成"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  bootstrap_skip: "[loader] 已跳过默认数据写入"
-  bootstrap_copy_failed: "[loader] 复制默认资源失败: %path%  (%error%)"
-  bootstrap_save_failed: "[loader] 保存默认资源失败: %path%  (%error%)"
-  default_file_missing: "[loader] 缺少内置默认资源: %path%"
-  directory_create_failed: "[loader] 创建目录失败: %path%"
-  loader_config_load_error: "[loader] 读取 EmakiSkills 配置失败: %path%  (%error%)"
-  ea_bridge_unavailable: "[integration] 未检测到 EmakiAttribute, 已禁用属性桥接"
-  ea_bridge_service_unregistered: "[integration] EmakiAttribute 已加载, 但未暴露技能桥接服务, 已禁用属性桥接"
-  ea_bridge_ready: "[integration] EmakiAttribute 桥接已就绪, 接入方式: %mode%"
-  ea_bridge_init_failed: "[integration] 初始化 EmakiAttribute 桥接失败: %error%"
-  ea_bridge_read_resource_current_failed: "[integration] 读取 EmakiAttribute 资源当前值失败: %resource%  (%error%)"
-  ea_bridge_read_resource_max_failed: "[integration] 读取 EmakiAttribute 资源上限失败: %resource%  (%error%)"
-  ea_bridge_consume_failed: "[integration] 扣除 EmakiAttribute 资源失败: %resource%  (%error%)"
-  ea_bridge_attribute_read_failed: "[integration] 读取 EmakiAttribute 属性失败: %attribute%  (%error%)"
+  reload_loading_files: "<gray>正在加载配置文件...</gray>"
+  reload_loading_configs: "<gray>正在读取配置...</gray>"
+  reload_applying: "<gray>正在应用配置...</gray>"
+  reload_complete: "<green>重载完成</green>"
+  bootstrap_start: "<gray>开始检查默认文件...</gray>"
+  bootstrap_complete: "默认文件检查完成"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  bootstrap_skip: "已跳过默认数据写入"
+  bootstrap_copy_failed: "复制默认资源失败: %path%  (%error%)"
+  bootstrap_save_failed: "保存默认资源失败: %path%  (%error%)"
+  default_file_missing: "缺少内置默认资源: %path%"
+  directory_create_failed: "创建目录失败: %path%"
+  loader_config_load_error: "读取 EmakiSkills 配置失败: %path%  (%error%)"
+  ea_bridge_unavailable: "未检测到 EmakiAttribute, 已禁用属性桥接"
+  ea_bridge_service_unregistered: "EmakiAttribute 已加载, 但未暴露技能桥接服务, 已禁用属性桥接"
+  ea_bridge_ready: "EmakiAttribute 桥接已就绪, 接入方式: %mode%"
+  ea_bridge_init_failed: "初始化 EmakiAttribute 桥接失败: %error%"
+  ea_bridge_read_resource_current_failed: "读取 EmakiAttribute 资源当前值失败: %resource%  (%error%)"
+  ea_bridge_read_resource_max_failed: "读取 EmakiAttribute 资源上限失败: %resource%  (%error%)"
+  ea_bridge_consume_failed: "扣除 EmakiAttribute 资源失败: %resource%  (%error%)"
+  ea_bridge_attribute_read_failed: "读取 EmakiAttribute 属性失败: %attribute%  (%error%)"
   # 控制台: 应用 EmakiAttribute 伤害失败; 占位符: %damage_type%, %error%
-  ea_bridge_apply_damage_failed: "[integration] 应用 EmakiAttribute 伤害失败: %damage_type%  (%error%)"
-  auraskills_mana_unavailable: "[integration] 未检测到可用的 AuraSkills 法力接口, AuraSkills 法力消耗将阻止施法"
-  auraskills_mana_ready: "[integration] AuraSkills 法力桥接已就绪, 接入方式: %mode%"
-  auraskills_mana_init_failed: "[integration] 初始化 AuraSkills 法力桥接失败: %error%"
-  auraskills_mana_read_failed: "[integration] 读取 AuraSkills 法力值失败: %error%"
-  auraskills_mana_consume_failed: "[integration] 扣除 AuraSkills 法力值失败: %error%"
-  mythic_mana_unavailable: "[integration] 未检测到可用的 MythicLib/MMOCore 法力接口, MMOCore 法力消耗将阻止施法"
-  mythic_mana_ready: "[integration] MythicLib/MMOCore 法力桥接已就绪, 接入方式: %mode%"
-  mythic_mana_init_failed: "[integration] 初始化 MythicLib/MMOCore 法力桥接失败: %error%"
-  mythic_mana_read_failed: "[integration] 读取 MythicLib/MMOCore 法力值失败: %error%"
-  mythic_mana_consume_failed: "[integration] 扣除 MythicLib/MMOCore 法力值失败: %error%"
-  mythic_bridge_unavailable: "[integration] 未检测到 MythicMobs, 已禁用 Mythic 技能桥接"
-  mythic_bridge_class_unavailable: "[integration] MythicMobs 类不可用, 已禁用 Mythic 技能桥接"
-  mythic_bridge_ready: "[integration] MythicMobs 技能桥接已就绪"
-  mythic_bridge_init_failed: "[integration] 初始化 MythicMobs 技能桥接失败: %error%"
-  mythic_bridge_skill_lookup_failed: "[integration] 查询 Mythic 技能失败: %skill%  (%error%)"
-  mythic_bridge_cast_failed: "[integration] 释放 Mythic 技能失败: %skill%  (%error%)"
-  trigger_legacy_cancelled_dispatch_deprecated: "[event] <yellow>[弃用]</yellow> <gray>触发器 <yellow>%source%</yellow> 正在使用兼容开关 <white>trigger_settings.legacy_dispatch_cancelled_events</white>, 已被其他插件  (如 WorldGuard, 领地保护) 取消的事件仍会触发技能, 该开关仅保留一个次版本周期, 下一个主版本将移除, 请尽快关闭并改用默认行为</gray>"
-  skills_loaded: "[loader] <gray>已加载 <yellow>%skills%</yellow> 个技能, <yellow>%triggers%</yellow> 个触发器</gray>"
-  papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
+  ea_bridge_apply_damage_failed: "应用 EmakiAttribute 伤害失败: %damage_type%  (%error%)"
+  auraskills_mana_unavailable: "未检测到可用的 AuraSkills 法力接口, AuraSkills 法力消耗将阻止施法"
+  auraskills_mana_ready: "AuraSkills 法力桥接已就绪, 接入方式: %mode%"
+  auraskills_mana_init_failed: "初始化 AuraSkills 法力桥接失败: %error%"
+  auraskills_mana_read_failed: "读取 AuraSkills 法力值失败: %error%"
+  auraskills_mana_consume_failed: "扣除 AuraSkills 法力值失败: %error%"
+  mythic_mana_unavailable: "未检测到可用的 MythicLib/MMOCore 法力接口, MMOCore 法力消耗将阻止施法"
+  mythic_mana_ready: "MythicLib/MMOCore 法力桥接已就绪, 接入方式: %mode%"
+  mythic_mana_init_failed: "初始化 MythicLib/MMOCore 法力桥接失败: %error%"
+  mythic_mana_read_failed: "读取 MythicLib/MMOCore 法力值失败: %error%"
+  mythic_mana_consume_failed: "扣除 MythicLib/MMOCore 法力值失败: %error%"
+  mythic_bridge_unavailable: "未检测到 MythicMobs, 已禁用 Mythic 技能桥接"
+  mythic_bridge_class_unavailable: "MythicMobs 类不可用, 已禁用 Mythic 技能桥接"
+  mythic_bridge_ready: "MythicMobs 技能桥接已就绪"
+  mythic_bridge_init_failed: "初始化 MythicMobs 技能桥接失败: %error%"
+  mythic_bridge_skill_lookup_failed: "查询 Mythic 技能失败: %skill%  (%error%)"
+  mythic_bridge_cast_failed: "释放 Mythic 技能失败: %skill%  (%error%)"
+  trigger_legacy_cancelled_dispatch_deprecated: "<yellow>[弃用]</yellow> <gray>触发器 <yellow>%source%</yellow> 正在使用兼容开关 <white>trigger_settings.legacy_dispatch_cancelled_events</white>, 已被其他插件  (如 WorldGuard, 领地保护) 取消的事件仍会触发技能, 该开关仅保留一个次版本周期, 下一个主版本将移除, 请尽快关闭并改用默认行为</gray>"
+  skills_loaded: "<gray>已加载 <yellow>%skills%</yellow> 个技能, <yellow>%triggers%</yellow> 个触发器</gray>"
+  papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
   scripts:
-    disabled: "[script] JS 技能脚本扩展未启用  (scripts.enabled: false), 不扫描不加载脚本"
-    engine_unavailable: "[script] <yellow>未检测到 GraalJS 运行库, JS 技能脚本扩展不可用, 其余功能不受影响</yellow>"
-    loaded: "[script] <gray>JS 技能脚本加载完成: <yellow>%files%</yellow> 个文件成功,<yellow>%errors%</yellow> 个错误</gray>"
-    file_error: "[script] <red>JS 技能脚本 <yellow>%file%</yellow> 加载失败: %error%</red>"
-    register_error: "[script] <red>JS 技能注册失败 [<yellow>%id%</yellow>]: %error%</red>"
-    example_release_failed: "[script] 释放 JS 技能示例脚本失败: %path%  (%error%)"
+    disabled: "JS 技能脚本扩展未启用  (scripts.enabled: false), 不扫描不加载脚本"
+    engine_unavailable: "<yellow>未检测到 GraalJS 运行库, JS 技能脚本扩展不可用, 其余功能不受影响</yellow>"
+    loaded: "<gray>JS 技能脚本加载完成: <yellow>%files%</yellow> 个文件成功,<yellow>%errors%</yellow> 个错误</gray>"
+    file_error: "<red>JS 技能脚本 <yellow>%file%</yellow> 加载失败: %error%</red>"
+    register_error: "<red>JS 技能注册失败 [<yellow>%id%</yellow>]: %error%</red>"
+    example_release_failed: "释放 JS 技能示例脚本失败: %path%  (%error%)"
     # 控制台: JS 技能脚本注册失败原因 (无占位符)
     reason:
       blank_id: "ID 为空或缺失"
       registry_inactive: "EmakiSkills 注册表未激活"
       registration_rejected: "注册被拒绝"
   # 控制台: 命令授予/收回技能失败; 占位符: %error%
-  command_grant_revoke_failed: "[command] 技能授予/收回失败: %error%"
+  command_grant_revoke_failed: "技能授予/收回失败: %error%"
   # 控制台: 命令重置技能失败; 占位符: %error%
-  command_reset_failed: "[command] 技能重置失败: %error%"
+  command_reset_failed: "技能重置失败: %error%"
   # 控制台: 等级命令执行失败; 占位符: %error%
-  command_level_failed: "[command] 等级命令执行失败: %error%"
+  command_level_failed: "等级命令执行失败: %error%"
   # 控制台: 调度命令响应失败; 占位符: %error%
-  command_schedule_failed: "[command] 调度命令响应失败: %error%"
+  command_schedule_failed: "调度命令响应失败: %error%"
   # 控制台: 异步重载失败; 占位符: %error%
-  reload_async_failed: "[reload] 异步重载失败: %error%"
+  reload_async_failed: "异步重载失败: %error%"
   # 控制台: 重载阶段失败; 占位符: %stage%, %error%
-  reload_stage_failed: "[reload] 阶段 %stage% 失败: %error%"
+  reload_stage_failed: "阶段 %stage% 失败: %error%"
   # 控制台: 注册管线阶段失败; 占位符: %stage%, %reason%
-  stage_register_failed: "[startup] 注册管线阶段 '%stage%' 失败: %reason%"
+  stage_register_failed: "注册管线阶段 '%stage%' 失败: %reason%"
   # 控制台: 未找到 GUI 模板; 占位符: %template%
-  gui_template_not_found: "[gui] 未找到模板 '%template%'"
+  gui_template_not_found: "未找到模板 '%template%'"
   # 控制台: 技能声明的升级模板不存在并回退; 占位符: %skill%, %template%, %fallback%
-  gui_upgrade_template_missing: "[gui] 技能 '%skill%' 声明的升级模板 '%template%' 不存在; 回退到 '%fallback%'"
+  gui_upgrade_template_missing: "技能 '%skill%' 声明的升级模板 '%template%' 不存在; 回退到 '%fallback%'"
   # 控制台: 关闭技能 GUI 会话失败; 占位符: %error%
-  gui_close_failed: "[gui] 关闭技能 GUI 会话失败: %error%"
+  gui_close_failed: "关闭技能 GUI 会话失败: %error%"
   # 控制台: 技能升级材料需求判定异常并按零计入; 占位符: %error%
-  gui_material_requirement_failed: "[gui] 技能升级材料需求判定抛出异常, 按零计入: %error%"
+  gui_material_requirement_failed: "技能升级材料需求判定抛出异常, 按零计入: %error%"
   # 控制台: ActionBar 刷新失败; 占位符: %player%, %error%
-  actionbar_refresh_failed: "[actionbar] 为 %player% 刷新失败: %error%"
+  actionbar_refresh_failed: "为 %player% 刷新失败: %error%"
   # 控制台: ActionBar 调度刷新失败; 占位符: %player%, %error%
-  actionbar_schedule_failed: "[actionbar] 为 %player% 调度刷新失败: %error%"
+  actionbar_schedule_failed: "为 %player% 调度刷新失败: %error%"
   # 控制台: 技能通过触发器释放失败; 占位符: %skill%, %trigger%, %kind%, %detail%
-  skill_cast_failed: "[cast] 技能 '%skill%' 通过触发器 '%trigger%' 释放失败: %kind% - %detail%"
+  skill_cast_failed: "技能 '%skill%' 通过触发器 '%trigger%' 释放失败: %kind% - %detail%"
   # 控制台: 定义编辑器打开, 模板缺失与浏览器创建/删除/列举失败提示
-  editor_open_failed: "[editor] <red>无法打开 EmakiSkills 编辑界面: %item%  (%error%)</red>"
-  editor_template_missing: "[editor] <red>缺少 EmakiSkills 编辑界面模板: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
+  editor_open_failed: "<red>无法打开 EmakiSkills 编辑界面: %item%  (%error%)</red>"
+  editor_template_missing: "<red>缺少 EmakiSkills 编辑界面模板: %template%</red>"
+  editor_browser_create_failed: "<red>无法创建定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>无法删除定义: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>无法列举定义目录: %path%  (%error%)</red>"
 
 loader:
-  lang_directory_create_failed: "[loader] 无法创建语言目录: %path%"
-  bundled_language_load_failed: "[loader] 读取内置语言文件失败: %error%"
-  bundled_resource_missing: "[loader] 内置资源缺失: %resource%, 无法写入 %path%"
-  directory_create_failed: "[loader] 无法创建 %type% 目录: %path%"
-  invalid_blank_id: "[loader] %type% ID 为空: %file%"
-  duplicate_id: "[loader] 重复的 %type% ID %id%, 来源 %file%"
-  load_failed: "[loader] 读取 %type% 文件失败: %file%  (%error%)"
-  invalid_config: "[loader] %type% 配置无效: %file%"
+  lang_directory_create_failed: "无法创建语言目录: %path%"
+  bundled_language_load_failed: "读取内置语言文件失败: %error%"
+  bundled_resource_missing: "内置资源缺失: %resource%, 无法写入 %path%"
+  directory_create_failed: "无法创建 %type% 目录: %path%"
+  invalid_blank_id: "%type% ID 为空: %file%"
+  duplicate_id: "重复的 %type% ID %id%, 来源 %file%"
+  load_failed: "读取 %type% 文件失败: %file%  (%error%)"
+  invalid_config: "%type% 配置无效: %file%"
   type:
     skill: "技能"
     resource: "本地资源"
@@ -173,6 +179,7 @@ trigger:
     <white>%conflict_trigger%</white> 冲突.</red>"
   disabled: "<red>触发器 <white>%trigger%</white> 已被禁用</red>"
   conflict_auto_fix: "<yellow>触发器冲突已自动修正: 已清除槽位 %slot% 的绑定</yellow>"
+  invalid_cron_expression: "无效的定时表达式 '%expression%'(技能 '%skill%'): %error%"
 
 cast:
   invalid_input: "<red>无效的施法输入</red>"
@@ -195,6 +202,7 @@ cast:
   mythic_not_found: "<red>未找到 Mythic 技能 %mythic_skill%</red>"
   mythic_failed: "<red>技能释放失败</red>"
   success: ""
+  cast_skill_not_completed: "cast_skill: 技能 '%skill%' 未完成: %message%"
 
 gui:
   open_failed: "<red>无法打开技能界面</red>"
@@ -340,6 +348,9 @@ upgrade:
     级.</green>"
   failed: "<red>技能 <white>%skill%</white> 升级失败, 成功率 %success_rate%%</red>"
   cancelled: "<yellow>本次技能升级已被取消</yellow>"
+  state_commit_compensation_incomplete: "技能升级状态提交补偿不完整, 玩家 %player%"
+  action_stage_execution_failed: "动作阶段 '%phase%' 对 %skill% 执行失败"
+  restore_skill_level_failed: "升级提交失败后恢复技能等级失败, 玩家 %player%"
 
 debug:
   common:
@@ -496,10 +507,10 @@ editor:
   modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
+    chat: '<yellow>请在聊天栏输入"%label%"的内容, 输入 cancel 取消</yellow>'
+    map_entry: '<yellow>请在聊天栏输入"键=值"新增一条映射, 输入 cancel 取消</yellow>'
   map:
-    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
+    bad_entry: '<red>格式错误, 请按"键=值"输入</red>'
   value:
     unset: "未设置 (空)"
     integer: "整数"
@@ -527,6 +538,24 @@ editor:
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
     delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
-    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
+    delete_confirm: '<red>再次点击"删除"以确认删除</red>'
     delete_success: "<green>已删除定义 %id%</green>"
     delete_failed: "<red>删除失败, 详见控制台</red>"
+integration:
+  cast_mythic_skill_bridge_init_failed: "cast_mythic_skill: MythicMobs 桥接初始化失败"
+  mythic_metadata_parameters_rejected: "MythicMobs 技能元数据参数被拒绝: provider=MythicMobs, parameters=%parameters%, operation=apply_skill_metadata_parameters, cause=%error%"
+startup:
+  emaki_skills_readiness_publish_skipped: "已跳过 EmakiSkills 就绪状态发布: %error%"
+persistence:
+  async_operation_failed: "异步 %operation% 失败: %player%"
+  save_player_profile_failed: "保存玩家档案失败: %player%"
+  read_player_profile_failed: "读取 %player% 失败; 本会话保持只读以保护现有文件"
+  create_data_directory_failed: "无法创建数据目录: %path%"
+collector:
+  lore_read_failed: "读取 Lore 失败: player=%player%, slot=%slot%, material=%material%, exception=%error%"
+registry:
+  provider_collect_failed: "提供者 '%id%'(归属 '%owner%')失败: %error%"
+shutdown:
+  skill_data_flush_incomplete: "技能数据落盘不完整: pending=%pending%, ioFailures=%io_failures%, saveFailures=%save_failures%, remainingDirty=%remaining_dirty%"
+scheduler:
+  passive_trigger_dispatch_failed: "被动触发器派发失败: trigger=timer, player=%player%, operation=timer_dispatch, cause=%error%(后续相同警告将在下次成功派发前抑制)"

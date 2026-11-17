@@ -2,7 +2,13 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "3.0.2"
+version: "3.0.3"
+
+tags:
+  actionbar: '[ actionbar ]'
+  cast: '[ cast ]'
+  collector: '[ collector ]'
+  upgrade: '[ upgrade ]'
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
@@ -20,13 +26,13 @@ general:
   reload_summary: "<gray>Skills: %skills% | Resources: %resources% | GUI: %guis%</gray>"
 
 console:
-  plugin_starting: "[startup] <gray>Starting...</gray>"
-  plugin_started: "[startup] <green>Started</green>"
-  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
-  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
-  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started</green>"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -47,106 +53,106 @@ console:
       script_action_unknown: "Skill %skill% line %line% uses unknown action '%action%'"
       script_syntax_error: "Skill %skill% line %line% has a script syntax error: %detail%"
       script_argument_missing: "Skill %skill% line %line% action '%action%' is missing required argument '%argument%'"
-  reload_loading_files: "[reload] <gray>Loading configuration files...</gray>"
-  reload_loading_configs: "[reload] <gray>Loading configs...</gray>"
-  reload_applying: "[reload] <gray>Applying configuration...</gray>"
-  reload_complete: "[reload] <green>Reload complete</green>"
-  bootstrap_start: "[loader] <gray>Checking default files...</gray>"
-  bootstrap_complete: "[loader] Default file check complete"
-  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  bootstrap_skip: "[loader] Skipped default data generation"
-  bootstrap_copy_failed: "[loader] Failed to copy default resource: %path%  (%error%)"
-  bootstrap_save_failed: "[loader] Failed to save default resource: %path%  (%error%)"
-  default_file_missing: "[loader] Missing built-in default resource: %path%"
-  directory_create_failed: "[loader] Failed to create directory: %path%"
-  loader_config_load_error: "[loader] Failed to load EmakiSkills config: %path%  (%error%)"
-  ea_bridge_unavailable: "[integration] EmakiAttribute not detected, attribute bridge disabled"
+  reload_loading_files: "<gray>Loading configuration files...</gray>"
+  reload_loading_configs: "<gray>Loading configs...</gray>"
+  reload_applying: "<gray>Applying configuration...</gray>"
+  reload_complete: "<green>Reload complete</green>"
+  bootstrap_start: "<gray>Checking default files...</gray>"
+  bootstrap_complete: "Default file check complete"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  bootstrap_skip: "Skipped default data generation"
+  bootstrap_copy_failed: "Failed to copy default resource: %path%  (%error%)"
+  bootstrap_save_failed: "Failed to save default resource: %path%  (%error%)"
+  default_file_missing: "Missing built-in default resource: %path%"
+  directory_create_failed: "Failed to create directory: %path%"
+  loader_config_load_error: "Failed to load EmakiSkills config: %path%  (%error%)"
+  ea_bridge_unavailable: "EmakiAttribute not detected, attribute bridge disabled"
   ea_bridge_service_unregistered:
-    "[integration] EmakiAttribute loaded but skill bridge service
+    "EmakiAttribute loaded but skill bridge service
     not exposed, attribute bridge disabled."
-  ea_bridge_ready: "[integration] EmakiAttribute bridge ready, connection mode: %mode%"
-  ea_bridge_init_failed: "[integration] Failed to initialize EmakiAttribute bridge: %error%"
-  ea_bridge_read_resource_current_failed: "[integration] Failed to read EmakiAttribute resource current value: %resource%  (%error%)"
-  ea_bridge_read_resource_max_failed: "[integration] Failed to read EmakiAttribute resource max value: %resource%  (%error%)"
-  ea_bridge_consume_failed: "[integration] Failed to consume EmakiAttribute resource: %resource%  (%error%)"
-  ea_bridge_attribute_read_failed: "[integration] Failed to read EmakiAttribute attribute: %attribute%  (%error%)"
+  ea_bridge_ready: "EmakiAttribute bridge ready, connection mode: %mode%"
+  ea_bridge_init_failed: "Failed to initialize EmakiAttribute bridge: %error%"
+  ea_bridge_read_resource_current_failed: "Failed to read EmakiAttribute resource current value: %resource%  (%error%)"
+  ea_bridge_read_resource_max_failed: "Failed to read EmakiAttribute resource max value: %resource%  (%error%)"
+  ea_bridge_consume_failed: "Failed to consume EmakiAttribute resource: %resource%  (%error%)"
+  ea_bridge_attribute_read_failed: "Failed to read EmakiAttribute attribute: %attribute%  (%error%)"
   # Console: failed to apply EmakiAttribute damage; placeholders: %damage_type%, %error%
-  ea_bridge_apply_damage_failed: "[integration] Failed to apply EmakiAttribute damage: %damage_type%  (%error%)"
-  auraskills_mana_unavailable: "[integration] No usable AuraSkills mana API detected; AuraSkills mana costs will block casting"
-  auraskills_mana_ready: "[integration] AuraSkills mana bridge ready, connection mode: %mode%"
-  auraskills_mana_init_failed: "[integration] Failed to initialize AuraSkills mana bridge: %error%"
-  auraskills_mana_read_failed: "[integration] Failed to read AuraSkills mana: %error%"
-  auraskills_mana_consume_failed: "[integration] Failed to consume AuraSkills mana: %error%"
-  mythic_mana_unavailable: "[integration] No usable MythicLib/MMOCore mana API detected; MMOCore mana costs will block casting"
-  mythic_mana_ready: "[integration] MythicLib/MMOCore mana bridge ready, connection mode: %mode%"
-  mythic_mana_init_failed: "[integration] Failed to initialize MythicLib/MMOCore mana bridge: %error%"
-  mythic_mana_read_failed: "[integration] Failed to read MythicLib/MMOCore mana: %error%"
-  mythic_mana_consume_failed: "[integration] Failed to consume MythicLib/MMOCore mana: %error%"
-  mythic_bridge_unavailable: "[integration] MythicMobs not detected, Mythic skill bridge disabled"
-  mythic_bridge_class_unavailable: "[integration] MythicMobs class unavailable, Mythic skill bridge disabled"
-  mythic_bridge_ready: "[integration] MythicMobs skill bridge ready"
-  mythic_bridge_init_failed: "[integration] Failed to initialize MythicMobs skill bridge: %error%"
-  mythic_bridge_skill_lookup_failed: "[integration] Failed to look up Mythic skill: %skill%  (%error%)"
-  mythic_bridge_cast_failed: "[integration] Failed to cast Mythic skill: %skill%  (%error%)"
-  trigger_legacy_cancelled_dispatch_deprecated: "[event] <yellow>[Deprecated]</yellow> <gray>Trigger source <yellow>%source%</yellow> is running with the compatibility switch <white>trigger_settings.legacy_dispatch_cancelled_events</white>, so events already cancelled by another plugin  (WorldGuard, land-claim protection, ...) still trigger skills. This switch is kept for one minor cycle only and will be removed in the next major release; please turn it off and adopt the default behaviour</gray>"
-  skills_loaded: "[loader] <gray>Loaded <yellow>%skills%</yellow> skill (s), <yellow>%triggers%</yellow> trigger (s)</gray>"
-  papi_registered: "[integration] <gray>PlaceholderAPI expansion registered</gray>"
+  ea_bridge_apply_damage_failed: "Failed to apply EmakiAttribute damage: %damage_type%  (%error%)"
+  auraskills_mana_unavailable: "No usable AuraSkills mana API detected; AuraSkills mana costs will block casting"
+  auraskills_mana_ready: "AuraSkills mana bridge ready, connection mode: %mode%"
+  auraskills_mana_init_failed: "Failed to initialize AuraSkills mana bridge: %error%"
+  auraskills_mana_read_failed: "Failed to read AuraSkills mana: %error%"
+  auraskills_mana_consume_failed: "Failed to consume AuraSkills mana: %error%"
+  mythic_mana_unavailable: "No usable MythicLib/MMOCore mana API detected; MMOCore mana costs will block casting"
+  mythic_mana_ready: "MythicLib/MMOCore mana bridge ready, connection mode: %mode%"
+  mythic_mana_init_failed: "Failed to initialize MythicLib/MMOCore mana bridge: %error%"
+  mythic_mana_read_failed: "Failed to read MythicLib/MMOCore mana: %error%"
+  mythic_mana_consume_failed: "Failed to consume MythicLib/MMOCore mana: %error%"
+  mythic_bridge_unavailable: "MythicMobs not detected, Mythic skill bridge disabled"
+  mythic_bridge_class_unavailable: "MythicMobs class unavailable, Mythic skill bridge disabled"
+  mythic_bridge_ready: "MythicMobs skill bridge ready"
+  mythic_bridge_init_failed: "Failed to initialize MythicMobs skill bridge: %error%"
+  mythic_bridge_skill_lookup_failed: "Failed to look up Mythic skill: %skill%  (%error%)"
+  mythic_bridge_cast_failed: "Failed to cast Mythic skill: %skill%  (%error%)"
+  trigger_legacy_cancelled_dispatch_deprecated: "<yellow>[Deprecated]</yellow> <gray>Trigger source <yellow>%source%</yellow> is running with the compatibility switch <white>trigger_settings.legacy_dispatch_cancelled_events</white>, so events already cancelled by another plugin  (WorldGuard, land-claim protection, ...) still trigger skills. This switch is kept for one minor cycle only and will be removed in the next major release; please turn it off and adopt the default behaviour</gray>"
+  skills_loaded: "<gray>Loaded <yellow>%skills%</yellow> skill (s), <yellow>%triggers%</yellow> trigger (s)</gray>"
+  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
   scripts:
-    disabled: "[script] JS skill script extension disabled  (scripts.enabled: false); no scripts are scanned or loaded"
-    engine_unavailable: "[script] <yellow>GraalJS runtime not detected; JS skill script extension is unavailable. Other features are unaffected</yellow>"
-    loaded: "[script] <gray>JS skill scripts loaded: <yellow>%files%</yellow> file (s) succeeded, <yellow>%errors%</yellow> error (s)</gray>"
-    file_error: "[script] <red>Failed to load JS skill script <yellow>%file%</yellow>: %error%</red>"
-    register_error: "[script] <red>Failed to register JS skill [<yellow>%id%</yellow>]: %error%</red>"
-    example_release_failed: "[script] Failed to release example skill script: %path%  (%error%)"
+    disabled: "JS skill script extension disabled  (scripts.enabled: false); no scripts are scanned or loaded"
+    engine_unavailable: "<yellow>GraalJS runtime not detected; JS skill script extension is unavailable. Other features are unaffected</yellow>"
+    loaded: "<gray>JS skill scripts loaded: <yellow>%files%</yellow> file (s) succeeded, <yellow>%errors%</yellow> error (s)</gray>"
+    file_error: "<red>Failed to load JS skill script <yellow>%file%</yellow>: %error%</red>"
+    register_error: "<red>Failed to register JS skill [<yellow>%id%</yellow>]: %error%</red>"
+    example_release_failed: "Failed to release example skill script: %path%  (%error%)"
     # Console: JS skill script registration failure reasons  (no placeholders)
     reason:
       blank_id: "blank or missing id"
       registry_inactive: "EmakiSkills registry is not active"
       registration_rejected: "registration was rejected"
   # Console: granting/revoking a skill via command failed; placeholders: %error%
-  command_grant_revoke_failed: "[command] Skill grant/revoke failed: %error%"
+  command_grant_revoke_failed: "Skill grant/revoke failed: %error%"
   # Console: resetting skills via command failed; placeholders: %error%
-  command_reset_failed: "[command] Skill reset failed: %error%"
+  command_reset_failed: "Skill reset failed: %error%"
   # Console: level command execution failed; placeholders: %error%
-  command_level_failed: "[command] Level command failed: %error%"
+  command_level_failed: "Level command failed: %error%"
   # Console: scheduling a command response failed; placeholders: %error%
-  command_schedule_failed: "[command] Failed to schedule command response: %error%"
+  command_schedule_failed: "Failed to schedule command response: %error%"
   # Console: async reload failed; placeholders: %error%
-  reload_async_failed: "[reload] Async reload failed: %error%"
+  reload_async_failed: "Async reload failed: %error%"
   # Console: reload stage failed; placeholders: %stage%, %error%
-  reload_stage_failed: "[reload] Stage %stage% failed: %error%"
+  reload_stage_failed: "Stage %stage% failed: %error%"
   # Console: registering a pipeline stage failed; placeholders: %stage%, %reason%
-  stage_register_failed: "[startup] Failed to register pipeline stage '%stage%': %reason%"
+  stage_register_failed: "Failed to register pipeline stage '%stage%': %reason%"
   # Console: GUI template not found; placeholders: %template%
-  gui_template_not_found: "[gui] Template '%template%' not found"
+  gui_template_not_found: "Template '%template%' not found"
   # Console: a skill's declared upgrade template is missing, falling back; placeholders: %skill%, %template%, %fallback%
-  gui_upgrade_template_missing: "[gui] Skill '%skill%' declares upgrade template '%template%' which does not exist; falling back to '%fallback%'"
+  gui_upgrade_template_missing: "Skill '%skill%' declares upgrade template '%template%' which does not exist; falling back to '%fallback%'"
   # Console: closing skill GUI sessions failed; placeholders: %error%
-  gui_close_failed: "[gui] Failed to close skill GUI sessions: %error%"
+  gui_close_failed: "Failed to close skill GUI sessions: %error%"
   # Console: skill upgrade material requirement threw and counts as zero; placeholders: %error%
-  gui_material_requirement_failed: "[gui] Skill upgrade material requirement threw and counts as zero: %error%"
+  gui_material_requirement_failed: "Skill upgrade material requirement threw and counts as zero: %error%"
   # Console: ActionBar refresh failed; placeholders: %player%, %error%
-  actionbar_refresh_failed: "[actionbar] Failed to refresh for %player%: %error%"
+  actionbar_refresh_failed: "Failed to refresh for %player%: %error%"
   # Console: scheduling an ActionBar refresh failed; placeholders: %player%, %error%
-  actionbar_schedule_failed: "[actionbar] Failed to schedule refresh for %player%: %error%"
+  actionbar_schedule_failed: "Failed to schedule refresh for %player%: %error%"
   # Console: a skill failed to cast via trigger; placeholders: %skill%, %trigger%, %kind%, %detail%
-  skill_cast_failed: "[cast] Skill '%skill%' failed to cast via trigger '%trigger%': %kind% - %detail%"
+  skill_cast_failed: "Skill '%skill%' failed to cast via trigger '%trigger%': %kind% - %detail%"
   # Console: editor open, missing template and browser create/delete/list failures
-  editor_open_failed: "[editor] <red>Could not open EmakiSkills editor for %item%  (%error%)</red>"
-  editor_template_missing: "[editor] <red>Missing EmakiSkills editor template: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>Could not create definition: %path%  (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>Could not delete definition: %path%  (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>Could not list definition directory: %path%  (%error%)</red>"
+  editor_open_failed: "<red>Could not open EmakiSkills editor for %item%  (%error%)</red>"
+  editor_template_missing: "<red>Missing EmakiSkills editor template: %template%</red>"
+  editor_browser_create_failed: "<red>Could not create definition: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>Could not delete definition: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>Could not list definition directory: %path%  (%error%)</red>"
 
 loader:
-  lang_directory_create_failed: "[loader] Unable to create language directory: %path%"
-  bundled_language_load_failed: "[loader] Failed to load bundled language file: %error%"
-  bundled_resource_missing: "[loader] Bundled resource missing: %resource%, cannot write to %path%"
-  directory_create_failed: "[loader] Unable to create %type% directory: %path%"
-  invalid_blank_id: "[loader] %type% ID is blank: %file%"
-  duplicate_id: "[loader] Duplicate %type% ID %id%, source %file%"
-  load_failed: "[loader] Failed to load %type% file: %file%  (%error%)"
-  invalid_config: "[loader] Invalid %type% config: %file%"
+  lang_directory_create_failed: "Unable to create language directory: %path%"
+  bundled_language_load_failed: "Failed to load bundled language file: %error%"
+  bundled_resource_missing: "Bundled resource missing: %resource%, cannot write to %path%"
+  directory_create_failed: "Unable to create %type% directory: %path%"
+  invalid_blank_id: "%type% ID is blank: %file%"
+  duplicate_id: "Duplicate %type% ID %id%, source %file%"
+  load_failed: "Failed to load %type% file: %file%  (%error%)"
+  invalid_config: "Invalid %type% config: %file%"
   type:
     skill: "skill"
     resource: "local resource"
@@ -178,6 +184,7 @@ trigger:
   conflict_auto_fix:
     "<yellow>Trigger conflict auto-resolved: cleared binding for
     slot %slot%.</yellow>"
+  invalid_cron_expression: "Invalid cron expression '%expression%' (skill '%skill%'): %error%"
 
 cast:
   invalid_input: "<red>Invalid cast input</red>"
@@ -201,6 +208,7 @@ cast:
   mythic_not_found: "<red>Mythic skill %mythic_skill% not found</red>"
   mythic_failed: "<red>Skill cast failed</red>"
   success: ""
+  cast_skill_not_completed: "cast_skill: skill '%skill%' did not complete: %message%"
 
 gui:
   open_failed: "<red>Unable to open skill interface</red>"
@@ -347,6 +355,9 @@ upgrade:
   failed: "<red>Skill <white>%skill%</white> upgrade failed, success rate
     %success_rate%%.</red>"
   cancelled: "<yellow>The skill upgrade was cancelled</yellow>"
+  state_commit_compensation_incomplete: "Skill upgrade state commit compensation incomplete for player %player%"
+  action_stage_execution_failed: "Action stage '%phase%' failed to execute on %skill%"
+  restore_skill_level_failed: "Failed to restore the skill level after a failed upgrade commit for player %player%"
 
 debug:
   common:
@@ -503,10 +514,10 @@ editor:
   modify_failed_parse: "<red>Failed to modify %item%: definition_parse_failed. Check the console for details</red>"
   open_failed: "<red>Could not open the editor for %id%</red>"
   prompt:
-    chat: "<yellow>Type the value for \"%label%\" in chat, or type cancel to abort</yellow>"
-    map_entry: "<yellow>Type \"key=value\" to add a mapping, or type cancel to abort</yellow>"
+    chat: '<yellow>Type the value for "%label%" in chat, or type cancel to abort</yellow>'
+    map_entry: '<yellow>Type "key=value" to add a mapping, or type cancel to abort</yellow>'
   map:
-    bad_entry: "<red>Bad format, use \"key=value\"</red>"
+    bad_entry: '<red>Bad format, use "key=value"</red>'
   value:
     unset: "Not set  (empty)"
     integer: "Integer"
@@ -537,3 +548,21 @@ editor:
     delete_confirm: "<red>Click the delete entry again to confirm</red>"
     delete_success: "<green>Deleted definition %id%</green>"
     delete_failed: "<red>Delete failed, see console</red>"
+integration:
+  cast_mythic_skill_bridge_init_failed: "cast_mythic_skill: MythicMobs bridge initialization failed"
+  mythic_metadata_parameters_rejected: "MythicMobs skill metadata parameters rejected: provider=MythicMobs, parameters=%parameters%, operation=apply_skill_metadata_parameters, cause=%error%"
+startup:
+  emaki_skills_readiness_publish_skipped: "EmakiSkills readiness publish skipped: %error%"
+persistence:
+  async_operation_failed: "Async %operation% failed: %player%"
+  save_player_profile_failed: "Failed to save the player profile: %player%"
+  read_player_profile_failed: "Failed to read %player%; this session remains read-only to protect existing files"
+  create_data_directory_failed: "Could not create the data directory: %path%"
+collector:
+  lore_read_failed: "Failed to read lore: player=%player%, slot=%slot%, material=%material%, exception=%error%"
+registry:
+  provider_collect_failed: "Provider '%id%' (owned by '%owner%') failed: %error%"
+shutdown:
+  skill_data_flush_incomplete: "Skill data flush incomplete: pending=%pending%, ioFailures=%io_failures%, saveFailures=%save_failures%, remainingDirty=%remaining_dirty%"
+scheduler:
+  passive_trigger_dispatch_failed: "Passive trigger dispatch failed: trigger=timer, player=%player%, operation=timer_dispatch, cause=%error% (further identical warnings are suppressed until the next successful dispatch)"

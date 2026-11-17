@@ -12,6 +12,9 @@ import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.item.ComponentValueParser;
 import emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog;
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 final class ComponentMatcherSupport {
 
@@ -87,8 +90,7 @@ final class ComponentMatcherSupport {
             try {
                 pattern = Pattern.compile(expression);
             } catch (RuntimeException exception) {
-                LOGGER.warning("[matcher] 组件匹配器正则无效, 结果按 false 处理: "
-                        + expression + ", cause=" + exception.getClass().getSimpleName());
+                LogTags.send(LOGGER, LogTag.MATCHER, Level.WARNING, "matcher.invalid_regex", Map.of("pattern", expression, "error", exception.getClass().getSimpleName()));
                 return false;
             }
             REGEX_CACHE.put(expression, pattern);

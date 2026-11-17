@@ -2,7 +2,13 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.2"
+version: "5.0.3"
+
+tags:
+  affix: '[ 词缀 ]'
+  attempt: '[ 尝试 ]'
+  lifecycle: '[ 生命周期 ]'
+  mastery: '[ 精通 ]'
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -84,14 +90,14 @@ command:
   admin_state_failed: "<red>无法将主手物品写回强化状态</red>"
 
 console:
-  plugin_starting: "[startup] <gray>正在启动...</gray>"
-  plugin_started: "[startup] <green>启动完成</green>"
-  plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
-  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "<gray>正在启动...</gray>"
+  plugin_started: "<green>启动完成</green>"
+  plugin_stopped: "<yellow>已关闭</yellow>"
+  config_precheck_passed: "<gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "<red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -129,59 +135,84 @@ console:
       forge_variable_legacy_missing: "旧版 forge 变量 '%variable%' 已不再产出, 会破坏既有配方"
       # 控制台: forge PDC 命名空间不匹配; 占位符: %namespace%
       forge_pdc_namespace_mismatch: "forge PDC 命名空间期望为 'emakiforge', 实际为 '%namespace%'"
-  bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
-  bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
-  bootstrap_skip: "[loader] <yellow>release_default_data=false, 已跳过默认数据生成</yellow>"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
-  directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
-  loader_config_load_error: "[loader] <yellow>读取强化配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_start: "<gray>开始检查默认文件...</gray>"
+  bootstrap_complete: "<green>默认文件检查完成</green>"
+  bootstrap_skip: "<yellow>release_default_data=false, 已跳过默认数据生成</yellow>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
+  loader_config_load_error: "<yellow>读取强化配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   recipe_action_failed:
-    "[attempt] <yellow>强化动作链执行失败: <red>%recipe%</red> <gray>阶段 %phase%
+    "<yellow>强化动作链执行失败: <red>%recipe%</red> <gray>阶段 %phase%
     星级 %star%  (%error%)</gray></yellow>"
-  pdc_source_registered: "[integration] <gray>PDC 属性源已注册: <aqua>%source%</aqua></gray>"
-  recipes_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个强化配方</gray>"
-  papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
-  editor_open_failed: "[editor] <red>无法打开 EmakiStrengthen 编辑界面: %item%  (%error%)</red>"
-  editor_template_missing: "[editor] <red>缺少 EmakiStrengthen 编辑界面模板: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
+  pdc_source_registered: "<gray>PDC 属性源已注册: <aqua>%source%</aqua></gray>"
+  recipes_loaded: "<gray>已加载 <yellow>%count%</yellow> 个强化配方</gray>"
+  papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
+  editor_open_failed: "<red>无法打开 EmakiStrengthen 编辑界面: %item%  (%error%)</red>"
+  editor_template_missing: "<red>缺少 EmakiStrengthen 编辑界面模板: %template%</red>"
+  editor_browser_create_failed: "<red>无法创建定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>无法删除定义: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>无法列举定义目录: %path%  (%error%)</red>"
   # 控制台: 重载进度提示
-  reload_loading_files: "[reload] <gray>正在加载配置文件...</gray>"
-  reload_loading_configs: "[reload] <gray>正在读取配置...</gray>"
-  reload_applying: "[reload] <gray>正在应用配置...</gray>"
-  reload_complete: "[reload] <green>重载完成</green>"
+  reload_loading_files: "<gray>正在加载配置文件...</gray>"
+  reload_loading_configs: "<gray>正在读取配置...</gray>"
+  reload_applying: "<gray>正在应用配置...</gray>"
+  reload_complete: "<green>重载完成</green>"
   # 控制台: 重载阶段失败; 占位符: %stage%, %error%
-  reload_stage_failed: "[reload] <yellow>重载阶段 %stage% 失败: %error%</yellow>"
+  reload_stage_failed: "<yellow>重载阶段 %stage% 失败: %error%</yellow>"
   # 控制台: 强化尝试安全失败; 占位符: %operation_id%, %error%
-  strengthen_attempt_failed_closed: "[attempt] <red>强化尝试安全失败 | operationId=%operation_id% | error=%error%</red>"
+  strengthen_attempt_failed_closed: "<red>强化尝试安全失败 | operationId=%operation_id% | error=%error%</red>"
   # 控制台: 强化结果事件分发失败; 占位符: %operation_id%, %error%
-  strengthen_result_dispatch_failed: "[event] <yellow>强化结果事件分发失败 | operationId=%operation_id% | error=%error%</yellow>"
+  strengthen_result_dispatch_failed: "<yellow>强化结果事件分发失败 | operationId=%operation_id% | error=%error%</yellow>"
   # 控制台: GUI 结果动作分发失败; 占位符: %operation_id%, %error%
-  gui_result_action_dispatch_failed: "[gui] <yellow>强化结果动作分发失败 | operationId=%operation_id% | error=%error%</yellow>"
+  gui_result_action_dispatch_failed: "<yellow>强化结果动作分发失败 | operationId=%operation_id% | error=%error%</yellow>"
   # 控制台: 已提交结果归属者离线; 占位符: %operation_id%
-  gui_owner_retired: "[gui] <yellow>强化已提交结果的归属者已离线, 结算仍待处理 | operationId=%operation_id%</yellow>"
+  gui_owner_retired: "<yellow>强化已提交结果的归属者已离线, 结算仍待处理 | operationId=%operation_id%</yellow>"
   # 控制台: 已提交结果调度被拒绝; 占位符: %operation_id%
-  gui_schedule_rejected: "[gui] <red>强化已提交结果的调度被拒绝, 结算仍待处理 | operationId=%operation_id%</red>"
+  gui_schedule_rejected: "<red>强化已提交结果的调度被拒绝, 结算仍待处理 | operationId=%operation_id%</red>"
   # 控制台: 已提交结果调度失败; 占位符: %operation_id%, %error%
-  gui_schedule_failed: "[gui] <red>强化已提交结果的调度失败, 结算仍待处理 | operationId=%operation_id% | error=%error%</red>"
+  gui_schedule_failed: "<red>强化已提交结果的调度失败, 结算仍待处理 | operationId=%operation_id% | error=%error%</red>"
   # 控制台: 已提交结果结算失败将重试; 占位符: %operation_id%, %error%
-  gui_settlement_retry: "[gui] <red>强化已提交结果的结算失败, 将重试 | operationId=%operation_id% | error=%error%</red>"
+  gui_settlement_retry: "<red>强化已提交结果的结算失败, 将重试 | operationId=%operation_id% | error=%error%</red>"
   # 控制台: 结算后结果通知失败; 占位符: %operation_id%, %error%
-  gui_notification_failed: "[gui] <yellow>结算后强化结果通知失败 | operationId=%operation_id% | error=%error%</yellow>"
+  gui_notification_failed: "<yellow>结算后强化结果通知失败 | operationId=%operation_id% | error=%error%</yellow>"
   # 控制台: 背包已满通知失败; 占位符: %error%
-  gui_inventory_full_notify_failed: "[gui] <yellow>背包已满通知失败 | error=%error%</yellow>"
+  gui_inventory_full_notify_failed: "<yellow>背包已满通知失败 | error=%error%</yellow>"
+  target_provider_pre_writeback_failed: "目标 Provider 预写回失败"
+  refresh_changed_target_level_commit_rejected: "刷新阶段改变了目标等级, 已拒绝提交"
+  strengthen_progression_resolve_failed: "强化进度解析失败"
+  strengthen_pity_writeback_failed: "强化框架保底状态写回失败"
+  strengthen_material_target_commit_failed: "强化框架材料/目标提交失败"
+  strengthen_framework_execution_failed: "强化框架执行失败"
+  target_rollback_after_readback_failed: "目标 Provider 回读失败后的目标回滚失败"
+  target_provider_post_commit_readback_failed: "目标 Provider 提交后回读失败"
+  strengthen_charge_failed: "强化框架扣费失败"
+  material_in_external_container_rejected: "强化材料位于外部容器, 已拒绝执行"
+  identify_material_item_source_failed: "识别材料物品源失败"
+  target_matcher_check_threw_treated_as_mismatch: "目标 Matcher 判定抛出异常, 视为不匹配"
+  target_in_external_container_rejected: "强化目标位于外部容器, 已拒绝执行"
+  target_changed_before_charge_rejected: "目标在预览与确认之间发生变化, 已在扣费前拒绝 | 操作=%operation%"
+  recipe_condition_evaluation_failed: "配方条件求值失败, 按不通过处理"
+  target_provider_refresh_failed_reason_key: "目标 Provider 刷新阶段失败, 未扣费即拒绝 | 原因键=%reason%"
+  target_provider_refresh_threw: "目标 Provider 刷新阶段抛出异常"
+  target_provider_canhandle_threw: "目标 Provider '%provider%' 的 canHandle 抛出异常"
+  read_target_level_for_pity_isolation_failed: "读取目标等级用于 pity 隔离失败"
+  read_affix_selection_for_pity_isolation_failed: "读取词条选择用于 pity 隔离失败"
+  mastery_clear_failed: "熟练度清除失败"
+  mastery_overwrite_failed: "熟练度覆写失败"
+  mastery_read_failed: "熟练度读取失败"
+  mastery_write_failed: "熟练度写入失败, 本次强化结果不受影响"
+  pity_flush_consecutive_failures: "保底状态落盘连续失败 %count%次, 已停止重试, 等待下一次生命周期 flush"
 
 loader:
-  lang_directory_create_failed: "[loader] <yellow>无法创建语言目录: <red>%path%</red></yellow>"
-  bundled_language_load_failed: "[loader] <yellow>读取内置语言失败: <red>%error%</red></yellow>"
-  directory_create_failed: "[loader] <yellow>无法创建 %type% 目录: <red>%path%</red></yellow>"
-  invalid_blank_id: "[loader] <yellow>%type% ID 为空: <red>%file%</red></yellow>"
-  duplicate_id: "[loader] <yellow>重复的 %type% ID <red>%id%</red>, 来源 <gray>%file%</gray></yellow>"
-  load_failed: "[loader] <yellow>读取 %type% 文件失败: <red>%file%</red> <gray> (%error%)</gray></yellow>"
+  lang_directory_create_failed: "<yellow>无法创建语言目录: <red>%path%</red></yellow>"
+  bundled_language_load_failed: "<yellow>读取内置语言失败: <red>%error%</red></yellow>"
+  directory_create_failed: "<yellow>无法创建 %type% 目录: <red>%path%</red></yellow>"
+  invalid_blank_id: "<yellow>%type% ID 为空: <red>%file%</red></yellow>"
+  duplicate_id: "<yellow>重复的 %type% ID <red>%id%</red>, 来源 <gray>%file%</gray></yellow>"
+  load_failed: "<yellow>读取 %type% 文件失败: <red>%file%</red> <gray> (%error%)</gray></yellow>"
   type:
     recipe: "强化配方"
 
@@ -298,6 +329,8 @@ gui:
       hint: "<gray>点击执行本次词条强化</gray>"
       ineligible_title: "<red>无法强化该词条</red>"
       ineligible_hint: "<gray>请检查词条选择, 容量, 材料与费用</gray>"
+  close_all_strengthen_gui_sessions_failed: "关闭全部强化 GUI 会话失败: %error%"
+  close_all_affix_gui_sessions_failed: "关闭全部词条 GUI 会话失败: %error%"
 
 debug:
   affix:
@@ -510,10 +543,10 @@ editor:
   modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
+    chat: '<yellow>请在聊天栏输入"%label%"的内容, 输入 cancel 取消</yellow>'
+    map_entry: '<yellow>请在聊天栏输入"键=值"新增一条映射, 输入 cancel 取消</yellow>'
   map:
-    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
+    bad_entry: '<red>格式错误, 请按"键=值"输入</red>'
   value:
     unset: "未设置 (空)"
     integer: "整数"
@@ -541,6 +574,30 @@ editor:
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
     delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
-    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
+    delete_confirm: '<red>再次点击"删除"以确认删除</red>'
     delete_success: "<green>已删除定义 %id%</green>"
     delete_failed: "<red>删除失败, 详见控制台</red>"
+startup:
+  stage_register_failed: "注册流水线阶段 '%stage%' 失败: %reason%"
+  readiness_publish_skipped: "就绪状态发布已跳过: %error%"
+affix:
+  affix_refresh_failed: "词条强化刷新失败 | 原因=%reason% | 物品=%item% | 错误键=%error_key%"
+integration:
+  affix_attribute_bridge_unavailable: "词条强化属性桥不可用 | 阶段=%stage% | 来源=%source% | 错误键=%error_key%"
+matcher:
+  material_check_threw_treated_as_mismatch: "材料判定抛出异常, 视为不匹配: %error%"
+  star_material_rule_check_failed: "星级材料规则判定失败, 视为不匹配: %error%"
+  recipe_matcher_check_threw_treated_as_mismatch: "配方 Matcher 判定抛出异常, 视为不匹配: %error%"
+economy:
+  compensation_pending: "强化补偿待处理 | operationId=%operation% | player=%player% | costs=%costs%"
+  economy_boundary_failed: "强化经济边界失败 | operationId=%operation% | phase=%phase% | error=%error%"
+refresh:
+  rebuild_threw: "刷新失败: rebuild 抛出异常 | material=%item% | error=%error%"
+  rebuild_returned_null: "刷新失败: rebuild 返回 null | material=%item%"
+scheduler:
+  schedule_player_refresh_failed: "调度玩家刷新失败: %player%: %error%"
+  player_refresh_schedule_rejected: "玩家刷新的调度被拒绝: %player%"
+event:
+  transfer_result_dispatch_failed: "强化转移结果事件分发失败: %error%"
+lifecycle:
+  strengthen_drain_incomplete: "强化排空未完成 | phase=%phase% | attempts=%attempts% | enhancements=%enhancements%"

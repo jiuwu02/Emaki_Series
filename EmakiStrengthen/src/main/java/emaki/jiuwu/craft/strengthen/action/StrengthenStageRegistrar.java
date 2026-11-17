@@ -6,6 +6,10 @@ import java.util.List;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class StrengthenStageRegistrar {
 
@@ -24,8 +28,7 @@ public final class StrengthenStageRegistrar {
             if (registration.successful()) {
                 handles.add(registration);
             } else {
-                plugin.getLogger().warning("[startup] 注册流水线阶段 '" + operation.id()
-                        + "' 失败: " + registration.reasonKey());
+                LogTags.send(plugin, LogTag.STARTUP, Level.WARNING, "startup.stage_register_failed", Map.of("stage", operation.id(), "reason", registration.reasonKey()));
             }
         }
         EmakiCoreLibApi.onStageRegistryRebuilt(plugin, this::register);

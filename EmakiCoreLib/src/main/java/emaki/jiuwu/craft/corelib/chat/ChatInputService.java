@@ -22,6 +22,9 @@ import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.chat.ChatInputRequest;
 import emaki.jiuwu.craft.corelib.api.chat.ChatInputResult;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class ChatInputService implements Listener {
 
@@ -168,11 +171,7 @@ public final class ChatInputService implements Listener {
                             input.request,
                             Map.of("status", result.status().name())
                     )));
-            owner.getLogger().warning("[chat] 聊天输入回调失败, 玩家 "
-                    + input.request.player().getName()
-                    + "(状态=" + result.status().name() + "): "
-                    + throwable.getClass().getSimpleName()
-                    + ": " + throwable.getMessage());
+            LogTags.send(owner, LogTag.CHAT, Level.WARNING, "chat.input_callback_failed", Map.of("player", input.request.player().getName(), "status", result.status().name(), "error", throwable.getClass().getSimpleName(), "message", throwable.getMessage()));
         }
     }
 

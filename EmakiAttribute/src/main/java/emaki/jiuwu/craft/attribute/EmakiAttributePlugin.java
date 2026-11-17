@@ -57,6 +57,11 @@ import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.attribute.log.AttributeLogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMessagesProvider {
 
@@ -119,16 +124,17 @@ public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMess
 
     @Override
     public void onEnable() {
-        applyRuntimeComponents(lifecycleCoordinator.initialize(this));
-        registerConfigPrecheckContributor();
-        registerAttributeBridgeService();
-        registerAttributeServiceFacade();
         ConsoleOutputs.sendGradientAscii(
                 this,
                 STARTUP_ASCII,
                 STARTUP_ASCII_START_COLOR,
                 STARTUP_ASCII_END_COLOR
         );
+        LogTags.registerTags(this, AttributeLogTag.values());
+        applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        registerConfigPrecheckContributor();
+        registerAttributeBridgeService();
+        registerAttributeServiceFacade();
         reloadPluginState(true);
         attributeScriptBridge.loadFromConfig();
         ensureMmoItemsBridge();
@@ -137,7 +143,7 @@ public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMess
         lifecycleCoordinator.registerListener(this);
         ensurePlaceholderExpansion();
         metrics = coreLib().registerBStats(this, BSTATS_PLUGIN_ID);
-        messageService.info("console.plugin_started");
+        messageService.info(LogTag.STARTUP, "console.plugin_started");
     }
 
     @Override
@@ -227,7 +233,7 @@ public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMess
         }
         placeholderExpansion = new AttributePlaceholderExpansion(this, attributeService);
         placeholderExpansion.register();
-        messageService.info("console.papi_registered");
+        messageService.info(LogTag.INTEGRATION, "console.papi_registered");
     }
 
     public void reloadPluginState(boolean resyncPlayers) {
@@ -300,7 +306,7 @@ public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMess
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
+            LogTags.send(getLogger(), LogTag.STARTUP, Level.FINE, "startup.readiness_publish_skipped", Map.of("error", exception));
         }
     }
 

@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.strengthen.api.model.StrengthenBranchNode;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StarStageMaterialRule;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipeParser;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class StrengthenRecipeLoader {
 
@@ -243,7 +244,7 @@ public final class StrengthenRecipeLoader {
         issues.add(localized(key, safeReplacements));
         LogMessages messages = plugin.messageService();
         if (messages != null) {
-            messages.warning(key, safeReplacements);
+            messages.warning(LogTag.LOADER, key, safeReplacements);
         }
     }
 

@@ -18,6 +18,9 @@ import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
 import emaki.jiuwu.craft.skills.provider.EquipmentSkillCollector;
 import emaki.jiuwu.craft.skills.provider.ExternalSkillDefinitionRegistry;
 import emaki.jiuwu.craft.skills.provider.SkillSourceRegistry;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class SkillRegistryService {
 
@@ -126,8 +129,7 @@ public final class SkillRegistryService {
                         }
                     }
                 } catch (RuntimeException | LinkageError exception) {
-                    plugin.getLogger().warning("[registry] 提供者 '" + source.id()
-                            + "'(归属 '" + source.owner().getName() + "')失败: " + exception.getMessage());
+                    LogTags.send(plugin, LogTag.REGISTRY, Level.WARNING, "registry.provider_collect_failed", Map.of("id", source.id(), "owner", source.owner().getName(), "error", exception.getMessage()));
                 }
             }
         }

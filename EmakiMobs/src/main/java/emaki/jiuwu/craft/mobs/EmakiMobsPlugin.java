@@ -39,6 +39,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.mobs.log.MobsLogTag;
 
 public class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> {
 
@@ -73,15 +76,16 @@ public class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
 
     @Override
     public void onEnable() {
+        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII, STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
+        LogTags.registerTags(this, MobsLogTag.values());
         shutdownStarted.set(false);
         components = lifecycleCoordinator.initialize(this);
         runtimeInitialized = true;
         setDebugLogger(new DebugLogger(this, components.languageLoader()));
         debugLogger().setFallbackLoader(EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII, STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
         ConfigPrecheckLifecycleSupport.register(new MobsConfigPrecheckContributor(this));
-        components.messageService().info("console.plugin_starting");
+        components.messageService().info(LogTag.STARTUP, "console.plugin_starting");
         components.bootstrapService().bootstrap();
         reloadContent();
         lifecycleCoordinator.registerCustomActions(this);
@@ -89,7 +93,7 @@ public class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         registerListeners();
         installPublicApi();
         metrics = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
-        components.messageService().info("console.plugin_started");
+        components.messageService().info(LogTag.STARTUP, "console.plugin_started");
     }
 
     @Override
@@ -119,7 +123,7 @@ public class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         components.mobIdentifier().clearTracked();
         debugCommand = null;
         runtimeInitialized = false;
-        components.messageService().info("console.plugin_stopped");
+        components.messageService().info(LogTag.SHUTDOWN, "console.plugin_stopped");
     }
 
     @Override

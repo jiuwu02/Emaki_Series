@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition> {
 
@@ -640,7 +641,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         if (plugin.messageService() == null) {
             return;
         }
-        plugin.messageService().info(key, replacements);
+        plugin.messageService().info(LogTag.LOADER, key, replacements);
     }
 
     private String safeText(String value, String fallback) {

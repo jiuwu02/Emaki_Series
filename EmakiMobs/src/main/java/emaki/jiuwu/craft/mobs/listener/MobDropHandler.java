@@ -9,6 +9,8 @@ import emaki.jiuwu.craft.mobs.loot.LootFunctionDefinition;
 import emaki.jiuwu.craft.mobs.loot.LootPoolDefinition;
 import emaki.jiuwu.craft.mobs.loot.LootTableDefinition;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.mobs.log.MobsLogTag;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -27,6 +29,7 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
+import java.util.logging.Level;
 
 public final class MobDropHandler implements Listener {
 
@@ -141,7 +144,7 @@ public final class MobDropHandler implements Listener {
             return EmakiItemApi.operations().create(itemId, 1).orElse(null);
         } catch (NoClassDefFoundError e) {
             emakiItemAbsent = true;
-            logger.fine("[loot] EmakiItem API 不可用, emaki_item 掉落已禁用");
+            LogTags.send(logger, MobsLogTag.LOOT, Level.FINE, "loot.emaki_item_api_unavailable");
             return null;
         }
     }
@@ -170,7 +173,7 @@ public final class MobDropHandler implements Listener {
             try {
                 return Math.max(1, Integer.parseInt(s));
             } catch (NumberFormatException e) {
-                logger.finest("[loot] 无效的 rolls 值: " + s);
+                LogTags.send(logger, MobsLogTag.LOOT, Level.FINEST, "loot.invalid_rolls_value", Map.of("value", s));
             }
         }
         return 1;

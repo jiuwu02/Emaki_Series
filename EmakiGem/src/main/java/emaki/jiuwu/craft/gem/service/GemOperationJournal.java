@@ -26,6 +26,9 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class GemOperationJournal {
 
@@ -364,8 +367,8 @@ public final class GemOperationJournal {
             }
             entries.add(toGemEntry(item));
         }
-        plugin.getLogger().info("[journal] 可恢复的宝石操作: " + String.join(", ",
-                entries.stream().map(entry -> entry.operationId() + "(" + entry.phase().name() + ")").toList()));
+        LogTags.send(plugin, LogTag.JOURNAL, Level.INFO, "journal.recoverable_gem_operations", Map.of("operations", String.join(", ",
+                entries.stream().map(entry -> entry.operationId() + "(" + entry.phase().name() + ")").toList())));
         CompletableFuture<Void> result = new CompletableFuture<>();
         Runnable apply = () -> applyRecovery(entries, economyService, rerollSessionService)
                 .whenComplete((ignored, failure) -> {

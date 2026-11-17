@@ -9,6 +9,8 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import java.util.Map;
 
 public final class SpawnQueue implements Runnable {
 
@@ -63,12 +65,10 @@ public final class SpawnQueue implements Runnable {
         try {
             TaskToken submitted = dispatcher.runAtLocation(plugin, entry.location(), () -> execute(entry));
             if (submitted == null || submitted == TaskToken.UNAVAILABLE) {
-                plugin.getLogger().warning("生物生成批次提交失败, 坐标 "
-                        + entry.location().getBlockX() + "," + entry.location().getBlockY()
-                        + "," + entry.location().getBlockZ());
+                LogTags.send(plugin, null, Level.WARNING, "spawn.batch_submit_failed", Map.of("x", entry.location().getBlockX(), "y", entry.location().getBlockY(), "z", entry.location().getBlockZ()));
             }
         } catch (RuntimeException exception) {
-            plugin.getLogger().log(Level.WARNING, "生物生成批次提交异常", exception);
+            LogTags.send(plugin, null, Level.WARNING, "spawn.batch_submit_error", Map.of(), exception);
         }
     }
 
@@ -76,9 +76,9 @@ public final class SpawnQueue implements Runnable {
         try {
             entry.action().run();
         } catch (LinkageError error) {
-            plugin.getLogger().warning("软依赖生物生成入口不可用: " + error.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "spawn.soft_dependency_entry_unavailable", Map.of("error", error.getMessage()));
         } catch (RuntimeException exception) {
-            plugin.getLogger().log(Level.WARNING, "生物生成异常", exception);
+            LogTags.send(plugin, null, Level.WARNING, "spawn.execution_error", Map.of(), exception);
         }
     }
 

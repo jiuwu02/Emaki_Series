@@ -29,6 +29,9 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Recipe;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
 
@@ -755,11 +758,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         );
         structuredIssues.add(issue);
         if (severity != IssueSeverity.INFO && forgePlugin != null) {
-            forgePlugin.getLogger().warning("[loader] " + code
-                    + " path=" + issue.filePath()
-                    + " yaml=" + issue.yamlPath()
-                    + " recipe=" + issue.recipeId()
-                    + " detail=" + issue.summary());
+            LogTags.send(forgePlugin, LogTag.LOADER, Level.WARNING, "loader.recipe_load_issue", Map.of("code", code, "path", issue.filePath(), "yaml", issue.yamlPath(), "recipe", issue.recipeId(), "detail", issue.summary()));
         }
     }
 

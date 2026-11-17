@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "2.0.1"
+version: "2.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
@@ -84,6 +84,12 @@ gui:
     failed: "<red>取出失败</red>"
   click:
     unsupported: "<red>该操作方式在仓库中不受支持</red>"
+  template_not_loaded: "GUI 模板 '%template%' 未加载"
+  template_no_function_slots: "GUI 模板 '%template%' 未声明任何功能槽位; 分页与投入按钮将不可用"
+  function_slot_offset_conflict: "功能槽位 '%slot%' 复用了已被 '%previous%' 占用的偏移 %offset%; 已跳过"
+  function_slot_invalid_offset: "功能槽位 '%slot%' 没有有效偏移 (应为 0-%max_offset%); 已跳过"
+  template_missing_slot_definition: "GUI 模板 '%template%' 缺少 '%slot_key%' 定义; 无法构建展示区"
+  template_parse_failed: "GUI 模板 '%template%' 解析失败"
 
 dialog:
   confirm: "<green>确认</green>"
@@ -165,54 +171,54 @@ command:
     failed: "<red>导出 %player% 的仓库失败, 请检查控制台日志</red>"
 
 console:
-  plugin_starting: "[startup] 正在启动 EmakiStorage..."
-  plugin_started: "[startup] 已启动"
-  bootstrap_start: "[loader] <gray>正在释放默认资源...</gray>"
-  bootstrap_skip: "[loader] <yellow>已跳过默认数据写入</yellow>"
-  bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  loader_config_load_error: "[loader] <yellow>读取 Storage 配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
-  directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
+  plugin_starting: "正在启动 EmakiStorage..."
+  plugin_started: "已启动"
+  bootstrap_start: "<gray>正在释放默认资源...</gray>"
+  bootstrap_skip: "<yellow>已跳过默认数据写入</yellow>"
+  bootstrap_complete: "<green>默认文件检查完成</green>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  loader_config_load_error: "<yellow>读取 Storage 配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
   # 控制台: 能力发布被拒绝; 占位符: %reason%
-  capability_refused: "[integration] 能力发布被拒绝: %reason%"
+  capability_refused: "能力发布被拒绝: %reason%"
   # 控制台: PlaceholderAPI 扩展注册被拒绝
-  papi_registration_refused: "[integration] PlaceholderAPI 扩展注册被拒绝"
+  papi_registration_refused: "PlaceholderAPI 扩展注册被拒绝"
   # 控制台: PlaceholderAPI 扩展不可用; 占位符: %reason%
-  papi_unavailable: "[integration] PlaceholderAPI 扩展不可用: %reason%"
+  papi_unavailable: "PlaceholderAPI 扩展不可用: %reason%"
   # 控制台: 为玩家导出仓库失败; 占位符: %player%, %error%
-  export_failed: "[command] 为玩家 %player% 导出仓库失败: %error%"
+  export_failed: "为玩家 %player% 导出仓库失败: %error%"
   # 控制台: 界面模板加载问题; 占位符: %issue%
   gui_issue: "%issue%"
   # 控制台: 付费扩容成本文件缺失; 占位符: %file%
-  cost_file_missing: "[economy] %file% 缺失或为空; 在提供之前付费扩容已禁用"
+  cost_file_missing: "%file% 缺失或为空; 在提供之前付费扩容已禁用"
   # 控制台: 解锁档位 count_range 无效; 占位符: %range%
-  unlock_tier_invalid_range: "[economy] 跳过 count_range 无效的解锁档位: %range%"
+  unlock_tier_invalid_range: "跳过 count_range 无效的解锁档位: %range%"
   # 控制台: 解锁档位缺少价格; 占位符: %range%
-  unlock_tier_no_price: "[economy] 跳过没有配置价格的解锁档位 %range%"
+  unlock_tier_no_price: "跳过没有配置价格的解锁档位 %range%"
   # 控制台: unlock_costs.yml 回退配置缺少正的 max_amount 保护值
-  unlock_fallback_invalid: "[economy] unlock_costs.yml 回退配置需要一个正的 max_amount 保护值; 超出既定档位的付费扩容已禁用"
+  unlock_fallback_invalid: "unlock_costs.yml 回退配置需要一个正的 max_amount 保护值; 超出既定档位的付费扩容已禁用"
   # 控制台: 打开编辑界面失败; 占位符: %item%, %error%
-  editor_open_failed: "[editor] <red>无法打开 EmakiStorage 编辑界面: %item%  (%error%)</red>"
+  editor_open_failed: "<red>无法打开 EmakiStorage 编辑界面: %item%  (%error%)</red>"
   # 控制台: 编辑界面模板缺失; 占位符: %template%
-  editor_template_missing: "[editor] <red>缺少 EmakiStorage 编辑界面模板: %template%</red>"
+  editor_template_missing: "<red>缺少 EmakiStorage 编辑界面模板: %template%</red>"
   # 控制台: 创建定义失败; 占位符: %path%, %error%
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
+  editor_browser_create_failed: "<red>无法创建定义: %path%  (%error%)</red>"
   # 控制台: 删除定义失败; 占位符: %path%, %error%
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>无法删除定义: %path%  (%error%)</red>"
   # 控制台: 列举定义目录失败; 占位符: %path%, %error%
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>无法列举定义目录: %path%  (%error%)</red>"
   # 控制台: 为玩家加载仓库失败; 占位符: %player%, %reason%
-  storage_load_failed: "[persistence] 为玩家 %player% 加载仓库失败: %reason%"
+  storage_load_failed: "为玩家 %player% 加载仓库失败: %reason%"
   # 控制台: 注册流水线阶段失败; 占位符: %stage%, %reason%
-  stage_register_failed: "[registry] 注册流水线阶段 '%stage%' 失败: %reason%"
-  config_precheck_passed: "[配置] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
-  config_precheck_failed: "[配置] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
-  config_precheck_issue: "[配置] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[配置] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[配置] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  stage_register_failed: "注册流水线阶段 '%stage%' 失败: %reason%"
+  config_precheck_passed: "<gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "<red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -291,10 +297,10 @@ editor:
   modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
+    chat: '<yellow>请在聊天栏输入"%label%"的内容, 输入 cancel 取消</yellow>'
+    map_entry: '<yellow>请在聊天栏输入"键=值"新增一条映射, 输入 cancel 取消</yellow>'
   map:
-    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
+    bad_entry: '<red>格式错误, 请按"键=值"输入</red>'
   tier:
     create_hint: "<gray>输入新档位的格数区间, 例如 1-9 或 50, 输入 cancel 取消</gray>"
     bad_range: "<red>格数区间无效, 请输入如 1-9 或 50 的正整数区间</red>"
@@ -320,7 +326,7 @@ editor:
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
     delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
-    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
+    delete_confirm: '<red>再次点击"删除"以确认删除</red>'
     delete_success: "<green>已删除定义 %id%</green>"
     delete_failed: "<red>删除失败, 详见控制台</red>"
   value:
@@ -333,3 +339,34 @@ editor:
     map_header: "字典 (%count% 项)"
     scalar: "%type%: %value%"
     more: "... 其余 %count% 项"
+journal:
+  delete_empty_log_directory_failed: "删除空的存储日志目录 %directory% 失败: %error%"
+  cleanup_log_directory_failed: "清理存储日志目录 %directory% 失败: %error%"
+  scan_log_directory_failed: "扫描存储日志目录失败: %error%"
+  write_log_failed_requeued: "为玩家 %player% 写入存储日志失败, 已将 %count% 条日志放回待写队列: %error%"
+  append_log_failed: "为玩家 %player% 追加存储日志失败: %error%"
+  entry_after_shutdown_flush_discarded: "存储日志停服落盘后仍收到新条目, 已丢弃该条目"
+  unflushed_entries_at_shutdown: "停服时仍有 %count% 条存储日志未落盘%error%"
+startup:
+  readiness_publish_skipped: "就绪状态发布已跳过: %error%"
+shutdown:
+  log_flush_wait_timeout: "存储日志落盘等待超时: %error%"
+  log_flush_failed: "存储日志落盘失败: %error%"
+  log_flush_wait_interrupted: "等待存储日志落盘时被中断"
+  log_flush_dirty: "存储日志未干净落盘: written=%written% pending=%pending%"
+  log_flush_timed_out: "存储日志落盘在 %timeout% 秒内未完成, 停服结果不完整"
+  close_flush_not_clean: "关闭刷新未干净完成: saved=%saved% failed=%failed% remainingDirty=%remaining_dirty% drained=%drained%"
+config:
+  storage_rows_below_min: "gui.storage_rows=%rows% 低于最小值 %min%; 已限制为 %min%"
+  storage_rows_exceeds_max: "gui.storage_rows=%rows% 超过最大值 %max% (功能行始终占用最后一行); 已限制为 %max%"
+  legacy_key_renamed: "配置键 %legacy_key% 已更名为 %key%, 当前按旧键值 %value% 生效, 启动时会自动迁移到新键"
+  issue_reported: "%message%"
+persistence:
+  data_handling_failed: "玩家 %player% 数据处理失败 (%stage%): %error%"
+  storage_entry_count_warn: "玩家 %player% 持有 %count% 个条目, 超过 capacity.warn_entry_count=%limit%"
+  expired_reservations_released: "已释放玩家 %player% 的 %count% 条过期预留"
+  duplicate_entries_merged: "已为玩家 %player% 合并 %count% 条重复条目; 组件格式变更后两个已存物品现在判定相等"
+  storage_file_truncated: "玩家 %player% 的存储文件被截断 (%detail%), 已按加载失败处理并进入只读保护, 原文件保留不覆盖"
+  quarantine_unreadable_records: "已隔离玩家 %player% 的 %count% 条无法读取的记录%quarantine_target%"
+matcher:
+  deposit_filter_threw: "deposit_filter 匹配器抛出异常, 已按不匹配处理: %error%"

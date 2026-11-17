@@ -10,6 +10,10 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.item.ItemComponentSnapshotScope;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class MaterialAllocator {
 
@@ -163,8 +167,7 @@ public final class MaterialAllocator {
         try {
             return requirement.test(context);
         } catch (RuntimeException exception) {
-            ComponentMatcherSupport.LOGGER.warning("[matcher] 材料分配需求抛出异常, 按不匹配处理: "
-                    + exception.getClass().getSimpleName());
+            LogTags.send(ComponentMatcherSupport.LOGGER, LogTag.MATCHER, Level.WARNING, "matcher.requirement_exception", Map.of("error", exception.getClass().getSimpleName()));
             return false;
         }
     }

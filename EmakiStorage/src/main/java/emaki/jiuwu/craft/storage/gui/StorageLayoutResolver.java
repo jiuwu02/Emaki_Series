@@ -13,6 +13,9 @@ import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class StorageLayoutResolver {
 
@@ -55,14 +58,11 @@ public final class StorageLayoutResolver {
 
     public int clampRows(int configuredRows) {
         if (configuredRows > MAX_ROWS) {
-            logger.warning("[配置] gui.storage_rows=" + configuredRows
-                    + " 超过最大值 " + MAX_ROWS
-                    + " (功能行始终占用最后一行); 已限制为 " + MAX_ROWS);
+            LogTags.send(logger, LogTag.CONFIG, Level.WARNING, "config.storage_rows_exceeds_max", Map.of("rows", configuredRows, "max", MAX_ROWS));
             return MAX_ROWS;
         }
         if (configuredRows < MIN_ROWS) {
-            logger.warning("[配置] gui.storage_rows=" + configuredRows
-                    + " 低于最小值 " + MIN_ROWS + "; 已限制为 " + MIN_ROWS);
+            LogTags.send(logger, LogTag.CONFIG, Level.WARNING, "config.storage_rows_below_min", Map.of("rows", configuredRows, "min", MIN_ROWS));
             return MIN_ROWS;
         }
         return configuredRows;
@@ -71,7 +71,7 @@ public final class StorageLayoutResolver {
     public Layout resolve(GuiTemplateLoader loader, int configuredRows) {
         var entry = loader.entry(TEMPLATE_ID);
         if (entry == null || entry.configuration() == null) {
-            logger.warning("[gui] GUI 模板 '" + TEMPLATE_ID + "' 未加载");
+            LogTags.send(logger, LogTag.GUI, Level.WARNING, "gui.template_not_loaded", Map.of("template", TEMPLATE_ID));
             return null;
         }
         int storageRows = clampRows(configuredRows);
@@ -81,15 +81,14 @@ public final class StorageLayoutResolver {
         var configuration = entry.configuration();
         GuiTemplate parsed = entry.value();
         if (parsed == null) {
-            logger.warning("[gui] GUI 模板 '" + TEMPLATE_ID + "' 解析失败");
+            LogTags.send(logger, LogTag.GUI, Level.WARNING, "gui.template_parse_failed", Map.of("template", TEMPLATE_ID));
             return null;
         }
 
         Map<String, GuiSlot> slots = new LinkedHashMap<>();
         GuiSlot displayPrototype = parsed.slots().get(STORAGE_SLOT_KEY);
         if (displayPrototype == null) {
-            logger.warning("[gui] GUI 模板 '" + TEMPLATE_ID + "' 缺少 '"
-                    + STORAGE_SLOT_KEY + "' 定义; 无法构建展示区");
+            LogTags.send(logger, LogTag.GUI, Level.WARNING, "gui.template_missing_slot_definition", Map.of("template", TEMPLATE_ID, "slot_key", STORAGE_SLOT_KEY));
             return null;
         }
         List<Integer> displaySlots = new ArrayList<>(functionBase);
@@ -108,14 +107,12 @@ public final class StorageLayoutResolver {
                 }
                 Integer offset = readOffset(function.getValue());
                 if (offset == null) {
-                    logger.warning("[gui] 功能槽位 '" + key
-                            + "' 没有有效偏移 (应为 0-" + (ROW_WIDTH - 1) + "); 已跳过");
+                    LogTags.send(logger, LogTag.GUI, Level.WARNING, "gui.function_slot_invalid_offset", Map.of("slot", key, "max_offset", (ROW_WIDTH - 1)));
                     continue;
                 }
                 String previous = claimedOffsets.putIfAbsent(offset, key);
                 if (previous != null) {
-                    logger.warning("[gui] 功能槽位 '" + key + "' 复用了已被 '" + previous
-                            + "' 占用的偏移 " + offset + "; 已跳过");
+                    LogTags.send(logger, LogTag.GUI, Level.WARNING, "gui.function_slot_offset_conflict", Map.of("slot", key, "previous", previous, "offset", offset));
                     continue;
                 }
                 GuiSlot prototype = parsed.slots().get(key);
@@ -126,8 +123,7 @@ public final class StorageLayoutResolver {
             }
         }
         if (claimedOffsets.isEmpty()) {
-            logger.warning("[gui] GUI 模板 '" + TEMPLATE_ID
-                    + "' 未声明任何功能槽位; 分页与投入按钮将不可用");
+            LogTags.send(logger, LogTag.GUI, Level.WARNING, "gui.template_no_function_slots", Map.of("template", TEMPLATE_ID));
         }
 
         GuiTemplate rebuilt = new GuiTemplate(parsed.id(), parsed.title(), parsed.titleConfig(),

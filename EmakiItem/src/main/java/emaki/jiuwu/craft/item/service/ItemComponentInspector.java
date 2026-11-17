@@ -18,6 +18,8 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.item.ComponentValueParser;
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class ItemComponentInspector {
 
@@ -240,11 +242,7 @@ public final class ItemComponentInspector {
                 result.put(id, new ComponentEntry(id, removed ? "" : paperDataValue(itemStack, type), removed));
             }
         } catch (RuntimeException | LinkageError throwable) {
-            EmakiLog.of("EmakiItem").log(Level.WARNING,
-                    "[component] Paper 数据组件检查失败: item=" + itemStack.getType()
-                            + ", collected=" + result.size()
-                            + ", operation=read_paper_data_components, cause=" + throwable,
-                    throwable);
+            LogTags.send(EmakiLog.of("EmakiItem"), LogTag.COMPONENT, Level.WARNING, "component.paper_data_component_inspection_failed", Map.of("item", itemStack.getType(), "collected", result.size(), "error", throwable), throwable);
         }
         return result;
     }

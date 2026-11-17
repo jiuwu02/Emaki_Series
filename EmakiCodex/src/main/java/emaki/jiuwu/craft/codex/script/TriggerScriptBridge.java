@@ -16,6 +16,9 @@ import emaki.jiuwu.craft.codex.apiimpl.DefaultCodexExtensions;
 import emaki.jiuwu.craft.corelib.script.host.ScriptHost;
 import emaki.jiuwu.craft.corelib.script.host.ScriptHostSettings;
 import emaki.jiuwu.craft.corelib.script.host.ScriptLoadReport;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class TriggerScriptBridge {
 
@@ -40,11 +43,11 @@ public final class TriggerScriptBridge {
     public void loadFromConfig() {
         ScriptHostSettings settings = plugin.appConfig().scripts();
         if (!settings.enabled()) {
-            plugin.messageService().info("console.script_disabled");
+            plugin.messageService().info(LogTag.SCRIPT, "console.script_disabled");
             return;
         }
         if (!ScriptHost.isEngineAvailable()) {
-            plugin.messageService().warning("console.script_engine_unavailable");
+            plugin.messageService().warning(LogTag.SCRIPT, "console.script_engine_unavailable");
             return;
         }
         releaseExampleScript();
@@ -64,7 +67,7 @@ public final class TriggerScriptBridge {
         }
         if (!plugin.appConfig().scripts().enabled()) {
             closeHost(current);
-            plugin.messageService().info("console.script_disabled");
+            plugin.messageService().info(LogTag.SCRIPT, "console.script_disabled");
             return;
         }
         report(current.reload());
@@ -77,7 +80,7 @@ public final class TriggerScriptBridge {
 
     void registerScriptTrigger(Value payload, ScriptHost sourceHost) {
         if (payload == null || payload.isNull() || !payload.hasMembers()) {
-            plugin.messageService().warning("console.script_register_invalid_payload");
+            plugin.messageService().warning(LogTag.SCRIPT, "console.script_register_invalid_payload");
             return;
         }
         Object idRaw = memberOf(payload, "id");
@@ -96,24 +99,24 @@ public final class TriggerScriptBridge {
         try {
             AdvancementTriggerRegistration registration = extensions.registerTrigger(plugin, trigger);
             if (registration == AdvancementTriggerRegistration.noop()) {
-                plugin.messageService().warning("console.script_register_failed",
+                plugin.messageService().warning(LogTag.SCRIPT, "console.script_register_failed",
                         Map.of("id", id, "reason", "注册被拒绝"));
                 return;
             }
             registrations.add(registration);
         } catch (RuntimeException | LinkageError exception) {
-            plugin.messageService().warning("console.script_register_failed",
+            plugin.messageService().warning(LogTag.SCRIPT, "console.script_register_failed",
                     Map.of("id", id, "reason", TriggerScriptLogic.describe(exception)));
         }
     }
 
     private void reportViolation(String violation, String id) {
         switch (violation) {
-            case "id_blank" -> plugin.messageService().warning("console.script_register_id_blank");
+            case "id_blank" -> plugin.messageService().warning(LogTag.SCRIPT, "console.script_register_id_blank");
             case "advancements_missing" -> plugin.messageService()
-                    .warning("console.script_register_advancements_missing", Map.of("id", id));
+                    .warning(LogTag.SCRIPT, "console.script_register_advancements_missing", Map.of("id", id));
             default -> plugin.messageService()
-                    .warning("console.script_register_priority_invalid", Map.of("id", id));
+                    .warning(LogTag.SCRIPT, "console.script_register_priority_invalid", Map.of("id", id));
         }
     }
 
@@ -132,10 +135,10 @@ public final class TriggerScriptBridge {
     }
 
     private void report(ScriptLoadReport report) {
-        plugin.messageService().info("console.script_loaded",
+        plugin.messageService().info(LogTag.SCRIPT, "console.script_loaded",
                 Map.of("loaded", report.filesLoaded(), "skipped", report.filesSkipped()));
         for (ScriptLoadReport.ScriptLoadError error : report.errors()) {
-            plugin.messageService().warning("console.script_file_error",
+            plugin.messageService().warning(LogTag.SCRIPT, "console.script_file_error",
                     Map.of("file", error.file(), "reason", error.message()));
         }
     }
@@ -147,8 +150,7 @@ public final class TriggerScriptBridge {
             try {
                 registration.close();
             } catch (RuntimeException | LinkageError exception) {
-                plugin.getLogger().warning(
-                        "[script] 脚本触发器注销失败: " + TriggerScriptLogic.describe(exception));
+                LogTags.send(plugin, LogTag.SCRIPT, Level.WARNING, "script.trigger_unregister_failed", Map.of("error", TriggerScriptLogic.describe(exception)));
             }
         }
     }
@@ -172,14 +174,14 @@ public final class TriggerScriptBridge {
         Path target = scriptsDirectory.resolve(targetPath);
         try (InputStream resource = plugin.getResource(resourcePath)) {
             if (resource == null) {
-                plugin.messageService().warning("console.script_release_failed",
+                plugin.messageService().warning(LogTag.SCRIPT, "console.script_release_failed",
                         Map.of("reason", "内置资源缺失"));
                 return;
             }
             Files.createDirectories(target.getParent());
             Files.copy(resource, target);
         } catch (IOException | RuntimeException exception) {
-            plugin.messageService().warning("console.script_release_failed",
+            plugin.messageService().warning(LogTag.SCRIPT, "console.script_release_failed",
                     Map.of("reason", TriggerScriptLogic.describe(exception)));
         }
     }

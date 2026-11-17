@@ -2,19 +2,22 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "2.0.2"
+version: "2.0.3"
+
+tags:
+  leaderboard: '[ leaderboard ]'
 
 general:
   prefix: "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>"
 console:
-  plugin_starting: "[startup] <gray>Starting...</gray>"
-  plugin_started: "[startup] <green>Started</green>"
-  plugin_stopped: "[shutdown] <yellow>Stopped</yellow>"
-  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
-  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> problem (s)</red>"
-  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started</green>"
+  plugin_stopped: "<yellow>Stopped</yellow>"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> problem (s)</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -30,41 +33,41 @@ console:
       required_directory_missing: "Required directory is missing"
       path_not_directory: "Path is not a directory"
       directory_not_readable: "Directory is not readable"
-  types_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> level type (s)</gray>"
-  sources_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> experience source rule (s)</gray>"
-  actions_registered: "[integration] <gray>CoreLib actions registered</gray>"
-  papi_registered: "[integration] <gray>PlaceholderAPI expansion registered</gray>"
-  attribute_bridge_ready: "[integration] <gray>EmakiAttribute contribution bridge connected</gray>"
-  attribute_bridge_unavailable: "[integration] <gray>EmakiAttribute contribution bridge unavailable, skipped</gray>"
-  mythic_drops_registered: "[integration] <gray>MythicMobs drops registered</gray>"
-  bootstrap_start: "[loader] <gray>Checking default files...</gray>"
-  bootstrap_complete: "[loader] <green>Default file check complete</green>"
-  versioned_file_updated: "[config] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  bootstrap_skip: "[loader] <gray>release_default_data=false, skipped default data file generation</gray>"
-  default_file_missing: "[loader] <yellow>Missing bundled default resource: <red>%path%</red></yellow>"
-  bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>Failed to save versioned resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
-  directory_create_failed: "[loader] <yellow>Failed to create directory: <red>%path%</red></yellow>"
+  types_loaded: "<gray>Loaded <yellow>%count%</yellow> level type (s)</gray>"
+  sources_loaded: "<gray>Loaded <yellow>%count%</yellow> experience source rule (s)</gray>"
+  actions_registered: "<gray>CoreLib actions registered</gray>"
+  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
+  attribute_bridge_ready: "<gray>EmakiAttribute contribution bridge connected</gray>"
+  attribute_bridge_unavailable: "<gray>EmakiAttribute contribution bridge unavailable, skipped</gray>"
+  mythic_drops_registered: "<gray>MythicMobs drops registered</gray>"
+  bootstrap_start: "<gray>Checking default files...</gray>"
+  bootstrap_complete: "<green>Default file check complete</green>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  bootstrap_skip: "<gray>release_default_data=false, skipped default data file generation</gray>"
+  default_file_missing: "<yellow>Missing bundled default resource: <red>%path%</red></yellow>"
+  bootstrap_copy_failed: "<yellow>Failed to copy default resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>Failed to save versioned resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
   # Console: rebuilding the level leaderboard failed
   leaderboard_rebuild_failed: "Failed to rebuild level leaderboard"
   # Console: EmakiAttribute bridge registration failed; placeholders: %cause%
-  attribute_bridge_register_failed: "[integration] Attribute bridge registration failed: provider=EmakiAttribute, operation=register_attribute_bridge, cause=%cause%"
+  attribute_bridge_register_failed: "Attribute bridge registration failed: provider=EmakiAttribute, operation=register_attribute_bridge, cause=%cause%"
   # Console: pipeline stage registration failed; placeholders: %stage%, %reason%
-  stage_register_failed: "[registry] Failed to register pipeline stage '%stage%': %reason%"
+  stage_register_failed: "Failed to register pipeline stage '%stage%': %reason%"
   # Console: player data async operation failed; placeholders: %operation%, %player%
   async_operation_failed: "Async %operation% failed for %player%"
   # Console: source rule requirement test threw and is treated as no match; placeholder: %error%
-  source_rule_requirement_failed: "[matcher] Source rule requirement threw and is treated as no match: %error%"
+  source_rule_requirement_failed: "Source rule requirement threw and is treated as no match: %error%"
   # Console: could not open the editor; placeholders: %item%, %error%
-  editor_open_failed: "[editor] <red>Could not open EmakiLevel editor for %item%  (%error%)</red>"
+  editor_open_failed: "<red>Could not open EmakiLevel editor for %item%  (%error%)</red>"
   # Console: missing editor GUI template; placeholder: %template%
-  editor_template_missing: "[editor] <red>Missing EmakiLevel editor GUI template: %template%</red>"
+  editor_template_missing: "<red>Missing EmakiLevel editor GUI template: %template%</red>"
   # Console: could not create a definition file; placeholders: %path%, %error%
-  editor_browser_create_failed: "[editor] <red>Could not create definition: %path%  (%error%)</red>"
+  editor_browser_create_failed: "<red>Could not create definition: %path%  (%error%)</red>"
   # Console: could not delete a definition file; placeholders: %path%, %error%
-  editor_browser_delete_failed: "[editor] <red>Could not delete definition: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>Could not delete definition: %path%  (%error%)</red>"
   # Console: could not list a definition directory; placeholders: %path%, %error%
-  editor_browser_list_failed: "[editor] <red>Could not list definition directory: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>Could not list definition directory: %path%  (%error%)</red>"
 command:
   no_permission: "%prefix%<red>You do not have permission</red>"
   player_only: "%prefix%<red>This command can only be used by players</red>"
@@ -373,3 +376,19 @@ editor:
 debug:
   # Debug: session flush anchor; placeholders: %fields%
   session_line: "Session | %fields%"
+startup:
+  readiness_publish_skipped: "Readiness publish skipped: %error%"
+shutdown:
+  level_data_drain_incomplete: "Level data drain incomplete: pending=%pending%, ioFailures=%io_failures%, saveFailures=%save_failures%, remainingDirty=%remaining_dirty%"
+registry:
+  exp_source_provider_failed: "Experience source provider '%id%' failed: %error%"
+journal:
+  recoverable_level_operations: "Recoverable level operations: %operations%"
+  level_operation_write_failed: "Level operation %operation% completed its actions but the operation journal write failed; the entry remains in active, awaiting the next recovery pass: %error%"
+persistence:
+  player_data_save_failed: "Save failed %player%"
+  player_data_load_failed: "Load failed %player%; this session remains read-only to protect existing files"
+action:
+  action_stage_failed_batch_not_successful: "Action stage '%phase%' failed: the action batch was not successful"
+  action_stage_failed: "Action stage '%phase%' failed: %error%"
+  action_stage_failed_executor_unavailable: "Action stage '%phase%' failed: the action executor is unavailable"

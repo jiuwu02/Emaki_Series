@@ -22,6 +22,9 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class PlayerAccessoryStore {
 
@@ -99,8 +102,7 @@ public final class PlayerAccessoryStore {
                     pendingLoads.remove(playerId);
                     if (throwable != null) {
                         cache.installLoadFailure(ticket, new PlayerAccessories(playerId));
-                        warn("[persistence] 加载玩家 " + playerId + " 的饰品失败: "
-                                + Texts.toStringSafe(throwable.getMessage()));
+                        LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.accessory_load_failed", Map.of("player", playerId, "error", Texts.toStringSafe(throwable.getMessage())));
                         future.complete(null);
                         return;
                     }
@@ -179,8 +181,7 @@ public final class PlayerAccessoryStore {
     private CompletableFuture<Boolean> writeTicket(
             PlayerAccessoryCache.SaveTicket<UUID, PlayerAccessories> ticket) {
         if (writeProtected.contains(ticket.key())) {
-            warn("[persistence] 已跳过保存玩家 " + ticket.key()
-                    + " 的饰品: 其数据文件结构无法识别");
+            LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.accessory_save_skipped_unrecognized", Map.of("player", ticket.key()));
             return CompletableFuture.completedFuture(false);
         }
         PlayerAccessories snapshot = ticket.snapshot();
@@ -192,8 +193,7 @@ public final class PlayerAccessoryStore {
         return asyncYamlFiles.save(file, values)
                 .handle((ignored, throwable) -> {
                     if (throwable != null) {
-                        warn("[persistence] 保存玩家 " + ticket.key() + " 的饰品失败: "
-                                + Texts.toStringSafe(throwable.getMessage()));
+                        LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.accessory_save_failed", Map.of("player", ticket.key(), "error", Texts.toStringSafe(throwable.getMessage())));
                         return false;
                     }
                     return true;
@@ -206,8 +206,7 @@ public final class PlayerAccessoryStore {
             YamlFiles.save(file, values);
             return true;
         } catch (IOException | RuntimeException exception) {
-            warn("[persistence] 保存饰品到文件 " + file.getName() + " 失败: "
-                    + Texts.toStringSafe(exception.getMessage()));
+            LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.accessory_file_save_failed", Map.of("file", file.getName(), "error", Texts.toStringSafe(exception.getMessage())));
             return false;
         }
     }
@@ -254,7 +253,7 @@ public final class PlayerAccessoryStore {
         future.whenComplete((ignored, throwable) -> latch.countDown());
         try {
             if (!latch.await(remaining, TimeUnit.NANOSECONDS)) {
-                warn("[persistence] 饰品数据写入未在排空截止时间前完成");
+                LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.accessory_write_timeout", Map.of());
             }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();

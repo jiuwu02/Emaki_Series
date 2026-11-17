@@ -5,6 +5,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.station.EmakiStationPlugin;
 import emaki.jiuwu.craft.station.api.model.ProgressMode;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class AppConfigParser {
 
@@ -104,10 +108,7 @@ public final class AppConfigParser {
         }
         if (section.contains(legacyPath)) {
             int legacyValue = section.getInt(legacyPath, fallback);
-            JavaPlugin.getPlugin(EmakiStationPlugin.class).getLogger().warning("[配置] 配置键 " + legacyPath
-                    + " 已更名为 " + path
-                    + ", 当前按旧键值 " + legacyValue
-                    + " 生效, 启动时会自动迁移到新键");
+            LogTags.send(JavaPlugin.getPlugin(EmakiStationPlugin.class), LogTag.CONFIG, Level.WARNING, "config.legacy_key_renamed", Map.of("legacy_key", legacyPath, "key", path, "value", legacyValue));
             return legacyValue;
         }
         return fallback;

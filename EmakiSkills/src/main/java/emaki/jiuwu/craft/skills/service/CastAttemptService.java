@@ -42,6 +42,7 @@ import emaki.jiuwu.craft.skills.script.SkillScriptMode;
 import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
 import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
 import emaki.jiuwu.craft.skills.model.SkillActivationType;
+import emaki.jiuwu.craft.skills.log.SkillsLogTag;
 
 public final class CastAttemptService {
 
@@ -414,7 +415,7 @@ public final class CastAttemptService {
         FailureReason reason = failureReasonFor(kind, outcome.reasonKey());
         String messageKey = messageKeyFor(kind, outcome.reasonKey());
         if (isConfigurationError(kind)) {
-            plugin.messageService().warning("console.skill_cast_failed", Map.of(
+            plugin.messageService().warning(SkillsLogTag.CAST, "console.skill_cast_failed", Map.of(
                     "skill", skillId,
                     "trigger", Texts.toStringSafe(triggerId),
                     "kind", kind.name(),

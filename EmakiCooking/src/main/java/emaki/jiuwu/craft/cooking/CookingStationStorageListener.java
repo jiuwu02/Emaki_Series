@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.StationStateStore.StationStorageBackend;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 final class CookingStationStorageListener implements Listener {
 
@@ -105,7 +106,7 @@ final class CookingStationStorageListener implements Listener {
         if (indexedBackend == StationStorageBackend.BLOCK_PDC
                 && stateStore.backendFor(coordinates.block()) == StationStorageBackend.YAML_FALLBACK) {
             String type = indexedType == null ? "unknown" : indexedType.folderName();
-            plugin.messageService().warning("console.station_restore_lost_block_entity", Map.of(
+            plugin.messageService().warning(LogTag.PERSISTENCE, "console.station_restore_lost_block_entity", Map.of(
                     "type", type,
                     "coordinate", coordinates.runtimeKey()));
         }

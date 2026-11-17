@@ -17,6 +17,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionStageDescriptor;
 import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionTriggerDescriptor;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 final class ActionDescriptorApiService {
 
@@ -76,8 +80,7 @@ final class ActionDescriptorApiService {
                 case ACTION -> action(entry, (CoreActionStage) entry.stage());
             };
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("[action] 动作段元数据获取失败: " + entry.id() + " - "
-                    + Texts.toStringSafe(exception.getMessage()));
+            LogTags.send(plugin, LogTag.ACTION, Level.WARNING, "action.stage_metadata_failed", Map.of("id", entry.id(), "error", Texts.toStringSafe(exception.getMessage())));
             return new CoreActionStageDescriptor(entry.id(), entry.kind(), entry.ownerName(), "", "", "",
                     List.of(), CoreTargetRequirement.NONE, Set.of(), Set.of(), Set.of());
         }
@@ -88,8 +91,7 @@ final class ActionDescriptorApiService {
         try {
             description = entry.trigger().description();
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("[action] 动作触发器元数据获取失败: " + entry.id() + " - "
-                    + Texts.toStringSafe(exception.getMessage()));
+            LogTags.send(plugin, LogTag.ACTION, Level.WARNING, "action.trigger_metadata_failed", Map.of("id", entry.id(), "error", Texts.toStringSafe(exception.getMessage())));
             description = "";
         }
         return new CoreActionTriggerDescriptor(entry.id(), entry.ownerName(), description, entry.contract());

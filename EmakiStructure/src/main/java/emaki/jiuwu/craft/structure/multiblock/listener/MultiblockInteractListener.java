@@ -9,6 +9,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class MultiblockInteractListener implements Listener {
 
@@ -38,7 +41,7 @@ public final class MultiblockInteractListener implements Listener {
             }
             service.onInteract(event.getPlayer(), clicked);
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("多方块交互监听异常: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "multiblock.interact_listener_error", Map.of("error", exception.getMessage()));
         }
     }
 }

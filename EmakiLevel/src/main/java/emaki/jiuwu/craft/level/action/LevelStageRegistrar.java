@@ -9,6 +9,7 @@ import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.api.LevelOperationType;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class LevelStageRegistrar {
 
@@ -42,7 +43,7 @@ public final class LevelStageRegistrar {
             if (registration.successful()) {
                 handles.add(registration);
             } else {
-                plugin.messages().warning("console.stage_register_failed",
+                plugin.messages().warning(LogTag.REGISTRY, "console.stage_register_failed",
                         Map.of("stage", id, "reason", registration.reasonKey()));
             }
         });

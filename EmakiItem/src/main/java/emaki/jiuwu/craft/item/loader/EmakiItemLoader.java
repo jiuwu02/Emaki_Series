@@ -17,6 +17,9 @@ import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinitionParser;
 import emaki.jiuwu.craft.item.model.ItemDirectoryConfig;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class EmakiItemLoader {
 
@@ -46,7 +49,7 @@ public final class EmakiItemLoader {
         }
         File directory = plugin.getDataFolder().toPath().resolve("items").toFile();
         if (!directory.exists() && !directory.mkdirs()) {
-            plugin.getLogger().warning("[loader] 无法创建 items 目录: " + directory.getPath());
+            LogTags.send(plugin, LogTag.LOADER, Level.WARNING, "loader.create_items_directory_failed", Map.of("path", directory.getPath()));
         }
         Map<String, EmakiItemDefinition> loaded = new LinkedHashMap<>();
         Map<String, String> packs = new LinkedHashMap<>();
@@ -59,15 +62,14 @@ public final class EmakiItemLoader {
                     continue;
                 }
                 if (loaded.containsKey(definition.id())) {
-                    plugin.getLogger().warning("[loader] 重复的 EmakiItem ID '" + definition.id() + "' (位于 " + file.getPath() + "), 保留首个定义");
+                    LogTags.send(plugin, LogTag.LOADER, Level.WARNING, "loader.duplicate_item_id_kept_first", Map.of("id", definition.id(), "path", file.getPath()));
                     continue;
                 }
                 loaded.put(definition.id(), definition);
                 packs.put(definition.id(), packIdOf(file, directory));
                 located.put(definition.id(), file);
             } catch (RuntimeException exception) {
-                plugin.getLogger().warning("[loader] 无法加载 EmakiItem 定义 " + file.getPath()
-                        + ": " + Texts.toStringSafe(exception.getMessage()));
+                LogTags.send(plugin, LogTag.LOADER, Level.WARNING, "loader.load_item_definition_failed", Map.of("path", file.getPath(), "error", Texts.toStringSafe(exception.getMessage())));
             }
         }
         if (!allowed(allowed)) {
@@ -159,8 +161,7 @@ public final class EmakiItemLoader {
                 continue;
             }
             if (depth >= maxDepth) {
-                plugin.getLogger().warning("[loader] 跳过 EmakiItem 目录 " + relativize(entry, root)
-                        + ": 嵌套层级超过 data_directories.max_depth=" + maxDepth);
+                LogTags.send(plugin, LogTag.LOADER, Level.WARNING, "loader.skip_directory_max_depth", Map.of("path", relativize(entry, root), "max_depth", maxDepth));
                 continue;
             }
             collect(entry, root, depth + 1, maxDepth, sink);

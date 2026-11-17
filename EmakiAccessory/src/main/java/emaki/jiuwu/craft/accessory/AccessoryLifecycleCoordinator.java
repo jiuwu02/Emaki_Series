@@ -37,6 +37,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 
 final class AccessoryLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiAccessoryPlugin, AccessoryRuntimeComponents> {
@@ -146,17 +147,17 @@ final class AccessoryLifecycleCoordinator
         Map<String, String> rejected = new LinkedHashMap<>();
         AccessoryPartRegistry registry = AccessoryPartRegistry.of(plugin.partLoader().parts(), rejected);
         rejected.forEach((partId, collidingId) -> plugin.messageService().warning(
-                "accessory.part_instance_conflict",
+                LogTag.LOADER, "accessory.part_instance_conflict",
                 Map.of("part", partId, "slot", collidingId)));
         AccessoryPageRegistry pages = AccessoryPageRegistry.of(plugin.pageLoader().all(), registry);
         if (pages.isEmpty()) {
-            plugin.messageService().warning("accessory.pages_missing", Map.of());
+            plugin.messageService().warning(LogTag.LOADER, "accessory.pages_missing", Map.of());
         }
         warnUnknownPageParts(plugin, registry, pages);
 
         AccessorySlotSourceConfig slotSources = plugin.appConfig().slotSources();
         slotSources.patternErrors().forEach((pattern, error) -> plugin.messageService().warning(
-                "accessory.invalid_slot_pattern",
+                LogTag.LOADER, "accessory.invalid_slot_pattern",
                 Map.of("pattern", pattern, "error", error)));
 
         plugin.uniqueService().reconfigure(plugin.appConfig().unique());
@@ -179,7 +180,7 @@ final class AccessoryLifecycleCoordinator
             }
             for (String partId : page.parts()) {
                 if (registry.slotInstanceIdsOf(partId).isEmpty()) {
-                    plugin.messageService().warning("accessory.page_unknown_part",
+                    plugin.messageService().warning(LogTag.LOADER, "accessory.page_unknown_part",
                             Map.of("page", pageId, "part", partId));
                 }
             }

@@ -10,6 +10,9 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class GemActionCoordinator {
 
@@ -85,7 +88,7 @@ public final class GemActionCoordinator {
 
     private void warnActionFailure(String phase, String message) {
         if (plugin != null) {
-            plugin.getLogger().warning("[action] 宝石动作阶段 '" + Texts.toStringSafe(phase) + "' 失败: " + Texts.toStringSafe(message));
+            LogTags.send(plugin, LogTag.ACTION, Level.WARNING, "action.gem_action_stage_failed", Map.of("phase", Texts.toStringSafe(phase), "message", Texts.toStringSafe(message)));
         }
     }
 }

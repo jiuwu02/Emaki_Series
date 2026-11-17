@@ -24,6 +24,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import java.util.logging.Level;
 
 public final class GenerationService {
 
@@ -272,7 +274,7 @@ public final class GenerationService {
                     "step", "settleGround",
                     "detail", "type=" + exception.getClass().getSimpleName()
                             + " message=" + exception.getMessage()));
-            plugin.getLogger().warning("生成预检回调提交失败: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "generate.precheck_callback_submit_failed", Map.of("error", exception.getMessage()));
         }
     }
 
@@ -293,7 +295,7 @@ public final class GenerationService {
                     "step", "ground_dispatch",
                     "detail", "type=" + exception.getClass().getSimpleName()
                             + " message=" + exception.getMessage()));
-            plugin.getLogger().warning("生成预检任务提交失败: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "generate.precheck_task_submit_failed", Map.of("error", exception.getMessage()));
             return false;
         }
     }
@@ -308,7 +310,7 @@ public final class GenerationService {
                     "detail", "template=" + request.template().id()
                             + " type=" + exception.getClass().getSimpleName()
                             + " message=" + exception.getMessage()));
-            plugin.getLogger().warning("journal 创建失败: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "generate.journal_create_failed", Map.of("error", exception.getMessage()));
             finalizer.reportRejection(request, new Rejection("error.generate.journal_failed",
                     Map.of("error", String.valueOf(exception.getMessage()))));
             return;

@@ -32,6 +32,9 @@ import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class StrengthenRecipeResolver {
 
@@ -211,7 +214,7 @@ public final class StrengthenRecipeResolver {
         try {
             return matcher.test(matchContext);
         } catch (RuntimeException | LinkageError exception) {
-            LOGGER.warning("[matcher] 配方 Matcher 判定抛出异常, 视为不匹配: " + String.valueOf(exception.getMessage()));
+            LogTags.send(LOGGER, LogTag.MATCHER, Level.WARNING, "matcher.recipe_matcher_check_threw_treated_as_mismatch", Map.of("error", String.valueOf(exception.getMessage())));
             return false;
         }
     }

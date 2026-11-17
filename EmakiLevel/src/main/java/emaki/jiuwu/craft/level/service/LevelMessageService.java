@@ -10,6 +10,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
+import emaki.jiuwu.craft.corelib.log.LogTagType;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
@@ -25,6 +27,7 @@ public final class LevelMessageService implements LogMessages {
     public LevelMessageService(JavaPlugin plugin) {
         this.plugin = plugin;
         EmakiLog.registerPrefix(plugin.getName(), this::logPrefix);
+        LogTags.register(plugin.getName(), this::message);
     }
 
     public void load(String language) {
@@ -121,33 +124,37 @@ public final class LevelMessageService implements LogMessages {
     }
 
     @Override
-    public void info(String key) {
-        info(key, Map.of());
+    public void info(LogTagType tag, String key) {
+        info(tag, key, Map.of());
     }
 
     @Override
-    public void info(String key, Map<String, ?> replacements) {
-        sendConsole(Level.INFO, message(key, replacements));
+    public void info(LogTagType tag, String key, Map<String, ?> replacements) {
+        sendConsole(Level.INFO, withTag(tag, message(key, replacements)));
     }
 
     @Override
-    public void warning(String key) {
-        warning(key, Map.of());
+    public void warning(LogTagType tag, String key) {
+        warning(tag, key, Map.of());
     }
 
     @Override
-    public void warning(String key, Map<String, ?> replacements) {
-        sendConsole(Level.WARNING, message(key, replacements));
+    public void warning(LogTagType tag, String key, Map<String, ?> replacements) {
+        sendConsole(Level.WARNING, withTag(tag, message(key, replacements)));
     }
 
     @Override
-    public void severe(String key) {
-        severe(key, Map.of());
+    public void severe(LogTagType tag, String key) {
+        severe(tag, key, Map.of());
     }
 
     @Override
-    public void severe(String key, Map<String, ?> replacements) {
-        sendConsole(Level.SEVERE, message(key, replacements));
+    public void severe(LogTagType tag, String key, Map<String, ?> replacements) {
+        sendConsole(Level.SEVERE, withTag(tag, message(key, replacements)));
+    }
+
+    private String withTag(LogTagType tag, String text) {
+        return tag == null ? text : LogTags.head(plugin.getName(), tag.key()) + " " + text;
     }
 
     private void sendConsole(Level level, String text) {

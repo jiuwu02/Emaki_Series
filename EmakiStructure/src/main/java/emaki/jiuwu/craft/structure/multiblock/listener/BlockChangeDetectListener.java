@@ -16,6 +16,9 @@ import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 
 import java.util.UUID;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import java.util.Map;
+import java.util.logging.Level;
 
 public final class BlockChangeDetectListener implements Listener {
 
@@ -34,7 +37,7 @@ public final class BlockChangeDetectListener implements Listener {
             UUID placer = event.getPlayer() == null ? null : event.getPlayer().getUniqueId();
             service.onBlockPlaced(block.getWorld(), block.getX(), block.getY(), block.getZ(), placer);
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("多方块放置检测异常: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "multiblock.place_detection_error", Map.of("error", exception.getMessage()));
         }
     }
 
@@ -44,7 +47,7 @@ public final class BlockChangeDetectListener implements Listener {
             Block block = event.getBlock();
             service.onMemberChanged(block.getWorld(), block.getX(), block.getY(), block.getZ());
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("多方块破坏检测异常: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "multiblock.break_detection_error", Map.of("error", exception.getMessage()));
         }
     }
 
@@ -55,7 +58,7 @@ public final class BlockChangeDetectListener implements Listener {
                 service.onMemberChanged(block.getWorld(), block.getX(), block.getY(), block.getZ());
             }
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("多方块活塞检测异常: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "multiblock.piston_detection_error", Map.of("error", exception.getMessage()));
         }
     }
 
@@ -66,7 +69,7 @@ public final class BlockChangeDetectListener implements Listener {
                 service.onMemberChanged(block.getWorld(), block.getX(), block.getY(), block.getZ());
             }
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("多方块活塞检测异常: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "multiblock.piston_detection_error", Map.of("error", exception.getMessage()));
         }
     }
 
@@ -77,7 +80,7 @@ public final class BlockChangeDetectListener implements Listener {
                 service.onMemberChanged(block.getWorld(), block.getX(), block.getY(), block.getZ());
             }
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("多方块爆炸检测异常: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "multiblock.explosion_detection_error", Map.of("error", exception.getMessage()));
         }
     }
 
@@ -88,7 +91,7 @@ public final class BlockChangeDetectListener implements Listener {
                 service.onMemberChanged(block.getWorld(), block.getX(), block.getY(), block.getZ());
             }
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("多方块爆炸检测异常: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "multiblock.explosion_detection_error", Map.of("error", exception.getMessage()));
         }
     }
 
@@ -98,7 +101,7 @@ public final class BlockChangeDetectListener implements Listener {
             Block block = event.getBlock();
             service.onMemberChanged(block.getWorld(), block.getX(), block.getY(), block.getZ());
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("多方块燃烧检测异常: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "multiblock.burn_detection_error", Map.of("error", exception.getMessage()));
         }
     }
 
@@ -108,7 +111,7 @@ public final class BlockChangeDetectListener implements Listener {
             Block block = event.getBlock();
             service.onMemberChanged(block.getWorld(), block.getX(), block.getY(), block.getZ());
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("多方块实体改块检测异常: " + exception.getMessage());
+            LogTags.send(plugin, null, Level.WARNING, "multiblock.entity_change_block_detection_error", Map.of("error", exception.getMessage()));
         }
     }
 }

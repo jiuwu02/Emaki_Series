@@ -33,6 +33,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.cooking.api.event.CookingRecipeCompleteEvent;
 import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
+import emaki.jiuwu.craft.cooking.log.CookingLogTag;
 
 public final class CookingRewardService {
 
@@ -94,7 +95,7 @@ public final class CookingRewardService {
             chain = chain.thenCompose(ignored -> executeFrozen(unit.kind(), unit.payload()));
         }
         chain.exceptionally(error -> {
-            messageService.warning("console.reward_legacy_execute_failed", Map.of("error", String.valueOf(error.getMessage())));
+            messageService.warning(CookingLogTag.REWARD, "console.reward_legacy_execute_failed", Map.of("error", String.valueOf(error.getMessage())));
             return false;
         });
     }
@@ -179,7 +180,7 @@ public final class CookingRewardService {
             }
             ItemStack itemStack = createOutputItem(recipe, output, player, location, effectivePhase, basePlaceholders);
             if (itemStack == null || itemStack.getType().isAir()) {
-                messageService.warning("console.reward_output_invalid", Map.of(
+                messageService.warning(CookingLogTag.REWARD, "console.reward_output_invalid", Map.of(
                         "output", output,
                         "recipe", recipe == null ? "null" : recipe.id()));
                 continue;
@@ -370,7 +371,7 @@ public final class CookingRewardService {
         if (itemAssemblyService == null) {
             ItemStack directItem = itemSourceService.createItem(source, amount);
             if (directItem == null) {
-                messageService.warning("console.reward_source_create_null", Map.of(
+                messageService.warning(CookingLogTag.REWARD, "console.reward_source_create_null", Map.of(
                         "source", ItemSourceUtil.toShorthand(source),
                         "amount", amount));
             }
@@ -386,7 +387,7 @@ public final class CookingRewardService {
         if (itemStack == null) {
             ItemStack fallbackItem = itemSourceService.createItem(source, amount);
             if (fallbackItem == null) {
-                messageService.warning("console.reward_source_resolve_null", Map.of(
+                messageService.warning(CookingLogTag.REWARD, "console.reward_source_resolve_null", Map.of(
                         "source", ItemSourceUtil.toShorthand(source),
                         "type", source.kind(),
                         "id", source.identifier()));

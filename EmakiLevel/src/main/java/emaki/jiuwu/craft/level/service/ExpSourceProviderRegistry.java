@@ -19,6 +19,9 @@ import emaki.jiuwu.craft.level.api.ExpSourceContext;
 import emaki.jiuwu.craft.level.api.ExpSourceGrant;
 import emaki.jiuwu.craft.level.api.ExpSourceProvider;
 import emaki.jiuwu.craft.level.api.ExpSourceRegistration;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class ExpSourceProviderRegistry implements Listener, AutoCloseable {
 
@@ -114,7 +117,7 @@ public final class ExpSourceProviderRegistry implements Listener, AutoCloseable 
 
     private void logProviderFailure(String id, Throwable throwable) {
         if (plugin != null) {
-            plugin.getLogger().warning("[registry] 经验来源提供者 '" + id + "' 执行失败: " + throwable.getMessage());
+            LogTags.send(plugin, LogTag.REGISTRY, Level.WARNING, "registry.exp_source_provider_failed", Map.of("id", id, "error", throwable.getMessage()));
         }
     }
 

@@ -2,7 +2,11 @@
 # 消息使用 MiniMessage, 占位符见各分组旁注释
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.1"
+version: "1.0.2"
+
+tags:
+  kits: '[ 礼包 ]'
+  limit: '[ 限制 ]'
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#F97316>EmakiKits</gradient> ]</gray> "
@@ -55,22 +59,26 @@ join:
   invite_accepted: "<green>邀请码已确认, 入服礼包 %kit% 已发放</green>"
 
 console:
-  plugin_started: "[startup] <green>启用完成, 已加载 <white>%count%</white> 个礼包</green>"
-  plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
-  reload_complete: "[reload] <green>重载完成</green>"
-  config_issue: "[配置] <yellow>%path% 校验失败: %reason%</yellow>"
-  time_window_opened: "[limit] <gray>礼包 <white>%kit%</white> 限时窗口已开启</gray>"
-  time_window_cron_failed: "[limit] <yellow>礼包 %kit% cron 注册失败: %reason%</yellow>"
-  bootstrap_start: "[loader] <gray>正在同步默认资源...</gray>"
-  bootstrap_skip: "[loader] 已按配置跳过默认数据释放"
-  bootstrap_complete: "[loader] <green>默认资源同步完成</green>"
-  bootstrap_copy_failed: "[loader] 复制默认资源失败: %path% (%error%)"
-  bootstrap_save_failed: "[loader] 保存版本化资源失败: %path% (%error%)"
-  default_file_missing: "[loader] <yellow>默认资源缺失, 已重新释放: <white>%path%</white></yellow>"
-  directory_create_failed: "[loader] <red>创建目录失败: <white>%path%</white> (%error%)</red>"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> (%old_version% -> %new_version%)</green>"
-  loader_config_load_error: "[loader] <yellow>读取 Kits 配置失败: <red>%path%</red> (%error%)</yellow>"
-
+  plugin_started: "<green>启用完成, 已加载 <white>%count%</white> 个礼包</green>"
+  plugin_stopped: "<yellow>已关闭</yellow>"
+  reload_complete: "<green>重载完成</green>"
+  config_issue: "<yellow>%path% 校验失败: %reason%</yellow>"
+  time_window_opened: "<gray>礼包 <white>%kit%</white> 限时窗口已开启</gray>"
+  time_window_cron_failed: "<yellow>礼包 %kit% cron 注册失败: %reason%</yellow>"
+  bootstrap_start: "<gray>正在同步默认资源...</gray>"
+  bootstrap_skip: "已按配置跳过默认数据释放"
+  bootstrap_complete: "<green>默认资源同步完成</green>"
+  bootstrap_copy_failed: "复制默认资源失败: %path% (%error%)"
+  bootstrap_save_failed: "保存版本化资源失败: %path% (%error%)"
+  default_file_missing: "<yellow>默认资源缺失, 已重新释放: <white>%path%</white></yellow>"
+  directory_create_failed: "<red>创建目录失败: <white>%path%</white> (%error%)</red>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> (%old_version% -> %new_version%)</green>"
+  loader_config_load_error: "<yellow>读取 Kits 配置失败: <red>%path%</red> (%error%)</yellow>"
+  debit_refund_failed: "扣款补偿失败: operation=refund, player=%player%, amount=%amount%, cause=%error%"
+  debit_failed: "扣款失败: operation=debit, player=%player%, amount=%amount%, cause=%error%"
+  kit_action_execution_failed: "礼包动作执行失败: kit=%kit%, entry=%entry%, outcome=%outcome%, line=%line%"
+  skip_invalid_uuid_key: "跳过非法 UUID 存档键: %key%"
+  persistence_write_failed: "持久化写入失败: operation=flush, file=%file%, cause=%error%"
 
 error:
   permission:
@@ -141,3 +149,6 @@ error:
     limit_range: "range 模式的 start/end 必须是合法且有序的 ISO-8601 时间戳"
     limit_cron: "cron 模式表达式非法, 需 CoreLib 6 字段格式"
     limit_duration: "cron 模式必须配置 duration_seconds > 0"
+kits:
+  kit_validation_failed: "%file% 礼包 %id% 的 %path% 校验失败: %reason%"
+  kit_id_invalid: "%file% 礼包 id 非法或缺失: %id%"

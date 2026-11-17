@@ -2,20 +2,23 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "5.0.6"
+version: "5.0.7"
+
+tags:
+  combat: '[ combat ]'
 
 general:
   prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
 
 console:
-  plugin_starting: "[startup] <gray>Starting...</gray>"
-  plugin_started: "[startup] <green>Started</green>"
-  plugin_stopped: "[shutdown] <yellow>Stopped</yellow>"
-  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
-  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
-  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started</green>"
+  plugin_stopped: "<yellow>Stopped</yellow>"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -34,72 +37,70 @@ console:
       attribute_sources_disabled: "Both Lore and PDC item attribute sources are disabled, so all item attributes are inactive"
       attribute_sources_match_requires_both: "Match mode requires both Lore and PDC attribute reading; otherwise all item attributes are inactive"
       scaling_curve_type_unknown: "Unknown scaling curve type %curve_type% for attribute %attribute%; falling back to logarithmic"
-  combat_debug_line: "<gray>[combat][<aqua>%phase%</aqua>]</gray> %message%"
-  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
-  config_load_failed: "[config] <red>Config load failed: %error%</red>"
-  reload_stage_failed: "[reload] <yellow>Reload stage %stage% failed: <red>%error%</red></yellow>"
-  vanilla_attribute_resolve_failed:
-    "[loader] <yellow>Failed to resolve vanilla attribute
+  combat_debug_line: "<gray>[ <aqua>%phase%</aqua> ]</gray> %message%"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  config_load_failed: "<red>Config load failed: %error%</red>"
+  reload_stage_failed: "<yellow>Reload stage %stage% failed: <red>%error%</red></yellow>"
+  vanilla_attribute_resolve_failed: "<yellow>Failed to resolve vanilla attribute
     mapping: <red>%attribute%</red> -> <red>%target%</red></yellow>"
-  attribute_key_contains_conflict: "[loader] <yellow>Keyword
+  attribute_key_contains_conflict: "<yellow>Keyword
     containment conflict detected: <aqua>%lower_display_name%</aqua>
     (<white>%lower_id%</white>, priority %lower_priority%) keyword
     <white>%lower_key%</white> contains <aqua>%higher_display_name%</aqua>
     (<white>%higher_id%</white>, priority %higher_priority%) keyword
     <white>%higher_key%</white>. Lower priority causes read failure; raise
     priority or change display_name.</yellow>"
-  mmoitems_bridge_unavailable: "[integration] <yellow>MMOItems attribute bridge init failed: <red>%error%</red></yellow>"
+  mmoitems_bridge_unavailable: "<yellow>MMOItems attribute bridge init failed: <red>%error%</red></yellow>"
   mmoitems_stat_resolve_failed:
-    "[integration] <yellow>MMOItems attribute mapping cannot resolve
+    "<yellow>MMOItems attribute mapping cannot resolve
     stat: attribute <aqua>%attribute%</aqua> -> <red>%stat%</red></yellow>"
-  mmoitems_stat_read_failed:
-    "[integration] <yellow>MMOItems attribute mapping read failed:
+  mmoitems_stat_read_failed: "<yellow>MMOItems attribute mapping read failed:
     attribute <aqua>%attribute%</aqua> -> <red>%stat%</red>
     (<red>%error%</red>)</yellow>"
-  attribute_registry_empty: "[loader] <yellow>No attributes loaded</yellow>"
-  attribute_registry_summary: "[loader] <gray>Loaded <yellow>%count%</yellow> attribute (s)</gray>"
-  attribute_registry_entry: "[loader] <gray>[Attribute Registry]</gray>
+  attribute_registry_empty: "<yellow>No attributes loaded</yellow>"
+  attribute_registry_summary: "<gray>Loaded <yellow>%count%</yellow> attribute (s)</gray>"
+  attribute_registry_entry: "<gray>[Attribute Registry]</gray>
     <white>%index%</white> <dark_gray>|</dark_gray> <aqua>%display_name%</aqua>
     <dark_gray> (</dark_gray><white>%id%</white><dark_gray>)</dark_gray>
     <dark_gray>|</dark_gray> <gray>Default</gray>
     <yellow>%default_value%</yellow> <dark_gray>|</dark_gray> <gray>Power</gray>
     <yellow>%attribute_power%</yellow>"
-  papi_registered: "[integration] <gray>PlaceholderAPI expansion registered</gray>"
-  editor_open_failed: "[editor] <red>Could not open the EmakiAttribute editor: %item%  (%error%)</red>"
-  editor_template_missing: "[editor] <red>Missing EmakiAttribute editor template: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>Could not create definition: %path%  (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>Could not delete definition: %path%  (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>Could not list definition directory: %path%  (%error%)</red>"
+  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
+  editor_open_failed: "<red>Could not open the EmakiAttribute editor: %item%  (%error%)</red>"
+  editor_template_missing: "<red>Missing EmakiAttribute editor template: %template%</red>"
+  editor_browser_create_failed: "<red>Could not create definition: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>Could not delete definition: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>Could not list definition directory: %path%  (%error%)</red>"
 
 loader:
-  lang_directory_create_failed: "[loader] <red>Failed to create language directory: %path%</red>"
-  bundled_language_load_failed: "[loader] <red>Failed to load bundled language: %error%</red>"
-  bundled_resource_missing: "[loader] <red>Bundled resource missing: %resource%, cannot write to %path%</red>"
-  bundled_resource_sync_failed: "[loader] <red>Failed to sync bundled resource: %path%  (%error%)</red>"
-  bundled_resource_write_failed: "[loader] <red>Failed to write bundled resource: %path%  (%error%)</red>"
-  directory_create_failed: "[loader] <red>Failed to create %type% directory: %path%</red>"
-  schema_missing_id: "[loader] <red>%type% file %file% is missing the ID field</red>"
-  schema_missing_section: "[loader] <red>%type% file %file% is missing required %field% section</red>"
-  schema_invalid_section: "[loader] <red>%type% file %file% has invalid %field% structure</red>"
-  schema_invalid_enum: "[loader] <red>%type% file %file% has invalid %field% enum value</red>"
-  schema_invalid_number: "[loader] <red>%type% file %file% has invalid %field% number</red>"
-  schema_unsupported_field: "[loader] <red>%type% file %file% still contains unsupported %field% field</red>"
-  invalid_blank_id: "[loader] <red>%type% file %file% has a blank ID</red>"
-  duplicate_id: "[loader] <red>%type% file %file% has duplicate ID: %id%</red>"
-  invalid_lore_pattern: "[loader] <red>%attribute% has invalid lore regex: %pattern%  (%error%)</red>"
-  load_failed: "[loader] <red>Failed to load %type% file %file%: %error%</red>"
-  parent_child_bonus_on_non_parent: "[loader] <red>%attribute% declares child_bonuses but is not a parent attribute</red>"
-  parent_child_bonus_unknown: "[loader] <red>Parent attribute %parent% references unknown child attribute: %child%</red>"
-  parent_child_bonus_parent_target: "[loader] <red>Parent attribute %parent% child_bonuses cannot target another parent attribute: %child%</red>"
-  damage_type_parent_attribute_forbidden: "[loader] <red>Damage type stages cannot directly reference parent attribute: %attribute%</red>"
+  lang_directory_create_failed: "<red>Failed to create language directory: %path%</red>"
+  bundled_language_load_failed: "<red>Failed to load bundled language: %error%</red>"
+  bundled_resource_missing: "<red>Bundled resource missing: %resource%, cannot write to %path%</red>"
+  bundled_resource_sync_failed: "<red>Failed to sync bundled resource: %path%  (%error%)</red>"
+  bundled_resource_write_failed: "<red>Failed to write bundled resource: %path%  (%error%)</red>"
+  directory_create_failed: "<red>Failed to create %type% directory: %path%</red>"
+  schema_missing_id: "<red>%type% file %file% is missing the ID field</red>"
+  schema_missing_section: "<red>%type% file %file% is missing required %field% section</red>"
+  schema_invalid_section: "<red>%type% file %file% has invalid %field% structure</red>"
+  schema_invalid_enum: "<red>%type% file %file% has invalid %field% enum value</red>"
+  schema_invalid_number: "<red>%type% file %file% has invalid %field% number</red>"
+  schema_unsupported_field: "<red>%type% file %file% still contains unsupported %field% field</red>"
+  invalid_blank_id: "<red>%type% file %file% has a blank ID</red>"
+  duplicate_id: "<red>%type% file %file% has duplicate ID: %id%</red>"
+  invalid_lore_pattern: "<red>%attribute% has invalid lore regex: %pattern%  (%error%)</red>"
+  load_failed: "<red>Failed to load %type% file %file%: %error%</red>"
+  parent_child_bonus_on_non_parent: "<red>%attribute% declares child_bonuses but is not a parent attribute</red>"
+  parent_child_bonus_unknown: "<red>Parent attribute %parent% references unknown child attribute: %child%</red>"
+  parent_child_bonus_parent_target: "<red>Parent attribute %parent% child_bonuses cannot target another parent attribute: %child%</red>"
+  damage_type_parent_attribute_forbidden: "<red>Damage type stages cannot directly reference parent attribute: %attribute%</red>"
 
 script:
-  engine_unavailable: "<yellow>[script] GraalJS engine unavailable, script attributes skipped: %reason%</yellow>"
-  disabled: "<gray>[script] Script attribute support is disabled  (scripts.enabled = false)</gray>"
-  loaded: "<gray>[script] Script attributes loaded: %loaded% succeeded, %skipped% skipped</gray>"
-  file_error: "<red>[script] Script %file% failed to load: %error%</red>"
-  register_error: "<red>[script] Attribute registration skipped: %error%</red>"
-  register_override: "<yellow>[script] Script attribute %id% overrides a registered attribute with the same id</yellow>"
+  engine_unavailable: "<yellow>GraalJS engine unavailable, script attributes skipped: %reason%</yellow>"
+  disabled: "<gray>Script attribute support is disabled  (scripts.enabled = false)</gray>"
+  loaded: "<gray>Script attributes loaded: %loaded% succeeded, %skipped% skipped</gray>"
+  file_error: "<red>Script %file% failed to load: %error%</red>"
+  register_error: "<red>Attribute registration skipped: %error%</red>"
+  register_override: "<yellow>Script attribute %id% overrides a registered attribute with the same id</yellow>"
   payload_missing_id: "<gray>%file% is missing the required id field</gray>"
   payload_invalid_enum: "<gray>%file% field %field% has invalid enum value: %value%</gray>"
   payload_invalid_number: "<gray>%file% field %field% is not a valid number: %value%</gray>"
@@ -727,3 +728,45 @@ debug:
     bukkit_after: "After Bukkit write | player=%player% | reason=%reason% | resource_value=%resource_value% | resource_max=%resource_max% | bukkit_health=%bukkit_health% | bukkit_max_health_base=%bukkit_max_health_base% | bukkit_max_health_value=%bukkit_max_health_value%"
     bukkit_skipped_dead: "Bukkit write skipped  (player is dead) | player=%player% | reason=%reason% | resource_value=%resource_value% | resource_max=%resource_max% | bukkit_health=%bukkit_health%"
     regen: "Health regeneration | player=%player% | resource=%resource% | old_value=%old_value% | baseline_value=%baseline_value% | regen_amount=%regen_amount% | interval_ticks=%interval_ticks% | candidate_value=%candidate_value% | synced_present=%synced_present% | synced_resource_id=%synced_resource_id% | synced_default_max=%synced_default_max% | synced_bonus_max=%synced_bonus_max% | synced_current_max=%synced_current_max% | synced_current_value=%synced_current_value% | synced_source_signature=%synced_source_signature% | synced_schema_version=%synced_schema_version%"
+startup:
+  pipeline_stage_register_failed: "Failed to register pipeline stage '%stage%': %reason%"
+  readiness_publish_skipped: "Readiness publish skipped: %error%"
+shutdown:
+  closed: "Closed"
+  parent_attribute_data_drain_incomplete: "Parent attribute data drain incomplete: %report%"
+  parent_attribute_data_drained: "Parent attribute data drained: %report%"
+integration:
+  mythic_skill_rejected: "Mythic skill rejected: mechanic=%mechanic%, status=%status%, group=%group%, attribute=%attribute%, detail=%detail%"
+  mythic_skill_parse_rejected_non_finite_value: "Mythic skill rejected at parse time: mechanic=%mechanic%, reason=non_finite_value, value=%value%"
+  mythic_skill_parse_rejected_unknown_stack_mode: "Mythic skill rejected at parse time: mechanic=%mechanic%, reason=unknown_stack_mode, stack_mode=%stack_mode%"
+  mythic_mob_attribute_expression_failed: "Mythic mob attribute expression evaluation failed: expression=%expression%, cause=%error%"
+  skip_mythic_mob_attribute_non_finite_value: "Skipped Mythic mob attribute: source=%source%, attribute=%attribute%, expression=%expression%, reason=non_finite_value"
+  skip_mythic_mob_attribute_unparsable_value: "Skipped Mythic mob attribute: source=%source%, attribute=%attribute%, expression=%expression%, reason=unparsable_value"
+  skip_mythic_mob_attribute_unregistered_attribute: "Skipped Mythic mob attribute: source=%source%, attribute=%attribute%, reason=unregistered_attribute"
+  skip_mythic_mob_attribute_blank_attribute_or_value: "Skipped Mythic mob attribute: source=%source%, entry=%entry%, reason=blank_attribute_or_value"
+  skip_mythic_mob_attribute_missing_separator: "Skipped Mythic mob attribute: source=%source%, entry=%entry%, reason=missing_separator"
+  mythic_damage_failed: "Mythic damage resolution failed: mechanic=%mechanic% target=%target%"
+registry:
+  attribute_slot_provider_failed: "Attribute slot provider '%slot%' failed; skipping that slot"
+  item_contribution_gate_failed: "Item contribution gate '%id%' failed; treating the item as valid"
+combat:
+  debug_line: "[%phase%] %message%"
+  damage_debug_anchor_output_failed: "Failed to output damage debug anchors; damage calculation is unaffected"
+  post_damage_effect_failed: "Post-damage effect '%phase%' failed; remaining terminal effects will still run"
+  sync_damage_wrong_thread: "Sync damage entry called from a non-entity-owner thread; rejected, use applyDamageAsync instead; target=%target%"
+  vanilla_damage_modifier_zero_failed: "Failed to zero vanilla damage modifier: entity=%entity%, modifier=%modifier%, operation=zero_damage_modifier, cause=%error%"
+persistence:
+  parent_attribute_save_failed: "Failed to save parent attribute data for %player%: %error%"
+  parent_attribute_save_unavailable: "CoreLib async YAML service unavailable; save for %player% discarded"
+  parent_attribute_load_incomplete: "Load incomplete: %player%: %error%"
+  parent_attribute_modified_while_loading: "Parent attribute data for %player% was modified while the file was still loading; keeping in-memory edits and discarding the file content"
+  parent_attribute_load_failed: "Failed to load parent attribute data for %player%; this session stays read-only to protect the existing file: %error%"
+  parent_attribute_load_unavailable: "CoreLib async YAML service unavailable; cannot load parent attribute data for %player%, this session stays read-only to protect the existing file"
+  pdc_attribute_write_unregistered_source: "Ignoring PDC attribute write from unregistered source: %source%"
+config:
+  health_display_scaling_target_invalid: "Invalid config value for health_display_scaling.target: '%value%': %error%"
+temporary_attribute:
+  cleanup_expired_failed: "[temporary_attribute] Temporary attribute cleanup failed: trackedEntities=%count%, operation=cleanup_expired, cause=%error%"
+skip:
+action:
+  attribute_damage_failed: "Attribute damage resolution failed: stage=%stage% target=%target%"

@@ -16,8 +16,11 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ItemRequirementSchemaValidator;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public record ItemRequirement(
         @NotNull List<ItemSourceRef> sources,
@@ -72,8 +75,7 @@ public record ItemRequirement(
         if (ItemRequirementSchemaValidator.blocking(issues)) {
             for (ConfigPrecheckIssue issue : issues) {
                 if (issue.severity().blocking()) {
-                    ComponentMatcherSupport.LOGGER.warning("[matcher] 物品需求在加载时被拒绝: "
-                            + issue.path() + ": " + issue.message());
+                    LogTags.send(ComponentMatcherSupport.LOGGER, LogTag.MATCHER, Level.WARNING, "matcher.item_requirement_rejected", Map.of("path", issue.path(), "message", issue.message()));
                 }
             }
             return new ItemRequirement(List.of(), null, declared, declared);

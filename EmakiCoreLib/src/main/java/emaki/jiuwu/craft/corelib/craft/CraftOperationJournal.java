@@ -27,6 +27,9 @@ import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class CraftOperationJournal<R> {
 
@@ -262,7 +265,7 @@ public final class CraftOperationJournal<R> {
             }
             return files;
         } catch (IOException exception) {
-            warn("列出活动日志目录失败: " + rootCauseMessage(exception));
+            LogTags.send(ownerPlugin, LogTag.JOURNAL, Level.WARNING, "journal.list_active_log_directory_failed", Map.of("error", rootCauseMessage(exception)));
             return List.of();
         }
     }
@@ -297,7 +300,7 @@ public final class CraftOperationJournal<R> {
     }
 
     private void quarantineCorruptFile(Path file, Exception cause) {
-        warn("日志文件损坏 " + file.getFileName() + ": " + rootCauseMessage(cause));
+        LogTags.send(ownerPlugin, LogTag.JOURNAL, Level.WARNING, "journal.corrupt_log_file", Map.of("file", file.getFileName(), "error", rootCauseMessage(cause)));
         if (quarantineDirectory == null) {
             return;
         }
@@ -305,7 +308,7 @@ public final class CraftOperationJournal<R> {
             Files.createDirectories(quarantineDirectory);
             moveReplacing(file, quarantineDirectory.resolve(file.getFileName()));
         } catch (IOException moveException) {
-            warn("隔离失败 " + file.getFileName() + ": " + rootCauseMessage(moveException));
+            LogTags.send(ownerPlugin, LogTag.JOURNAL, Level.WARNING, "journal.quarantine_failed", Map.of("file", file.getFileName(), "error", rootCauseMessage(moveException)));
         }
     }
 
@@ -320,13 +323,12 @@ public final class CraftOperationJournal<R> {
         try {
             Files.createDirectories(activeDirectory);
         } catch (IOException e) {
-            warn("创建日志目录失败: " + rootCauseMessage(e));
+            LogTags.send(ownerPlugin, LogTag.JOURNAL, Level.WARNING, "journal.create_log_directory_failed", Map.of("error", rootCauseMessage(e)));
             return;
         }
         files.save(activePath(entry.operationId()).toFile(), encodeEntry(entry))
                 .exceptionally(error -> {
-                    warn("写入操作日志失败, 操作 " + entry.operationId()
-                            + ": " + rootCauseMessage(error));
+                    LogTags.send(ownerPlugin, LogTag.JOURNAL, Level.WARNING, "journal.write_operation_log_failed", Map.of("operation", entry.operationId(), "error", rootCauseMessage(error)));
                     return null;
                 });
     }
@@ -338,8 +340,7 @@ public final class CraftOperationJournal<R> {
         }
         FileScope scope = resolveFileScope();
         if (scope == null) {
-            warn("归档操作失败 " + entry.operationId()
-                    + ": 异步文件服务不可用");
+            LogTags.send(ownerPlugin, LogTag.JOURNAL, Level.WARNING, "journal.archive_failed_async_files_unavailable", Map.of("operation", entry.operationId()));
             return CompletableFuture.completedFuture(null);
         }
         Path target = completedDirectory.resolve(entry.operationId() + ".yml");
@@ -352,8 +353,7 @@ public final class CraftOperationJournal<R> {
             }
         }).handle((_, throwable) -> {
             if (throwable != null) {
-                warn("归档操作失败 " + entry.operationId()
-                        + ": " + rootCauseMessage(throwable));
+                LogTags.send(ownerPlugin, LogTag.JOURNAL, Level.WARNING, "journal.archive_operation_failed", Map.of("operation", entry.operationId(), "error", rootCauseMessage(throwable)));
             }
             return null;
         });
@@ -400,7 +400,7 @@ public final class CraftOperationJournal<R> {
             } catch (RuntimeException | LinkageError failure) {
                 if (!asyncFilesUnavailableLogged) {
                     asyncFilesUnavailableLogged = true;
-                    warn("无法访问异步文件服务: " + rootCauseMessage(failure));
+                    LogTags.send(ownerPlugin, LogTag.JOURNAL, Level.WARNING, "journal.async_file_service_unavailable", Map.of("error", rootCauseMessage(failure)));
                 }
             }
             return asyncYamlFiles;
@@ -418,18 +418,12 @@ public final class CraftOperationJournal<R> {
         } catch (RuntimeException | LinkageError failure) {
             if (!asyncSchedulerUnavailableLogged) {
                 asyncSchedulerUnavailableLogged = true;
-                warn("无法访问异步任务调度器, 回退到公共线程池: "
-                        + rootCauseMessage(failure));
+                LogTags.send(ownerPlugin, LogTag.JOURNAL, Level.WARNING, "journal.async_scheduler_unavailable", Map.of("error", rootCauseMessage(failure)));
             }
             return null;
         }
     }
 
-    private void warn(String message) {
-        if (ownerPlugin != null) {
-            ownerPlugin.getLogger().warning("[journal] " + message);
-        }
-    }
 
     private String rootCauseMessage(Throwable throwable) {
         Throwable current = throwable;

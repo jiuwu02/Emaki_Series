@@ -132,8 +132,11 @@ import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.log.LogTags;
 import java.util.LinkedHashMap;
 import org.bukkit.Bukkit;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry, DebugLoggerProvider {
 
@@ -236,6 +239,13 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
 
     @Override
     public void onEnable() {
+        ConsoleOutputs.sendGradientAscii(
+                this,
+                STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR,
+                STARTUP_ASCII_END_COLOR
+        );
+        LogTags.registerTags(this, LogTag.values());
         platformCapabilities = CapabilityProbe.detect(getServer());
         ExecutionBackendLoader.LoadedExecution loadedExecution = ExecutionBackendLoader.load(getServer(), platformCapabilities);
         executionDispatcher = loadedExecution.dispatcher();
@@ -247,13 +257,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         configModel = loadConfigModel();
         initializeServices();
         targetIdentityRegistry.register(this, new MythicTargetIdentityProvider(mythicMobBridge));
-        ConsoleOutputs.sendGradientAscii(
-                this,
-                STARTUP_ASCII,
-                STARTUP_ASCII_START_COLOR,
-                STARTUP_ASCII_END_COLOR
-        );
-        messageService.info("console.plugin_starting");
+        messageService.info(LogTag.STARTUP, "console.plugin_starting");
         itemSourceIntegrationCoordinator.initialize();
         if (!reloadActionSystem()) {
             getServer().getPluginManager().disablePlugin(this);
@@ -265,7 +269,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         installPacketBackend();
         logStartupAudit();
         metrics = registerBStats(this, BSTATS_PLUGIN_ID);
-        messageService.info("console.plugin_started");
+        messageService.info(LogTag.STARTUP, "console.plugin_started");
     }
 
     @Override
@@ -313,21 +317,18 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         }
         lifecycle.shutdownAsync(15L, TimeUnit.SECONDS).whenComplete((report, throwable) -> {
             if (throwable != null) {
-                getLogger().warning("[shutdown] 异步关闭失败: " + AsyncFailures.describe(throwable));
+                LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.async_shutdown_failed", Map.of("error", AsyncFailures.describe(throwable)));
             } else if (report != null && !report.clean()) {
-                getLogger().warning("[shutdown] 异步关闭未完成: pendingFiles="
-                        + report.pendingFileOperations()
-                        + ", shutdownFailures=" + report.fileFailures().size()
-                        + ", schedulerTerminated=" + report.schedulerTerminated());
+                LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.async_shutdown_incomplete", Map.of("pending_files", report.pendingFileOperations(), "shutdown_failures", report.fileFailures().size(), "scheduler_terminated", report.schedulerTerminated()));
             }
             asyncFileService = null;
             asyncYamlFiles = null;
             asyncTaskScheduler = null;
             if (messageService != null) {
                 try {
-                    messageService.info("console.plugin_stopped");
+                    messageService.info(LogTag.SHUTDOWN, "console.plugin_stopped");
                 } catch (RuntimeException exception) {
-                    getLogger().info("[shutdown] 已停止");
+                    LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.INFO, "shutdown.stopped");
                 }
             }
         });
@@ -404,7 +405,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         if (!stageReport.successful()) {
 
             for (String failure : stageReport.failures()) {
-                getLogger().severe("[pipeline] 管道段注册失败: " + failure);
+                LogTags.send(getLogger(), LogTag.PIPELINE, Level.SEVERE, "pipeline.stage_registration_failed", Map.of("error", failure));
             }
             return false;
         }
@@ -535,7 +536,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         }
         return guiShutdown.handle((ignored, throwable) -> {
             if (throwable != null) {
-                getLogger().warning("[shutdown] GUI 关闭未完成: " + AsyncFailures.describe(throwable));
+                LogTags.send(getLogger(), LogTag.SHUTDOWN, Level.WARNING, "shutdown.gui_shutdown_incomplete", Map.of("error", AsyncFailures.describe(throwable)));
             }
             return null;
         }).thenRun(() -> {
@@ -687,7 +688,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                 }
             }
         }, this);
-        getLogger().info("[gui] PacketEvents 尚未启用; 在其启用后会自动注册 packet GUI 后端");
+        LogTags.send(getLogger(), LogTag.GUI, Level.INFO, "gui.packetevents_not_enabled");
     }
 
     private void registerPacketBackend() { new EmakiCoreLibPluginDelegate(this).registerPacketBackend(); }

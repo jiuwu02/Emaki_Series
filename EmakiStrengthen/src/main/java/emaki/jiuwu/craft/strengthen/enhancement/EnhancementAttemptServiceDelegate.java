@@ -53,6 +53,9 @@ import emaki.jiuwu.craft.strengthen.enhancement.progression.EnhancementProgressi
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipe;
 import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
 import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.strengthen.log.StrengthenLogTag;
+import java.util.logging.Level;
 
 final class EnhancementAttemptServiceDelegate {
 
@@ -204,7 +207,7 @@ final class EnhancementAttemptServiceDelegate {
         try {
             return provider.canHandle(player, target) ? provider : null;
         } catch (RuntimeException | LinkageError exception) {
-            ownerRef.warn("目标 Provider '" + providerId + "' 的 canHandle 抛出异常", exception);
+            ownerRef.warn(LogTags.text(ownerRef.plugin, "console.target_provider_canhandle_threw", Map.of("provider", providerId)), exception);
             return null;
         }
     }
@@ -267,8 +270,7 @@ final class EnhancementAttemptServiceDelegate {
 
     void warn(String message, Throwable throwable) {
         if (ownerRef.plugin != null && ownerRef.plugin.getLogger() != null) {
-            ownerRef.plugin.getLogger().warning("[attempt] " + message + ": "
-                    + (throwable == null ? "未知" : String.valueOf(throwable.getMessage())));
+            LogTags.sendRaw(ownerRef.plugin, StrengthenLogTag.ATTEMPT, Level.WARNING, message + ": " + (throwable == null ? "未知" : String.valueOf(throwable.getMessage())));
         }
     }
 
@@ -277,7 +279,7 @@ final class EnhancementAttemptServiceDelegate {
         try {
             refresh = provider.refreshPresentation(player, preparedTarget);
         } catch (RuntimeException | LinkageError exception) {
-            ownerRef.warn("目标 Provider 刷新阶段抛出异常", exception);
+            ownerRef.warn(LogTags.text(ownerRef.plugin, "console.target_provider_refresh_threw", Map.of()), exception);
             ownerRef.debug(player, "debug.attempt.refresh_failed", Map.of(
                     "provider", EnhancementAttemptServiceSupport.safeProviderId(provider),
                     "reason", exception.getClass().getSimpleName(),
@@ -291,7 +293,7 @@ final class EnhancementAttemptServiceDelegate {
             return "";
         }
         String reasonKey = Texts.isBlank(refresh.reasonKey()) ? EnhancementAttemptService.ERROR_REBUILD_FAILED : refresh.reasonKey();
-        ownerRef.warn("目标 Provider 刷新阶段失败, 未扣费即拒绝 | 原因键=" + reasonKey, null);
+        ownerRef.warn(LogTags.text(ownerRef.plugin, "console.target_provider_refresh_failed_reason_key", Map.of("reason", reasonKey)), null);
         ownerRef.debug(player, "debug.attempt.refresh_failed", Map.of(
                 "provider", EnhancementAttemptServiceSupport.safeProviderId(provider),
                 "reason", refresh.failureKind() == null ? "未知" : refresh.failureKind().name(),
@@ -316,7 +318,7 @@ final class EnhancementAttemptServiceDelegate {
             }
             return passed;
         } catch (RuntimeException | LinkageError exception) {
-            ownerRef.warn("配方条件求值失败, 按不通过处理", exception);
+            ownerRef.warn(LogTags.text(ownerRef.plugin, "console.recipe_condition_evaluation_failed", Map.of()), exception);
             ownerRef.debug(player, "debug.attempt.condition_rejected", Map.of(
                     "recipe", recipe.id(),
                     "condition_type", exception.getClass().getSimpleName(),
@@ -332,7 +334,7 @@ final class EnhancementAttemptServiceDelegate {
         if (expected.sameIdentityAndVersion(actual)) {
             return true;
         }
-        ownerRef.warn("目标在预览与确认之间发生变化, 已在扣费前拒绝 | 操作=" + operation, null);
+        ownerRef.warn(LogTags.text(ownerRef.plugin, "console.target_changed_before_charge_rejected", Map.of("operation", operation)), null);
         ownerRef.debug(player, "debug.attempt.target_changed", Map.of(
                 "operation_id", operation,
                 "expected_version", expected.version(),
@@ -361,7 +363,7 @@ final class EnhancementAttemptServiceDelegate {
     }
 
     void logContainerRejection(Player player, ItemStack target) {
-        ownerRef.warn("强化目标位于外部容器, 已拒绝执行", null);
+        ownerRef.warn(LogTags.text(ownerRef.plugin, "console.target_in_external_container_rejected", Map.of()), null);
         ownerRef.debug(player, "debug.attempt.container_rejected", Map.of(
                 "item", target == null ? "-" : target.getType().name(),
                 "error_key", EnhancementAttemptService.ERROR_CONTAINER_TARGET));
@@ -413,7 +415,7 @@ final class EnhancementAttemptServiceDelegate {
                     target, targetSource, effective);
             return slot.requirement().test(context);
         } catch (RuntimeException | LinkageError exception) {
-            ownerRef.warn("材料判定抛出异常, 视为不匹配", exception);
+            ownerRef.warn(LogTags.text(ownerRef.plugin, "console.material_check_threw_treated_as_mismatch", Map.of()), exception);
             return false;
         }
     }
@@ -461,7 +463,7 @@ final class EnhancementAttemptServiceDelegate {
                     target, identifySource(target), effective);
             return filterMatcher.test(context);
         } catch (RuntimeException | LinkageError exception) {
-            ownerRef.warn("目标 Matcher 判定抛出异常, 视为不匹配", exception);
+            ownerRef.warn(LogTags.text(ownerRef.plugin, "console.target_matcher_check_threw_treated_as_mismatch", Map.of()), exception);
             return false;
         }
     }
@@ -492,7 +494,7 @@ final class EnhancementAttemptServiceDelegate {
             ItemSourceService itemSourceService = ownerRef.plugin.coreItemSourceService();
             return itemSourceService == null ? null : itemSourceService.identifyItem(itemStack);
         } catch (RuntimeException | LinkageError exception) {
-            ownerRef.warn("识别材料物品源失败", exception);
+            ownerRef.warn(LogTags.text(ownerRef.plugin, "console.identify_material_item_source_failed", Map.of()), exception);
             return null;
         }
     }
@@ -545,7 +547,7 @@ final class EnhancementAttemptServiceDelegate {
     }
 
     void logContainerMaterialRejection(Player player, int suppliedCount) {
-        ownerRef.warn("强化材料位于外部容器, 已拒绝执行", null);
+        ownerRef.warn(LogTags.text(ownerRef.plugin, "console.material_in_external_container_rejected", Map.of()), null);
         ownerRef.debug(player, "debug.attempt.container_material_rejected", Map.of(
                 "count", suppliedCount,
                 "error_key", EnhancementAttemptService.ERROR_CONTAINER_MATERIAL));
@@ -621,7 +623,7 @@ final class EnhancementAttemptServiceDelegate {
         try {
             return economy.charge(player, costs, operation);
         } catch (RuntimeException | LinkageError exception) {
-            ownerRef.warn("强化框架扣费失败", exception);
+            ownerRef.warn(LogTags.text(ownerRef.plugin, "console.strengthen_charge_failed", Map.of()), exception);
             return StrengthenEconomyService.ChargeResult.failure(
                     "strengthen.error.economy_provider_unavailable", List.of());
         }
@@ -674,11 +676,11 @@ final class EnhancementAttemptServiceDelegate {
                 return true;
             }
         } catch (RuntimeException | LinkageError exception) {
-            ownerRef.warn("目标 Provider 提交后回读失败", exception);
+            ownerRef.warn(LogTags.text(ownerRef.plugin, "console.target_provider_post_commit_readback_failed", Map.of()), exception);
         }
         ItemMeta originalMeta = originalTarget.getItemMeta();
         if (originalMeta != null && !target.setItemMeta(originalMeta)) {
-            ownerRef.warn("目标 Provider 回读失败后的目标回滚失败", null);
+            ownerRef.warn(LogTags.text(ownerRef.plugin, "console.target_rollback_after_readback_failed", Map.of()), null);
         }
         return false;
     }

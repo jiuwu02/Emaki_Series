@@ -3,6 +3,10 @@ package emaki.jiuwu.craft.corelib.integration;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.Map;
+import java.util.logging.Level;
 
 public abstract class AbstractPluginBridgeHolder<B extends PluginBridge> implements PluginBridge {
 
@@ -77,8 +81,7 @@ public abstract class AbstractPluginBridgeHolder<B extends PluginBridge> impleme
             return cast(bridge);
         } catch (ReflectiveOperationException | LinkageError exception) {
             if (logger != null) {
-                logger.warning("[integration] 初始化 " + dependencyPluginName + " 集成失败: "
-                        + IntegrationFailures.detail(exception));
+                LogTags.send(logger, LogTag.INTEGRATION, Level.WARNING, "integration.init_integration_failed", Map.of("plugin", dependencyPluginName, "error", IntegrationFailures.detail(exception)));
             }
             return unavailable;
         }

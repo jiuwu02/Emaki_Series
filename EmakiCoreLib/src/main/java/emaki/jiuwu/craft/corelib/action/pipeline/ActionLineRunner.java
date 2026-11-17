@@ -18,6 +18,9 @@ import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionContext
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.TriggerContract;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.corelib.log.LogTag;
+import java.util.logging.Level;
 
 public final class ActionLineRunner {
 
@@ -78,13 +81,12 @@ public final class ActionLineRunner {
             boolean stopOnFailure) {
         ActionEngine engine = engineSupplier.get();
         if (engine == null) {
-            logger().warning("[pipeline] 管道行已跳过: 动作引擎尚不可用");
+            LogTags.send(logger(), LogTag.PIPELINE, Level.WARNING, "pipeline.line_skipped_engine_unavailable", Map.of());
             return CompletableFuture.completedFuture(false);
         }
         PhaseContract resolved = phase == null ? phaseContract(context) : phase;
         return batchRunner.compileAndRun(owner, engine, lines, context, resolved, stopOnFailure,
-                diagnostic -> logger().warning("[pipeline] 管道行被拒绝: "
-                        + diagnosticFormatter.apply(diagnostic)));
+                diagnostic -> LogTags.send(logger(), LogTag.PIPELINE, Level.WARNING, "pipeline.line_rejected", Map.of("diagnostic", diagnosticFormatter.apply(diagnostic))));
     }
 
     public @NotNull CompletableFuture<Boolean> run(@Nullable List<String> lines,
