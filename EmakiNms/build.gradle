@@ -1,5 +1,5 @@
 // EmakiNms (NMS 世界桥运行库, 非插件, 产物由 EmakiCoreLib RuntimeLibraryLoader 运行时下载, 不 shade 进任何插件 Jar)
-version = '1.0.0'
+version = '1.0.1'
 
 base {
     archivesName = 'emakinms'
@@ -9,9 +9,17 @@ java {
     withSourcesJar()
 }
 
+sourceSets {
+    stub {
+        java.srcDir 'src/stub/java'
+    }
+}
+
 dependencies {
     provided libs.paper.api
     provided project(':EmakiCoreLibApi')
+    stubCompileOnly libs.paper.api
+    compileOnly sourceSets.stub.output
 }
 
 tasks.named('jar') {

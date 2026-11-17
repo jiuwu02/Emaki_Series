@@ -109,6 +109,22 @@ public final class NmsAccess {
         return readFieldValue(field, null);
     }
 
+    public static void writeField(Object receiver, String fieldName, Object value) {
+        Field field = fieldOrNull(receiver.getClass(), fieldName);
+        if (field == null) {
+            throw new IllegalStateException("Missing runtime field " + receiver.getClass().getName() + "." + fieldName);
+        }
+        writeFieldValue(field, receiver, value);
+    }
+
+    public static void writeFieldValue(Field field, Object receiver, Object value) {
+        try {
+            field.set(receiver, value);
+        } catch (IllegalAccessException accessFailure) {
+            throw new IllegalStateException("Cannot write runtime field " + field, accessFailure);
+        }
+    }
+
     public static Object readFieldValue(Field field, Object receiver) {
         try {
             return field.get(receiver);

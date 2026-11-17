@@ -1,15 +1,10 @@
 package emaki.jiuwu.craft.dungeon.guard;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.bukkit.Bukkit;
-import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -18,6 +13,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.command.CommandMapGuard;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.config.AppConfig;
@@ -46,7 +43,7 @@ public final class CommandGuard implements Listener {
     private final Supplier<AppConfig> appConfig;
     private final Function<String, DungeonConfig> configOf;
 
-    private CommandMap originalCommandMap;
+    private CommandMapGuard.Handle guardHandle;
 
     public CommandGuard(Plugin plugin,
             MessageService messages,
@@ -95,31 +92,17 @@ public final class CommandGuard implements Listener {
     }
 
     public void installCommandMap() {
-        if (originalCommandMap != null) {
+        if (guardHandle != null) {
             return;
         }
         try {
-            CommandMap commandMap = Bukkit.getServer().getCommandMap();
-            InvocationHandler handler = (proxy, method, args) -> {
-                if ("dispatch".equals(method.getName()) && args != null && args.length == 2
-                        && args[0] instanceof CommandSender sender && args[1] instanceof String commandLine) {
-                    if (interceptDispatch(sender, commandLine)) {
-                        return true;
-                    }
-                }
-                return method.invoke(commandMap, args);
-            };
-            CommandMap proxied = (CommandMap) Proxy.newProxyInstance(
-                    CommandGuard.class.getClassLoader(),
-                    new Class<?>[] {CommandMap.class},
-                    handler
-            );
-            Method setter = Bukkit.getServer().getClass().getMethod("setCommandMap", CommandMap.class);
-            setter.invoke(Bukkit.getServer(), proxied);
-            originalCommandMap = commandMap;
-        } catch (NoSuchMethodException unsupported) {
-            messages.info("console.command_map_unsupported");
-        } catch (ReflectiveOperationException | RuntimeException exception) {
+            CommandMapGuard guard = EmakiCoreLibApi.commandMapGuard();
+            if (guard == null) {
+                messages.info("console.command_map_unsupported");
+                return;
+            }
+            guardHandle = guard.install(this::interceptDispatch);
+        } catch (RuntimeException exception) {
             messages.warning("console.command_map_wrap_failed", Map.of(
                     "error", String.valueOf(exception.getMessage())
             ));
@@ -127,16 +110,15 @@ public final class CommandGuard implements Listener {
     }
 
     public void restoreCommandMap() {
-        if (originalCommandMap == null) {
+        if (guardHandle == null) {
             return;
         }
         try {
-            Method setter = Bukkit.getServer().getClass().getMethod("setCommandMap", CommandMap.class);
-            setter.invoke(Bukkit.getServer(), originalCommandMap);
-        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            guardHandle.close();
+        } catch (RuntimeException ignored) {
             FailureRecorder.recordIgnoredFailure("EmakiDungeon", "CommandGuard.java#1", ignored);
         }
-        originalCommandMap = null;
+        guardHandle = null;
     }
 
     public Verdict judge(DungeonInstance instance, String commandLine) {

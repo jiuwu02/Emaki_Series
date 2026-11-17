@@ -5,16 +5,21 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.jar.JarFile;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -34,6 +39,11 @@ public final class RuntimeLibraryLoader {
     private static final int DOWNLOAD_CONNECT_TIMEOUT_MS = 8000;
     private static final int DOWNLOAD_READ_TIMEOUT_MS = 30000;
 
+    private static final String[] CHECKSUM_SUFFIXES = {".sha256", ".sha1", ".md5"};
+    private static final String[] CHECKSUM_ALGORITHMS = {"SHA-256", "SHA-1", "MD5"};
+    private static final Pattern RELEASE_PATTERN = Pattern.compile("<release>([^<]+)</release>");
+    private static final Pattern LATEST_PATTERN = Pattern.compile("<latest>([^<]+)</latest>");
+
     private final ComponentLogger logger;
     private final Path cacheDirectory;
 
@@ -49,11 +59,15 @@ public final class RuntimeLibraryLoader {
     }
 
     public List<Path> prepare() {
-        List<RuntimeLibrary> libraries = libraries();
+        List<RuntimeLibrary> libraries = new ArrayList<>();
+        for (RuntimeLibrary library : baseLibraries()) {
+            libraries.add(resolveRelease(library));
+        }
         ensureCacheDirectory();
 
         List<RuntimeLibrary> missing = libraries.stream()
-                .filter(library -> !validCached(resolveLocalPath(library.coordinate()), library.expectedSha256()))
+                .filter(library -> !library.coordinate().version().isBlank())
+                .filter(library -> !cachedJarOpens(resolveLocalPath(library.coordinate())))
                 .toList();
         boolean centralMissing = missing.stream().anyMatch(library -> library.repositories().isEmpty());
         String preferredRepo = centralMissing ? probePreferredRepository() : ALIYUN_REPO;
@@ -64,6 +78,11 @@ public final class RuntimeLibraryLoader {
         int ready = 0;
         info(NamedTextColor.GRAY, "正在准备 CoreLib 运行库(共 " + libraries.size() + " 个)...");
         for (RuntimeLibrary library : libraries) {
+            if (library.coordinate().version().isBlank()) {
+                failed.add(library);
+                error(NamedTextColor.RED, library + " 无法确定版本号");
+                continue;
+            }
             Path localFile = resolveLocalPath(library.coordinate());
             if (prepareLibrary(library, localFile, preferredRepo, fallbackRepo)) {
                 ready++;
@@ -85,49 +104,109 @@ public final class RuntimeLibraryLoader {
 
     private static final String GRAALVM_VERSION = "25.4.4.1.1";
 
-    private List<RuntimeLibrary> libraries() {
+    private List<RuntimeLibrary> baseLibraries() {
         return List.of(
-                adventure("adventure-api", "551e536b9ea868f30e72c7900a309b35124ee7d4889fa3b3aed0910299751a26"),
-                adventure("adventure-key", "eec172d63db77b40eb7abeeb25f65eedea89bd30264d057b68b12fecb731be5e"),
-                RuntimeLibrary.maven("examination-api", new LibraryCoordinate("net.kyori", "examination-api", "1.3.0"), "c9237ffecb05428f6eff86216246ac70ce0b47b04c08ea7ca35020fde57f8492"),
-                RuntimeLibrary.maven("examination-string", new LibraryCoordinate("net.kyori", "examination-string", "1.3.0"), "7d01fc25a4bb3af0e1662685455f4541fbf4626216ea5846e455c1491e156b8c"),
-                adventure("adventure-nbt", "f26ef6bff5fcdd817902b4dfd353561d98cb131b4ecb67341ff00ef2ed1336f8"),
-                adventure("adventure-text-minimessage", "1d43451e9af473252dc8af3e8084238d5ce68ad43af0e3b7383eb3d4b63fff9f"),
-                adventure("adventure-text-serializer-plain", "39b9bfe5790f645605ff5464382c0e062476f48f9bfb2548801f275f12faf405"),
-                adventure("adventure-text-serializer-legacy", "721107bc213572454df1bfbe438dba630e30457550c750b7a154b35dc3264aa8"),
-                adventure("adventure-text-serializer-gson", "e4a908dedc4acb4305083d916d362ddc2b21ecf452d577a0be665280bddae9fc"),
-                adventure("adventure-text-serializer-gson-legacy-impl", "6eab1f13b59957ecdf9c5573c6791a14da53d0286fc4351b584b415946c8f80c"),
-                adventure("adventure-text-serializer-json", "55c64b4333d5d2968a0125b8f29dae7cfba15392d5f99f78dbaea711cb0d4dc2"),
-                adventure("adventure-text-serializer-json-legacy-impl", "cbe618e2ec55a4e77955afdeb72a2ff01dc309790c9562ae4c539bf30fe58b91"),
-                adventure("adventure-text-serializer-commons", "66527fef559da4d91cda692491034f903d5b01e835de1b091edfbb6b51cee5a2"),
-                RuntimeLibrary.maven("option", new LibraryCoordinate("net.kyori", "option", "1.1.0"), "97b69b4b17dfe02217c9131ad342564cbc9aebd04c75eb689639b5f78fd4b11c"),
+                adventure("adventure-api"),
+                adventure("adventure-key"),
+                RuntimeLibrary.maven("examination-api", new LibraryCoordinate("net.kyori", "examination-api", "1.3.0")),
+                RuntimeLibrary.maven("examination-string", new LibraryCoordinate("net.kyori", "examination-string", "1.3.0")),
+                adventure("adventure-nbt"),
+                adventure("adventure-text-minimessage"),
+                adventure("adventure-text-serializer-plain"),
+                adventure("adventure-text-serializer-legacy"),
+                adventure("adventure-text-serializer-gson"),
+                adventure("adventure-text-serializer-gson-legacy-impl"),
+                adventure("adventure-text-serializer-json"),
+                adventure("adventure-text-serializer-json-legacy-impl"),
+                adventure("adventure-text-serializer-commons"),
+                RuntimeLibrary.maven("option", new LibraryCoordinate("net.kyori", "option", "1.1.0")),
 
-                RuntimeLibrary.maven("gson", new LibraryCoordinate("com.google.code.gson", "gson", "2.11.0"), "57928d6e5a6edeb2abd3770a8f95ba44dce45f3b23b7a9dc2b309c581552a78b"),
-                RuntimeLibrary.maven("boosted-yaml", new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.8"), "17ee775046240f7d83ba0de69f79aaf20ad2ee2506928f160bc4407ba550c3af"),
-                RuntimeLibrary.maven("exp4j", new LibraryCoordinate("net.objecthunter", "exp4j", "0.4.8"), "271f7824ee8a3468257bc0613afdabb67597af8389317643fa806b983b7ecb27"),
-                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.3.1"), "1f916d052a3f8c0c10951f343f043f176ff2d3c2f9e380e15f0be673c5e67c48"),
+                RuntimeLibrary.maven("gson", new LibraryCoordinate("com.google.code.gson", "gson", "2.11.0")),
+                RuntimeLibrary.maven("boosted-yaml", new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.8")),
+                RuntimeLibrary.maven("exp4j", new LibraryCoordinate("net.objecthunter", "exp4j", "0.4.8")),
+                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.3.1")),
 
-                RuntimeLibrary.maven("polyglot", new LibraryCoordinate("org.graalvm.polyglot", "polyglot", GRAALVM_VERSION), "cbacc2628fd5f99dbcebff7d398bcddde43ea15ebadc873d1da4454c718727d8"),
-                RuntimeLibrary.maven("js-language", new LibraryCoordinate("org.graalvm.js", "js-language", GRAALVM_VERSION), "50a91172497d9b94b83210af2e95472ba3bd39e6b5606c9e7b07f3de0022fa93"),
-                RuntimeLibrary.maven("truffle-api", new LibraryCoordinate("org.graalvm.truffle", "truffle-api", GRAALVM_VERSION), "9dcc81b6890d6fcc9ab57d17bc4430335f071d82b108c0af8556a28381978da6"),
-                RuntimeLibrary.maven("truffle-runtime", new LibraryCoordinate("org.graalvm.truffle", "truffle-runtime", GRAALVM_VERSION), "25818863ef8e50fc6329a876a033055c7418f20bedb051cfbb31c3d895fad7c9"),
-                RuntimeLibrary.maven("regex", new LibraryCoordinate("org.graalvm.regex", "regex", GRAALVM_VERSION), "5b43366990bdd438c7dbd2ba0b3dba211acfaf67054275d0717bd0b8ea1d8dc9"),
-                RuntimeLibrary.maven("icu4j", new LibraryCoordinate("org.graalvm.shadowed", "icu4j", GRAALVM_VERSION), "02f9e8a76ed2f8fa80d53054ca4632c7058354010df27c8f4e7e7443543f7e1e"),
+                RuntimeLibrary.maven("polyglot", new LibraryCoordinate("org.graalvm.polyglot", "polyglot", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("js-language", new LibraryCoordinate("org.graalvm.js", "js-language", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("truffle-api", new LibraryCoordinate("org.graalvm.truffle", "truffle-api", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("truffle-runtime", new LibraryCoordinate("org.graalvm.truffle", "truffle-runtime", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("regex", new LibraryCoordinate("org.graalvm.regex", "regex", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("icu4j", new LibraryCoordinate("org.graalvm.shadowed", "icu4j", GRAALVM_VERSION)),
 
-                RuntimeLibrary.dedicated("emakinms", new LibraryCoordinate("emaki.jiuwu.craft", "emakinms", "1.0.0"), "f2ec5616c3e1b8241d9367a1d4b591af8e4ec41411d1c6c3d2ea6db66a33a00f", List.of(REPOSILITE_RELEASES_REPO, REPOSILITE_SNAPSHOTS_REPO))
+                RuntimeLibrary.release("emakinms", "emaki.jiuwu.craft", "emakinms",
+                        List.of(REPOSILITE_RELEASES_REPO, REPOSILITE_SNAPSHOTS_REPO))
         );
     }
 
-    private static RuntimeLibrary adventure(String artifactId, String expectedSha256) {
-        return RuntimeLibrary.maven(artifactId, new LibraryCoordinate("net.kyori", artifactId, ADVENTURE_VERSION), expectedSha256);
+    private static RuntimeLibrary adventure(String artifactId) {
+        return RuntimeLibrary.maven(artifactId, new LibraryCoordinate("net.kyori", artifactId, ADVENTURE_VERSION));
+    }
+
+    private RuntimeLibrary resolveRelease(RuntimeLibrary library) {
+        if (!library.release()) {
+            return library;
+        }
+        for (String repository : library.repositories()) {
+            String version = fetchReleaseVersion(repository, library.coordinate());
+            if (version != null) {
+                return library.withVersion(version);
+            }
+        }
+        String cached = newestCachedVersion(library.coordinate());
+        if (cached != null) {
+            warn(NamedTextColor.YELLOW, library + " 无法获取最新版本信息, 使用本地缓存版本 " + cached);
+            return library.withVersion(cached);
+        }
+        return library.withVersion("");
+    }
+
+    private String fetchReleaseVersion(String repository, LibraryCoordinate coordinate) {
+        String metadataUrl = repository + "/" + coordinate.groupId().replace('.', '/')
+                + "/" + coordinate.artifactId()
+                + "/maven-metadata.xml";
+        String body = fetchText(metadataUrl);
+        if (body == null) {
+            return null;
+        }
+        Matcher release = RELEASE_PATTERN.matcher(body);
+        if (release.find()) {
+            return release.group(1).trim();
+        }
+        Matcher latest = LATEST_PATTERN.matcher(body);
+        return latest.find() ? latest.group(1).trim() : null;
+    }
+
+    private String newestCachedVersion(LibraryCoordinate coordinate) {
+        Path root = cacheDirectory
+                .resolve(coordinate.groupId().replace('.', '/'))
+                .resolve(coordinate.artifactId());
+        if (!Files.isDirectory(root)) {
+            return null;
+        }
+        try (Stream<Path> versions = Files.list(root)) {
+            return versions
+                    .filter(Files::isDirectory)
+                    .map(version -> version.resolve(coordinate.artifactId() + "-" + version.getFileName().toString() + ".jar"))
+                    .filter(Files::isRegularFile)
+                    .max(Comparator.comparingLong(this::lastModified))
+                    .map(jar -> jar.getParent().getFileName().toString())
+                    .orElse(null);
+        } catch (IOException exception) {
+            return null;
+        }
     }
 
     private boolean prepareLibrary(RuntimeLibrary library, Path localFile, String preferredRepo, String fallbackRepo) {
-        if (validCached(localFile, library.expectedSha256())) {
+        if (validCached(localFile)) {
             info(NamedTextColor.GREEN, library + " 已就绪(缓存, " + formatSize(sizeKb(localFile)) + ")");
             return true;
         }
+        if (cachedJarOpens(localFile) && !hasChecksumFile(localFile)) {
+            info(NamedTextColor.GREEN, library + " 已就绪(缓存, 未附带校验值, " + formatSize(sizeKb(localFile)) + ")");
+            return true;
+        }
         deleteIfExists(localFile);
+        deleteChecksumFiles(localFile);
         info(NamedTextColor.YELLOW, "正在下载 " + library + "...");
         boolean success = false;
         for (String repository : library.repositories().isEmpty() ? List.of(preferredRepo, fallbackRepo) : library.repositories()) {
@@ -136,11 +215,12 @@ public final class RuntimeLibraryLoader {
                 break;
             }
         }
-        if (success && validCached(localFile, library.expectedSha256())) {
+        if (success && validCached(localFile)) {
             info(NamedTextColor.GREEN, library + " 下载完成(" + formatSize(sizeKb(localFile)) + ")");
             return true;
         }
         deleteIfExists(localFile);
+        deleteChecksumFiles(localFile);
         return false;
     }
 
@@ -214,12 +294,51 @@ public final class RuntimeLibraryLoader {
             try (InputStream inputStream = connection.getInputStream()) {
                 Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
             }
+            ChecksumSource source = fetchChecksumSource(downloadUrl);
+            if (source == null) {
+                warn(NamedTextColor.YELLOW, "仓库未提供校验值, 已放弃该来源: " + downloadUrl);
+                deleteIfExists(tempFile);
+                return false;
+            }
+            String digest = digestHex(tempFile, source.algorithm());
+            if (!digest.equalsIgnoreCase(source.expected())) {
+                warn(NamedTextColor.YELLOW, "校验值不匹配, 已放弃该来源: " + downloadUrl);
+                deleteIfExists(tempFile);
+                return false;
+            }
             Files.move(tempFile, localFile, StandardCopyOption.REPLACE_EXISTING);
+            Files.writeString(checksumPath(localFile, source.suffix()), digest + "\n");
             return true;
         } catch (Exception exception) {
             debug("下载请求失败: " + downloadUrl, exception);
             deleteIfExists(tempFile);
             return false;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+    }
+
+    private String fetchText(String requestUrl) {
+        HttpURLConnection connection = null;
+        try {
+            URL url = URI.create(requestUrl).toURL();
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(DOWNLOAD_CONNECT_TIMEOUT_MS);
+            connection.setReadTimeout(DOWNLOAD_READ_TIMEOUT_MS);
+            connection.setInstanceFollowRedirects(true);
+            connection.setRequestProperty("User-Agent", "EmakiCoreLib-LibraryLoader");
+            if (connection.getResponseCode() != 200) {
+                return null;
+            }
+            try (InputStream inputStream = connection.getInputStream()) {
+                return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        } catch (Exception exception) {
+            debug("文本请求失败: " + requestUrl, exception);
+            return null;
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -235,11 +354,73 @@ public final class RuntimeLibraryLoader {
                 .resolve(coordinate.artifactId() + "-" + coordinate.version() + ".jar");
     }
 
-    private boolean validCached(Path path, String expectedSha256) {
-        return validCached(path, "SHA-256", expectedSha256);
+    private ChecksumSource fetchChecksumSource(String downloadUrl) {
+        for (int index = 0; index < CHECKSUM_SUFFIXES.length; index++) {
+            String body = fetchText(downloadUrl + CHECKSUM_SUFFIXES[index]);
+            if (body == null) {
+                continue;
+            }
+            String expected = body.trim().split("\\s+")[0];
+            if (!expected.isEmpty()) {
+                return new ChecksumSource(CHECKSUM_SUFFIXES[index], CHECKSUM_ALGORITHMS[index], expected);
+            }
+        }
+        return null;
     }
 
-    private boolean validCached(Path path, String algorithm, String expected) {
+    private Path checksumPath(Path localFile, String suffix) {
+        return localFile.resolveSibling(localFile.getFileName() + suffix);
+    }
+
+    private boolean hasChecksumFile(Path localFile) {
+        for (String suffix : CHECKSUM_SUFFIXES) {
+            if (Files.isRegularFile(checksumPath(localFile, suffix))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void deleteChecksumFiles(Path localFile) {
+        for (String suffix : CHECKSUM_SUFFIXES) {
+            deleteIfExists(checksumPath(localFile, suffix));
+        }
+    }
+
+    private String readChecksumFile(Path localFile, String suffix) {
+        Path checksum = checksumPath(localFile, suffix);
+        if (!Files.isRegularFile(checksum)) {
+            return null;
+        }
+        try {
+            String value = Files.readString(checksum).trim();
+            return value.isEmpty() ? null : value;
+        } catch (IOException exception) {
+            debug("无法读取运行库校验值: " + checksum, exception);
+            return null;
+        }
+    }
+
+    private boolean validCached(Path path) {
+        if (!cachedJarOpens(path)) {
+            return false;
+        }
+        for (int index = 0; index < CHECKSUM_SUFFIXES.length; index++) {
+            String expected = readChecksumFile(path, CHECKSUM_SUFFIXES[index]);
+            if (expected == null) {
+                continue;
+            }
+            try {
+                return digestHex(path, CHECKSUM_ALGORITHMS[index]).equalsIgnoreCase(expected);
+            } catch (IOException | NoSuchAlgorithmException checksumFailure) {
+                debug("运行库校验和计算失败: " + path, checksumFailure);
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private boolean cachedJarOpens(Path path) {
         if (!Files.isRegularFile(path)) {
             return false;
         }
@@ -248,22 +429,10 @@ public final class RuntimeLibraryLoader {
                 return false;
             }
             try (JarFile ignored = new JarFile(path.toFile())) {
-                return matchesChecksum(path, algorithm, expected);
+                return true;
             }
         } catch (IOException | SecurityException exception) {
             debug("运行库缓存损坏: " + path, exception);
-            return false;
-        }
-    }
-
-    private boolean matchesChecksum(Path path, String algorithm, String expected) {
-        if (expected == null || expected.isEmpty()) {
-            return false;
-        }
-        try {
-            return digestHex(path, algorithm).equalsIgnoreCase(expected);
-        } catch (IOException | NoSuchAlgorithmException checksumFailure) {
-            debug("运行库校验和计算失败: " + path, checksumFailure);
             return false;
         }
     }
@@ -320,6 +489,14 @@ public final class RuntimeLibraryLoader {
         }
     }
 
+    private long lastModified(Path path) {
+        try {
+            return Files.getLastModifiedTime(path).toMillis();
+        } catch (IOException ignored) {
+            return 0L;
+        }
+    }
+
     private String formatSize(long sizeKb) {
         if (sizeKb < 1024) {
             return sizeKb + "KB";
@@ -330,14 +507,22 @@ public final class RuntimeLibraryLoader {
     private record ProbeResult(String name, boolean reachable, long latencyMs) {
     }
 
-    private record RuntimeLibrary(String id, LibraryCoordinate coordinate, String expectedSha256, List<String> repositories, boolean classpath) {
+    private record ChecksumSource(String suffix, String algorithm, String expected) {
+    }
 
-        static RuntimeLibrary maven(String id, LibraryCoordinate coordinate, String expectedSha256) {
-            return new RuntimeLibrary(id, coordinate, expectedSha256, List.of(), true);
+    private record RuntimeLibrary(String id, LibraryCoordinate coordinate, List<String> repositories, boolean classpath, boolean release) {
+
+        static RuntimeLibrary maven(String id, LibraryCoordinate coordinate) {
+            return new RuntimeLibrary(id, coordinate, List.of(), true, false);
         }
 
-        static RuntimeLibrary dedicated(String id, LibraryCoordinate coordinate, String expectedSha256, List<String> repositories) {
-            return new RuntimeLibrary(id, coordinate, expectedSha256, repositories, false);
+        static RuntimeLibrary release(String id, String groupId, String artifactId, List<String> repositories) {
+            return new RuntimeLibrary(id, new LibraryCoordinate(groupId, artifactId, ""), repositories, false, true);
+        }
+
+        RuntimeLibrary withVersion(String version) {
+            return new RuntimeLibrary(id, new LibraryCoordinate(coordinate.groupId(), coordinate.artifactId(), version),
+                    repositories, classpath, release);
         }
 
         @Override

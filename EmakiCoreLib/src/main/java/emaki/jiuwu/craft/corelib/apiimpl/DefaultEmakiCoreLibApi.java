@@ -56,10 +56,11 @@ import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
 import emaki.jiuwu.craft.corelib.api.readiness.ModuleReadinessListener;
 import emaki.jiuwu.craft.corelib.api.readiness.ReadinessRegistration;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.command.CommandMapGuard;
 import emaki.jiuwu.craft.corelib.api.world.WorldMountSupport;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
-import emaki.jiuwu.craft.corelib.library.WorldMountBridge;
+import emaki.jiuwu.craft.corelib.library.NmsBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -87,7 +88,12 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
 
     @Override
     public WorldMountSupport worldMountSupport() {
-        return WorldMountBridge.load(plugin.getDataFolder().toPath());
+        return NmsBridge.worldMountSupport(plugin.getDataFolder().toPath());
+    }
+
+    @Override
+    public CommandMapGuard commandMapGuard() {
+        return NmsBridge.commandMapGuard(plugin.getDataFolder().toPath());
     }
 
     @Override

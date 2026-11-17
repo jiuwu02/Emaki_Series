@@ -36,6 +36,7 @@ import emaki.jiuwu.craft.corelib.api.animation.AnimationPlaybackHandle;
 import emaki.jiuwu.craft.corelib.api.animation.AnimationRegistration;
 import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
 import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
+import emaki.jiuwu.craft.corelib.api.command.CommandMapGuard;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
@@ -96,6 +97,11 @@ final class EmakiCoreLibApiDelegate {
     static @Nullable WorldMountSupport worldMountSupport() {
         EmakiCoreLibApi.Bridge resolved = EmakiCoreLibApi.bridge.get();
         return resolved == null ? null : resolved.worldMountSupport();
+    }
+
+    static @Nullable CommandMapGuard commandMapGuard() {
+        EmakiCoreLibApi.Bridge resolved = EmakiCoreLibApi.bridge.get();
+        return resolved == null ? null : resolved.commandMapGuard();
     }
 
     static @NotNull EmakiResult<String> itemDisplayName(@Nullable String itemSource) {
