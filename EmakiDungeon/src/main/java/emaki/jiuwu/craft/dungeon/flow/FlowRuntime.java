@@ -36,6 +36,7 @@ import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Sound;
@@ -61,6 +62,7 @@ public final class FlowRuntime {
     final Set<TaskToken> scheduledTasks = ConcurrentHashMap.newKeySet();
     volatile boolean running = true;
     final Map<String, Object> facts = new ConcurrentHashMap<>();
+    final Map<UUID, BossBar> hintBossBars = new ConcurrentHashMap<>();
     final Set<String> openedGates = ConcurrentHashMap.newKeySet();
     final Set<String> triggeredSpawns = ConcurrentHashMap.newKeySet();
     volatile int currentRoomOrder = Integer.MIN_VALUE;
@@ -213,7 +215,7 @@ public final class FlowRuntime {
         if (checkpoint != null && checkpoint.head().enabled() && checkpoint.region() != null
                 && payload.get(Facts.REGION_ENTERED) != null) {
             EvalContext checkpointContext = new EvalContext(playerId, payload);
-            if (adjudicator.adjudicate(checkpoint.head(), List.of(), checkpointContext, playerId).allowed()) {
+            if (adjudicator.adjudicate(checkpoint.head(), checkpoint.conditions(), checkpointContext, playerId).allowed()) {
                 checkpointId = checkpoint.recordId();
                 recordFlowEvent("checkpoint", "id=" + checkpoint.recordId());
                 fireTrigger(TriggerType.onCheckpoint,
@@ -233,16 +235,19 @@ public final class FlowRuntime {
         FlowModules.BoundaryZoneDef boundaryZone = definition.boundaryZones().get(zoneId);
         if (boundaryZone != null && boundaryZone.head().enabled()
                 && Boolean.TRUE.equals(payload.get(Facts.REGION_LEFT))) {
-            submitTeleport(playerId, boundaryZone.pullback() != null
-                    ? boundaryZone.pullback()
-                    : boundaryZone.region().center());
+            EvalContext boundaryContext = new EvalContext(playerId, payload);
+            if (adjudicator.evaluator().evaluateAll(boundaryZone.conditions(), "AND", boundaryContext)) {
+                submitTeleport(playerId, boundaryZone.pullback() != null
+                        ? boundaryZone.pullback()
+                        : boundaryZone.region().center());
+            }
         }
 
         FlowModules.RoomTimerDef roomTimer = definition.roomTimers().get(zoneId);
         if (roomTimer != null && roomTimer.head().enabled()
                 && Boolean.TRUE.equals(payload.get(Facts.REGION_ENTERED))) {
             EvalContext timerContext = new EvalContext(playerId, payload);
-            var verdict = adjudicator.adjudicate(roomTimer.head(), List.of(), timerContext, playerId);
+            var verdict = adjudicator.adjudicate(roomTimer.head(), roomTimer.conditions(), timerContext, playerId);
             anchor("room timer adjudicated | instance=" + instance.instanceId()
                     + " | zone=" + zoneId + " | allowed=" + verdict.allowed()
                     + " | exhausted=" + verdict.exhaustedTier()
@@ -257,7 +262,7 @@ public final class FlowRuntime {
         FlowModules.EffectZoneDef effectZone = definition.effectZones().get(zoneId);
         if (effectZone != null && effectZone.head().enabled()
                 && Boolean.TRUE.equals(payload.get("effect_tick"))) {
-            if (adjudicator.adjudicate(effectZone.head(), List.of(), context, playerId).allowed()) {
+            if (adjudicator.adjudicate(effectZone.head(), effectZone.conditions(), context, playerId).allowed()) {
                 applyEffects(effectZone, playerId);
             }
         }
@@ -276,7 +281,7 @@ public final class FlowRuntime {
         if (exitPoint != null && exitPoint.head().enabled()
                 && Boolean.TRUE.equals(payload.get(Facts.REGION_ENTERED)) && playerId != null) {
             EvalContext exitContext = new EvalContext(playerId, payload);
-            if (adjudicator.adjudicate(exitPoint.head(), List.of(), exitContext, playerId).allowed()
+            if (adjudicator.adjudicate(exitPoint.head(), exitPoint.conditions(), exitContext, playerId).allowed()
                     && controllers != null) {
                 anchor("exit point triggered | instance=" + instance.instanceId()
                         + " | exit=" + exitPoint.head().id());
@@ -435,6 +440,12 @@ public final class FlowRuntime {
                     + " | timer=" + roomTimer.head().id() + " | reason=实例代际已失效");
             return;
         }
+        if (!adjudicator.evaluator().evaluateAll(roomTimer.conditions(), "AND",
+                new EvalContext(playerId, factsView()))) {
+            anchor("room timer conditions unmet | instance=" + instance.instanceId()
+                    + " | timer=" + roomTimer.head().id());
+            return;
+        }
         anchor("room timer fired | instance=" + instance.instanceId()
                 + " | timer=" + roomTimer.head().id());
         recordFlowEvent("room_timer", "timer=" + roomTimer.head().id());
@@ -453,8 +464,8 @@ public final class FlowRuntime {
 
     void executeAction(FlowActionDef action, EvalContext context, UUID playerId) {
         switch (action.type()) {
-            case "hint" -> submitHint(playerId, action.param("text", ""), action.param("channel", "chat"));
-            case "message" -> submitMessage(playerId, action.param("key", ""), action.param("channel", "chat"));
+            case "hint" -> submitHint(playerId, action.param("text", ""), action.param("channel", "message"));
+            case "message" -> submitMessage(playerId, action.param("key", ""), action.param("channel", "message"));
             case "command" -> submitConsoleCommand(replacePlayer(action.param("command", ""), playerId));
             case "teleport" -> submitTeleport(playerId, new FlowPoint(
                     action.paramDouble("x", 0.0D),

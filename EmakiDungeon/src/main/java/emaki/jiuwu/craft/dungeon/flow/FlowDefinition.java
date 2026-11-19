@@ -5,7 +5,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import emaki.jiuwu.craft.dungeon.flow.FlowModules.BossPointDef;
 import emaki.jiuwu.craft.dungeon.flow.FlowModules.BlockInteractionDef;
 import emaki.jiuwu.craft.dungeon.flow.FlowModules.BoundaryZoneDef;
 import emaki.jiuwu.craft.dungeon.flow.FlowModules.CheckpointDef;
@@ -39,7 +38,6 @@ public final class FlowDefinition {
     private final Map<String, TriggerZoneDef> triggerZones = new LinkedHashMap<>();
     private final Map<String, BlockInteractionDef> blockInteractions = new LinkedHashMap<>();
     private final Map<String, RewardDef> rewards = new LinkedHashMap<>();
-    private final Map<String, BossPointDef> bossPoints = new LinkedHashMap<>();
     private final Map<String, OptionDef> options = new LinkedHashMap<>();
     private final Map<String, HintDef> hints = new LinkedHashMap<>();
     private final Map<String, TeleportZoneDef> teleportZones = new LinkedHashMap<>();
@@ -87,10 +85,6 @@ public final class FlowDefinition {
 
     public Map<String, RewardDef> rewards() {
         return rewards;
-    }
-
-    public Map<String, BossPointDef> bossPoints() {
-        return bossPoints;
     }
 
     public Map<String, OptionDef> options() {
@@ -162,7 +156,6 @@ public final class FlowDefinition {
         addKeys(ids, triggerZones);
         addKeys(ids, blockInteractions);
         addKeys(ids, rewards);
-        addKeys(ids, bossPoints);
         addKeys(ids, options);
         addKeys(ids, hints);
         addKeys(ids, teleportZones);

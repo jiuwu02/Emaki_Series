@@ -19,6 +19,8 @@ import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress;
 import emaki.jiuwu.craft.dungeon.instance.InstanceState;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
+import emaki.jiuwu.craft.dungeon.party.Party;
+import emaki.jiuwu.craft.dungeon.party.PartyService;
 
 public final class RegionTracker {
 
@@ -31,11 +33,13 @@ public final class RegionTracker {
 
     private final Map<String, Boolean> presence = new HashMap<>();
     private final Map<String, Integer> lastRange = new HashMap<>();
+    private final Map<String, Integer> lastTeamRange = new HashMap<>();
     private final Map<String, Long> lastEffectAt = new HashMap<>();
 
     private TaskToken task = TaskToken.UNAVAILABLE;
 
     private volatile DebugLogger debug;
+    private volatile PartyService parties;
 
     public RegionTracker(Plugin plugin, ExecutionDispatcher dispatcher, InstanceRegistry registry) {
         this.plugin = plugin;
@@ -45,6 +49,10 @@ public final class RegionTracker {
 
     public void bindDebug(DebugLogger debug) {
         this.debug = debug;
+    }
+
+    public void bindParty(PartyService parties) {
+        this.parties = parties;
     }
 
     public void start() {
@@ -57,6 +65,7 @@ public final class RegionTracker {
 
     private void sweep() {
         Set<String> activeBases = new HashSet<>();
+        Set<String> activeInstances = new HashSet<>();
         for (DungeonInstance instance : registry.all()) {
             if (instance.state() != InstanceState.RUNNING || instance.flowRuntime() == null) {
                 continue;
@@ -66,13 +75,16 @@ public final class RegionTracker {
                 continue;
             }
             FlowRuntime runtime = instance.flowRuntime();
+            activeInstances.add(instance.instanceId());
             for (Player player : world.getPlayers()) {
                 trackPlayer(runtime, world, player, activeBases);
             }
+            trackSpawnTeams(runtime, world);
         }
         presence.keySet().removeIf(key -> !activeBases.contains(baseOf(key)));
         lastRange.keySet().removeIf(key -> !activeBases.contains(baseOf(key)));
         lastEffectAt.keySet().removeIf(key -> !activeBases.contains(baseOf(key)));
+        lastTeamRange.keySet().removeIf(key -> !activeInstances.contains(baseOf(key)));
     }
 
     private static String baseOf(String key) {
@@ -151,11 +163,11 @@ public final class RegionTracker {
         }
         for (String spawnId : definition.spawnPoints().keySet()) {
             FlowModules.SpawnPointModuleDef spawnPoint = definition.spawnPoints().get(spawnId);
-            if (!spawnPoint.head().enabled()) {
+            if (!spawnPoint.head().enabled() || !"player".equals(spawnPoint.trigger().actor())) {
                 continue;
             }
             int count = 0;
-            double rangeSquared = (double) spawnPoint.range() * spawnPoint.range();
+            double rangeSquared = (double) spawnPoint.trigger().range() * spawnPoint.trigger().range();
             FlowPoint center = spawnPoint.point();
             for (Player member : world.getPlayers()) {
                 Location memberLocation = member.getLocation();
@@ -169,7 +181,7 @@ public final class RegionTracker {
             String rangeKey = base + ":" + spawnId;
             int previous = lastRange.getOrDefault(rangeKey, 0);
             lastRange.put(rangeKey, count);
-            if (previous < spawnPoint.minPlayers() && count >= spawnPoint.minPlayers()) {
+            if (previous < spawnPoint.trigger().minPlayers() && count >= spawnPoint.trigger().minPlayers()) {
                 Map<String, Object> payload = basePayload(player);
                 payload.put(Facts.RANGE_PLAYERS, count);
                 runtime.instance().ingress().post(
@@ -183,6 +195,53 @@ public final class RegionTracker {
         for (Map.Entry<String, Boolean> entry : now.entrySet()) {
             presence.put(prefix + entry.getKey(), entry.getValue());
         }
+    }
+
+    private void trackSpawnTeams(FlowRuntime runtime, World world) {
+        String instanceId = runtime.instance().instanceId();
+        for (Map.Entry<String, FlowModules.SpawnPointModuleDef> entry
+                : runtime.definition().spawnPoints().entrySet()) {
+            FlowModules.SpawnPointModuleDef spawnPoint = entry.getValue();
+            if (!spawnPoint.head().enabled() || !"team".equals(spawnPoint.trigger().actor())) {
+                continue;
+            }
+            double rangeSquared = (double) spawnPoint.trigger().range() * spawnPoint.trigger().range();
+            FlowPoint center = spawnPoint.point();
+            Map<String, Integer> counts = new HashMap<>();
+            Map<String, UUID> anchors = new HashMap<>();
+            for (Player member : world.getPlayers()) {
+                Location location = member.getLocation();
+                double dx = location.getX() - center.x();
+                double dy = location.getY() - center.y();
+                double dz = location.getZ() - center.z();
+                if (dx * dx + dy * dy + dz * dz > rangeSquared) {
+                    continue;
+                }
+                String groupKey = teamKeyOf(member.getUniqueId());
+                counts.merge(groupKey, 1, Integer::sum);
+                anchors.putIfAbsent(groupKey, member.getUniqueId());
+            }
+            for (Map.Entry<String, Integer> group : counts.entrySet()) {
+                String rangeKey = instanceId + ":" + entry.getKey() + ":" + group.getKey();
+                int previous = lastTeamRange.getOrDefault(rangeKey, 0);
+                lastTeamRange.put(rangeKey, group.getValue());
+                if (previous < spawnPoint.trigger().minPlayers()
+                        && group.getValue() >= spawnPoint.trigger().minPlayers()) {
+                    Map<String, Object> payload = new HashMap<>();
+                    payload.put(EventIngressKeys.KEY_PLAYER, anchors.get(group.getKey()));
+                    payload.put(Facts.RANGE_PLAYERS, group.getValue());
+                    runtime.instance().ingress().post(
+                            new EventIngress.IngressEvent(
+                                    EventIngressKeys.RANGE, entry.getKey(), payload));
+                }
+            }
+        }
+    }
+
+    private String teamKeyOf(UUID playerId) {
+        PartyService bound = parties;
+        Party party = bound == null ? null : bound.partyOf(playerId);
+        return party == null ? "self:" + playerId : "party:" + party.id();
     }
 
     private void zoneTransition(FlowRuntime runtime, Player player, String zoneId, boolean present,

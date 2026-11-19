@@ -97,11 +97,11 @@ final class EditorGuiDelegate {
     }
 
     void renderOptionList(Inventory inventory, EditorSession session, EditorGui.EditorHolder holder) {
-        List<String> ids = ownerRef.mapKeys(session.flowDoc().view(), "options");
+        List<String> ids = ownerRef.mapKeys(session.flowDoc().view(), "option_points");
         int[] range = ownerRef.pageRange(holder.page, ids.size(), EditorGui.LIST_PAGE_SIZE);
         for (int index = range[0]; index < range[1]; index++) {
             String id = ids.get(index);
-            String mode = ownerRef.textOf(session.flowDoc().view().value("options", id, "select_mode"), "single");
+            String mode = ownerRef.textOf(session.flowDoc().view().value("option_points", id, "select_mode"), "single");
             inventory.setItem(index - range[0], item(Material.SPRUCE_SAPLING, id,
                     List.of(ownerRef.valueLine(mode))));
         }
@@ -378,7 +378,7 @@ final class EditorGuiDelegate {
             ownerRef.reopen(player, holder);
             return;
         }
-        List<String> ids = ownerRef.mapKeys(session.flowDoc().view(), "gates");
+        List<String> ids = ownerRef.mapKeys(session.flowDoc().view(), "gate_zones");
         int[] range = ownerRef.pageRange(holder.page, ids.size(), EditorGui.LIST_PAGE_SIZE);
         int index = range[0] + slot;
         if (slot >= 0 && slot < EditorGui.CONTENT_SLOTS && index < range[1]) {
@@ -393,10 +393,10 @@ final class EditorGuiDelegate {
         String gateId = holder.path[0];
         switch (slot) {
             case 10 -> {
-                String current = ownerRef.textOf(session.flowDoc().view().value("gates", gateId, "logic"), "AND");
+                String current = ownerRef.textOf(session.flowDoc().view().value("gate_zones", gateId, "logic"), "AND");
                 String next = "AND".equalsIgnoreCase(current) ? "OR" : "AND";
                 ownerRef.applyEdit(player, holder, session, false,
-                        doc -> doc.set(next, "gates", gateId, "logic"), "field.logic", next);
+                        doc -> doc.set(next, "gate_zones", gateId, "logic"), "field.logic", next);
             }
             case 12 -> ownerRef.prompt(player, holder, "open_mode", text -> {
                 String value = Texts.trim(text);
@@ -405,19 +405,19 @@ final class EditorGuiDelegate {
                     return;
                 }
                 ownerRef.applyEdit(player, holder, session, false,
-                        doc -> doc.set(value, "gates", gateId, "open_mode"), "field.open_mode", value);
+                        doc -> doc.set(value, "gate_zones", gateId, "open_mode"), "field.open_mode", value);
             });
             case EditorGui.SLOT_ACTION -> {
                 if (ownerRef.requireCorners(player, session)) {
                     ownerRef.applyEdit(player, holder, session, false, doc ->
-                            doc.appendListItem(ownerRef.flatRegion(session), "gates", gateId, "door_regions"),
+                            doc.appendListItem(ownerRef.flatRegion(session), "gate_zones", gateId, "door_regions"),
                             "field.door_regions", "1");
                 }
             }
             case 18 -> ownerRef.applyEdit(player, holder, session, false, doc -> {
-                int last = doc.sequenceSize("gates", gateId, "door_regions") - 1;
+                int last = doc.sequenceSize("gate_zones", gateId, "door_regions") - 1;
                 if (last >= 0) {
-                    doc.removeListItem(last, "gates", gateId, "door_regions");
+                    doc.removeListItem(last, "gate_zones", gateId, "door_regions");
                 }
             }, "field.door_regions", "-1");
             default -> {
@@ -457,7 +457,7 @@ final class EditorGuiDelegate {
             ownerRef.reopen(player, holder);
             return;
         }
-        List<String> ids = ownerRef.mapKeys(session.flowDoc().view(), "options");
+        List<String> ids = ownerRef.mapKeys(session.flowDoc().view(), "option_points");
         int[] range = ownerRef.pageRange(holder.page, ids.size(), EditorGui.LIST_PAGE_SIZE);
         int index = range[0] + slot;
         if (slot >= 0 && slot < EditorGui.CONTENT_SLOTS && index < range[1]) {
@@ -553,10 +553,10 @@ final class EditorGuiDelegate {
     }
 
     String nextCaseKey(YamlTextDocument view, String optionId) {
-        int size = ownerRef.mapSize(view.value("options", optionId, "cases"));
+        int size = ownerRef.mapSize(view.value("option_points", optionId, "cases"));
         for (int index = size + 1; index < size + 512; index++) {
             String candidate = "case" + index;
-            if (view.value("options", optionId, "cases", candidate) == null) {
+            if (view.value("option_points", optionId, "cases", candidate) == null) {
                 return candidate;
             }
         }
@@ -580,10 +580,14 @@ final class EditorGuiDelegate {
             }
             int count = parts.length > 1 ? ownerRef.parsePositive(parts[1], 1) : 1;
             int weight = parts.length > 2 ? ownerRef.parsePositive(parts[2], 1) : 1;
+            String source = mobSource(parts.length > 3 ? parts[3] : "auto");
+            boolean boss = parts.length > 4 && Boolean.parseBoolean(Texts.trim(parts[4]));
             Map<String, Object> mob = new LinkedHashMap<>();
             mob.put("id", mobId);
             mob.put("count", count);
             mob.put("weight", weight);
+            mob.put("source", source);
+            mob.put("boss", boss);
             mobs.add(mob);
         }
         return mobs;
@@ -592,6 +596,15 @@ final class EditorGuiDelegate {
     int parsePositive(String raw, int fallback) {
         Integer value = ownerRef.parseIntOrNull(raw);
         return value == null || value < 1 ? fallback : value;
+    }
+
+    String mobSource(String raw) {
+        String value = Texts.trim(raw).toLowerCase(java.util.Locale.ROOT);
+        return switch (value) {
+            case "auto", "vanilla", "mythic", "emaki-mobs" -> value;
+            case "emakimobs" -> "emaki-mobs";
+            default -> "auto";
+        };
     }
 
     void onDrag(InventoryDragEvent event) {

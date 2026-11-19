@@ -220,11 +220,11 @@ public final class EditorGui implements Listener {
     void renderWave(Inventory inventory, EditorSession session, EditorHolder holder) { new EditorGuiDelegate(this).renderWave(inventory, session, holder); }
 
     void renderGateList(Inventory inventory, EditorSession session, EditorHolder holder) {
-        List<String> ids = mapKeys(session.flowDoc().view(), "gates");
+        List<String> ids = mapKeys(session.flowDoc().view(), "gate_zones");
         int[] range = pageRange(holder.page, ids.size(), LIST_PAGE_SIZE);
         for (int index = range[0]; index < range[1]; index++) {
             String id = ids.get(index);
-            int regions = sequenceSize(session.flowDoc().view(), "gates", id, "door_regions");
+            int regions = sequenceSize(session.flowDoc().view(), "gate_zones", id, "door_regions");
             inventory.setItem(index - range[0], item(Material.IRON_TRAPDOOR, id,
                     List.of(valueLine(messages.message("editor.gui.region_count",
                             Map.of("count", String.valueOf(regions)))))));
@@ -237,10 +237,10 @@ public final class EditorGui implements Listener {
     void renderGate(Inventory inventory, EditorSession session, EditorHolder holder) {
         String gateId = holder.path[0];
         YamlTextDocument view = session.flowDoc().view();
-        String logic = textOf(view.value("gates", gateId, "logic"), "AND");
-        String openMode = textOf(view.value("gates", gateId, "open_mode"), "blocks");
-        int regions = sequenceSize(view, "gates", gateId, "door_regions");
-        int conditions = sequenceSize(view, "gates", gateId, "conditions");
+        String logic = textOf(view.value("gate_zones", gateId, "logic"), "AND");
+        String openMode = textOf(view.value("gate_zones", gateId, "open_mode"), "blocks");
+        int regions = sequenceSize(view, "gate_zones", gateId, "door_regions");
+        int conditions = sequenceSize(view, "gate_zones", gateId, "conditions");
         inventory.setItem(10, navItem("AND".equalsIgnoreCase(logic) ? Material.LIME_DYE
                 : Material.ORANGE_DYE, "editor.gui.field.logic"));
         inventory.setItem(12, item(Material.REPEATER, "editor.gui.field.open_mode",
@@ -279,33 +279,33 @@ public final class EditorGui implements Listener {
     void renderOption(Inventory inventory, EditorSession session, EditorHolder holder) {
         String optionId = holder.path[0];
         YamlTextDocument view = session.flowDoc().view();
-        List<String> caseKeys = mapKeys(view, "options", optionId, "cases");
+        List<String> caseKeys = mapKeys(view, "option_points", optionId, "cases");
         int[] range = pageRange(holder.page, caseKeys.size(), OPTION_PAGE_SIZE);
         for (int index = range[0]; index < range[1]; index++) {
             String caseKey = caseKeys.get(index);
-            String label = textOf(view.value("options", optionId, "cases", caseKey, "label"), caseKey);
-            int seals = sequenceSize(view, "options", optionId, "cases", caseKey, "seal_regions");
+            String label = textOf(view.value("option_points", optionId, "cases", caseKey, "label"), caseKey);
+            int seals = sequenceSize(view, "option_points", optionId, "cases", caseKey, "seal_regions");
             inventory.setItem(index - range[0], item(Material.PAPER, "editor.gui.case_item",
                     List.of(valueLine(caseKey + " - " + label),
                             valueLine(messages.message("editor.gui.region_count",
                                     Map.of("count", String.valueOf(seals)))))));
         }
-        String mode = textOf(view.value("options", optionId, "select_mode"), "single");
+        String mode = textOf(view.value("option_points", optionId, "select_mode"), "single");
         inventory.setItem(27, navItem("multi".equalsIgnoreCase(mode) ? Material.ORANGE_DYE
                 : Material.LIME_DYE, "multi".equalsIgnoreCase(mode)
                         ? "editor.gui.field.select_mode_multi" : "editor.gui.field.select_mode_single"));
-        Object timeLimit = view.value("options", optionId, "time_limit_seconds");
+        Object timeLimit = view.value("option_points", optionId, "time_limit_seconds");
         inventory.setItem(28, item(Material.CLOCK, "editor.gui.field.time_limit",
                 List.of(valueLine(timeLimit == null ? "0" : String.valueOf(timeLimit)))));
-        Object minSelect = view.value("options", optionId, "min_select");
+        Object minSelect = view.value("option_points", optionId, "min_select");
         inventory.setItem(29, item(Material.ARROW, "editor.gui.field.min_select",
                 List.of(valueLine(minSelect == null ? "1" : String.valueOf(minSelect)))));
-        Object maxSelect = view.value("options", optionId, "max_select");
+        Object maxSelect = view.value("option_points", optionId, "max_select");
         inventory.setItem(30, item(Material.ARROW, "editor.gui.field.max_select",
                 List.of(valueLine(maxSelect == null ? "1" : String.valueOf(maxSelect)))));
         inventory.setItem(31, item(Material.ENDER_PEARL, "editor.gui.field.safe_point",
-                List.of(valueLine(textOf(view.value("options", optionId, "safe-point"), "-")))));
-        int endingRules = mapSize(view.value("options", optionId, "ending_map"));
+                List.of(valueLine(textOf(view.value("option_points", optionId, "safe-point"), "-")))));
+        int endingRules = mapSize(view.value("option_points", optionId, "ending_map"));
         inventory.setItem(32, item(Material.WRITABLE_BOOK, "editor.gui.field.ending_map",
                 List.of(valueLine(String.valueOf(endingRules)))));
         int pages = pageCount(caseKeys.size(), OPTION_PAGE_SIZE);
@@ -319,10 +319,10 @@ public final class EditorGui implements Listener {
         String caseKey = holder.path[1];
         YamlTextDocument view = session.flowDoc().view();
         String base = "options." + optionId + ".cases." + caseKey;
-        String label = textOf(view.value("options", optionId, "cases", caseKey, "label"), caseKey);
-        String caseValue = textOf(view.value("options", optionId, "cases", caseKey, "case"), caseKey);
-        String ending = textOf(view.value("options", optionId, "cases", caseKey, "ending"), "-");
-        int seals = sequenceSize(view, "options", optionId, "cases", caseKey, "seal_regions");
+        String label = textOf(view.value("option_points", optionId, "cases", caseKey, "label"), caseKey);
+        String caseValue = textOf(view.value("option_points", optionId, "cases", caseKey, "case"), caseKey);
+        String ending = textOf(view.value("option_points", optionId, "cases", caseKey, "ending"), "-");
+        int seals = sequenceSize(view, "option_points", optionId, "cases", caseKey, "seal_regions");
         inventory.setItem(10, item(Material.NAME_TAG, "editor.gui.field.case_label",
                 List.of(valueLine(label))));
         inventory.setItem(12, item(Material.PAPER, "editor.gui.field.case_value",
@@ -535,7 +535,7 @@ public final class EditorGui implements Listener {
             return;
         }
         String optionId = holder.path[0];
-        List<String> caseKeys = mapKeys(session.flowDoc().view(), "options", optionId, "cases");
+        List<String> caseKeys = mapKeys(session.flowDoc().view(), "option_points", optionId, "cases");
         int[] range = pageRange(holder.page, caseKeys.size(), OPTION_PAGE_SIZE);
         int index = range[0] + slot;
         if (slot >= 0 && slot < OPTION_PAGE_SIZE && index < range[1]) {
@@ -551,15 +551,15 @@ public final class EditorGui implements Listener {
                     optionCase.put("case", caseKey);
                     optionCase.put("ending", "");
                     optionCase.put("seal_regions", new ArrayList<>());
-                    doc.set(optionCase, "options", optionId, "cases", caseKey);
+                    doc.set(optionCase, "option_points", optionId, "cases", caseKey);
                 }, "field.add_case", caseKey);
             }
             case 27 -> {
                 String current = textOf(session.flowDoc().view()
-                        .value("options", optionId, "select_mode"), "single");
+                        .value("option_points", optionId, "select_mode"), "single");
                 String next = "multi".equalsIgnoreCase(current) ? "single" : "multi";
                 applyEdit(player, holder, session, false,
-                        doc -> doc.set(next, "options", optionId, "select_mode"),
+                        doc -> doc.set(next, "option_points", optionId, "select_mode"),
                         "field.select_mode", next);
             }
             case 28 -> prompt(player, holder, "time_limit", text -> {
@@ -569,7 +569,7 @@ public final class EditorGui implements Listener {
                     return;
                 }
                 applyEdit(player, holder, session, false,
-                        doc -> doc.set(value, "options", optionId, "time_limit_seconds"),
+                        doc -> doc.set(value, "option_points", optionId, "time_limit_seconds"),
                         "field.time_limit", String.valueOf(value));
             });
             case 29 -> prompt(player, holder, "min_select", text -> {
@@ -579,7 +579,7 @@ public final class EditorGui implements Listener {
                     return;
                 }
                 applyEdit(player, holder, session, false,
-                        doc -> doc.set(value, "options", optionId, "min_select"),
+                        doc -> doc.set(value, "option_points", optionId, "min_select"),
                         "field.min_select", String.valueOf(value));
             });
             case 30 -> prompt(player, holder, "max_select", text -> {
@@ -589,13 +589,13 @@ public final class EditorGui implements Listener {
                     return;
                 }
                 applyEdit(player, holder, session, false,
-                        doc -> doc.set(value, "options", optionId, "max_select"),
+                        doc -> doc.set(value, "option_points", optionId, "max_select"),
                         "field.max_select", String.valueOf(value));
             });
             case 31 -> {
                 Location location = player.getLocation();
                 applyEdit(player, holder, session, false, doc -> doc.set(
-                        locationMap(location), "options", optionId, "safe-point"),
+                        locationMap(location), "option_points", optionId, "safe-point"),
                         "field.safe_point", "ok");
             }
             case 32 -> prompt(player, holder, "ending_map", text -> {
@@ -608,7 +608,7 @@ public final class EditorGui implements Listener {
                 String key = Texts.trim(parts[0]);
                 String ending = Texts.trim(parts[1]);
                 applyEdit(player, holder, session, false,
-                        doc -> doc.set(ending, "options", optionId, "ending_map", key),
+                        doc -> doc.set(ending, "option_points", optionId, "ending_map", key),
                         "field.ending_map", key + "=" + ending);
             });
             default -> {
@@ -630,7 +630,7 @@ public final class EditorGui implements Listener {
                     return;
                 }
                 applyEdit(player, holder, session, false,
-                        doc -> doc.set(value, "options", optionId, "cases", caseKey, "label"),
+                        doc -> doc.set(value, "option_points", optionId, "cases", caseKey, "label"),
                         "field.case_label", value);
             });
             case 12 -> prompt(player, holder, "case_value", text -> {
@@ -640,28 +640,28 @@ public final class EditorGui implements Listener {
                     return;
                 }
                 applyEdit(player, holder, session, false,
-                        doc -> doc.set(value, "options", optionId, "cases", caseKey, "case"),
+                        doc -> doc.set(value, "option_points", optionId, "cases", caseKey, "case"),
                         "field.case_value", value);
             });
             case 14 -> prompt(player, holder, "case_ending", text -> {
                 String value = Texts.trim(text);
                 String stored = "-".equals(value) ? "" : value;
                 applyEdit(player, holder, session, false,
-                        doc -> doc.set(stored, "options", optionId, "cases", caseKey, "ending"),
+                        doc -> doc.set(stored, "option_points", optionId, "cases", caseKey, "ending"),
                         "field.case_ending", stored.isEmpty() ? "-" : stored);
             });
             case SLOT_ACTION -> {
                 if (requireCorners(player, session)) {
                     applyEdit(player, holder, session, false, doc ->
                             doc.appendListItem(flatRegion(session),
-                                    "options", optionId, "cases", caseKey, "seal_regions"),
+                                    "option_points", optionId, "cases", caseKey, "seal_regions"),
                             "field.seal_regions", "1");
                 }
             }
             case 18 -> applyEdit(player, holder, session, false, doc -> {
-                int last = doc.sequenceSize("options", optionId, "cases", caseKey, "seal_regions") - 1;
+                int last = doc.sequenceSize("option_points", optionId, "cases", caseKey, "seal_regions") - 1;
                 if (last >= 0) {
-                    doc.removeListItem(last, "options", optionId, "cases", caseKey, "seal_regions");
+                    doc.removeListItem(last, "option_points", optionId, "cases", caseKey, "seal_regions");
                 }
             }, "field.seal_regions", "-1");
             default -> {

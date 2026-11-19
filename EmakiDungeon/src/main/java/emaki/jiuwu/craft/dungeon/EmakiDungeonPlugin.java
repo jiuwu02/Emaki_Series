@@ -164,6 +164,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private AuditService auditService;
     private PerformanceMonitor performanceMonitor;
     private InstanceRegistry registry;
+    private emaki.jiuwu.craft.dungeon.random.RandomDungeonService randomService;
     private Function<String, DungeonConfig> configOf;
     private DungeonTypeRegistry typeRegistry;
     private DungeonRecordStore records;
@@ -246,6 +247,10 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (hud != null) {
             hud.shutdown();
             hud = null;
+        }
+        if (randomService != null) {
+            randomService.shutdown();
+            randomService = null;
         }
         if (regionTracker != null) {
             regionTracker.shutdown();
@@ -589,6 +594,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         stateService.start();
         regionTracker = new RegionTracker(this, dispatcher, registry);
         regionTracker.bindDebug(debugLogger());
+        regionTracker.bindParty(parties);
         scoreTracker = new emaki.jiuwu.craft.dungeon.score.ScoreTracker();
         coordinator.bindScoreTracker(scoreTracker);
         coordinator.bindDropCleanup(instanceId -> rewardChests.remove(instanceId));
@@ -631,6 +637,17 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         router.bindExitService(exitService);
         router.bindMatchmaking(matchmaking);
         router.bindStateService(stateService);
+        var randomService = new emaki.jiuwu.craft.dungeon.random.RandomDungeonService(
+                this, dispatcher, messageService,
+                getDataFolder(), worldContainerOf(), disposer, registry,
+                new emaki.jiuwu.craft.dungeon.world.WorldNames(worldContainerOf()),
+                instance -> buildFlowRuntime(instance, stateService, actionBridge, tempItemManager),
+                stateService::register);
+        var randomCommands = new emaki.jiuwu.craft.dungeon.random.command.RandomCommands(
+                randomService, messageService);
+        router.bindRandom(randomCommands);
+        randomService.loadAll();
+        this.randomService = randomService;
 
         getServer().getPluginManager().registerEvents(
                 new DungeonLifecycleListener(recovery, parties, scriptManager, ticketService), this);
@@ -736,6 +753,15 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 instance.dungeonId() + File.separator + "flow.yml");
         try {
             definition = flowLoader.load(flowFile.isFile() ? flowFile : templateFlow);
+            for (String deprecated : flowLoader.deprecations()) {
+                int arrow = deprecated.indexOf('→');
+                messageService.warning(null, "console.flow_deprecated_key", Map.of(
+                        "key", arrow < 0 ? deprecated : deprecated.substring(0, arrow),
+                        "replacement", arrow < 0 ? "" : deprecated.substring(arrow + 1)));
+            }
+            for (String flowWarning : flowLoader.warnings()) {
+                debugLogger().logRaw("dungeon", (java.util.UUID) null, "flow warning | " + flowWarning);
+            }
         } catch (RuntimeException exception) {
             messageService.warning(null, "console.flow_load_failed", Map.of(
                     "instance", instance.instanceId(),

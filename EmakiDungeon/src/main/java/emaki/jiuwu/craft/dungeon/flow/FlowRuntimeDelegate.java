@@ -34,6 +34,7 @@ import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Sound;
@@ -92,6 +93,13 @@ final class FlowRuntimeDelegate {
             }
         }
         ownerRef.scheduledTasks.clear();
+        for (Map.Entry<UUID, BossBar> entry : ownerRef.hintBossBars.entrySet()) {
+            Player player = Bukkit.getPlayer(entry.getKey());
+            if (player != null) {
+                player.hideBossBar(entry.getValue());
+            }
+        }
+        ownerRef.hintBossBars.clear();
     }
 
     boolean schedule(Supplier<TaskToken> action, String description) {
@@ -247,6 +255,10 @@ final class FlowRuntimeDelegate {
             if (!entered) {
                 return;
             }
+            if (!ownerRef.adjudicator.evaluator().evaluateAll(room.conditions(), "AND",
+                    new EvalContext(playerId, payload))) {
+                return;
+            }
             if (ownerRef.currentRoomOrder == Integer.MIN_VALUE) {
                 ownerRef.currentRoomOrder = room.order();
                 ownerRef.notifyRoomEntered(room.id(), playerId);
@@ -324,7 +336,7 @@ final class FlowRuntimeDelegate {
     }
 
     void scriptHint(String text, String channel) {
-        ownerRef.submitHint(null, text, channel == null || channel.isBlank() ? "chat" : channel);
+        ownerRef.submitHint(null, text, channel == null || channel.isBlank() ? "message" : channel);
     }
 
     void onRange(IngressEvent event) {
@@ -333,17 +345,20 @@ final class FlowRuntimeDelegate {
         if (spawnPoint == null || !spawnPoint.head().enabled()) {
             return;
         }
-        if (spawnPoint.once() && ownerRef.hasTriggeredSpawn(spawnId)) {
+        if (WaveController.isBossForm(spawnPoint)) {
+            return;
+        }
+        if (spawnPoint.trigger().once() && ownerRef.hasTriggeredSpawn(spawnId)) {
             return;
         }
         int playersInRange = event.payload().get(Facts.RANGE_PLAYERS) instanceof Number number
                 ? number.intValue() : 0;
-        if (playersInRange < spawnPoint.minPlayers()) {
+        if (playersInRange < spawnPoint.trigger().minPlayers()) {
             return;
         }
         UUID playerId = EventIngressKeys.player(event.payload());
         EvalContext context = new EvalContext(playerId, event.payload());
-        if (!ownerRef.adjudicator.adjudicate(spawnPoint.head(), List.of(), context, playerId).allowed()) {
+        if (!ownerRef.adjudicator.adjudicate(spawnPoint.head(), spawnPoint.conditions(), context, playerId).allowed()) {
             return;
         }
         ownerRef.markSpawnTriggered(spawnId);
@@ -411,7 +426,7 @@ final class FlowRuntimeDelegate {
             if (!ownerRef.triggeredSpawns.add("kill_target:" + entry.getKey())) {
                 continue;
             }
-            if (ownerRef.adjudicator.adjudicate(killTarget.head(), List.of(), context, playerId).allowed()) {
+            if (ownerRef.adjudicator.adjudicate(killTarget.head(), killTarget.conditions(), context, playerId).allowed()) {
                 ownerRef.fireTrigger(TriggerType.onKillCount, playerCtx(playerId, "count",
                         String.valueOf(ownerRef.factInt(countKey, 0))));
                 ownerRef.executeActions(killTarget.actions(), context, playerId);
@@ -510,18 +525,41 @@ final class FlowRuntimeDelegate {
     }
 
     void showHint(Player player, Component component, String channel) {
-        if ("title".equals(channel)) {
-            player.showTitle(Title.title(
+        String normalized = channel == null || channel.isBlank()
+                ? "message" : channel.trim().toLowerCase(Locale.ROOT);
+        switch (normalized) {
+            case "title" -> player.showTitle(Title.title(
                     component, Component.empty(),
                     Title.Times.times(
                     Duration.ofMillis(100),
                     Duration.ofMillis(600),
                     Duration.ofMillis(100))));
-        } else if ("actionbar".equals(channel)) {
-            player.sendActionBar(component);
-        } else {
-            player.sendMessage(component);
+            case "actionbar" -> player.sendActionBar(component);
+            case "bossbar" -> showBossBar(player, component);
+            case "message", "chat" -> player.sendMessage(component);
+            default -> player.sendMessage(component);
         }
+    }
+
+    void showBossBar(Player player, Component component) {
+        UUID playerId = player.getUniqueId();
+        BossBar previous = ownerRef.hintBossBars.remove(playerId);
+        if (previous != null) {
+            player.hideBossBar(previous);
+        }
+        BossBar bar = BossBar.bossBar(component, 1.0F, BossBar.Color.PURPLE, BossBar.Overlay.PROGRESS);
+        player.showBossBar(bar);
+        ownerRef.hintBossBars.put(playerId, bar);
+        ownerRef.scheduleGlobal(100L, "提示 Boss 栏移除", () -> {
+            BossBar current = ownerRef.hintBossBars.remove(playerId);
+            if (current == null) {
+                return;
+            }
+            Player target = Bukkit.getPlayer(playerId);
+            if (target != null) {
+                target.hideBossBar(current);
+            }
+        });
     }
 
     List<UUID> audienceOf(UUID playerId) {

@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.22"
+version: "1.0.28"
 
 tags:
   challenge: '[ 挑战 ]'
@@ -37,6 +37,7 @@ command:
     <gray>/edg recruit <open|close|list|join></gray> <white>组队招募板</white>
     <gray>/edg match <join|leave></gray> <white>本服自动匹配</white>
     <gray>/edg spectate <next|prev></gray> <white>切换观战目标</white>
+    <gray>/edg random <template|create|enter|leave|list|records|stop|replay|reload></gray> <white>随机地牢</white>
   unknown: "<red>未知子命令: <command>, 请使用 /edg help</red>"
   list:
     empty: "<yellow>暂无可用副本</yellow>"
@@ -249,7 +250,7 @@ editor:
   pos_set: "<green>角点<which> 已记录: <coord></green>"
   pos_missing: "<red>缺少角点<which>, 请用 /edg editor pos<which> 记录</red>"
   pos_auto: "<gray>已自动记录角点1, 站到区域另一角用 /edg editor pos2 记录后重试</gray>"
-  mark_usage: "<red>用法: /edg editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|boss|option|hint|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
+  mark_usage: "<red>用法: /edg editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|option|tip|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
   mark_unknown_type: "<red>未知标记类型: <type></red>"
   mark_ok: "<green>已暂存标记 <type> -> <id> (<coord>), 保存后写入流程 YAML</green>"
   mark_dup: "<red>已存在同名模块: <id></red>"
@@ -271,9 +272,9 @@ editor:
   fill_started: "<gray>已提交区域填充 <count> 格, 分帧写入中</gray>"
   fill_too_large: "<red>填充数量 <count> 超过上限 <limit></red>"
   help_mark: |
-    <gray>===== 标记速查 (共 22 类) =====</gray>
+    <gray>===== 标记速查 (共 21 类) =====</gray>
     <white>用法: /edg editor mark 类型 [id] (类型用 Tab 补全, 或看主面板"全部模块")</white>
-    <white>单点(视线方块): entry/exit/spawn/block/chest/boss/option/hint/item/fx/respawn</white>
+    <white>单点(视线方块): entry/exit/spawn/block/chest/option/tip/item/fx/respawn</white>
     <white>区域(两点): room/gate/trigger/teleport/boundary/effect/mechanism/room_timer/checkpoint</white>
     <white>无坐标: kill_target/temp_item (在编辑世界任意处即可标记)</white>
     <white>角点: /edg editor pos1 与 /edg editor pos2</white>
@@ -293,9 +294,8 @@ editor:
     teleport: "传送区"
     boundary: "边界区"
     effect: "效果区"
-    hint: "提示点"
+    tip: "提示点"
     fx: "特效点"
-    boss: "Boss 点"
     block: "方块交互"
     item: "物品交互"
     mechanism: "机关"
@@ -315,7 +315,7 @@ editor:
     branches: "<white>分支选项</white>"
     help: "<yellow>标记用法速查</yellow>"
     exits: "<white>离开副本点位</white>"
-    modules: "<white>全部模块 (22 类)</white>"
+    modules: "<white>全部模块 (21 类)</white>"
     module_item: "<white><type></white>"
     module_count: "<gray>节点: <count></gray>"
     module_no_nodes: "<yellow><type> 暂无节点, 点右下新增模块</yellow>"
@@ -358,6 +358,7 @@ editor:
     wave_item: "<white>波次</white>"
     case_item: "<white>候选项</white>"
     field:
+      type: "提示类型 (message/bossbar/actionbar/title)"
       display_name: "显示名称"
       description: "副本描述"
       difficulty_group: "难度分组"
@@ -493,6 +494,7 @@ console:
   instance_crashed: "实例循环异常终止 | 实例=%instance% | 错误=%error%"
   flow_file_failed: "流程 YAML 创建失败 | 副本=%dungeon% | 错误=%error%"
   flow_load_failed: "流程 YAML 加载失败, 使用空定义 | 实例=%instance% | 错误=%error%"
+  flow_deprecated_key: "流程配置键已弃用并归一 | <key> -> <replacement>"
   editor_worlds_swept: "启动清扫编辑世界残留 | 数量=%count%"
   editor_template_saved: "编辑模板已回写 | 副本=%dungeon% | 世代=%generation%"
   script_disabled: "GraalJS 脚本宿主已由配置关闭"
@@ -576,3 +578,63 @@ hud:
     - "已通关: %emakidungeon_data_%dungeon%_cleared%"
     - "通关次数: %emakidungeon_data_%dungeon%_clear_count%"
     - "最佳评分: %emakidungeon_data_%dungeon%_best_score%"
+random:
+  usage: "<red>用法: /edg random <template|create|enter|leave|list|records|stop|replay|reload></red>"
+  no_permission: "<red>你没有权限执行该操作</red>"
+  config_invalid: "<red>随机地牢配置非法, 保留上一份合法配置 | <errors></red>"
+  reloaded: "<green>随机地牢配置与模板已重载</green>"
+  create_busy: "<red>并发实例已达上限 (<active>), 请稍候再试</red>"
+  no_templates: "<red>尚无已注册结构模板, 请先用 /edg random template 采集</red>"
+  layout_failed: "<red>布局失败: 房量 <room-count> 回溯 <attempts> 次仍冲突</red>"
+  allocation_failed: "<red>模板分配失败: 重分配 <limit> 次未达成必选规则</red>"
+  create_started: "<green>随机地牢生成开始 | 实例 <instance> 种子 <seed> 房量 <rooms></green>"
+  unknown_instance: "<red>未知实例: <instance></red>"
+  instance_not_ready: "<red>实例 <instance> 尚未就绪 (<state>)</red>"
+  world_missing: "<red>实例世界缺失: <instance></red>"
+  entered: "<green>已进入随机地牢 <instance></green>"
+  not_in_instance: "<red>你不在随机地牢实例中</red>"
+  left: "<green>已离开随机地牢 <instance></green>"
+  stopped: "<green>实例 <instance> 已销毁</green>"
+  record_missing: "<red>实例记录不存在: <record></red>"
+  replay_config_mismatch: "<red>回放拒绝: config_hash 不一致 | 记录 <expected> 当前 <actual></red>"
+  replay_topology_mismatch: "<red>回放拒绝: 拓扑哈希不一致 | 记录 <expected> 当前 <actual></red>"
+  replay_ok: "<green>回放校验通过 | 记录 <record> 拓扑 <topology-hash></green>"
+  list_header: "<gray>随机地牢实例:</gray>"
+  list_entry: "<gray>- </gray><white><instance></white> <gray><state> 房量 <rooms> 种子 <seed></gray>"
+  records_header: "<gray>实例记录:</gray>"
+  records_entry: "<gray>- </gray><white><record></white>"
+  template:
+    usage: "<red>用法: /edg random template <start|pos1|pos2|meta|anchor|node|save|discard|status></red>"
+    already_open: "<red>你已有采集会话在进行</red>"
+    world_forbidden: "<red>只能在编辑世界内开启模板采集 (先 /edg editor <副本ID>)</red>"
+    started: "<green>模板采集会话已开启 | 世界 <world></green>"
+    no_session: "<red>当前没有采集会话</red>"
+    no_target: "<red>视线内没有目标方块</red>"
+    pos_set: "<green>角点 <which> 已设置: <coord></green>"
+    pos_missing: "<red>缺少角点选区</red>"
+    meta_set: "<green>元数据 <key> = <value></green>"
+    meta_invalid: "<red>元数据取值非法: <key> = <value></red>"
+    meta_unknown: "<red>未知元数据键: <key></red>"
+    anchor_added: "<green>门口锚点 <id> 已登记 @ <coord></green>"
+    anchor_removed: "<green>门口锚点 <id> 已移除</green>"
+    anchor_unknown: "<red>未知锚点: <id></red>"
+    anchor_dup: "<red>锚点 id 重复: <id></red>"
+    anchor_invalid: "<red>锚点截面非法: <id></red>"
+    anchor_not_surface: "<red>锚点 <id> 不在选区表面</red>"
+    anchor_facing_in: "<red>锚点 <id> 朝向未指向选区外</red>"
+    anchor_section_out: "<red>锚点 <id> 开口截面超出选区</red>"
+    seal_missing: "<red>seal 策略缺 seal-block: <id></red>"
+    seal_unresolved: "<red>seal-block 无法解析: <block></red>"
+    node_added: "<green>功能节点 <module>.<id> 已捕获</green>"
+    node_param_set: "<green>节点 <id> 参数 <key> 已更新</green>"
+    node_unknown: "<red>未知节点: <id></red>"
+    node_forbidden: "<red>模板内禁止放置 <module> (入本点由生成器绑定起点房间)</red>"
+    id_invalid: "<red>模板 id 非法: <id></red>"
+    too_large: "<red>选区体积超上限: <id></red>"
+    too_many_blocks: "<red>真实方块数超 max-template-blocks: <id></red>"
+    overwrite_confirm: "<yellow>模板 <id> 已存在, 确认覆盖请追加 confirm</yellow>"
+    overwrite_denied: "<red>模板 <id> 已存在 (overwrite-policy: reject)</red>"
+    save_failed: "<red>模板落库失败: <error></red>"
+    saved: "<green>模板 <id> 已落库 | 方块 <blocks> 锚点 <anchors></green>"
+    discarded: "<gray>采集会话已丢弃</gray>"
+    status: "<gray>采集状态 | 类型 <type> 标签 <tags> 锚点 <anchors> 节点 <nodes> 楼层 <floors></gray>"

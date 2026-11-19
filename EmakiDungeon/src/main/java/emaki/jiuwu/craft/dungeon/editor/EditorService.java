@@ -523,7 +523,7 @@ public final class EditorService implements Listener {
                 node.put("waves", new ArrayList<>());
             }
             case "room" -> {
-                Object rooms = view.value("rooms");
+                Object rooms = view.value("room_zones");
                 node.put("order", rooms instanceof Map<?, ?> existing ? existing.size() + 1 : 1);
                 node.put("region", nestedRegion(first, second));
             }
@@ -579,16 +579,10 @@ public final class EditorService implements Listener {
                 node.put("conditions", new ArrayList<>());
                 node.put("actions", new ArrayList<>());
             }
-            case "boss" -> {
-                node.put("location", locationMap(point));
-                node.put("source", "vanilla");
-                node.put("boss_id", "");
-                node.put("conditions", new ArrayList<>());
-            }
-            case "hint" -> {
+            case "tip" -> {
                 node.put("location", locationMap(point));
                 node.put("text", "");
-                node.put("channel", "chat");
+                node.put("type", "message");
                 node.put("conditions", new ArrayList<>());
             }
             case "teleport" -> {

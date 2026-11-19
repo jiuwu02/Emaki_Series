@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.dungeon.flow;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -133,7 +134,7 @@ public final class WaveController {
             for (int i = 0; i < ref.count(); i++) {
                 int delayTicks = Math.max(0, order) * Math.max(1, wave.intervalTicks());
                 scheduleSpawn(runtime, spawnId, waveIndex, wave.dropLoot(),
-                        spawnPoint.point(), ref.mobId(), delayTicks, waveRuntime);
+                        spawnPoint.point(), ref, delayTicks, waveRuntime);
                 order++;
             }
         }
@@ -141,7 +142,8 @@ public final class WaveController {
     }
 
     private void scheduleSpawn(FlowRuntime runtime, String spawnId, int waveIndex, boolean dropLoot,
-            FlowPoint point, String mobId, int delayTicks, WaveRuntime waveRuntime) {
+            FlowPoint point, FlowModules.MobSpawnRef ref, int delayTicks, WaveRuntime waveRuntime) {
+        String mobId = resolveMobId(ref);
         boolean scheduled = runtime.scheduleGlobal(delayTicks, "波次生成 " + spawnId, () -> {
             if (instance.state() != InstanceState.RUNNING) {
                 return;
@@ -181,7 +183,8 @@ public final class WaveController {
                         }
                         waveRuntime.living.add(entity.getUniqueId());
                         waveRuntime.alive.incrementAndGet();
-                        origins.put(entity.getUniqueId(), new MobOrigin(spawnId, waveIndex, null));
+                        origins.put(entity.getUniqueId(), new MobOrigin(spawnId, waveIndex,
+                                ref.boss() ? ref.mobId() : null));
                     }
                 }
             });
@@ -206,6 +209,9 @@ public final class WaveController {
             debug.logRaw("dungeon", (UUID) null, "boss killed | boss=" + origin.bossId());
             fireTrigger(TriggerType.onBossKill,
                     Map.of("bossId", origin.bossId()));
+        }
+        if (origin.waveIndex() < 0) {
+            return;
         }
         WaveRuntime waveRuntime = waves.get(origin.spawnId());
         if (waveRuntime == null) {
@@ -239,27 +245,58 @@ public final class WaveController {
 
     public void syncBossPoints(FlowRuntime runtime) {
         ConditionEvaluator.EvalContext context = new ConditionEvaluator.EvalContext(null, runtime.factsView());
-        for (FlowModules.BossPointDef bossPoint : runtime.definition().bossPoints().values()) {
-            String bossKey = bossPoint.head().id();
-            if (!bossPoint.head().enabled() || bossesSpawned.contains(bossKey)) {
+        for (FlowModules.SpawnPointModuleDef spawnPoint : runtime.definition().spawnPoints().values()) {
+            if (!isBossForm(spawnPoint)) {
                 continue;
             }
-            if (!runtime.adjudicator().evaluator().evaluateAll(bossPoint.conditions(), "AND", context)) {
+            String bossKey = spawnPoint.head().id();
+            if (!spawnPoint.head().enabled() || bossesSpawned.contains(bossKey)) {
                 continue;
             }
-            if (runtime.adjudicator().counter().check(bossPoint.head(), null)
+            if (!runtime.adjudicator().evaluator().evaluateAll(spawnPoint.conditions(), "AND", context)) {
+                continue;
+            }
+            if (runtime.adjudicator().counter().check(spawnPoint.head(), null)
                     != TriggerCounter.ExhaustedTier.NONE) {
                 continue;
             }
-            if (!runtime.adjudicator().counter().consume(bossPoint.head(), null)) {
+            if (!runtime.adjudicator().counter().consume(spawnPoint.head(), null)) {
                 continue;
             }
             bossesSpawned.add(bossKey);
-            spawnBoss(runtime, bossPoint);
+            spawnBoss(runtime, spawnPoint);
         }
     }
 
-    private void spawnBoss(FlowRuntime runtime, FlowModules.BossPointDef bossPoint) {
+    static boolean isBossForm(FlowModules.SpawnPointModuleDef spawnPoint) {
+        if (spawnPoint == null || !spawnPoint.trigger().once() || spawnPoint.waves().size() != 1) {
+            return false;
+        }
+        List<FlowModules.MobSpawnRef> mobs = spawnPoint.waves().get(0).mobs();
+        return mobs.size() == 1 && mobs.get(0).boss();
+    }
+
+    static String resolveMobId(FlowModules.MobSpawnRef ref) {
+        String id = ref.mobId();
+        String source = ref.source() == null ? "auto" : ref.source();
+        return switch (source) {
+            case "vanilla" -> bareMobId(id);
+            case "mythic" -> id.indexOf(':') >= 0 ? id : "mythic:" + id;
+            case "emaki-mobs" -> id.indexOf(':') >= 0 ? id : "emakimobs:" + id;
+            default -> id;
+        };
+    }
+
+    private static String bareMobId(String id) {
+        int index = id.indexOf(':');
+        return index < 0 ? id : id.substring(index + 1);
+    }
+
+    private void spawnBoss(FlowRuntime runtime, FlowModules.SpawnPointModuleDef spawnPoint) {
+        FlowModules.WaveDef wave = spawnPoint.waves().get(0);
+        FlowModules.MobSpawnRef ref = wave.mobs().get(0);
+        String mobId = resolveMobId(ref);
+        FlowPoint point = spawnPoint.point();
         dispatcher.runGlobal(plugin, () -> {
             if (instance.state() != InstanceState.RUNNING) {
                 return;
@@ -282,29 +319,26 @@ public final class WaveController {
 
                 @Override
                 public double[] anchor() {
-                    FlowPoint point = bossPoint.point();
                     return new double[] {point.x(), point.y(), point.z()};
                 }
 
                 @Override
                 public void execute() {
-                    String source = bossPoint.source() == null || bossPoint.source().isBlank()
-                            ? "vanilla"
-                            : bossPoint.source();
-                    String mobId = source + ":" + bossPoint.bossId();
-                    if ("vanilla".equals(source)) {
-                        mobId = bossPoint.bossId();
-                    }
                     MobSource.SpawnResult result =
-                            mobSource.spawn(instance.instanceId(), bossPoint.point(), mobId, 1);
+                            mobSource.spawn(instance.instanceId(), point, mobId, 1);
                     for (LivingEntity entity : result.spawned()) {
                         applyDifficultyTuning(entity);
-                        origins.put(entity.getUniqueId(), new MobOrigin("", -1, bossPoint.bossId()));
+                        if (!wave.dropLoot()) {
+                            entity.getPersistentDataContainer().set(NO_DROP_KEY,
+                                    PersistentDataType.BYTE, (byte) 1);
+                        }
+                        origins.put(entity.getUniqueId(),
+                                new MobOrigin(spawnPoint.spawnId(), -1, ref.mobId()));
                     }
                     debug.logRaw("dungeon", (UUID) null,
-                            "boss spawned | boss=" + bossPoint.bossId());
+                            "boss spawned | boss=" + ref.mobId());
                     fireTrigger(TriggerType.onBossSpawn,
-                            Map.of("bossId", bossPoint.bossId()));
+                            Map.of("bossId", ref.mobId()));
                 }
             });
         });

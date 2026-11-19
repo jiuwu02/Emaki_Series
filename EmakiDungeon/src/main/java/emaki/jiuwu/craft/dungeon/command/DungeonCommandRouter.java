@@ -104,6 +104,20 @@ public final class DungeonCommandRouter {
 
     public void bindAudit(AuditService audit) { new DungeonCommandRouterDelegate(this).bindAudit(audit); }
 
+    private emaki.jiuwu.craft.dungeon.random.command.RandomCommands randomCommands;
+
+    public void bindRandom(emaki.jiuwu.craft.dungeon.random.command.RandomCommands randomCommands) {
+        this.randomCommands = randomCommands;
+    }
+
+    private void routeRandom(Player player, String[] args) {
+        if (randomCommands == null) {
+            messages.send(player, "command.unknown", Map.of("command", "random"));
+            return;
+        }
+        randomCommands.route(player, args, player.hasPermission("emakidungeon.admin"));
+    }
+
     private void routeAdmin(CommandSender sender, String[] args) {
         if (!sender.hasPermission("emakidungeon.admin")) {
             messages.send(sender, CommandKeys.NO_PERMISSION, Map.of());
@@ -389,6 +403,7 @@ public final class DungeonCommandRouter {
             case "recruit" -> routeRecruit(player, args);
             case "match" -> routeMatch(player, args);
             case "spectate" -> routeSpectate(player, args);
+            case "random" -> routeRandom(player, args);
             default -> messages.send(sender, "command.unknown", Map.of("command", sub));
         }
     }

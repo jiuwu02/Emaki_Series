@@ -298,9 +298,8 @@ public final class EditorModuleMarkers {
             case "exit" -> Color.RED;
             case "entry", "respawn" -> Color.fromRGB(0x7FFFD4);
             case "checkpoint" -> Color.fromRGB(0x00BFFF);
-            case "boss" -> Color.fromRGB(0x8B0000);
             case "block" -> Color.fromRGB(0xA0522D);
-            case "hint" -> Color.fromRGB(0xFF69B4);
+            case "tip" -> Color.fromRGB(0xFF69B4);
             case "teleport" -> Color.fromRGB(0x9400D3);
             case "boundary" -> Color.fromRGB(0x696969);
             case "effect" -> Color.fromRGB(0x32CD32);

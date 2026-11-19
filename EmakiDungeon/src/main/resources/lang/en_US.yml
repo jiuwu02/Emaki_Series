@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.22"
+version: "1.0.28"
 
 tags:
   challenge: '[ challenge ]'
@@ -37,6 +37,7 @@ command:
     <gray>/edg recruit <open|close|list|join></gray> <white>Party recruit board</white>
     <gray>/edg match <join|leave></gray> <white>Server-local auto matchmaking</white>
     <gray>/edg spectate <next|prev></gray> <white>Switch spectator target</white>
+    <gray>/edg random <template|create|enter|leave|list|records|stop|replay|reload></gray> <white>Random dungeon</white>
   unknown: "<red>Unknown subcommand: <command>, use /edg help</red>"
   list:
     empty: "<yellow>No dungeons available</yellow>"
@@ -249,7 +250,7 @@ editor:
   pos_set: "<green>Corner <which> recorded: <coord></green>"
   pos_missing: "<red>Corner <which> is missing, record it with /edg editor pos<which></red>"
   pos_auto: "<gray>Corner 1 recorded automatically, stand at the other corner, record it with /edg editor pos2 and retry</gray>"
-  mark_usage: "<red>Usage: /edg editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|boss|option|hint|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
+  mark_usage: "<red>Usage: /edg editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|option|tip|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
   mark_unknown_type: "<red>Unknown mark type: <type></red>"
   mark_ok: "<green>Staged mark <type> -> <id> (<coord>), written to the flow YAML on save</green>"
   mark_dup: "<red>A module with this id already exists: <id></red>"
@@ -271,9 +272,9 @@ editor:
   fill_started: "<gray>Region fill queued: <count> blocks, writing in frames</gray>"
   fill_too_large: "<red>Fill volume <count> exceeds the limit <limit></red>"
   help_mark: |
-    <gray>===== Mark reference (22 types) =====</gray>
+    <gray>===== Mark reference (21 types) =====</gray>
     <white>Usage: /edg editor mark type [id] (Tab-complete the type, or use the "All modules" panel)</white>
-    <white>Single point (block in sight): entry/exit/spawn/block/chest/boss/option/hint/item/fx/respawn</white>
+    <white>Single point (block in sight): entry/exit/spawn/block/chest/option/tip/item/fx/respawn</white>
     <white>Region (two corners): room/gate/trigger/teleport/boundary/effect/mechanism/room_timer/checkpoint</white>
     <white>No coordinates: kill_target/temp_item (mark from anywhere in the edit world)</white>
     <white>Corners: /edg editor pos1 and /edg editor pos2</white>
@@ -293,9 +294,8 @@ editor:
     teleport: "Teleport zone"
     boundary: "Boundary zone"
     effect: "Effect zone"
-    hint: "Hint point"
+    tip: "Hint point"
     fx: "FX point"
-    boss: "Boss point"
     block: "Block interaction"
     item: "Item interaction"
     mechanism: "Mechanism"
@@ -315,7 +315,7 @@ editor:
     branches: "<white>Branch options</white>"
     help: "<yellow>Mark reference</yellow>"
     exits: "<white>Leave-dungeon points</white>"
-    modules: "<white>All modules (22 types)</white>"
+    modules: "<white>All modules (21 types)</white>"
     module_item: "<white><type></white>"
     module_count: "<gray>Nodes: <count></gray>"
     module_no_nodes: "<yellow><type> has no nodes, use Add module</yellow>"
@@ -358,6 +358,7 @@ editor:
     wave_item: "<white>Wave</white>"
     case_item: "<white>Candidate</white>"
     field:
+      type: "Tip type (message/bossbar/actionbar/title)"
       display_name: "Display name"
       description: "Dungeon description"
       difficulty_group: "Difficulty group"
@@ -493,6 +494,7 @@ console:
   instance_crashed: "Instance loop crashed | instance=%instance% | error=%error%"
   flow_file_failed: "Failed to create flow YAML | dungeon=%dungeon% | error=%error%"
   flow_load_failed: "Failed to load flow YAML, empty definition used | instance=%instance% | error=%error%"
+  flow_deprecated_key: "Deprecated flow config key normalized | <key> -> <replacement>"
   editor_worlds_swept: "Startup sweep removed leftover edit worlds | count=%count%"
   editor_template_saved: "Edit template written back | dungeon=%dungeon% | generation=%generation%"
   script_disabled: "GraalJS script host disabled by configuration"
@@ -576,3 +578,63 @@ hud:
     - "Cleared: %emakidungeon_data_%dungeon%_cleared%"
     - "Clear count: %emakidungeon_data_%dungeon%_clear_count%"
     - "Best score: %emakidungeon_data_%dungeon%_best_score%"
+random:
+  usage: "<red>Usage: /edg random <template|create|enter|leave|list|records|stop|replay|reload></red>"
+  no_permission: "<red>You do not have permission for this action</red>"
+  config_invalid: "<red>Random dungeon config invalid, keeping last valid config | <errors></red>"
+  reloaded: "<green>Random dungeon config and templates reloaded</green>"
+  create_busy: "<red>Concurrent instance cap reached (<active>), try again later</red>"
+  no_templates: "<red>No registered structure templates yet, capture one with /edg random template first</red>"
+  layout_failed: "<red>Layout failed: room count <room-count> still conflicting after <attempts> backtracks</red>"
+  allocation_failed: "<red>Template allocation failed: mandatory rules unmet after <limit> reallocations</red>"
+  create_started: "<green>Random dungeon generation started | instance <instance> seed <seed> rooms <rooms></green>"
+  unknown_instance: "<red>Unknown instance: <instance></red>"
+  instance_not_ready: "<red>Instance <instance> is not ready (<state>)</red>"
+  world_missing: "<red>Instance world missing: <instance></red>"
+  entered: "<green>Entered random dungeon <instance></green>"
+  not_in_instance: "<red>You are not inside a random dungeon instance</red>"
+  left: "<green>Left random dungeon <instance></green>"
+  stopped: "<green>Instance <instance> destroyed</green>"
+  record_missing: "<red>Instance record not found: <record></red>"
+  replay_config_mismatch: "<red>Replay rejected: config_hash mismatch | record <expected> current <actual></red>"
+  replay_topology_mismatch: "<red>Replay rejected: topology hash mismatch | record <expected> current <actual></red>"
+  replay_ok: "<green>Replay verified | record <record> topology <topology-hash></green>"
+  list_header: "<gray>Random dungeon instances:</gray>"
+  list_entry: "<gray>- </gray><white><instance></white> <gray><state> rooms <rooms> seed <seed></gray>"
+  records_header: "<gray>Instance records:</gray>"
+  records_entry: "<gray>- </gray><white><record></white>"
+  template:
+    usage: "<red>Usage: /edg random template <start|pos1|pos2|meta|anchor|node|save|discard|status></red>"
+    already_open: "<red>You already have a capture session open</red>"
+    world_forbidden: "<red>Template capture only works inside the edit world (run /edg editor <dungeonId> first)</red>"
+    started: "<green>Template capture session started | world <world></green>"
+    no_session: "<red>No capture session active</red>"
+    no_target: "<red>No target block in sight</red>"
+    pos_set: "<green>Corner <which> set: <coord></green>"
+    pos_missing: "<red>Selection corners missing</red>"
+    meta_set: "<green>Metadata <key> = <value></green>"
+    meta_invalid: "<red>Invalid metadata value: <key> = <value></red>"
+    meta_unknown: "<red>Unknown metadata key: <key></red>"
+    anchor_added: "<green>Door anchor <id> registered @ <coord></green>"
+    anchor_removed: "<green>Door anchor <id> removed</green>"
+    anchor_unknown: "<red>Unknown anchor: <id></red>"
+    anchor_dup: "<red>Duplicate anchor id: <id></red>"
+    anchor_invalid: "<red>Invalid anchor cross-section: <id></red>"
+    anchor_not_surface: "<red>Anchor <id> is not on the selection surface</red>"
+    anchor_facing_in: "<red>Anchor <id> does not face out of the selection</red>"
+    anchor_section_out: "<red>Anchor <id> opening cross-section leaves the selection</red>"
+    seal_missing: "<red>seal policy requires a seal-block: <id></red>"
+    seal_unresolved: "<red>seal-block cannot be resolved: <block></red>"
+    node_added: "<green>Module node <module>.<id> captured</green>"
+    node_param_set: "<green>Node <id> param <key> updated</green>"
+    node_unknown: "<red>Unknown node: <id></red>"
+    node_forbidden: "<red>Placing <module> inside templates is forbidden (entry is bound to the start room)</red>"
+    id_invalid: "<red>Invalid template id: <id></red>"
+    too_large: "<red>Selection volume over the limit: <id></red>"
+    too_many_blocks: "<red>Real block count over max-template-blocks: <id></red>"
+    overwrite_confirm: "<yellow>Template <id> exists, append confirm to overwrite</yellow>"
+    overwrite_denied: "<red>Template <id> exists (overwrite-policy: reject)</red>"
+    save_failed: "<red>Template save failed: <error></red>"
+    saved: "<green>Template <id> saved | blocks <blocks> anchors <anchors></green>"
+    discarded: "<gray>Capture session discarded</gray>"
+    status: "<gray>Capture status | type <type> tags <tags> anchors <anchors> nodes <nodes> floors <floors></gray>"
