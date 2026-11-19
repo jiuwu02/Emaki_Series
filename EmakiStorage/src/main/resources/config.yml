@@ -1,7 +1,7 @@
 # EmakiStorage 主配置
 # 控制仓库界面, 容量, 存取行为, 自动拾取, 搜索, 持久化与流水日志
 
-version: "2.0.2"
+version: "2.0.3"
 
 # 语言文件名, 对应 lang/<language>.yml
 language: "zh_CN"
@@ -116,10 +116,25 @@ behavior:
       buttons:
         - label: "dialog.confirm"
   deposit_filter:
-    # 筛选模式: blacklist | whitelist | off
+    # 筛选模式: blacklist (黑名单: 命中名单的物品拒绝存入) | whitelist (白名单: 只有命中名单的物品可存入) | off
     mode: blacklist
     # entries 与 matcher 取 OR; 两者均空时关闭筛选, 再由 mode 决定放行或拒绝
     # 物品源使用连字符; 组件 ID/path 使用冒号, 省略命名空间时补 minecraft:
+    # entries:
+    #   - "emakiitem-sword_01"
+    #   - "diamond_sword"
+    # matcher 为物品匹配器键集: name_match / lore_match (mode: exact 精确 | contains 模糊 | regex),
+    # component / pdc_match 等组件匹配, 配合 all_of / any_of / none_of 组合 AND/OR 条件;
+    # 名字与 lore 按去色纯文本比对, 完整键集与示例见文档"物品匹配器"
+    # matcher:
+    #   type: any_of
+    #   matchers:
+    #     - type: name_match
+    #       pattern: "任务物品"
+    #       mode: contains
+    #     - type: lore_match
+    #       pattern: "绑定"
+    #       mode: exact
   # 是否允许存入带唯一标记的物品, 例如 EmakiItem 实例 UUID
   allow_unique_items: true
   # 单槽达到上限后, 是否允许同一物品继续占用后续槽位

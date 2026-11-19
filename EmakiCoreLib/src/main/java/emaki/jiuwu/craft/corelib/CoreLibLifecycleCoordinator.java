@@ -33,6 +33,7 @@ import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.runtime.CorePluginLifecycle;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.matcher.NameMatcherSupport;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.log.LogTags;
@@ -50,6 +51,7 @@ final class CoreLibLifecycleCoordinator
     public CoreLibRuntimeComponents initialize(EmakiCoreLibPlugin plugin) {
         CoreLibConfig config = plugin.configModel() == null ? CoreLibConfig.defaults() : plugin.configModel();
         MiniMessages.configureDefaultNoItalic(config.miniMessageConfig().defaultNoItalic());
+        NameMatcherSupport.installTranslations(plugin.vanillaTranslationService());
         ItemSourceService itemSourceService = plugin.itemSourceService();
         LanguageLoader languageLoader =
                 new LanguageLoader(plugin, "lang", "lang", config.language(), FALLBACK_LANGUAGE);

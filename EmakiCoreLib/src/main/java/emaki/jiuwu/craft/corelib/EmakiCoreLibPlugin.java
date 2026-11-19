@@ -66,6 +66,7 @@ import emaki.jiuwu.craft.corelib.gui.packet.PacketBackendInstaller;
 import emaki.jiuwu.craft.corelib.script.GraalJsEngine;
 import emaki.jiuwu.craft.corelib.script.bridge.CoreLibScriptsCoordinator;
 import emaki.jiuwu.craft.corelib.text.VanillaLanguageDownloader;
+import emaki.jiuwu.craft.corelib.matcher.NameMatcherSupport;
 import emaki.jiuwu.craft.corelib.text.VanillaTranslationService;
 
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
@@ -419,6 +420,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         configModel = candidateConfig;
         DebugLogger.setGlobalAllEnabled(configModel.debugConfig().globalAll());
         MiniMessages.configureDefaultNoItalic(configModel.miniMessageConfig().defaultNoItalic());
+        NameMatcherSupport.installTranslations(vanillaTranslationService);
         if (configModel.guiConfig() != null) {
             GuiClickThrottle.configureIntervalMs(configModel.guiConfig().clickIntervalMs());
         }

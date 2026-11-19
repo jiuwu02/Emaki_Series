@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.corelib.matcher;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -29,6 +30,7 @@ import java.util.logging.Level;
 public sealed interface Matcher permits
         Matcher.PdcMatcher,
         Matcher.LoreMatcher,
+        Matcher.NameMatcher,
         Matcher.ComponentMatcher,
         Matcher.VariableExprMatcher,
         Matcher.CompareTargetMatcher,
@@ -63,6 +65,7 @@ public sealed interface Matcher permits
                             + ItemRequirement.KEY_ITEM_SOURCES + "' 字段, 该字段与匹配器按 AND 求值");
             case "pdc_match", "pdc" -> parsePdcMatch(section);
             case "lore_match", "lore" -> parseLoreMatch(section);
+            case "name_match", "name" -> parseNameMatch(section);
             case "component", "component_match" -> parseComponentMatch(section);
             case "variable_expr", "expr", "expression" -> parseVariableExpr(section);
             case "compare_target", "target" -> parseCompareTarget(section);
@@ -133,6 +136,20 @@ public sealed interface Matcher permits
             default -> LoreMatchMode.CONTAINS;
         };
         return new LoreMatcher(pattern, mode);
+    }
+
+    private static @NotNull Matcher parseNameMatch(@NotNull YamlSection section) {
+        String pattern = section.getString("pattern", "");
+        if (Texts.isBlank(pattern)) {
+            return reject("name_match 缺少必需的 'pattern' 键");
+        }
+        String modeStr = Texts.lower(section.getString("mode", "contains"));
+        LoreMatchMode mode = switch (modeStr) {
+            case "exact", "equals" -> LoreMatchMode.EXACT;
+            case "regex", "pattern" -> LoreMatchMode.REGEX;
+            default -> LoreMatchMode.CONTAINS;
+        };
+        return new NameMatcher(pattern, mode);
     }
 
     private static @NotNull Matcher parseComponentMatch(@NotNull YamlSection section) {
@@ -386,25 +403,91 @@ public sealed interface Matcher permits
             return lines;
         }
 
+        private static List<String> plainLines(@Nullable ItemMeta meta) {
+            if (meta == null || !meta.hasLore()) {
+                return List.of();
+            }
+            List<Component> lore = meta.lore();
+            if (lore == null || lore.isEmpty()) {
+                return List.of();
+            }
+            List<String> lines = new ArrayList<>(lore.size());
+            for (Component line : lore) {
+                String plain = MiniMessages.plain(line);
+                if (plain != null && !plain.isBlank()) {
+                    lines.add(plain.trim());
+                }
+            }
+            return lines;
+        }
+
         @Override
         public boolean test(@NotNull MatchContext context) {
             if (context.item() == null || !context.item().hasItemMeta()) {
                 return false;
             }
-            List<String> lore = loreLines(context.item().getItemMeta());
+            ItemMeta meta = context.item().getItemMeta();
+            List<String> lore = loreLines(meta);
             if (lore.isEmpty()) {
                 return false;
             }
+            List<String> plain = plainLines(meta);
+            String needle = pattern.toLowerCase(Locale.ROOT);
             return switch (mode) {
-                case CONTAINS -> lore.stream().anyMatch(line -> line.contains(pattern));
-                case EXACT -> lore.stream().anyMatch(line -> line.equals(pattern));
+                case CONTAINS -> lore.stream().anyMatch(line -> line.contains(pattern))
+                        || plain.stream().anyMatch(line -> line.toLowerCase(Locale.ROOT).contains(needle));
+                case EXACT -> lore.stream().anyMatch(line -> line.equals(pattern))
+                        || plain.stream().anyMatch(line -> line.toLowerCase(Locale.ROOT).equals(needle));
+                case REGEX -> {
+                    Pattern compiled = regex;
+                    if (compiled == null) {
+                        yield false;
+                    }
+                    boolean matched;
+                    try {
+                        matched = lore.stream().anyMatch(line -> compiled.matcher(line).find())
+                                || plain.stream().anyMatch(line -> compiled.matcher(line).find());
+                    } catch (RuntimeException _) {
+                        matched = false;
+                    }
+                    yield matched;
+                }
+            };
+        }
+    }
+
+    static final class NameMatcher implements Matcher {
+
+        private final String pattern;
+        private final LoreMatchMode mode;
+        private final Pattern regex;
+
+        NameMatcher(@NotNull String pattern, @NotNull LoreMatchMode mode) {
+            this.pattern = pattern;
+            this.mode = mode;
+            this.regex = mode == LoreMatchMode.REGEX ? LoreMatcher.compile(pattern) : null;
+        }
+
+        @Override
+        public boolean test(@NotNull MatchContext context) {
+            if (context.item() == null || context.item().getType().isAir()) {
+                return false;
+            }
+            List<String> names = NameMatcherSupport.names(context.item());
+            if (names.isEmpty()) {
+                return false;
+            }
+            String needle = pattern.toLowerCase(Locale.ROOT);
+            return switch (mode) {
+                case CONTAINS -> names.stream().anyMatch(name -> name.toLowerCase(Locale.ROOT).contains(needle));
+                case EXACT -> names.stream().anyMatch(name -> name.toLowerCase(Locale.ROOT).equals(needle));
                 case REGEX -> {
                     Pattern compiled = regex;
                     if (compiled == null) {
                         yield false;
                     }
                     try {
-                        yield lore.stream().anyMatch(line -> compiled.matcher(line).find());
+                        yield names.stream().anyMatch(name -> compiled.matcher(name).find());
                     } catch (RuntimeException _) {
                         yield false;
                     }
