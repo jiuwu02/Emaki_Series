@@ -176,7 +176,7 @@ public final class RecoveryService {
                     "reason", reason
             ));
         }
-        Bukkit.getPluginManager().callEvent(
+        emaki.jiuwu.craft.dungeon.instance.EventFire.fire(
                 new emaki.jiuwu.craft.dungeon.api.event.DungeonExitEvent(
                         pointer,
                         registry.get(pointer) == null ? "" : registry.get(pointer).dungeonId(),

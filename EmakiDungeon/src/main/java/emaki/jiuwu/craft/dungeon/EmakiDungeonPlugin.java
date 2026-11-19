@@ -811,7 +811,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                             "gateId", gateId,
                             "condition", condition
                     ));
-                    Bukkit.getPluginManager().callEvent(
+                    emaki.jiuwu.craft.dungeon.instance.EventFire.fire(
                             new emaki.jiuwu.craft.dungeon.api.event.DungeonGateOpenEvent(
                                     instance.instanceId(), instance.dungeonId(), gateId, condition));
                 },
@@ -820,7 +820,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                             "instanceId", instance.instanceId(),
                             "roomId", roomId
                     ));
-                    Bukkit.getPluginManager().callEvent(
+                    emaki.jiuwu.craft.dungeon.instance.EventFire.fire(
                             new emaki.jiuwu.craft.dungeon.api.event.DungeonRoomClearEvent(
                                     instance.instanceId(), instance.dungeonId(), roomId));
                 });

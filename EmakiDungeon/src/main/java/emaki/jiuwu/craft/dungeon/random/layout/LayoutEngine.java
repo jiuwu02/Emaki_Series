@@ -238,7 +238,7 @@ public final class LayoutEngine {
         int turn = config.corridor.maxTurns() >= 1 && linkRandom.nextBoolean() ? 1 : 0;
         int perpendicularSign = linkRandom.nextBoolean() ? 1 : -1;
         int pdx = dx == 0 ? perpendicularSign : 0;
-        int pdz = dz == 0 ? 0 : perpendicularSign;
+        int pdz = dz == 0 ? perpendicularSign : 0;
         int baseLength = config.corridor.lengthMin()
                 + linkRandom.nextInt(Math.max(1, config.corridor.lengthMax() - config.corridor.lengthMin() + 1));
         int firstRun;
@@ -304,11 +304,11 @@ public final class LayoutEngine {
                             corridorOk = false;
                             break;
                         }
-                        if (columnY > 0 && blocksRoomAt(floor[0], floor[1] + columnY, floor[2], placed, candidate)) {
+                        if (blocksRoomAt(floor[0], floor[1] + columnY, floor[2], placed, candidate)) {
                             corridorOk = false;
                             break;
                         }
-                        if (columnY == 0 && blocksRoomAt(floor[0], floor[1], floor[2], placed, candidate)) {
+                        if (maskCellAt(candidate, floor[0], floor[1] + columnY, floor[2])) {
                             corridorOk = false;
                             break;
                         }
@@ -456,6 +456,10 @@ public final class LayoutEngine {
                 if (blocksRoomExcept(floor[0], floor[1] + columnY, floor[2], placed, skipFrom, skipTo)) {
                     return null;
                 }
+                if (maskCellAt(skipFrom, floor[0], floor[1] + columnY, floor[2])
+                        || maskCellAt(skipTo, floor[0], floor[1] + columnY, floor[2])) {
+                    return null;
+                }
                 runSet.add(packed);
             }
             runCells.add(new CorridorCell(floor[0], floor[1], floor[2], true));
@@ -464,13 +468,22 @@ public final class LayoutEngine {
         return new CorridorRun(edgeIndex, List.copyOf(runCells));
     }
 
+    private boolean maskCellAt(RoomPlacement room, int x, int y, int z) {
+        if (room == null || room.meta().mask() == null) {
+            return false;
+        }
+        int[] local = Transforms.transformInverse(room.meta(), room.variant(),
+                x - room.originX(), y - room.originY(), z - room.originZ());
+        return room.meta().mask().has(local[0], local[1], local[2]);
+    }
+
     private boolean blocksRoomExcept(int x, int y, int z, Map<Integer, RoomPlacement> placed,
             RoomPlacement first, RoomPlacement second) {
         for (RoomPlacement room : placed.values()) {
-            if (room == first || room == second || room.meta().mask() == null) {
+            if (room == first || room == second) {
                 continue;
             }
-            if (room.meta().mask().has(x - room.originX(), y - room.originY(), z - room.originZ())) {
+            if (maskCellAt(room, x, y, z)) {
                 return true;
             }
         }
@@ -499,10 +512,10 @@ public final class LayoutEngine {
 
     private boolean blocksRoomAt(int x, int y, int z, Map<Integer, RoomPlacement> placed, RoomPlacement skip) {
         for (RoomPlacement room : placed.values()) {
-            if (room == skip || room.meta().mask() == null) {
+            if (room == skip) {
                 continue;
             }
-            if (room.meta().mask().has(x - room.originX(), y - room.originY(), z - room.originZ())) {
+            if (maskCellAt(room, x, y, z)) {
                 return true;
             }
         }
@@ -523,11 +536,15 @@ public final class LayoutEngine {
         Mask mask = candidate.meta().mask();
         if (mask != null) {
             for (long[] entry : mask.cellsList()) {
-                long world = TemplateModel.packCell(
-                        candidate.originX() + TemplateModel.unpackX(entry[0]),
-                        candidate.originY() + TemplateModel.unpackY(entry[0]),
-                        candidate.originZ() + TemplateModel.unpackZ(entry[0]));
-                if (corridorCells.contains(world)) {
+                int[] world = Transforms.transform(candidate.meta(), candidate.variant(),
+                        TemplateModel.unpackX(entry[0]),
+                        TemplateModel.unpackY(entry[0]),
+                        TemplateModel.unpackZ(entry[0]));
+                long packed = TemplateModel.packCell(
+                        candidate.originX() + world[0],
+                        candidate.originY() + world[1],
+                        candidate.originZ() + world[2]);
+                if (corridorCells.contains(packed)) {
                     return true;
                 }
             }

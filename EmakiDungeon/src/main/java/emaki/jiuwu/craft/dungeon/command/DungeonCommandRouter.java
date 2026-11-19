@@ -511,6 +511,9 @@ public final class DungeonCommandRouter {
             challenge.onPartyChanged(partyId);
         }
         DungeonInstance instance = registry.get(instanceId);
+        if (instance != null && instance.flowRuntime() != null) {
+            instance.flowRuntime().clearHintBossBar(playerId);
+        }
         if (instance != null && (soleMember || noOnlineMemberInside(instance))) {
             coordinator.dispose(instanceId, "all_left");
         }

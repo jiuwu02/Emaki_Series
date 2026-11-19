@@ -284,7 +284,7 @@ final class ChallengeServiceDelegate {
         ownerRef.sessions.remove(session.partyId());
     }
 
-    List<FlowModules.TempItemDef> entryItemsOf(DungeonInstance instance) {
+    List<FlowModules.TempItemDef> entryItemsOf(DungeonInstance instance, UUID memberId) {
         if (ownerRef.tempItems == null) {
             return List.of();
         }
@@ -294,7 +294,10 @@ final class ChallengeServiceDelegate {
         }
         List<FlowModules.TempItemDef> entryItems = new ArrayList<>();
         for (FlowModules.TempItemDef tempItem : runtime.definition().tempItems().values()) {
-            if (tempItem.head().enabled() && "entry".equals(tempItem.timing())) {
+            if (tempItem.head().enabled() && "entry".equals(tempItem.timing())
+                    && runtime.adjudicator().evaluator().evaluateAll(tempItem.conditions(), "AND",
+                            new emaki.jiuwu.craft.dungeon.flow.ConditionEvaluator.EvalContext(
+                                    memberId, runtime.factsView()))) {
                 entryItems.add(tempItem);
             }
         }
@@ -372,7 +375,7 @@ final class ChallengeServiceDelegate {
 
     void abort(ChallengeSession session, String reason) {
         if (ownerRef.sessions.remove(session.partyId(), session)) {
-            Bukkit.getPluginManager().callEvent(
+            emaki.jiuwu.craft.dungeon.instance.EventFire.fire(
                     new emaki.jiuwu.craft.dungeon.api.event.DungeonChallengeCancelEvent(
                             session.dungeonId(), reason));
             ownerRef.cleanup(session, reason);

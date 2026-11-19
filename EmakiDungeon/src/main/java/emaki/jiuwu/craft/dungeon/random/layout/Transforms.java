@@ -31,6 +31,42 @@ public final class Transforms {
         };
     }
 
+    public static double[] transformExact(TemplateMeta meta, Variant variant, double x, double y, double z) {
+        double lx = variant.mirror() ? meta.sizeX() - x : x;
+        double lz = z;
+        return switch (Math.floorMod(variant.rotations(), 4)) {
+            case 1 -> new double[] {meta.sizeZ() - lz, y, lx};
+            case 2 -> new double[] {meta.sizeX() - lx, y, meta.sizeZ() - lz};
+            case 3 -> new double[] {lz, y, meta.sizeX() - lx};
+            default -> new double[] {lx, y, lz};
+        };
+    }
+
+    public static int[] transformInverse(TemplateMeta meta, Variant variant, int x, int y, int z) {
+        int x1;
+        int z1;
+        switch (Math.floorMod(variant.rotations(), 4)) {
+            case 1 -> {
+                x1 = z;
+                z1 = meta.sizeZ() - 1 - x;
+            }
+            case 2 -> {
+                x1 = meta.sizeX() - 1 - x;
+                z1 = meta.sizeZ() - 1 - z;
+            }
+            case 3 -> {
+                x1 = meta.sizeX() - 1 - z;
+                z1 = x;
+            }
+            default -> {
+                x1 = x;
+                z1 = z;
+            }
+        }
+        int lx = variant.mirror() ? meta.sizeX() - 1 - x1 : x1;
+        return new int[] {lx, y, z1};
+    }
+
     public static String transformFacing(Variant variant, String facing) {
         String result = variant.mirror() ? TemplateModel.mirrorFacing(facing) : facing;
         return TemplateModel.rotateFacing(result, variant.rotations());

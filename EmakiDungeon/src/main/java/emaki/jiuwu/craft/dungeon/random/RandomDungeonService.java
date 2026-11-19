@@ -364,15 +364,15 @@ public final class RandomDungeonService {
                 try {
                     org.bukkit.entity.EntityType type = org.bukkit.entity.EntityType.valueOf(
                             String.valueOf(entry.get("type")));
-                    int lx = (int) Math.round(entry.get("x") instanceof Number number ? number.doubleValue() : 0.0D);
-                    int ly = (int) Math.round(entry.get("y") instanceof Number number ? number.doubleValue() : 0.0D);
-                    int lz = (int) Math.round(entry.get("z") instanceof Number number ? number.doubleValue() : 0.0D);
-                    int[] local = emaki.jiuwu.craft.dungeon.random.layout.Transforms.transform(
+                    double lx = entry.get("x") instanceof Number number ? number.doubleValue() : 0.0D;
+                    double ly = entry.get("y") instanceof Number number ? number.doubleValue() : 0.0D;
+                    double lz = entry.get("z") instanceof Number number ? number.doubleValue() : 0.0D;
+                    double[] local = emaki.jiuwu.craft.dungeon.random.layout.Transforms.transformExact(
                             room.meta(), room.variant(), lx, ly, lz);
                     float yaw = (float) (entry.get("yaw") instanceof Number number ? number.doubleValue() : 0.0D)
                             + room.variant().rotations() * 90.0F;
-                    Location location = new Location(world, room.originX() + local[0] + 0.5D,
-                            room.originY() + local[1], room.originZ() + local[2] + 0.5D, yaw, 0.0F);
+                    Location location = new Location(world, room.originX() + local[0],
+                            room.originY() + local[1], room.originZ() + local[2], yaw, 0.0F);
                     var entity = world.spawnEntity(location, type);
                     if (entry.get("name") != null) {
                         entity.customName(net.kyori.adventure.text.Component.text(
@@ -473,16 +473,22 @@ public final class RandomDungeonService {
 
     public Result leave(Player player) {
         String instanceId = null;
+        RandomInstance found = null;
         for (RandomInstance instance : instances.values()) {
             if (instance.state() == RandomInstanceState.RUNNING
                     && player.getWorld() != null
                     && player.getWorld().getName().equals(instance.instanceId())) {
                 instanceId = instance.instanceId();
+                found = instance;
                 break;
             }
         }
         if (instanceId == null) {
             return Result.fail("random.not_in_instance", Map.of());
+        }
+        if (found != null && found.dungeonInstance() != null
+                && found.dungeonInstance().flowRuntime() != null) {
+            found.dungeonInstance().flowRuntime().clearHintBossBar(player.getUniqueId());
         }
         Location back = player.getLocation();
         var snapshot = player.getWorld().getEnvironment();

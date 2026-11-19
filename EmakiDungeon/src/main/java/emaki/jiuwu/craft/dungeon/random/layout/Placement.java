@@ -11,9 +11,23 @@ public final class Placement {
             Transforms.Variant variant, int originX, int originY, int originZ) {
 
         public boolean overlapsReal(RoomPlacement other) {
-            return meta.mask() != null && other.meta.mask() != null
-                    && meta.mask().intersects(other.meta.mask(),
-                            other.originX - originX, other.originY - originY, other.originZ - originZ);
+            if (meta.mask() == null || other.meta.mask() == null) {
+                return false;
+            }
+            for (long[] entry : meta.mask().cellsList()) {
+                int[] world = Transforms.transform(meta, variant,
+                        emaki.jiuwu.craft.dungeon.random.model.TemplateModel.unpackX(entry[0]),
+                        emaki.jiuwu.craft.dungeon.random.model.TemplateModel.unpackY(entry[0]),
+                        emaki.jiuwu.craft.dungeon.random.model.TemplateModel.unpackZ(entry[0]));
+                int[] local = Transforms.transformInverse(other.meta(), other.variant(),
+                        originX + world[0] - other.originX,
+                        originY + world[1] - other.originY,
+                        originZ + world[2] - other.originZ);
+                if (other.meta.mask().has(local[0], local[1], local[2])) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public int[] anchorWorld(DoorAnchor anchor) {

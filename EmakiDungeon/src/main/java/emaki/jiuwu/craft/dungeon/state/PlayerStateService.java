@@ -27,6 +27,8 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.action.ActionBridge;
 import emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
+import emaki.jiuwu.craft.dungeon.flow.ConditionDef;
+import emaki.jiuwu.craft.dungeon.flow.ConditionEvaluator.EvalContext;
 import emaki.jiuwu.craft.dungeon.flow.Facts;
 import emaki.jiuwu.craft.dungeon.flow.FlowModules;
 import emaki.jiuwu.craft.dungeon.flow.FlowPoint;
@@ -197,20 +199,25 @@ public final class PlayerStateService {
                 }
             }
         }
-        FlowModules.RespawnPointDef respawnPoint = findRespawn(runtime, checkpoint);
+        FlowModules.RespawnPointDef respawnPoint = findRespawn(runtime, checkpoint, player.getUniqueId());
         if (respawnPoint != null && respawnPoint.point() != null) {
             return toLocation(world, respawnPoint.point());
         }
         if (runtime.definition().spawnPoint() != null
-                && runtime.definition().spawnPoint().point() != null) {
+                && runtime.definition().spawnPoint().point() != null
+                && conditionsActive(runtime, player.getUniqueId(),
+                        runtime.definition().spawnPoint().conditions())) {
             return toLocation(world, runtime.definition().spawnPoint().point());
         }
         return world.getSpawnLocation();
     }
 
-    private FlowModules.RespawnPointDef findRespawn(FlowRuntime runtime, String checkpointId) {
+    private FlowModules.RespawnPointDef findRespawn(FlowRuntime runtime, String checkpointId, UUID playerId) {
         FlowModules.RespawnPointDef linked = null;
         for (FlowModules.RespawnPointDef respawnPoint : runtime.definition().respawnPoints().values()) {
+            if (!conditionsActive(runtime, playerId, respawnPoint.conditions())) {
+                continue;
+            }
             if (!checkpointId.isEmpty() && checkpointId.equals(respawnPoint.checkpointId())) {
                 return respawnPoint;
             }
@@ -219,6 +226,11 @@ public final class PlayerStateService {
             }
         }
         return linked;
+    }
+
+    private boolean conditionsActive(FlowRuntime runtime, UUID playerId, List<ConditionDef> conditions) {
+        return runtime.adjudicator().evaluator().evaluateAll(conditions, "AND",
+                new EvalContext(playerId, runtime.factsView()));
     }
 
     private static Location toLocation(World world, FlowPoint point) {
@@ -362,7 +374,7 @@ public final class PlayerStateService {
                     "reason", reason
             ));
         }
-        Bukkit.getPluginManager().callEvent(
+        emaki.jiuwu.craft.dungeon.instance.EventFire.fire(
                 new emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent(
                         instance.instanceId(), instance.dungeonId(),
                         mapFailReason(reason), reason));

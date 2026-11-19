@@ -226,7 +226,7 @@ public final class ChallengeService {
         var startEvent = new emaki.jiuwu.craft.dungeon.api.event.DungeonChallengeStartEvent(
                 session.dungeonId(), config.prepareWindowSeconds(),
                 session.difficulty(), session.dropMode());
-        Bukkit.getPluginManager().callEvent(startEvent);
+        emaki.jiuwu.craft.dungeon.instance.EventFire.fire(startEvent);
         if (startEvent.isCancelled()) {
             abort(session, "challenge_start_cancelled");
             return;
@@ -369,7 +369,7 @@ public final class ChallengeService {
         session.setDropMode(mode);
         var startEvent = new emaki.jiuwu.craft.dungeon.api.event.DungeonChallengeStartEvent(
                 dungeonId, config.prepareWindowSeconds(), session.difficulty(), mode);
-        Bukkit.getPluginManager().callEvent(startEvent);
+        emaki.jiuwu.craft.dungeon.instance.EventFire.fire(startEvent);
         if (startEvent.isCancelled()) {
             abort(session, "challenge_start_cancelled");
             return Result.err(
@@ -615,7 +615,11 @@ public final class ChallengeService {
         Location entryLocation = world.getSpawnLocation();
         var entryRuntime = instance.flowRuntime();
         if (entryRuntime != null && entryRuntime.definition().spawnPoint() != null
-                && entryRuntime.definition().spawnPoint().point() != null) {
+                && entryRuntime.definition().spawnPoint().point() != null
+                && entryRuntime.adjudicator().evaluator().evaluateAll(
+                        entryRuntime.definition().spawnPoint().conditions(), "AND",
+                        new emaki.jiuwu.craft.dungeon.flow.ConditionEvaluator.EvalContext(
+                                null, entryRuntime.factsView()))) {
             var entryPoint = entryRuntime.definition().spawnPoint().point();
             entryLocation = new org.bukkit.Location(world, entryPoint.x(), entryPoint.y(),
                     entryPoint.z(), entryPoint.yaw(), entryPoint.pitch());
@@ -632,7 +636,6 @@ public final class ChallengeService {
         String partyKey = String.valueOf(party.id());
         String dungeonId = session.dungeonId();
         boolean test = session.isTest();
-        List<FlowModules.TempItemDef> entryItems = entryItemsOf(instance);
         AtomicInteger remaining = new AtomicInteger(members.size());
         if (members.isEmpty()) {
             finishEnter(session, instanceId);
@@ -646,9 +649,10 @@ public final class ChallengeService {
                 finishIfSettled(session, instanceId, remaining, settled);
                 continue;
             }
+            List<FlowModules.TempItemDef> memberItems = entryItemsOf(instance, memberId);
             TaskToken token = dispatcher.runEntity(plugin, member,
                     () -> enterMember(session, instanceId, entryLocation, partyKey, dungeonId, test,
-                            entryItems, memberId, member, remaining, settled),
+                            memberItems, memberId, member, remaining, settled),
                     () -> {
                         warnEnter(instanceId, memberId, "retired");
                         finishIfSettled(session, instanceId, remaining, settled);
@@ -675,7 +679,7 @@ public final class ChallengeService {
             teleportPermit.accept(memberId);
             snapshots.captureInitial(member, instanceId, dungeonId, partyKey);
             member.teleport(entryLocation);
-            Bukkit.getPluginManager().callEvent(
+            emaki.jiuwu.craft.dungeon.instance.EventFire.fire(
                     new DungeonEnterEvent(instanceId, dungeonId, memberId, partyKey));
             messages.send(member, "challenge.entered", Map.of(
                     "dungeon", dungeonId,
@@ -715,7 +719,7 @@ public final class ChallengeService {
 
     void finishEnter(ChallengeSession session, String instanceId) { new ChallengeServiceDelegate(this).finishEnter(session, instanceId); }
 
-    private List<FlowModules.TempItemDef> entryItemsOf(DungeonInstance instance) { return new ChallengeServiceDelegate(this).entryItemsOf(instance); }
+    private List<FlowModules.TempItemDef> entryItemsOf(DungeonInstance instance, UUID memberId) { return new ChallengeServiceDelegate(this).entryItemsOf(instance, memberId); }
 
     private void warnEnter(String instanceId, UUID memberId, String reason) { new ChallengeServiceDelegate(this).warnEnter(instanceId, memberId, reason); }
 

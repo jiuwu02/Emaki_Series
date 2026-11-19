@@ -102,6 +102,17 @@ final class FlowRuntimeDelegate {
         ownerRef.hintBossBars.clear();
     }
 
+    void clearHint(UUID playerId) {
+        BossBar bar = ownerRef.hintBossBars.remove(playerId);
+        if (bar == null) {
+            return;
+        }
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null) {
+            player.hideBossBar(bar);
+        }
+    }
+
     boolean schedule(Supplier<TaskToken> action, String description) {
         if (!ownerRef.running) {
             return false;

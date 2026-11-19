@@ -199,7 +199,7 @@ public final class GameplayControllers implements FlowControllers {
         var triggerEvent = new emaki.jiuwu.craft.dungeon.api.event.DungeonChoiceEvent(
                 instance.instanceId(), instance.dungeonId(), optionId,
                 option.selectMode(), candidates);
-        Bukkit.getPluginManager().callEvent(triggerEvent);
+        emaki.jiuwu.craft.dungeon.instance.EventFire.fire(triggerEvent);
         if (triggerEvent.isCancelled()) {
             debug.logRaw("dungeon", (UUID) null, "option trigger cancelled | option=" + optionId);
             return;
@@ -326,7 +326,7 @@ public final class GameplayControllers implements FlowControllers {
                 : pickedCaseIds.get(0));
         debug.logRaw("dungeon", (UUID) null, "option picked | option=" + optionId
                 + " | cases=" + String.join(",", pickedCaseIds));
-        Bukkit.getPluginManager().callEvent(new emaki.jiuwu.craft.dungeon.api.event.DungeonOptionConfirmEvent(
+        emaki.jiuwu.craft.dungeon.instance.EventFire.fire(new emaki.jiuwu.craft.dungeon.api.event.DungeonOptionConfirmEvent(
                 instance.instanceId(), instance.dungeonId(), optionId, picked));
         List<FlowModules.OptionCase> sealed = sealedCases(option, picked);
         pullbackSealed(option, sealed);
@@ -351,7 +351,7 @@ public final class GameplayControllers implements FlowControllers {
 
                 @Override
                 public void execute() {
-                    Bukkit.getPluginManager().callEvent(
+                    emaki.jiuwu.craft.dungeon.instance.EventFire.fire(
                             new emaki.jiuwu.craft.dungeon.api.event.DungeonSealPathEvent(
                                     instance.instanceId(), instance.dungeonId(), optionId, sealedIds));
                 }

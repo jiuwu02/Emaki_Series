@@ -42,9 +42,17 @@ public final class FlowLoader {
 
     private static final double COORD_LIMIT = 30_000_000.0D;
 
-    private static final Map<String, String> LEGACY_SECTIONS = legacySections();
+    private static final Map<String, String> LEGACY_SECTIONS = buildLegacySections();
 
-    private static Map<String, String> legacySections() {
+    public static Map<String, String> legacySections() {
+        return LEGACY_SECTIONS;
+    }
+
+    public static String legacyBossSection() {
+        return LEGACY_BOSS_SECTION;
+    }
+
+    private static Map<String, String> buildLegacySections() {
         Map<String, String> map = new LinkedHashMap<>();
         map.put("checkpoints", "check_points");
         map.put("hints", "tip_points");
@@ -226,17 +234,22 @@ public final class FlowLoader {
         }
     }
 
-    private String legacyBossSource(String raw) {
+    public static String canonicalBossSource(String raw) {
         String value = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
         return switch (value) {
             case "vanilla" -> "vanilla";
             case "mythic" -> "mythic";
             case "emakimobs", "emaki-mobs" -> "emaki-mobs";
-            default -> {
-                deprecations.add(LEGACY_BOSS_SECTION + ".source=" + raw + "→auto");
-                yield "auto";
-            }
+            default -> "auto";
         };
+    }
+
+    private String legacyBossSource(String raw) {
+        String mapped = canonicalBossSource(raw);
+        if ("auto".equals(mapped)) {
+            deprecations.add(LEGACY_BOSS_SECTION + ".source=" + raw + "→auto");
+        }
+        return mapped;
     }
 
     private WaveDef parseWave(Map<?, ?> waveMap) {

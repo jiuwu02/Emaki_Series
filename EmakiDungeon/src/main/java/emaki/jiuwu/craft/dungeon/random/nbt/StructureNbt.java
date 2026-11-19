@@ -100,6 +100,7 @@ public final class StructureNbt {
                     writeString(out, property.getValue());
                 }
                 out.writeByte(TAG_END);
+                out.writeByte(TAG_END);
             }
             out.writeByte(TAG_LIST);
             writeString(out, "blocks");

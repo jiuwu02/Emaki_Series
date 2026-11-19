@@ -151,7 +151,7 @@ public final class SettlementService {
                     "optionCase", optionCase == null ? "" : optionCase
             ));
         }
-        Bukkit.getPluginManager().callEvent(new emaki.jiuwu.craft.dungeon.api.event.DungeonEndingEvent(
+        emaki.jiuwu.craft.dungeon.instance.EventFire.fire(new emaki.jiuwu.craft.dungeon.api.event.DungeonEndingEvent(
                 instance.instanceId(), instance.dungeonId(), endingId, optionCase));
         debug.logRaw("dungeon", (UUID) null,
                 "ending reached | instance=" + instance.instanceId() + " | ending=" + endingId);
@@ -312,7 +312,7 @@ public final class SettlementService {
             }
         }
         if (failReason == null) {
-            Bukkit.getPluginManager().callEvent(
+            emaki.jiuwu.craft.dungeon.instance.EventFire.fire(
                     new emaki.jiuwu.craft.dungeon.api.event.DungeonCompleteEvent(
                             instanceId, instance.dungeonId(), teamScore, durationMs));
         }

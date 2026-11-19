@@ -305,7 +305,8 @@ public final class RandomConfig {
         if (!"auto".equals(source) && !"fixed".equals(source) && !"replay".equals(source)) {
             errors.add("seed.source: 非法值 " + source);
         }
-        long fixedValue = node == null ? 0L : node.getDouble("fixed-value", 0.0D).longValue();
+        Object fixedRaw = node == null ? null : node.get("fixed-value");
+        long fixedValue = fixedRaw instanceof Number number ? number.longValue() : 0L;
         if (node != null && node.contains("persist-config-fingerprint")
                 && !node.getBoolean("persist-config-fingerprint", true)) {
             errors.add("seed.persist-config-fingerprint: 固定 true, 不可关闭");

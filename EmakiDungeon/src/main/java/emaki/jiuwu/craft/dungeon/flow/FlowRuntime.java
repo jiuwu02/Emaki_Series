@@ -130,6 +130,8 @@ public final class FlowRuntime {
 
     public Map<String, Object> factsView() { return new FlowRuntimeDelegate(this).factsView(); }
 
+    public void clearHintBossBar(UUID playerId) { new FlowRuntimeDelegate(this).clearHint(playerId); }
+
     public void recordFlowEvent(String kind, String detail) {
         long elapsed = (System.currentTimeMillis() - createdAt) / 1000L;
         String line = "+" + elapsed + "s [" + kind + "] " + detail;

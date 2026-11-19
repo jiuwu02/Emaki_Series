@@ -146,6 +146,7 @@ public final class EditorService implements Listener {
                     new File(templateDir, "config.yml").toPath(), EditorValidator.yamlOnly()));
             session.flowDoc(EditorDocument.open(plugin.getLogger(),
                     new File(templateDir, "flow.yml").toPath(), EditorValidator.yamlOnly()));
+            session.flowDoc().mutate(EditorFlowMigration::normalize);
         } catch (IOException | RuntimeException exception) {
             states.release(dungeonId);
             messages.send(player, "editor.open_failed", Map.of(
