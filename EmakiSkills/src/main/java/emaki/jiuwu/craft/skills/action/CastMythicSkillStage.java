@@ -2,11 +2,7 @@ package emaki.jiuwu.craft.skills.action;
 
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 
-import io.lumine.mythic.bukkit.BukkitAPIHelper;
-import io.lumine.mythic.bukkit.MythicBukkit;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
@@ -23,15 +19,16 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
-import emaki.jiuwu.craft.corelib.log.EmakiLog;
-import emaki.jiuwu.craft.corelib.log.LogTags;
-import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
+import emaki.jiuwu.craft.skills.bridge.MythicBridge;
 
 public final class CastMythicSkillStage implements CoreActionStage {
 
-    private volatile Object apiHelper;
-    private volatile boolean initialized;
-    private volatile boolean available;
+    private final EmakiSkillsPlugin plugin;
+
+    public CastMythicSkillStage(EmakiSkillsPlugin plugin) {
+        this.plugin = plugin;
+    }
 
     @Override
     public @NotNull String id() {
@@ -69,6 +66,9 @@ public final class CastMythicSkillStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         Entity target = entity(context.currentTarget());
         if (target == null) {
+            target = entity(context.caster());
+        }
+        if (target == null) {
             return CoreActionOutcome.skipped("action.stage.common.not_entity");
         }
         String skillId = Texts.trim(arguments.getString("skill"));
@@ -76,53 +76,48 @@ public final class CastMythicSkillStage implements CoreActionStage {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
                     "action.stage.cast_mythic_skill.skill_required");
         }
-        if (!ensureInitialized()) {
+        MythicBridge bridge = plugin.mythicBridge();
+        if (bridge == null || !bridge.isAvailable()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.OWNER_DISABLED,
                     "action.stage.cast_mythic_skill.unavailable");
         }
-        try {
-            var helper = (BukkitAPIHelper) apiHelper;
-            if (MythicBukkit.inst().getSkillManager().getSkill(skillId).isEmpty()) {
-                return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                        "skill.mythic_not_found", Map.of("mythic_skill", skillId));
-            }
-            Location origin = target.getLocation();
-            return helper.castSkill(target, skillId, target, origin,
-                    List.of(target), List.of(origin), 1.0F)
-                    ? CoreActionOutcome.success(Map.of("skill", skillId))
-                    : CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
-                            "action.stage.cast_mythic_skill.cast_failed", Map.of("skill", skillId));
-        } catch (Exception exception) {
-            return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
+        Entity caster = entity(context.caster());
+        if (caster == null) {
+            caster = target;
+        }
+        Location origin = target.getLocation();
+        debug(caster.getUniqueId(), "cast.mythic_attempt", Map.of(
+                "skill", skillId, "caster", caster.getName(), "target", target.getName()));
+        MythicBridge.CastResult result = bridge.castSkillDetailed(caster, skillId, target, origin,
+                List.of(target), List.of(origin), Map.of());
+        debug(caster.getUniqueId(), "cast.mythic_result", Map.of(
+                "skill", skillId,
+                "status", result.status().name(),
+                "detail", Texts.toStringSafe(result.detail())));
+        return switch (result.status()) {
+            case SUCCESS -> CoreActionOutcome.success(Map.of("skill", skillId));
+            case SKILL_NOT_FOUND -> CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
+                    "skill.mythic_not_found", Map.of("mythic_skill", skillId));
+            case CONDITIONS_UNMET -> CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
+                    "action.stage.cast_mythic_skill.conditions_unmet",
+                    Map.of("skill", skillId, "mythic_skill", skillId,
+                            "detail", Texts.toStringSafe(result.detail())));
+            case UNAVAILABLE -> CoreActionOutcome.failure(CoreActionFailureKind.OWNER_DISABLED,
+                    "action.stage.cast_mythic_skill.unavailable");
+            case ERROR -> CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
                     "action.stage.cast_mythic_skill.cast_error",
-                    Map.of("skill", skillId, "error", Texts.toStringSafe(exception.getMessage())));
+                    Map.of("skill", skillId, "error", Texts.toStringSafe(result.detail())));
+        };
+    }
+
+    private void debug(java.util.UUID player, String langKey, Map<String, ?> replacements) {
+        var logger = plugin.debugLogger();
+        if (logger != null) {
+            logger.log("cast", player, langKey, replacements);
         }
     }
 
     private static Entity entity(CoreActionSubject subject) {
         return subject == null ? null : subject.entityOrNull();
-    }
-
-    private boolean ensureInitialized() {
-        if (initialized) {
-            return available;
-        }
-        synchronized (this) {
-            if (initialized) {
-                return available;
-            }
-            initialized = true;
-            available = false;
-            try {
-                if (Bukkit.getPluginManager().getPlugin("MythicMobs") == null) {
-                    return false;
-                }
-                apiHelper = MythicBukkit.inst().getAPIHelper();
-                available = apiHelper != null;
-            } catch (NoClassDefFoundError | Exception exception) {
-                LogTags.send(EmakiLog.of("EmakiSkills"), LogTag.INTEGRATION, Level.FINE, "integration.cast_mythic_skill_bridge_init_failed", Map.of(), exception);
-            }
-            return available;
-        }
     }
 }

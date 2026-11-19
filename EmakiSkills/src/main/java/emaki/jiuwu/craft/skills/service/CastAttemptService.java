@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.skills.api.event.SkillPostCastEvent;
 import emaki.jiuwu.craft.skills.api.event.SkillPreCastEvent;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
+import emaki.jiuwu.craft.skills.bridge.MythicBridge;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.CastAttemptResult;
 import emaki.jiuwu.craft.skills.model.CastAttemptResult.FailureReason;
@@ -49,6 +50,7 @@ public final class CastAttemptService {
 
     static final String MYTHIC_MISSING_REASON = "skill.mythic_not_found";
     static final String MYTHIC_REJECTED_REASON = "skill.mythic_rejected";
+    static final String MYTHIC_CONDITIONS_REASON = "skill.mythic_conditions_unmet";
 
     public record CastBypass(boolean cooldown, boolean resourceCheck, boolean consumeResource) {
 
@@ -159,7 +161,18 @@ public final class CastAttemptService {
                 || !mythicCastService.skillExists(mythicSkillId)) {
             return false;
         }
-        return mythicCastService.castFromEntity(caster, mythicSkillId);
+        MythicBridge.CastResult result = mythicCastService.castFromEntity(caster, mythicSkillId);
+        if (result.status() == MythicBridge.CastStatus.SUCCESS) {
+            return true;
+        }
+        if (result.status() == MythicBridge.CastStatus.CONDITIONS_UNMET) {
+            plugin.messageService().warning(SkillsLogTag.CAST, "console.skill_cast_failed", Map.of(
+                    "skill", definition.id(),
+                    "trigger", "castAsEntity",
+                    "kind", CoreActionFailureKind.REJECTED.name(),
+                    "detail", Texts.toStringSafe(result.detail())));
+        }
+        return false;
     }
 
     private AttemptPlan prepareBoundAttempt(Player player, String triggerId, SkillSlotBinding suppliedBinding) {
@@ -402,10 +415,26 @@ public final class CastAttemptService {
                     MYTHIC_MISSING_REASON,
                     Map.of("mythic_skill", Texts.toStringSafe(mythicSkillId)), List.of());
         }
-        return mythicCastService.cast(player, mythicSkillId, invocation, variables)
-                ? PipelineOutcome.success(List.of())
-                : PipelineOutcome.failure(CoreActionFailureKind.REJECTED,
-                        MYTHIC_REJECTED_REASON, Map.of(), List.of());
+        MythicBridge.CastResult result = mythicCastService.cast(player, mythicSkillId, invocation, variables);
+        var debugLogger = plugin.debugLogger();
+        if (debugLogger != null) {
+            debugLogger.log("cast", player.getUniqueId(), "cast.mythic_result", Map.of(
+                    "skill", Texts.toStringSafe(mythicSkillId),
+                    "status", result.status().name(),
+                    "detail", Texts.toStringSafe(result.detail())));
+        }
+        return switch (result.status()) {
+            case SUCCESS -> PipelineOutcome.success(List.of());
+            case SKILL_NOT_FOUND -> PipelineOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
+                    MYTHIC_MISSING_REASON,
+                    Map.of("mythic_skill", Texts.toStringSafe(mythicSkillId)), List.of());
+            case CONDITIONS_UNMET -> PipelineOutcome.failure(CoreActionFailureKind.REJECTED,
+                    MYTHIC_CONDITIONS_REASON,
+                    Map.of("mythic_skill", Texts.toStringSafe(mythicSkillId),
+                            "detail", Texts.toStringSafe(result.detail())), List.of());
+            case UNAVAILABLE, ERROR -> PipelineOutcome.failure(CoreActionFailureKind.REJECTED,
+                    MYTHIC_REJECTED_REASON, Map.of(), List.of());
+        };
     }
 
     private CastAttemptResult describeCastFailure(SkillDefinition definition,
@@ -450,6 +479,10 @@ public final class CastAttemptService {
     static String messageKeyFor(CoreActionFailureKind kind, String reasonKey) {
         if (MYTHIC_MISSING_REASON.equals(reasonKey)) {
             return "cast.mythic_not_found";
+        }
+        if (MYTHIC_CONDITIONS_REASON.equals(reasonKey)
+                || "action.stage.cast_mythic_skill.conditions_unmet".equals(reasonKey)) {
+            return "cast.mythic_conditions_unmet";
         }
         if (MYTHIC_REJECTED_REASON.equals(reasonKey)
                 || "action.stage.cast_mythic_skill.cast_failed".equals(reasonKey)) {

@@ -71,76 +71,72 @@ public final class MythicBridge {
         }
     }
 
-    public boolean castSkill(Player caster, String mythicSkillId) {
-        return castSkill(caster, mythicSkillId, Map.of());
+    public enum CastStatus {
+        SUCCESS,
+        SKILL_NOT_FOUND,
+        CONDITIONS_UNMET,
+        UNAVAILABLE,
+        ERROR
     }
 
-    public boolean castSkillFromEntity(Entity caster, String mythicSkillId) {
+    public record CastResult(CastStatus status, String detail) {
+    }
+
+    public CastResult castSkillDetailed(Entity caster,
+            String mythicSkillId,
+            Entity trigger,
+            Location origin,
+            List<Entity> entityTargets,
+            List<Location> locationTargets,
+            Map<String, String> variables) {
         if (!available || apiHelper == null || caster == null
                 || mythicSkillId == null || mythicSkillId.isBlank()) {
-            return false;
+            return new CastResult(CastStatus.UNAVAILABLE, "");
         }
         try {
-            return castWithSelfMetadata(caster, mythicSkillId, Map.of());
-        } catch (Exception exception) {
+            return MythicCastExecutor.cast(apiHelper, caster, mythicSkillId, trigger, origin,
+                    entityTargets, locationTargets, variables);
+        } catch (NoClassDefFoundError | Exception exception) {
             warning("console.mythic_bridge_cast_failed", Map.of(
                     "skill", String.valueOf(mythicSkillId),
                     "error", errorMessage(exception)
             ), exception);
-            return false;
+            try {
+                boolean legacy = apiHelper.castSkill(caster, mythicSkillId, trigger, origin,
+                        entityTargets == null ? List.of() : entityTargets,
+                        locationTargets == null ? List.of() : locationTargets,
+                        1.0F, metadataConsumer(variables == null ? Map.of() : variables));
+                return legacy
+                        ? new CastResult(CastStatus.SUCCESS, "legacy_fallback")
+                        : new CastResult(CastStatus.ERROR, "legacy_fallback");
+            } catch (Exception legacyException) {
+                return new CastResult(CastStatus.ERROR, errorMessage(legacyException));
+            }
         }
     }
 
-    public boolean castSkill(Player caster, String mythicSkillId, Map<String, String> variables) {
-        if (!available || apiHelper == null || caster == null || mythicSkillId == null || mythicSkillId.isBlank()) {
-            return false;
-        }
-        try {
-            return castWithSelfMetadata(caster, mythicSkillId, variables);
-        } catch (Exception exception) {
-            warning("console.mythic_bridge_cast_failed", Map.of(
-                    "skill", String.valueOf(mythicSkillId),
-                    "error", errorMessage(exception)
-            ), exception);
-            return false;
-        }
-    }
-
-    public boolean castSkill(Player caster, String mythicSkillId, Entity targetEntity, Location targetLocation) {
-        return castSkill(caster, mythicSkillId, targetEntity, targetLocation, Map.of());
-    }
-
-    public boolean castSkill(Player caster,
+    public CastResult castSkillForInvocation(Player caster,
             String mythicSkillId,
             Entity targetEntity,
             Location targetLocation,
             Map<String, String> variables) {
-        if (!available || apiHelper == null || caster == null || mythicSkillId == null || mythicSkillId.isBlank()) {
-            return false;
-        }
         if (targetEntity == null && targetLocation == null) {
-            return castSkill(caster, mythicSkillId, variables);
+            return castWithSelfMetadata(caster, mythicSkillId, variables);
         }
-        try {
-            Entity trigger = targetEntity == null ? caster : targetEntity;
-            Location origin = targetLocation == null ? trigger.getLocation() : targetLocation;
-            List<Entity> entityTargets = targetEntity == null ? List.of() : List.of(targetEntity);
-            List<Location> locationTargets = targetLocation == null ? List.of() : List.of(targetLocation);
-            return apiHelper.castSkill(caster, mythicSkillId, trigger, origin,
-                    entityTargets, locationTargets, 1.0F, metadataConsumer(variables));
-        } catch (Exception exception) {
-            warning("console.mythic_bridge_cast_failed", Map.of(
-                    "skill", String.valueOf(mythicSkillId),
-                    "error", errorMessage(exception)
-            ), exception);
-            return false;
-        }
+        Entity trigger = targetEntity == null ? caster : targetEntity;
+        Location origin = targetLocation == null ? trigger.getLocation() : targetLocation;
+        List<Entity> entityTargets = targetEntity == null ? List.of() : List.of(targetEntity);
+        List<Location> locationTargets = targetLocation == null ? List.of() : List.of(targetLocation);
+        return castSkillDetailed(caster, mythicSkillId, trigger, origin, entityTargets, locationTargets, variables);
     }
 
-    private boolean castWithSelfMetadata(Entity caster, String mythicSkillId, Map<String, String> variables) {
+    public CastResult castWithSelfMetadata(Entity caster, String mythicSkillId, Map<String, String> variables) {
+        if (caster == null) {
+            return new CastResult(CastStatus.UNAVAILABLE, "");
+        }
         Location origin = caster.getLocation();
-        return apiHelper.castSkill(caster, mythicSkillId, caster, origin,
-                List.of(caster), List.of(origin), 1.0F, metadataConsumer(variables));
+        return castSkillDetailed(caster, mythicSkillId, caster, origin,
+                List.of(caster), List.of(origin), variables);
     }
 
     private Consumer<SkillMetadata> metadataConsumer(Map<String, String> variables) {

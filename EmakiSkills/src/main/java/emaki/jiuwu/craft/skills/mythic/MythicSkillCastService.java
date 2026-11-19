@@ -27,35 +27,31 @@ public final class MythicSkillCastService {
         return mythicBridge.skillExists(mythicSkillId);
     }
 
-    public boolean cast(Player caster, String mythicSkillId) {
-        if (!isAvailable() || caster == null || mythicSkillId == null || mythicSkillId.isBlank()) {
-            return false;
-        }
-        return mythicBridge.castSkill(caster, mythicSkillId);
+    public MythicBridge.CastResult cast(Player caster, String mythicSkillId) {
+        return cast(caster, mythicSkillId, null, Map.of());
     }
 
-    public boolean castFromEntity(Entity caster, String mythicSkillId) {
+    public MythicBridge.CastResult castFromEntity(Entity caster, String mythicSkillId) {
         if (!isAvailable() || caster == null || mythicSkillId == null || mythicSkillId.isBlank()) {
-            return false;
+            return new MythicBridge.CastResult(MythicBridge.CastStatus.UNAVAILABLE, "");
         }
-        return mythicBridge.castSkillFromEntity(caster, mythicSkillId);
+        return mythicBridge.castWithSelfMetadata(caster, mythicSkillId, Map.of());
     }
 
-    public boolean cast(Player caster, String mythicSkillId, TriggerInvocation invocation) {
+    public MythicBridge.CastResult cast(Player caster, String mythicSkillId, TriggerInvocation invocation) {
         return cast(caster, mythicSkillId, invocation, Map.of());
     }
 
-    public boolean cast(Player caster,
+    public MythicBridge.CastResult cast(Player caster,
             String mythicSkillId,
             TriggerInvocation invocation,
             Map<String, String> variables) {
         if (!isAvailable() || caster == null || mythicSkillId == null || mythicSkillId.isBlank()) {
-            return false;
+            return new MythicBridge.CastResult(MythicBridge.CastStatus.UNAVAILABLE, "");
         }
-        if (invocation == null) {
-            return mythicBridge.castSkill(caster, mythicSkillId, variables);
-        }
-        return mythicBridge.castSkill(caster, mythicSkillId,
-                invocation.targetEntity(), invocation.targetLocation(), variables);
+        return mythicBridge.castSkillForInvocation(caster, mythicSkillId,
+                invocation == null ? null : invocation.targetEntity(),
+                invocation == null ? null : invocation.targetLocation(),
+                variables == null ? Map.of() : variables);
     }
 }

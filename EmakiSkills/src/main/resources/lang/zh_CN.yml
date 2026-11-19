@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "3.0.4"
+version: "3.0.5"
 
 tags:
   actionbar: "[ 动作栏 ]"
@@ -172,6 +172,8 @@ skill:
   mythic_not_configured: "<red>技能未配置 Mythic 映射</red>"
   mythic_not_found: "<red>未找到 Mythic 技能 %mythic_skill%</red>"
   mythic_rejected: "<red>MythicMobs 拒绝了该技能释放</red>"
+  # 分类: mythic_skill 映射施法条件未满足提示; 占位符: %mythic_skill%, %detail%
+  mythic_conditions_unmet: "<red>MythicMobs 技能 %mythic_skill% 条件未满足, 未能释放</red>"
 
 trigger:
   bound: "<green>已将触发器 <white>%trigger%</white> 绑定到槽位 %slot%</green>"
@@ -201,6 +203,8 @@ cast:
   mythic_not_configured: "<red>技能未配置 Mythic 映射</red>"
   mythic_not_found: "<red>未找到 Mythic 技能 %mythic_skill%</red>"
   mythic_failed: "<red>技能释放失败</red>"
+  # 分类: mythic_skill 映射施法条件未满足提示; 占位符: %mythic_skill%, %detail%
+  mythic_conditions_unmet: "<red>MythicMobs 技能 %mythic_skill% 条件未满足, 未能释放</red>"
   success: ""
   cast_skill_not_completed: "cast_skill: 技能 '%skill%' 未完成: %message%"
 
@@ -362,6 +366,9 @@ debug:
     cooldown: "冷却检查 | 技能=%skill% | 剩余=%remaining%ms"
     execute: "技能执行 | 技能=%skill% | 等级=%level% | 效果=%effects%"
     failed: "技能释放失败 | 技能=%skill% | 原因=%reason%"
+    # 分类: MythicMobs 施法 DEBUG 锚点; 占位符: %skill%, %caster%, %target%, %status%, %detail%
+    mythic_attempt: "Mythic 施法 | 技能=%skill% | 施法者=%caster% | 目标=%target%"
+    mythic_result: "Mythic 施法结果 | 技能=%skill% | 状态=%status% | 详情=%detail%"
   unlock:
     equipment_sources: "装备技能来源解析 | 槽位=%slot% | 声明槽位=%active_slot% | 读取 Lore=%read_lore% | 读取 PDC=%read_pdc% | 严格匹配=%require_match% | Lore IDs=%lore_ids% | PDC IDs=%pdc_ids% | 最终 IDs=%effective_ids% | 触发器=%triggers% | 拒绝原因=%reason%"
     check: "解锁检查 | 玩家=%player% | 技能=%skill% | 条件=%conditions%"
@@ -565,6 +572,7 @@ action:
       unavailable: "cast_mythic_skill: MythicMobs 桥接不可用"
       cast_failed: "cast_mythic_skill: Mythic 技能 %skill% 释放失败"
       cast_error: "cast_mythic_skill: Mythic 技能 %skill% 释放出错: %error%"
+      conditions_unmet: "cast_mythic_skill: Mythic 技能 %skill% 条件未满足: %detail%"
 integration:
   cast_mythic_skill_bridge_init_failed: "cast_mythic_skill: MythicMobs 桥接初始化失败"
   mythic_metadata_parameters_rejected: "MythicMobs 技能元数据参数被拒绝: provider=MythicMobs, parameters=%parameters%, operation=apply_skill_metadata_parameters, cause=%error%"

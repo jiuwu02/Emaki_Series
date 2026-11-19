@@ -41,7 +41,7 @@ public final class SkillsStageRegistrar {
     private List<CoreActionStage> stages() {
         List<CoreActionStage> stages = new ArrayList<>();
         stages.add(new CastSkillStage(plugin));
-        stages.add(new CastMythicSkillStage());
+        stages.add(new CastMythicSkillStage(plugin));
         for (SkillLevelStage.Operation operation : SkillLevelStage.Operation.values()) {
             stages.add(new SkillLevelStage(plugin, operation));
         }

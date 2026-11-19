@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "3.0.4"
+version: "3.0.5"
 
 tags:
   actionbar: "[ actionbar ]"
@@ -175,6 +175,8 @@ skill:
   mythic_not_configured: "<red>Skill has no Mythic mapping configured</red>"
   mythic_not_found: "<red>Mythic skill %mythic_skill% was not found</red>"
   mythic_rejected: "<red>MythicMobs rejected the skill cast</red>"
+  # Category: mythic_skill mapping cast conditions-not-met hint; placeholders: %mythic_skill%, %detail%
+  mythic_conditions_unmet: "<red>MythicMobs skill %mythic_skill% conditions not met, cast aborted</red>"
 
 trigger:
   bound: "<green>Bound trigger <white>%trigger%</white> to slot %slot%</green>"
@@ -207,6 +209,8 @@ cast:
   mythic_not_configured: "<red>Skill has no Mythic mapping configured</red>"
   mythic_not_found: "<red>Mythic skill %mythic_skill% not found</red>"
   mythic_failed: "<red>Skill cast failed</red>"
+  # Category: mythic_skill mapping cast conditions-not-met hint; placeholders: %mythic_skill%, %detail%
+  mythic_conditions_unmet: "<red>MythicMobs skill %mythic_skill% conditions not met, cast aborted</red>"
   success: ""
   cast_skill_not_completed: "cast_skill: skill '%skill%' did not complete: %message%"
 
@@ -369,6 +373,9 @@ debug:
     cooldown: "Cooldown check | skill=%skill% | remaining=%remaining%ms"
     execute: "Skill execute | skill=%skill% | level=%level% | effects=%effects%"
     failed: "Skill cast failed | skill=%skill% | reason=%reason%"
+    # Category: MythicMobs cast DEBUG anchors; placeholders: %skill%, %caster%, %target%, %status%, %detail%
+    mythic_attempt: "Mythic cast | skill=%skill% | caster=%caster% | target=%target%"
+    mythic_result: "Mythic cast result | skill=%skill% | status=%status% | detail=%detail%"
   unlock:
     equipment_sources: "Equipment skill source resolution | slot=%slot% | declared_slot=%active_slot% | read_lore=%read_lore% | read_pdc=%read_pdc% | require_match=%require_match% | lore_ids=%lore_ids% | pdc_ids=%pdc_ids% | effective_ids=%effective_ids% | triggers=%triggers% | rejection=%reason%"
     check: "Unlock check | player=%player% | skill=%skill% | conditions=%conditions%"
@@ -572,6 +579,7 @@ action:
       unavailable: "cast_mythic_skill: MythicMobs bridge unavailable"
       cast_failed: "cast_mythic_skill: Mythic skill %skill% cast failed"
       cast_error: "cast_mythic_skill: Mythic skill %skill% cast error: %error%"
+      conditions_unmet: "cast_mythic_skill: Mythic skill %skill% conditions not met: %detail%"
 integration:
   cast_mythic_skill_bridge_init_failed: "cast_mythic_skill: MythicMobs bridge initialization failed"
   mythic_metadata_parameters_rejected: "MythicMobs skill metadata parameters rejected: provider=MythicMobs, parameters=%parameters%, operation=apply_skill_metadata_parameters, cause=%error%"
