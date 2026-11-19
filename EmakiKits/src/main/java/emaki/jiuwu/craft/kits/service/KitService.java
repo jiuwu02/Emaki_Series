@@ -27,6 +27,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -50,10 +53,14 @@ public final class KitService {
     }
 
     public ClaimResult claim(Player player, String rawKitId) {
-        return claim(player, rawKitId, List.of());
+        return claim(player, rawKitId, List.of(), false);
     }
 
     public ClaimResult claim(Player player, String rawKitId, List<String> selections) {
+        return claim(player, rawKitId, selections, false);
+    }
+
+    public ClaimResult claim(Player player, String rawKitId, List<String> selections, boolean makeup) {
         String kitId = KitIds.normalize(rawKitId);
         KitDefinition def = kits.apply(kitId);
         if (def == null || !def.enabled()) {
@@ -68,11 +75,14 @@ public final class KitService {
         if (def.type() == KitType.INVITE) {
             return ClaimResult.failure(ClaimResult.Status.CONDITION_FAILED, "error.kit.invite_use_bind", kitId, "once");
         }
+        if (makeup && (!def.isCyclic() || !def.cycle().allowMakeup())) {
+            return ClaimResult.failure(ClaimResult.Status.CONDITION_FAILED, "error.kit.makeup_disabled", kitId, "once");
+        }
         TimeWindow window = timeWindow(def);
         if (!window.contains(System.currentTimeMillis())) {
             return ClaimResult.failure(ClaimResult.Status.CONDITION_FAILED, "error.kit.outside_time_window", kitId, "once");
         }
-        String periodKey = periodKey(def);
+        String periodKey = makeup ? previousKey(def) : periodKey(def);
         if (def.maxClaimsTotal() > 0) {
             long total = store.read(s -> s.claimTotals().getOrDefault(
                     KitState.countKey("claim", kitId, player.getUniqueId()), 0L));
@@ -141,11 +151,11 @@ public final class KitService {
             }
         });
         if (def.hasOpenCount()) {
-            return applyOpenCount(player, def, periodKey, transactionId, auditIds);
+            return applyOpenCount(player, def, periodKey, transactionId, auditIds, makeup);
         }
         store.recordAudit(new KitState.AuditRecord(
                 store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
-                player.getUniqueId(), kitId, "claim_success",
+                player.getUniqueId(), kitId, makeup ? "claim_makeup" : "claim_success",
                 "transaction=" + transactionId + ", period=" + periodKey));
         return ClaimResult.success(kitId, periodKey, auditIds);
     }
@@ -176,9 +186,26 @@ public final class KitService {
         String periodKey = "cdk:" + code;
         String transactionId = store.read(s -> "T" + s.nextSequence());
         List<String> auditIds = new ArrayList<>();
-        boolean reserved = store.claimOnce(idempotencyKey, () -> {});
-        if (!reserved) {
-            return ClaimResult.failure(ClaimResult.Status.CDK_EXHAUSTED, "error.cdk.exhausted", kitId, periodKey);
+        String countKey = StoreKeys.cdkCount(code, player.getUniqueId());
+        long perPlayerLimit = def.cdk().perPlayerLimit();
+        if (globalOnce) {
+            boolean reserved = store.claimOnce(idempotencyKey, () -> {});
+            if (!reserved) {
+                return ClaimResult.failure(ClaimResult.Status.CDK_EXHAUSTED, "error.cdk.exhausted", kitId, periodKey);
+            }
+        } else {
+            boolean[] reserved = {false};
+            store.mutate(s -> {
+                long used = s.cdkRedeemCounts().getOrDefault(countKey, 0L);
+                if (used >= perPlayerLimit) {
+                    return;
+                }
+                s.cdkRedeemCounts().put(countKey, used + 1);
+                reserved[0] = true;
+            });
+            if (!reserved[0]) {
+                return ClaimResult.failure(ClaimResult.Status.CDK_EXHAUSTED, "error.cdk.player_limit", kitId, periodKey);
+            }
         }
         try {
             List<RewardEntry> payload = new ArrayList<>(def.fixedRewards().entries());
@@ -186,7 +213,11 @@ public final class KitService {
             auditIds.addAll(rewards.deliver(player.getUniqueId(), player, kitId,
                     payload, transactionId, 0));
         } catch (RuntimeException exception) {
-            store.mutate(s -> s.idempotencyKeys().remove(idempotencyKey));
+            if (globalOnce) {
+                store.mutate(s -> s.idempotencyKeys().remove(idempotencyKey));
+            } else {
+                store.mutate(s -> s.cdkRedeemCounts().computeIfPresent(countKey, (k, v) -> v > 1 ? v - 1 : null));
+            }
             return ClaimResult.failure(ClaimResult.Status.STORAGE_FAILED, "error.reward.delivery_failed", kitId, periodKey);
         }
         store.recordAudit(new KitState.AuditRecord(
@@ -258,10 +289,9 @@ public final class KitService {
         if (settings.requireNewPlayer() && !inviteeNew) {
             return ClaimResult.failure(ClaimResult.Status.CONDITION_FAILED, "error.invite.not_new", "invite", "once");
         }
-        String bindKey = StoreKeys.bind(inviteeId);
-        boolean already = store.read(s -> s.inviteBinds().containsKey(inviteeId));
-        if (already) {
-            return ClaimResult.failure(ClaimResult.Status.ALREADY_CLAIMED, "error.invite.already_bound", "invite", "once");
+        ClaimResult bindable = checkBindable(inviter.getUniqueId(), inviteeId);
+        if (!bindable.success()) {
+            return bindable;
         }
         if (!settings.allowMutual()) {
             boolean inviterIsBound = store.read(s -> s.inviteBinds().containsKey(inviter.getUniqueId()));
@@ -269,36 +299,79 @@ public final class KitService {
                 return ClaimResult.failure(ClaimResult.Status.CONDITION_FAILED, "error.invite.mutual", "invite", "once");
             }
         }
-        boolean reserved = store.claimOnce(bindKey, () -> {});
-        if (!reserved) {
+        if (!completeBind(inviter.getUniqueId(), inviteeId, inviter.getUniqueId(), "bind",
+                "invitee=" + inviteeId + ", new=" + inviteeNew)) {
             return ClaimResult.failure(ClaimResult.Status.ALREADY_CLAIMED, "error.invite.already_bound", "invite", "once");
         }
-        store.mutate(s -> s.inviteBinds().put(inviteeId, inviter.getUniqueId().toString()));
-        KitDefinition inviteKit = findFirstOfType(KitType.INVITE);
-        if (inviteKit != null && inviteKit.enabled()) {
-            String target = inviteKit.invite().rewardTarget();
-            UUID rewardPlayer = "INVITEE".equals(target) ? inviteeId : inviter.getUniqueId();
-            Player online = org.bukkit.Bukkit.getPlayer(rewardPlayer);
-            if (online != null) {
-                String key = StoreKeys.claim(inviteKit.id(), rewardPlayer, "invite:" + inviteeId);
-                String transactionId = store.read(s -> "T" + s.nextSequence());
-                boolean rewardReserved = store.claimOnce(key, () -> {});
-                if (rewardReserved) {
-                    try {
-                        List<RewardEntry> payload = new ArrayList<>(inviteKit.fixedRewards().entries());
-                        payload.addAll(inviteKit.randomRewards().entries());
-                        rewards.deliver(rewardPlayer, online, inviteKit.id(), payload, transactionId, 0);
-                    } catch (RuntimeException exception) {
-                        store.mutate(s -> s.idempotencyKeys().remove(key));
-                    }
-                }
-            }
+        grantInviteReward(inviter.getUniqueId(), inviteeId);
+        return ClaimResult.success("invite", "bind", List.of());
+    }
+
+    private ClaimResult checkBindable(UUID inviterId, UUID inviteeId) {
+        List<UUID> current = store.read(s -> s.inviteBinds().getOrDefault(inviteeId, List.of()));
+        if (current.contains(inviterId)) {
+            return ClaimResult.failure(ClaimResult.Status.ALREADY_CLAIMED, "error.invite.already_bound", "invite", "once");
         }
+        int maxBinds = inviteBindLimit();
+        if (current.size() >= maxBinds) {
+            return maxBinds <= 1
+                    ? ClaimResult.failure(ClaimResult.Status.ALREADY_CLAIMED, "error.invite.already_bound", "invite", "once")
+                    : ClaimResult.failure(ClaimResult.Status.LIMIT_EXCEEDED, "error.invite.bind_limit", "invite", "once");
+        }
+        return ClaimResult.success("invite", "bind", List.of());
+    }
+
+    private boolean completeBind(UUID inviterId, UUID inviteeId, UUID auditPlayer,
+                                 String auditAction, String auditDetail) {
+        String pairKey = StoreKeys.bindPair(inviteeId, inviterId);
+        boolean reserved = store.claimOnce(pairKey, () -> {});
+        if (!reserved) {
+            return false;
+        }
+        store.mutate(s -> s.inviteBinds().computeIfAbsent(inviteeId, key -> new ArrayList<>()).add(inviterId));
         store.recordAudit(new KitState.AuditRecord(
                 store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
-                inviter.getUniqueId(), "invite", "bind",
-                "invitee=" + inviteeId + ", new=" + inviteeNew));
-        return ClaimResult.success("invite", "bind", List.of());
+                auditPlayer, "invite", auditAction, auditDetail));
+        return true;
+    }
+
+    private int inviteBindLimit() {
+        KitDefinition inviteKit = findFirstOfType(KitType.INVITE);
+        if (inviteKit != null) {
+            return Math.max(1, inviteKit.invite().maxBindsPerInvitee());
+        }
+        return Math.max(1, config.get().invite().maxBindsPerInvitee());
+    }
+
+    private void grantInviteReward(UUID inviterId, UUID inviteeId) {
+        KitDefinition inviteKit = findFirstOfType(KitType.INVITE);
+        if (inviteKit == null || !inviteKit.enabled()) {
+            return;
+        }
+        String target = inviteKit.invite().rewardTarget();
+        UUID rewardPlayer = "INVITEE".equals(target) ? inviteeId : inviterId;
+        Player online = org.bukkit.Bukkit.getPlayer(rewardPlayer);
+        if (online == null) {
+            return;
+        }
+        String pairKey = StoreKeys.claim(inviteKit.id(), rewardPlayer, "invite:" + inviterId + ":" + inviteeId);
+        String legacyKey = StoreKeys.claim(inviteKit.id(), rewardPlayer, "invite:" + inviteeId);
+        boolean legacyCovered = store.read(s -> s.idempotencyKeys().contains(legacyKey));
+        if (legacyCovered) {
+            return;
+        }
+        String transactionId = store.read(s -> "T" + s.nextSequence());
+        boolean rewardReserved = store.claimOnce(pairKey, () -> {});
+        if (!rewardReserved) {
+            return;
+        }
+        try {
+            List<RewardEntry> payload = new ArrayList<>(inviteKit.fixedRewards().entries());
+            payload.addAll(inviteKit.randomRewards().entries());
+            rewards.deliver(rewardPlayer, online, inviteKit.id(), payload, transactionId, 0);
+        } catch (RuntimeException exception) {
+            store.mutate(s -> s.idempotencyKeys().remove(pairKey));
+        }
     }
 
     public ClaimResult onJoin(Player player, boolean firstJoin, String worldName) {
@@ -345,39 +418,18 @@ public final class KitService {
     }
 
     private void bindFromJoin(Player newcomer, UUID inviterId) {
-        String bindKey = StoreKeys.bind(newcomer.getUniqueId());
-        boolean reserved = store.claimOnce(bindKey, () -> {});
-        if (!reserved) {
+        ClaimResult bindable = checkBindable(inviterId, newcomer.getUniqueId());
+        if (!bindable.success()) {
             return;
         }
-        store.mutate(s -> s.inviteBinds().put(newcomer.getUniqueId(), inviterId.toString()));
-        KitDefinition inviteKit = findFirstOfType(KitType.INVITE);
-        if (inviteKit != null && inviteKit.enabled()) {
-            String target = inviteKit.invite().rewardTarget();
-            UUID rewardPlayer = "INVITEE".equals(target) ? newcomer.getUniqueId() : inviterId;
-            Player online = org.bukkit.Bukkit.getPlayer(rewardPlayer);
-            if (online != null) {
-                String key = StoreKeys.claim(inviteKit.id(), rewardPlayer, "invite:" + newcomer.getUniqueId());
-                String transactionId = store.read(s -> "T" + s.nextSequence());
-                boolean rewardReserved = store.claimOnce(key, () -> {});
-                if (rewardReserved) {
-                    try {
-                        List<RewardEntry> payload = new ArrayList<>(inviteKit.fixedRewards().entries());
-                        payload.addAll(inviteKit.randomRewards().entries());
-                        rewards.deliver(rewardPlayer, online, inviteKit.id(), payload, transactionId, 0);
-                    } catch (RuntimeException exception) {
-                        store.mutate(s -> s.idempotencyKeys().remove(key));
-                    }
-                }
-            }
+        if (!completeBind(inviterId, newcomer.getUniqueId(), newcomer.getUniqueId(), "join_bind",
+                "inviter=" + inviterId + ", newcomer=" + newcomer.getUniqueId())) {
+            return;
         }
-        store.recordAudit(new KitState.AuditRecord(
-                store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
-                newcomer.getUniqueId(), "invite", "join_bind",
-                "inviter=" + inviterId + ", newcomer=" + newcomer.getUniqueId()));
+        grantInviteReward(inviterId, newcomer.getUniqueId());
     }
 
-    private TimeWindow timeWindow(KitDefinition def) {
+    public TimeWindow timeWindow(KitDefinition def) {
         if (!def.hasTimeLimit()) {
             return TimeWindow.always();
         }
@@ -453,7 +505,7 @@ public final class KitService {
     }
 
     private ClaimResult applyOpenCount(Player player, KitDefinition def, String periodKey,
-                                       String transactionId, List<String> auditIds) {
+                                       String transactionId, List<String> auditIds, boolean makeup) {
         String openKey = KitState.countKey("open", def.id(), player.getUniqueId());
         long opens = store.read(s -> {
             s.openCounts().merge(openKey, 1L, Long::sum);
@@ -480,7 +532,7 @@ public final class KitService {
         }
         store.recordAudit(new KitState.AuditRecord(
                 store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
-                player.getUniqueId(), def.id(), "claim_success",
+                player.getUniqueId(), def.id(), makeup ? "claim_makeup" : "claim_success",
                 "transaction=" + transactionId + ", period=" + periodKey + ", opens=" + opens));
         return ClaimResult.success(def.id(), periodKey, List.copyOf(auditIds));
     }
@@ -499,6 +551,80 @@ public final class KitService {
 
     private String periodKey(KitDefinition def) {
         return PeriodKeys.currentFor(def.type(), def.cycle().timeZone());
+    }
+
+    private String previousKey(KitDefinition def) {
+        return PeriodKeys.previousFor(def.type(), def.cycle().timeZone());
+    }
+
+    public Map<UUID, Long> invitedCounts() {
+        return store.read(s -> {
+            Map<UUID, Long> counts = new LinkedHashMap<>();
+            for (List<UUID> inviters : s.inviteBinds().values()) {
+                for (UUID inviter : inviters) {
+                    counts.merge(inviter, 1L, Long::sum);
+                }
+            }
+            return counts;
+        });
+    }
+
+    public int cleanupExpired(int auditDays, int idempotencyDays) {
+        if (auditDays <= 0 && idempotencyDays <= 0) {
+            return 0;
+        }
+        long now = System.currentTimeMillis();
+        int[] removed = {0};
+        store.mutate(s -> {
+            if (auditDays > 0) {
+                long cutoff = now - auditDays * 86_400_000L;
+                int before = s.audits().size();
+                s.audits().values().removeIf(record -> record.atMillis() > 0L && record.atMillis() < cutoff);
+                removed[0] += before - s.audits().size();
+            }
+            if (idempotencyDays > 0) {
+                String zone = config.get().timeZone();
+                LocalDate cutoffDate = LocalDate.now(ZoneId.of(zone)).minusDays(idempotencyDays);
+                Set<String> protectedPeriods = new HashSet<>();
+                for (KitType type : List.of(KitType.DAILY, KitType.WEEKLY, KitType.MONTHLY)) {
+                    protectedPeriods.add(PeriodKeys.currentFor(type, zone));
+                    protectedPeriods.add(PeriodKeys.previousFor(type, zone));
+                }
+                int before = s.idempotencyKeys().size();
+                s.idempotencyKeys().removeIf(key -> expiredPeriodKey(key, cutoffDate, protectedPeriods));
+                removed[0] += before - s.idempotencyKeys().size();
+            }
+        });
+        return removed[0];
+    }
+
+    private static boolean expiredPeriodKey(String key, LocalDate cutoffDate, Set<String> protectedPeriods) {
+        boolean claimScoped = key.startsWith("claim|");
+        boolean selectionScoped = key.startsWith("selection|");
+        if (!claimScoped && !selectionScoped) {
+            return false;
+        }
+        int lastBar = key.lastIndexOf('|');
+        if (lastBar < 0) {
+            return false;
+        }
+        String period = key.substring(lastBar + 1);
+        if (protectedPeriods.contains(period)) {
+            return false;
+        }
+        LocalDate start = periodStart(period);
+        return start != null && start.isBefore(cutoffDate);
+    }
+
+    private static LocalDate periodStart(String period) {
+        if (period.startsWith("d:") || period.startsWith("w:") || period.startsWith("m:")) {
+            try {
+                return LocalDate.parse(period.substring(2));
+            } catch (DateTimeParseException invalid) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private static boolean worldAllowed(KitDefinition def, String worldName) {

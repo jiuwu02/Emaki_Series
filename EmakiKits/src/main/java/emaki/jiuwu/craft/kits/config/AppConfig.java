@@ -19,7 +19,9 @@ public record AppConfig(String version,
                         boolean releaseDefaultData,
                         List<ConfigIssue> issues) {
 
-    public record StorageSettings(String backend, int saveDelayTicks, boolean atomicWrites) {}
+    public record StorageSettings(String backend, int saveDelayTicks, boolean atomicWrites,
+                                  RetentionSettings retention) {}
+    public record RetentionSettings(int auditDays, int idempotencyDays) {}
     public record EconomySettings(String provider, String currencyId) {}
     public record InviteSettings(boolean enabled, boolean requireNewPlayer,
                                  boolean allowMutual, int maxBindsPerInvitee,
@@ -33,12 +35,12 @@ public record AppConfig(String version,
     public record JoinSettings(long missedWindowSeconds, String inviteCodeType) {}
     public record ConfigIssue(String path, String reasonKey) {}
 
-    public static final String CURRENT_VERSION = "1.0.1";
+    public static final String CURRENT_VERSION = "1.0.3";
 
     public static AppConfig defaults() {
         Map<String, KitDefinition> empty = new LinkedHashMap<>();
         return new AppConfig(CURRENT_VERSION, "zh_CN", "Asia/Shanghai",
-                new StorageSettings("yaml", 20, true),
+                new StorageSettings("yaml", 20, true, new RetentionSettings(30, 90)),
                 new EconomySettings("auto", ""),
                 new InviteSettings(true, true, false, 1, List.of("first_join")),
                 new CdkSettings(false, 10000),

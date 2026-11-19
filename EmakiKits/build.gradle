@@ -1,5 +1,5 @@
 // EmakiKits (礼包模块)
-version = '1.0.2'
+version = '1.0.3'
 
 dependencies {
     shadeBundle project(':EmakiKitsApi')
@@ -9,4 +9,5 @@ dependencies {
     provided project(':EmakiCoreLib')
 
     provided libs.paper.api
+    provided libs.placeholderapi
 }

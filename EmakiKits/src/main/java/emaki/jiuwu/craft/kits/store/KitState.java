@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.kits.store;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -13,7 +14,9 @@ public final class KitState {
     private final Map<String, Long> purchaseCounts = new LinkedHashMap<>();
     private final Map<String, Long> openCounts = new LinkedHashMap<>();
     private final Map<String, Long> claimTotals = new LinkedHashMap<>();
-    private final Map<UUID, String> inviteBinds = new LinkedHashMap<>();
+    private final Map<String, Long> cdkRedeemCounts = new LinkedHashMap<>();
+    private final Map<String, Long> pityCounts = new LinkedHashMap<>();
+    private final Map<UUID, List<UUID>> inviteBinds = new LinkedHashMap<>();
     private final Map<UUID, String> firstJoin = new LinkedHashMap<>();
     private final Map<String, String> selections = new LinkedHashMap<>();
     private final Map<String, AuditRecord> audits = new LinkedHashMap<>();
@@ -36,7 +39,15 @@ public final class KitState {
         return claimTotals;
     }
 
-    public Map<UUID, String> inviteBinds() {
+    public Map<String, Long> cdkRedeemCounts() {
+        return cdkRedeemCounts;
+    }
+
+    public Map<String, Long> pityCounts() {
+        return pityCounts;
+    }
+
+    public Map<UUID, List<UUID>> inviteBinds() {
         return inviteBinds;
     }
 

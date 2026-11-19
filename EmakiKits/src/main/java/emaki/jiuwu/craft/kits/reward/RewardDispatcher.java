@@ -9,6 +9,7 @@ import emaki.jiuwu.craft.kits.config.AppConfig;
 import emaki.jiuwu.craft.kits.config.KitIds;
 import emaki.jiuwu.craft.kits.model.ChoiceOption;
 import emaki.jiuwu.craft.kits.model.KitDefinition;
+import emaki.jiuwu.craft.kits.model.PityRule;
 import emaki.jiuwu.craft.kits.model.RewardEntry;
 import emaki.jiuwu.craft.kits.model.RewardGroup;
 import emaki.jiuwu.craft.kits.store.KitState;
@@ -82,6 +83,35 @@ public final class RewardDispatcher {
             if (roll < cursor) {
                 selected = entry;
                 break;
+            }
+        }
+        PityRule pity = group.pity();
+        if (pity != null && pity.valid()) {
+            String pityKey = KitState.countKey("pity", kitId, playerId);
+            RewardEntry guaranteed = null;
+            for (RewardEntry entry : group.entries()) {
+                if (entry.id().equals(pity.guaranteedId())) {
+                    guaranteed = entry;
+                    break;
+                }
+            }
+            if (guaranteed != null) {
+                if (selected.id().equals(pity.guaranteedId())) {
+                    store.mutate(s -> s.pityCounts().remove(pityKey));
+                } else {
+                    long misses = store.read(s -> s.pityCounts().getOrDefault(pityKey, 0L));
+                    if (misses + 1 >= pity.count()) {
+                        selected = guaranteed;
+                        store.mutate(s -> s.pityCounts().remove(pityKey));
+                        store.recordAudit(new KitState.AuditRecord(
+                                store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
+                                playerId, kitId, "pity_forced",
+                                "transaction=" + transactionId + ", entry=" + guaranteed.id()
+                                        + ", count=" + pity.count()));
+                    } else {
+                        store.mutate(s -> s.pityCounts().merge(pityKey, 1L, Long::sum));
+                    }
+                }
             }
         }
         return deliver(playerId, player, kitId, List.of(selected), transactionId, depth);

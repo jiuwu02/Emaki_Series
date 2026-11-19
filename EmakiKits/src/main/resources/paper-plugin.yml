@@ -11,6 +11,10 @@ dependencies:
       load: BEFORE
       required: true
       join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
 permissions:
   emakikits.use:
     description: Allows using EmakiKits player commands and kit claiming
@@ -44,6 +48,8 @@ permissions:
       emakikits.grant: true
       emakikits.inspect: true
       emakikits.cdk: true
+      emakikits.check: true
+      emakikits.edit: true
   emakikits.reload:
     description: Allows reloading EmakiKits configuration
     default: op
@@ -56,3 +62,15 @@ permissions:
   emakikits.cdk:
     description: Allows creating, listing and disabling CDK codes
     default: op
+  emakikits.check:
+    description: Allows running the EmakiKits diagnostics command
+    default: op
+  emakikits.edit:
+    description: Allows editing kits with the in-game GUI editor
+    default: op
+  emakikits.preview:
+    description: Allows previewing kit contents
+    default: true
+  emakikits.top:
+    description: Allows opening the invite leaderboard GUI
+    default: true

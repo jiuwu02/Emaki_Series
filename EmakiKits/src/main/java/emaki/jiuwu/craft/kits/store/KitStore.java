@@ -49,7 +49,9 @@ public final class KitStore {
             readCountSection(yaml.getConfigurationSection("purchase_counts"), state.purchaseCounts());
             readCountSection(yaml.getConfigurationSection("open_counts"), state.openCounts());
             readCountSection(yaml.getConfigurationSection("claim_totals"), state.claimTotals());
-            readUuidStringSection(yaml.getConfigurationSection("invite_binds"), state.inviteBinds());
+            readCountSection(yaml.getConfigurationSection("cdk_redeem_counts"), state.cdkRedeemCounts());
+            readCountSection(yaml.getConfigurationSection("pity_counts"), state.pityCounts());
+            readInviteBinds(yaml.getConfigurationSection("invite_binds"), state.inviteBinds());
             readUuidStringSection(yaml.getConfigurationSection("first_join"), state.firstJoin());
             readStringSection(yaml.getConfigurationSection("selections"), state.selections());
             for (String code : yaml.getStringList("cdk_disabled")) {
@@ -76,8 +78,23 @@ public final class KitStore {
             }
             long seq = yaml.getLong("sequence", 0L);
             state.sequence(seq);
+            seedCdkCounts();
         } finally {
             lock.unlock();
+        }
+    }
+
+    private void seedCdkCounts() {
+        for (String key : state.idempotencyKeys()) {
+            if (!key.startsWith("cdk_player|")) {
+                continue;
+            }
+            String rest = key.substring("cdk_player|".length());
+            int bar = rest.lastIndexOf('|');
+            if (bar <= 0 || bar >= rest.length() - 1) {
+                continue;
+            }
+            state.cdkRedeemCounts().putIfAbsent(rest.substring(0, bar) + "|" + rest.substring(bar + 1), 1L);
         }
     }
 
@@ -133,7 +150,9 @@ public final class KitStore {
         Map<String, Long> purchases;
         Map<String, Long> opens;
         Map<String, Long> totals;
-        Map<UUID, String> binds;
+        Map<String, Long> cdkCounts;
+        Map<String, Long> pityCounts;
+        Map<UUID, List<UUID>> binds;
         Map<UUID, String> joins;
         Map<String, String> selections;
         long seq;
@@ -144,6 +163,8 @@ public final class KitStore {
             purchases = new LinkedHashMap<>(state.purchaseCounts());
             opens = new LinkedHashMap<>(state.openCounts());
             totals = new LinkedHashMap<>(state.claimTotals());
+            cdkCounts = new LinkedHashMap<>(state.cdkRedeemCounts());
+            pityCounts = new LinkedHashMap<>(state.pityCounts());
             binds = new LinkedHashMap<>(state.inviteBinds());
             joins = new LinkedHashMap<>(state.firstJoin());
             selections = new LinkedHashMap<>(state.selections());
@@ -167,7 +188,9 @@ public final class KitStore {
         yaml.set("purchase_counts", new LinkedHashMap<String, Object>(purchases));
         yaml.set("open_counts", new LinkedHashMap<String, Object>(opens));
         yaml.set("claim_totals", new LinkedHashMap<String, Object>(totals));
-        yaml.set("invite_binds", toStringKeyMap(binds));
+        yaml.set("cdk_redeem_counts", new LinkedHashMap<String, Object>(cdkCounts));
+        yaml.set("pity_counts", new LinkedHashMap<String, Object>(pityCounts));
+        yaml.set("invite_binds", toStringKeyListMap(binds));
         yaml.set("first_join", toStringKeyMap(joins));
         yaml.set("selections", new LinkedHashMap<String, Object>(selections));
         for (Map<String, Object> wrapper : audits) {
@@ -214,12 +237,57 @@ public final class KitStore {
         return result;
     }
 
+    private static Map<String, List<String>> toStringKeyListMap(Map<UUID, List<UUID>> source) {
+        Map<String, List<String>> result = new LinkedHashMap<>();
+        for (Map.Entry<UUID, List<UUID>> entry : source.entrySet()) {
+            List<String> inviters = new ArrayList<>();
+            for (UUID inviter : entry.getValue()) {
+                inviters.add(inviter.toString());
+            }
+            result.put(entry.getKey().toString(), inviters);
+        }
+        return result;
+    }
+
     private static void readCountSection(ConfigurationSection section, Map<String, Long> target) {
         if (section == null) {
             return;
         }
         for (String key : section.getKeys(false)) {
             target.put(key, section.getLong(key, 0L));
+        }
+    }
+
+    private void readInviteBinds(ConfigurationSection section, Map<UUID, List<UUID>> target) {
+        if (section == null) {
+            return;
+        }
+        for (String key : section.getKeys(false)) {
+            UUID invitee;
+            try {
+                invitee = UUID.fromString(key);
+            } catch (IllegalArgumentException invalidUuid) {
+                LogTags.send(logger, null, Level.FINE, "console.skip_invalid_uuid_key", Map.of("key", key));
+                continue;
+            }
+            List<UUID> inviters = new ArrayList<>();
+            Object raw = section.get(key);
+            if (raw instanceof List<?> list) {
+                for (Object item : list) {
+                    try {
+                        inviters.add(UUID.fromString(String.valueOf(item)));
+                    } catch (IllegalArgumentException invalidUuid) {
+                        LogTags.send(logger, null, Level.FINE, "console.skip_invalid_uuid_key", Map.of("key", String.valueOf(item)));
+                    }
+                }
+            } else if (raw != null && !String.valueOf(raw).isBlank()) {
+                try {
+                    inviters.add(UUID.fromString(String.valueOf(raw)));
+                } catch (IllegalArgumentException invalidUuid) {
+                    LogTags.send(logger, null, Level.FINE, "console.skip_invalid_uuid_key", Map.of("key", String.valueOf(raw)));
+                }
+            }
+            target.put(invitee, inviters);
         }
     }
 

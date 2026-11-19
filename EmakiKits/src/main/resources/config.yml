@@ -4,7 +4,7 @@
 # 修改后使用 /emakikits reload 热重载
 # 文件位置: plugins/EmakiKits/config.yml
 
-version: "1.0.2"
+version: "1.0.3"
 language: "zh_CN"
 
 # 首次启动或 kits/ 目录为空时是否释放内置示例礼包
@@ -22,6 +22,11 @@ storage:
   backend: "yaml"
   save_delay_ticks: 20
   atomic_writes: true
+  retention:
+    # 审计记录保留天数, 0 = 不清理
+    audit_days: 30
+    # 过期周期幂等键保留天数, 0 = 不清理; 当前周期与上一周期永不清理
+    idempotency_days: 90
 
 economy:
   # auto / vault / excellenteconomy; 未装经济桥时价格 > 0 的购买一律拒绝

@@ -4,9 +4,12 @@ import emaki.jiuwu.craft.kits.EmakiKitsPlugin;
 import emaki.jiuwu.craft.kits.config.AppConfig;
 import emaki.jiuwu.craft.kits.config.KitIds;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.kits.limit.TimeWindow;
+import emaki.jiuwu.craft.kits.model.ChoiceOption;
 import emaki.jiuwu.craft.kits.model.ClaimResult;
 import emaki.jiuwu.craft.kits.model.KitDefinition;
 import emaki.jiuwu.craft.kits.model.KitType;
+import emaki.jiuwu.craft.kits.model.RewardEntry;
 import emaki.jiuwu.craft.kits.service.KitService;
 import emaki.jiuwu.craft.kits.gui.ChoiceGuiService;
 import emaki.jiuwu.craft.kits.join.InviteCodeService;
@@ -27,14 +30,18 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.corelib.log.LogTags;
+import emaki.jiuwu.craft.kits.log.KitsLogTag;
 
 public final class KitCommandRouter {
 
     private static final List<String> TOP = List.of("help", "list", "claim", "choose", "buy",
-            "redeem", "invite", "open", "inspect", "grant", "cdk", "reload");
+            "redeem", "invite", "open", "inspect", "grant", "cdk", "reload",
+            "check", "preview", "edit", "top");
     private static final List<String> KIT_ARG_SUBS = List.of(
-            "claim", "choose", "buy", "redeem", "open", "grant");
+            "claim", "choose", "buy", "redeem", "open", "grant", "preview", "edit");
 
     private final EmakiKitsPlugin plugin;
     private final KitService service;
@@ -83,7 +90,8 @@ public final class KitCommandRouter {
                     messages.send(sender, "general.usage_claim");
                     return;
                 }
-                report(sender, service.claim(player, args[1]));
+                boolean makeup = args.length >= 3 && "makeup".equalsIgnoreCase(args[2]);
+                report(sender, service.claim(player, args[1], List.of(), makeup));
             }
             case "choose" -> {
                 if (denied(sender, "emakikits.open", sub)) return;
@@ -171,6 +179,42 @@ public final class KitCommandRouter {
                 plugin.reloadContent();
                 messages.send(sender, LogTag.RELOAD, "console.reload_complete");
             }
+            case "check" -> {
+                if (denied(sender, "emakikits.check", sub)) return;
+                check(sender);
+            }
+            case "preview" -> {
+                if (denied(sender, "emakikits.preview", sub)) return;
+                if (args.length < 2) {
+                    messages.send(sender, "general.usage_preview");
+                    return;
+                }
+                preview(sender, args[1]);
+            }
+            case "edit" -> {
+                if (denied(sender, "emakikits.edit", sub)) return;
+                Player player = requirePlayer(sender);
+                if (player == null) return;
+                if (args.length < 2) {
+                    plugin.editorService().openBrowser(player);
+                    return;
+                }
+                plugin.editorService().open(player, args[1]);
+            }
+            case "top" -> {
+                if (denied(sender, "emakikits.top", sub)) return;
+                Player player = requirePlayer(sender);
+                if (player == null) return;
+                int page = 1;
+                if (args.length >= 2) {
+                    try {
+                        page = Integer.parseInt(args[1]);
+                    } catch (NumberFormatException invalidPage) {
+                        page = 1;
+                    }
+                }
+                plugin.topService().open(player, page);
+            }
             default -> messages.send(sender, "general.unknown_command");
         }
     }
@@ -216,19 +260,141 @@ public final class KitCommandRouter {
     }
 
     private void inspect(CommandSender sender, String rawName) {
+        UUID id;
+        String display;
         Player target = Bukkit.getPlayerExact(rawName);
-        if (target == null) {
-            messages.send(sender, "error.player.offline", Map.of("player", rawName));
-            return;
+        if (target != null) {
+            id = target.getUniqueId();
+            display = target.getName();
+        } else {
+            try {
+                id = UUID.fromString(rawName);
+                display = rawName;
+            } catch (IllegalArgumentException notUuid) {
+                org.bukkit.OfflinePlayer cached = Bukkit.getOfflinePlayerIfCached(rawName);
+                if (cached == null) {
+                    messages.send(sender, "error.player.offline", Map.of("player", rawName));
+                    return;
+                }
+                id = cached.getUniqueId();
+                display = rawName;
+            }
         }
-        UUID id = target.getUniqueId();
+        UUID playerId = id;
         List<KitState.AuditRecord> records = store.read(s -> s.audits().values().stream()
-                .filter(a -> a.player().equals(id)).toList());
-        messages.send(sender, "inspect.summary", Map.of("player", target.getName(),
+                .filter(a -> a.player().equals(playerId)).toList());
+        messages.send(sender, "inspect.summary", Map.of("player", display,
                 "audits", records.size()));
         for (KitState.AuditRecord record : records) {
             messages.send(sender, "inspect.line", Map.of("id", record.id(),
                     "action", record.action(), "detail", record.detail()));
+        }
+    }
+
+    private void check(CommandSender sender) {
+        AppConfig cfg = config.get();
+        messages.send(sender, "check.header", Map.of("version", cfg.version()));
+        for (Map.Entry<String, List<String>> entry : plugin.skippedKits().entrySet()) {
+            messages.send(sender, "check.skipped_line", Map.of("file", entry.getKey(),
+                    "reason", String.join(", ", entry.getValue())));
+        }
+        for (KitDefinition def : cfg.kits().values()) {
+            messages.send(sender, "check.kit_line", Map.of("id", def.id(),
+                    "type", def.type().name().toLowerCase(Locale.ROOT),
+                    "enabled", String.valueOf(def.enabled())));
+            if (def.hasTimeLimit()) {
+                TimeWindow window = service.timeWindow(def);
+                boolean active = window.contains(System.currentTimeMillis());
+                messages.send(sender, "check.window_line", Map.of("kit", def.id(),
+                        "mode", def.limit().mode(), "active", String.valueOf(active)));
+            }
+            if (def.isCyclic()) {
+                messages.send(sender, "check.switch_line", Map.of(
+                        "name", def.id() + ".cycle.allow_makeup",
+                        "value", String.valueOf(def.cycle().allowMakeup())));
+            }
+            if (def.type() == KitType.CDK) {
+                messages.send(sender, "check.switch_line", Map.of(
+                        "name", def.id() + ".cdk.per_player_limit",
+                        "value", String.valueOf(def.cdk().perPlayerLimit())));
+            }
+            if (def.type() == KitType.INVITE) {
+                messages.send(sender, "check.switch_line", Map.of(
+                        "name", def.id() + ".invite.max_binds_per_invitee",
+                        "value", String.valueOf(def.invite().maxBindsPerInvitee())));
+            }
+        }
+        messages.send(sender, "check.switch_line", Map.of(
+                "name", "invite.max_binds_per_invitee",
+                "value", String.valueOf(cfg.invite().maxBindsPerInvitee())));
+        long idempotency = store.read(s -> (long) s.idempotencyKeys().size());
+        long audits = store.read(s -> (long) s.audits().size());
+        long counts = store.read(s -> (long) (s.claimTotals().size() + s.purchaseCounts().size()
+                + s.openCounts().size() + s.cdkRedeemCounts().size() + s.pityCounts().size()));
+        long binds = store.read(s -> (long) s.inviteBinds().size());
+        messages.send(sender, "check.store_line", Map.of("idempotency", idempotency,
+                "audits", audits, "counts", counts, "binds", binds));
+        messages.send(sender, "check.retention_line", Map.of(
+                "audit_days", cfg.storage().retention().auditDays(),
+                "idempotency_days", cfg.storage().retention().idempotencyDays()));
+        org.bukkit.plugin.Plugin coreLib = Bukkit.getPluginManager().getPlugin("EmakiCoreLib");
+        messages.send(sender, "check.corelib_line", Map.of("status",
+                coreLib == null ? "missing" : coreLib.getPluginMeta().getVersion()));
+    }
+
+    private void preview(CommandSender sender, String rawKitId) {
+        String kitId = KitIds.normalize(rawKitId);
+        KitDefinition def = config.get().kit(kitId);
+        if (def == null) {
+            messages.send(sender, "error.kit.unknown", Map.of("kit", kitId));
+            return;
+        }
+        messages.send(sender, "preview.header", Map.of("id", def.id(),
+                "display", def.displayName(),
+                "type", def.type().name().toLowerCase(Locale.ROOT)));
+        if (!def.fixedRewards().entries().isEmpty()) {
+            messages.send(sender, "preview.fixed_header", Map.of());
+            for (RewardEntry entry : def.fixedRewards().entries()) {
+                previewEntry(sender, entry);
+            }
+        }
+        if (!def.randomRewards().entries().isEmpty()) {
+            messages.send(sender, "preview.random_header", Map.of());
+            for (RewardEntry entry : def.randomRewards().entries()) {
+                previewEntry(sender, entry);
+            }
+            if (def.randomRewards().pity() != null && def.randomRewards().pity().valid()) {
+                messages.send(sender, "preview.pity_line", Map.of(
+                        "count", def.randomRewards().pity().count(),
+                        "guaranteed", def.randomRewards().pity().guaranteedId()));
+            }
+        }
+        for (ChoiceOption option : def.choice().options()) {
+            messages.send(sender, "preview.option_line", Map.of("id", option.optionId(),
+                    "display", option.display()));
+        }
+        if (def.hasPurchase()) {
+            messages.send(sender, "preview.purchase_line", Map.of("price", def.purchase().price(),
+                    "max", def.purchase().maxPurchases()));
+        }
+        if (def.hasOpenCount()) {
+            messages.send(sender, "preview.open_line", Map.of("count", def.open().milestones().size()));
+        }
+        if (def.hasTimeLimit()) {
+            messages.send(sender, "preview.window_line", Map.of("mode", def.limit().mode()));
+        }
+    }
+
+    private void previewEntry(CommandSender sender, RewardEntry entry) {
+        switch (entry.kind()) {
+            case ITEM -> messages.send(sender, "preview.reward_item", Map.of("id", entry.id(),
+                    "source", entry.source(), "amount", entry.amount()));
+            case MONEY -> messages.send(sender, "preview.reward_money", Map.of("id", entry.id(),
+                    "amount", entry.amount()));
+            case NESTED_KIT -> messages.send(sender, "preview.reward_nested", Map.of("id", entry.id(),
+                    "kit", entry.nestedKitId()));
+            case ACTION -> messages.send(sender, "preview.reward_action", Map.of("id", entry.id(),
+                    "action", entry.action()));
         }
     }
 
@@ -289,6 +455,12 @@ public final class KitCommandRouter {
             }
         } else {
             messages.send(sender, result.reasonKey(), vars);
+            if (result.status() == ClaimResult.Status.ALREADY_CLAIMED
+                    || result.status() == ClaimResult.Status.CDK_EXHAUSTED) {
+                String who = sender instanceof Player player ? player.getName() : "console";
+                LogTags.send(plugin, KitsLogTag.KITS, Level.INFO, "console.duplicate_claim_blocked",
+                        Map.of("player", who, "kit", result.kitId()));
+            }
         }
     }
 

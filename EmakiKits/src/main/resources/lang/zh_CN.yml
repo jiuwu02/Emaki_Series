@@ -2,11 +2,11 @@
 # 消息使用 MiniMessage, 占位符见各分组旁注释
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.2"
+version: "1.0.3"
 
 tags:
-  kits: '[ 礼包 ]'
-  limit: '[ 限制 ]'
+  kits: "[ 礼包 ]"
+  limit: "[ 限制 ]"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#F97316>EmakiKits</gradient> ]</gray> "
@@ -17,6 +17,7 @@ general:
   usage_redeem: "<yellow>用法: /emakikits redeem <kit> <code></yellow>"
   usage_invite: "<yellow>用法: /emakikits invite <player></yellow>"
   usage_open: "<yellow>用法: /emakikits open <kit></yellow>"
+  usage_preview: "<yellow>用法: /emakikits preview <kit></yellow>"
   usage_inspect: "<yellow>用法: /emakikits inspect <player></yellow>"
   usage_grant: "<yellow>用法: /emakikits grant <player> <kit></yellow>"
   usage_cdk: "<yellow>用法: /emakikits cdk list|disable <code></yellow>"
@@ -24,7 +25,7 @@ general:
   player_only: "<red>此命令只能由玩家执行</red>"
 
 help:
-  lines: "<yellow>/emakikits claim|choose|buy|redeem|invite|open|list|inspect|grant|cdk|reload</yellow>"
+  lines: "<yellow>/emakikits claim|choose|buy|redeem|invite|open|list|inspect|grant|cdk|check|preview|edit|top|reload</yellow>"
 
 claim:
   success: "<green>已领取礼包 %kit% (周期 %period%)</green>"
@@ -43,6 +44,197 @@ grant:
 cdk:
   list_line: "<gray>CDK 礼包 %kit% 模式 %mode% 共 %codes% 个兑换码</gray>"
   disabled: "<yellow>兑换码 %code% 已停用</yellow>"
+
+top:
+  title: "<gradient:#F59E0B:#F97316>邀请排行榜</gradient>"
+  open_failed: "<red>邀请排行榜打开失败.</red>"
+  entry_name: "<gold>#%rank%</gold> <white>%player%</white>"
+  entry_lore: "<gray>已邀请玩家: <aqua>%count%</aqua></gray>"
+  page_info_name: "<aqua>第 %current_page%/%total_pages% 页</aqua>"
+  page_info_lore: "<gray>上榜玩家: <white>%entry_count%</white></gray>"
+  prev_name: "<gray>上一页</gray>"
+  prev_lore: "<dark_gray>点击翻到上一页</dark_gray>"
+  next_name: "<gray>下一页</gray>"
+  next_lore: "<dark_gray>点击翻到下一页</dark_gray>"
+  close_name: "<red>关闭</red>"
+
+editor:
+  modified: <green>成功修改了 %item%</green>
+  reset_ok: <green>成功重置了 %item%</green>
+  modify_failed: <red>%item% 修改未成功 (%reason%)</red>
+  modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
+  open_failed: <red>无法打开 %id% 的编辑界面</red>
+  prompt:
+    chat: <yellow>请在聊天栏输入"%label%"的内容, 输入 cancel 取消</yellow>
+    map_entry: <yellow>请在聊天栏输入"键=值"新增一条映射, 输入 cancel 取消</yellow>
+  map:
+    bad_entry: <red>格式错误, 请按"键=值"输入</red>
+  field:
+    entry: 条目
+    entry_desc: <dark_gray>左键编辑该条目, Shift+左键删除该条目</dark_gray>
+    reset_empty: <yellow>该字段尚无配置, 无需重置</yellow>
+    value: "当前值: <white>%value%</white>"
+    disabled: <red>该字段不可编辑</red>
+    hint:
+      toggle: <gray>左键切换 开/关, 右键重置</gray>
+      cycle: <gray>左键切换到下一个取值, 右键重置</gray>
+      number: <gray>左键输入数值, 右键重置</gray>
+      text: <gray>左键输入文本, 右键重置</gray>
+      navigate: <gray>左键进入子菜单</gray>
+      list: <gray>左键查看列表</gray>
+      list_seq: <gray>左键添加一行, Shift+左键编辑条目, 右键删除最后一行, Shift+右键清空</gray>
+      list_map: <gray>左键编辑条目, 右键重置整个节点</gray>
+      command: <gray>左键编辑该项</gray>
+    enabled: 启用
+    type: 礼包类型
+    permission: 权限节点
+    display_name: 显示名称
+    max_claims_total: 累计领取上限
+    nav_join: 入服设置
+    nav_invite: 邀新设置
+    nav_cycle: 周期设置
+    nav_cdk: 兑换码设置
+    nav_choice: 自选设置
+    nav_purchase: 购买设置
+    nav_open: 开启次数设置
+    nav_limit: 限时设置
+    nav_rewards: 奖励设置
+    join_first: 首次入服发放
+    join_every: 每次入服发放
+    join_require_code: 需要邀请码
+    join_code_type: 邀请码形态
+    join_window: 邀请码窗口(秒)
+    worlds: 限定世界
+    invite_target: 奖励对象
+    invite_require_new: 被邀请人须为新玩家
+    invite_mutual: 允许互邀
+    invite_max_binds: 被邀请人可绑次数
+    cycle_tz: 周期时区
+    cycle_makeup: 允许补领上一周期
+    cdk_mode: 核销模式
+    codes: 兑换码列表
+    cdk_limit: 每玩家兑换上限
+    choice_min: 最少可选
+    choice_max: 最多可选
+    choice_gui_template: 外部 GUI 模板
+    options: 自选选项
+    option_display: 选项显示名
+    option_permission: 选项权限
+    option_kit_id: 选项引用礼包
+    option_rewards: 选项奖励
+    purchase_enabled: 启用购买
+    purchase_price: 价格
+    purchase_provider: 经济提供方
+    purchase_currency: 货币 ID
+    purchase_max: 购买次数上限
+    purchase_pass: 购买计数传递嵌套
+    open_enabled: 启用开启计数
+    open_max: 开启次数上限
+    milestones: 开启档位
+    milestone_rewards: 档位奖励
+    limit_enabled: 启用限时
+    limit_mode: 限时模式
+    limit_start: 开始时间
+    limit_end: 结束时间
+    limit_cron: cron 表达式
+    limit_duration: 开窗时长(秒)
+    limit_tz: 限时时区
+    rewards_weighted: 加权随机
+    rewards_fixed: 固定奖励
+    rewards_random: 随机奖励
+    pity_count: 保底次数
+    pity_guaranteed: 保底必出条目 id
+    reward_type: 奖励类型
+    reward_id: 条目 id
+    reward_amount: 数量
+    reward_source: 物品来源
+    reward_action: 动作行
+    reward_kit_id: 嵌套礼包 id
+    reward_weight: 随机权重
+    reward_permission: 条目权限
+  value:
+    unset: 未设置 (空)
+    integer: 整数
+    decimal: 小数
+    boolean: 布尔
+    text: 文本
+    list_header: 列表 (%count% 项)
+    map_header: 字典 (%count% 项)
+    scalar: "%type%: %value%"
+    more: "... 其余 %count% 项"
+  browser:
+    title: <dark_gray>定义浏览</dark_gray>
+    roots: <dark_gray>选择新建分类</dark_gray>
+    new_hint: <gray>ID 只允许小写字母, 数字与下划线, 例如 my_sword</gray>
+    new_prompt: <yellow>请在聊天栏输入 %root% 下新定义的 ID, 输入 cancel 取消</yellow>
+    invalid_id: <red>ID 非法, 只允许小写字母, 数字与下划线</red>
+    no_skeleton: <red>该分类不支持新建定义</red>
+    duplicate_id: <red>ID %id% 已存在</red>
+    create_success: <green>已创建定义 %id%</green>
+    create_failed: <red>创建失败, 详见控制台</red>
+    no_create_root: <yellow>没有可新建定义的分类</yellow>
+    delete_title: 确认删除定义 %id%
+    delete_body: 确定要删除此定义吗?
+    delete_body_irreversible: <red>此操作不可撤销</red>; 删除前会自动写入 edit-backups 备份
+    delete_confirm_button: 确认删除
+    delete_cancel_button: 取消
+    delete_cancelled: <gray>已取消删除, 定义数据保留</gray>
+    delete_confirm: <red>再次点击"删除"以确认删除</red>
+    delete_success: <green>已删除定义 %id%</green>
+    delete_failed: <red>删除失败, 详见控制台</red>
+  menu:
+    list_entries: 条目编辑
+    home: 礼包编辑
+    join: 入服礼包
+    invite: 邀新礼包
+    cycle: 周期设置
+    cdk: 兑换码
+    choice: 自选礼包
+    option_edit: 自选选项
+    purchase: 购买设置
+    open: 开启次数
+    milestone_edit: 开启档位
+    limit: 限时窗口
+    rewards: 奖励配置
+    reward_entry: 奖励条目
+  root:
+    kits: 礼包定义文件
+  kits:
+    readonly: <yellow>礼包 id 不可编辑</yellow>
+    option_create_hint: <gray>输入新选项 id (小写字母/数字/下划线), 输入 cancel 取消</gray>
+    option_bad_id: <red>选项 id 非法</red>
+    option_duplicate: <red>选项 %id% 已存在</red>
+    milestone_create_hint: <gray>输入档位开启次数 (正整数), 输入 cancel 取消</gray>
+    milestone_bad_count: <red>开启次数必须是正整数</red>
+    milestone_duplicate: <red>档位 %id% 已存在</red>
+    hint_code: <gray>输入一个兑换码文本, 输入 cancel 取消</gray>
+    hint_world: <gray>输入一个世界名, 输入 cancel 取消</gray>
+    preview_id: "<dark_gray>id: %value%</dark_gray>"
+    preview_type: "<dark_gray>type: %value%</dark_gray>"
+
+check:
+  header: "<yellow>[ 体检 ] EmakiKits 配置与存储状态 (版本 %version%)</yellow>"
+  kit_line: "<gray>礼包 %id% (%type%, 启用: %enabled%)</gray>"
+  skipped_line: "<yellow>已跳过 %file%: %reason%</yellow>"
+  window_line: "<gray>限时 %kit%: 模式 %mode%, 当前在窗口内: %active%</gray>"
+  switch_line: "<gray>%name% = %value%</gray>"
+  store_line: "<gray>存储: 幂等键 %idempotency%, 审计 %audits%, 计数 %counts%, 绑定 %binds%</gray>"
+  retention_line: "<gray>清理策略: 审计 %audit_days% 天, 过期周期幂等键 %idempotency_days% 天</gray>"
+  corelib_line: "<gray>CoreLib: %status%</gray>"
+
+preview:
+  header: "<yellow>礼包 %display% (%id%, %type%) 内容预览</yellow>"
+  fixed_header: "<yellow>固定奖励:</yellow>"
+  random_header: "<yellow>随机奖励池 (不显示权重, 不预测抽取结果):</yellow>"
+  reward_item: "<gray>- [物品] %id%: %source% x%amount%</gray>"
+  reward_money: "<gray>- [金钱] %id%: %amount%</gray>"
+  reward_nested: "<gray>- [子礼包] %id%: %kit%</gray>"
+  reward_action: "<gray>- [动作] %id%: %action%</gray>"
+  option_line: "<gray>自选选项 %id%: %display%</gray>"
+  purchase_line: "<gray>购买: 价格 %price%, 购买次数上限 %max%</gray>"
+  pity_line: "<gray>保底: %count% 次内必出 %guaranteed%</gray>"
+  open_line: "<gray>开启档位: %count% 档</gray>"
+  window_line: "<gray>限时模式: %mode%</gray>"
 
 choice:
   # 占位符: %option%, %count%, %max%
@@ -77,6 +269,14 @@ console:
   debit_refund_failed: "扣款补偿失败: operation=refund, player=%player%, amount=%amount%, cause=%error%"
   debit_failed: "扣款失败: operation=debit, player=%player%, amount=%amount%, cause=%error%"
   kit_action_execution_failed: "礼包动作执行失败: kit=%kit%, entry=%entry%, outcome=%outcome%, line=%line%"
+  duplicate_claim_blocked: "已拦截重复领取/兑换请求: player=%player%, kit=%kit%"
+  retention_cleaned: "<gray>过期数据清理完成, 移除 %removed% 条</gray>"
+  papi_registered: "<green>PlaceholderAPI 占位符已注册</green>"
+  editor_open_failed: "<red>无法打开 EmakiKits 编辑界面: %item%  (%error%)</red>"
+  editor_template_missing: "<red>缺少 EmakiKits 编辑界面模板: %template%</red>"
+  editor_browser_create_failed: "<red>无法创建礼包定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "<red>无法删除礼包定义: %path%  (%error%)</red>"
+  editor_browser_list_failed: "<red>无法列举礼包定义目录: %path%  (%error%)</red>"
   skip_invalid_uuid_key: "跳过非法 UUID 存档键: %key%"
   persistence_write_failed: "持久化写入失败: operation=flush, file=%file%, cause=%error%"
 
@@ -94,10 +294,12 @@ error:
     purchase_limit: "<red>礼包 %kit% 购买次数已达上限</red>"
     cdk_use_redeem: "<red>CDK 礼包请使用 /emakikits redeem</red>"
     invite_use_bind: "<red>邀新礼包请使用入服邀请码流程</red>"
+    makeup_disabled: "<red>礼包 %kit% 未开启补领或不是周期礼包</red>"
     outside_time_window: "<red>礼包 %kit% 当前不在限时窗口内</red>"
   cdk:
     invalid: "<red>兑换码无效</red>"
     exhausted: "<red>兑换码已被使用</red>"
+    player_limit: "<red>该兑换码你已达到可兑换次数上限</red>"
     disabled: "<red>兑换码已停用</red>"
   choice:
     count: "<red>自选数量不在允许范围内</red>"
@@ -112,6 +314,7 @@ error:
     not_new: "<red>被邀请人不是新玩家</red>"
     mutual: "<red>互邀链被禁止</red>"
     already_bound: "<red>被邀请人已被绑定</red>"
+    bind_limit: "<red>被邀请人绑定次数已达上限</red>"
     offline: "<red>被邀请人 %player% 不在线</red>"
   economy:
     unavailable: "<red>经济桥不可用, 无法扣款</red>"
@@ -140,6 +343,11 @@ error:
     item_source_missing: "物品奖励缺少 source (CoreLib 物品库简写)"
     action_empty: "动作奖励缺少 action (CoreLib action 行)"
     invalid_weight: "随机权重非法"
+    pity_requires_weighted: "rewards.pity 需要 rewards.weighted: true"
+    pity_guaranteed_missing: "rewards.pity.guaranteed 缺失"
+    pity_guaranteed_unknown: "rewards.pity.guaranteed 未匹配任何随机奖励条目 id"
+    pity_count_invalid: "rewards.pity.count 必须 ≥ 1"
+    number_invalid: "数字字段取值必须是数字"
     nested_kit_missing: "嵌套礼包缺少 kit_id"
     nested_missing: "嵌套礼包引用不存在"
     nested_self: "嵌套礼包自引用"

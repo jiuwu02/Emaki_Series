@@ -24,12 +24,20 @@ public final class StoreKeys {
         return "cdk_player|" + norm(code) + "|" + player;
     }
 
+    public static String cdkCount(String code, UUID player) {
+        return norm(code) + "|" + player;
+    }
+
     public static String milestone(String kitId, UUID player, int count) {
         return "milestone|" + norm(kitId) + "|" + player + "|" + count;
     }
 
     public static String bind(UUID invitee) {
         return "bind|" + invitee;
+    }
+
+    public static String bindPair(UUID invitee, UUID inviter) {
+        return "bind|" + invitee + "|" + inviter;
     }
 
     public static String join(UUID player) {

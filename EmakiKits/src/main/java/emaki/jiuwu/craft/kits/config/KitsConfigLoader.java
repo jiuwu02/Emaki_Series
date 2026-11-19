@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.kits.model.ChoiceOption;
 import emaki.jiuwu.craft.kits.model.KitDefinition;
 import emaki.jiuwu.craft.kits.model.KitType;
 import emaki.jiuwu.craft.kits.model.OpenMilestone;
+import emaki.jiuwu.craft.kits.model.PityRule;
 import emaki.jiuwu.craft.kits.model.RewardEntry;
 import emaki.jiuwu.craft.kits.model.RewardGroup;
 import emaki.jiuwu.craft.corelib.log.LogTags;
@@ -32,6 +33,7 @@ import java.util.logging.Level;
 public final class KitsConfigLoader extends YamlDirectoryLoader<KitDefinition> {
 
     private AppConfig base = AppConfig.defaults();
+    private final Map<String, List<String>> skipped = new LinkedHashMap<>();
 
     public KitsConfigLoader(JavaPlugin plugin) {
         super(plugin);
@@ -65,7 +67,7 @@ public final class KitsConfigLoader extends YamlDirectoryLoader<KitDefinition> {
         }
         validateNestedGraph(parsed, issues);
         AppConfig config = base.withKits(parsed, issues);
-        return new LoadResult(config, parsed, List.copyOf(issues), loaded);
+        return new LoadResult(config, parsed, List.copyOf(issues), loaded, Map.copyOf(skipped));
     }
 
     private AppConfig parseMain(YamlSection yaml, AppConfig fallback) {
@@ -78,10 +80,18 @@ public final class KitsConfigLoader extends YamlDirectoryLoader<KitDefinition> {
         YamlSection storage = yaml.getSection("storage");
         AppConfig.StorageSettings storageSettings = fallback.storage();
         if (storage != null) {
+            YamlSection retention = storage.getSection("retention");
+            AppConfig.RetentionSettings retentionSettings = storageSettings.retention();
+            if (retention != null) {
+                retentionSettings = new AppConfig.RetentionSettings(
+                        Math.max(0, intVal(retention.get("audit_days"), retentionSettings.auditDays())),
+                        Math.max(0, intVal(retention.get("idempotency_days"), retentionSettings.idempotencyDays())));
+            }
             storageSettings = new AppConfig.StorageSettings(
                     storage.getString("backend", storageSettings.backend()),
                     Math.max(1, intVal(storage.get("save_delay_ticks"), storageSettings.saveDelayTicks())),
-                    boolVal(storage.get("atomic_writes"), storageSettings.atomicWrites()));
+                    boolVal(storage.get("atomic_writes"), storageSettings.atomicWrites()),
+                    retentionSettings);
         }
         YamlSection economy = yaml.getSection("economy");
         AppConfig.EconomySettings economySettings = fallback.economy();
@@ -139,6 +149,7 @@ public final class KitsConfigLoader extends YamlDirectoryLoader<KitDefinition> {
         String rawId = node.getString("id", "");
         if (!KitIds.valid(rawId)) {
             LogTags.send(plugin, KitsLogTag.KITS, Level.WARNING, "kits.kit_id_invalid", Map.of("file", file.getName(), "id", rawId));
+            skipped.put(file.getName(), List.of("id=" + rawId));
             return null;
         }
         String id = KitIds.normalize(rawId);
@@ -148,6 +159,11 @@ public final class KitsConfigLoader extends YamlDirectoryLoader<KitDefinition> {
             LogTags.send(plugin, KitsLogTag.KITS, Level.WARNING, "kits.kit_validation_failed", Map.of("file", file.getName(), "id", id, "path", issue.path(), "reason", issue.reasonKey()));
         }
         if (!issues.isEmpty()) {
+            List<String> reasons = new ArrayList<>();
+            for (KitDefinition.ConfigIssue issue : issues) {
+                reasons.add(issue.path() + "=" + issue.reasonKey());
+            }
+            skipped.put(file.getName(), List.copyOf(reasons));
             return null;
         }
         return def;
@@ -234,14 +250,28 @@ public final class KitsConfigLoader extends YamlDirectoryLoader<KitDefinition> {
             }
         }
 
-        RewardGroup fixed = new RewardGroup(id + ":fixed",
-                parseRewards(node.getMapList("rewards.fixed"), id + ".rewards.fixed", issues), false, 0);
+        RewardGroup fixed = RewardGroup.fixed(id + ":fixed",
+                parseRewards(node.getMapList("rewards.fixed"), id + ".rewards.fixed", issues));
         List<RewardEntry> randomEntries = parseRewards(node.getMapList("rewards.random"),
                 id + ".rewards.random", issues);
         boolean weighted = boolVal(node.get("rewards.weighted"), false);
         RewardGroup random = weighted
                 ? RewardGroup.weighted(id + ":random", randomEntries)
                 : RewardGroup.fixed(id + ":random", randomEntries);
+        YamlSection pityNode = node.getSection("rewards.pity");
+        if (pityNode != null) {
+            PityRule pity = new PityRule(Math.max(1, intVal(pityNode.get("count"), 1)),
+                    str(pityNode.get("guaranteed")));
+            if (!pity.valid()) {
+                issues.add(new KitDefinition.ConfigIssue("rewards.pity.guaranteed", "error.config.pity_guaranteed_missing"));
+            } else if (randomEntries.stream().noneMatch(entry -> entry.id().equals(pity.guaranteedId()))) {
+                issues.add(new KitDefinition.ConfigIssue("rewards.pity.guaranteed", "error.config.pity_guaranteed_unknown"));
+            }
+            if (!weighted) {
+                issues.add(new KitDefinition.ConfigIssue("rewards.pity", "error.config.pity_requires_weighted"));
+            }
+            random = random.withPity(pity);
+        }
         if (weighted && !random.valid()) {
             issues.add(new KitDefinition.ConfigIssue("rewards.random", "error.config.invalid_weight"));
         }
@@ -522,5 +552,6 @@ public final class KitsConfigLoader extends YamlDirectoryLoader<KitDefinition> {
     }
 
     public record LoadResult(AppConfig config, Map<String, KitDefinition> kits,
-                             List<AppConfig.ConfigIssue> issues, int loaded) {}
+                             List<AppConfig.ConfigIssue> issues, int loaded,
+                             Map<String, List<String>> skipped) {}
 }

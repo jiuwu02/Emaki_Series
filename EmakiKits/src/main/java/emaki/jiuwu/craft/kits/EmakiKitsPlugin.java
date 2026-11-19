@@ -21,7 +21,10 @@ import emaki.jiuwu.craft.kits.command.KitCommandAdapter;
 import emaki.jiuwu.craft.kits.command.KitCommandRouter;
 import emaki.jiuwu.craft.kits.config.AppConfig;
 import emaki.jiuwu.craft.kits.config.KitsConfigLoader;
+import emaki.jiuwu.craft.kits.editor.KitsEditorService;
 import emaki.jiuwu.craft.kits.gui.ChoiceGuiService;
+import emaki.jiuwu.craft.kits.papi.KitsPapiSupport;
+import emaki.jiuwu.craft.kits.top.InviteTopService;
 import emaki.jiuwu.craft.kits.join.InviteCodeService;
 import emaki.jiuwu.craft.kits.listener.JoinListener;
 import emaki.jiuwu.craft.kits.model.KitDefinition;
@@ -50,6 +53,8 @@ public final class EmakiKitsPlugin extends JavaPlugin {
     private static final List<String> VERSIONED_FILES = List.of("config.yml");
     private static final List<String> STATIC_FILES = List.of("lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of(
+            "gui/top_gui.yml",
+            "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml",
             "kits/join_welcome.yml", "kits/invite_reward.yml", "kits/daily_login.yml",
             "kits/weekly_supply.yml", "kits/monthly_crate.yml", "kits/cdk_global.yml",
             "kits/cdk_per_player.yml", "kits/choice_starter.yml", "kits/generic_crate.yml",
@@ -83,6 +88,10 @@ public final class EmakiKitsPlugin extends JavaPlugin {
     private InviteCodeService inviteCodeService;
     private CronScheduler cronScheduler;
     private JoinListener joinListener;
+    private KitsEditorService editorService;
+    private InviteTopService topService;
+    private int retentionTaskId = -1;
+    private volatile Map<String, List<String>> skippedKits = Map.of();
     private ThreadOwnership threadOwnership;
     private DefaultEmakiKitsApi apiBridge;
     private int flushTaskId = -1;
@@ -135,7 +144,13 @@ public final class EmakiKitsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(chatInput, this);
         joinListener = new JoinListener(service, inviteCodeService, messages, () -> config);
         getServer().getPluginManager().registerEvents(joinListener, this);
+        editorService = new KitsEditorService(this);
+        topService = new InviteTopService(this, guiService, guiTemplates, messages, service);
+        KitsPapiSupport.register(this);
         scheduleTimeWindows();
+        runRetention();
+        retentionTaskId = getServer().getScheduler().runTaskTimerAsynchronously(this,
+                this::runRetention, 20L * 60L * 60L * 24L, 20L * 60L * 60L * 24L).getTaskId();
         flushTaskId = getServer().getScheduler().runTaskTimerAsynchronously(this,
                 store::flush, 100L, Math.max(1, config.storage().saveDelayTicks()) * 20L).getTaskId();
         apiBridge = new DefaultEmakiKitsApi(this);
@@ -169,6 +184,18 @@ public final class EmakiKitsPlugin extends JavaPlugin {
         if (guiService != null) {
             guiService.closeAll();
         }
+        if (editorService != null) {
+            editorService.flushAll();
+            editorService.closeAll();
+        }
+        if (topService != null) {
+            topService.closeAll();
+        }
+        KitsPapiSupport.unregister();
+        if (retentionTaskId != -1) {
+            getServer().getScheduler().cancelTask(retentionTaskId);
+            retentionTaskId = -1;
+        }
         HandlerList.unregisterAll(this);
         if (store != null) {
             store.seal();
@@ -177,9 +204,13 @@ public final class EmakiKitsPlugin extends JavaPlugin {
     }
 
     public int reloadContent() {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         KitsConfigLoader loader = new KitsConfigLoader(this);
         KitsConfigLoader.LoadResult result = loader.loadAll();
         config = result.config();
+        skippedKits = result.skipped();
         if (languageLoader != null) {
             languageLoader.load();
         }
@@ -248,5 +279,25 @@ public final class EmakiKitsPlugin extends JavaPlugin {
 
     public boolean runtimeReady() {
         return runtimeReady;
+    }
+
+    public KitsEditorService editorService() {
+        return editorService;
+    }
+
+    public InviteTopService topService() {
+        return topService;
+    }
+
+    public Map<String, List<String>> skippedKits() {
+        return skippedKits;
+    }
+
+    private void runRetention() {
+        int removed = service.cleanupExpired(config.storage().retention().auditDays(),
+                config.storage().retention().idempotencyDays());
+        if (removed > 0) {
+            messages.info(KitsLogTag.KITS, "console.retention_cleaned", Map.of("removed", removed));
+        }
     }
 }

@@ -1,0 +1,98 @@
+# 邀请排行榜界面 (P4-14)
+# 文案由 lang top.* 键驱动; 本文件只定义布局与占位, 服主可自行改图标配色
+id: "top_gui"
+gui_type: CHEST
+title: "%top_title%"
+rows: 6
+
+slots:
+  entries:
+    type: "top_entry"
+    slots:
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+      ]
+
+  page_prev:
+    type: "page_prev"
+    slots: [45]
+    item:
+      source: "arrow"
+
+  border_left:
+    type: "filler"
+    slots: [46, 47]
+    item:
+      source: "black_stained_glass_pane"
+      components:
+        custom_name: " "
+
+  close:
+    type: "close"
+    slots: [48]
+    item:
+      source: "barrier"
+
+  page_info:
+    type: "page_info"
+    slots: [49]
+    item:
+      source: "book"
+
+  border_right:
+    type: "filler"
+    slots: [50, 51, 52]
+    item:
+      source: "black_stained_glass_pane"
+      components:
+        custom_name: " "
+
+  page_next:
+    type: "page_next"
+    slots: [53]
+    item:
+      source: "arrow"
