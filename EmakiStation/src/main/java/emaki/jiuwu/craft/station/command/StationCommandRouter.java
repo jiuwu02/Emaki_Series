@@ -111,6 +111,38 @@ public final class StationCommandRouter {
                 }
             }
         }
+        if ("cancel".equals(head) && args.length == 3 && sender instanceof Player player) {
+            StationDefinition station = plugin.registry().station(args[1]);
+            if (station != null) {
+                PlayerQueues queues = plugin.queueService().cached(player.getUniqueId());
+                if (queues != null) {
+                    QueueSnapshot snapshot = plugin.queueService().snapshot(player, station, queues);
+                    String prefix = args[2].toLowerCase(Locale.ROOT);
+                    for (QueueEntryView entry : snapshot.entries()) {
+                        String value = String.valueOf(entry.index() + 1);
+                        if (value.startsWith(prefix)) {
+                            result.add(value);
+                        }
+                    }
+                }
+            }
+        }
+        if ("admin".equals(head)) {
+            if (args.length == 2) {
+                if ("queue".startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                    result.add("queue");
+                }
+                return result;
+            }
+            if (args.length == 3 && "queue".equals(args[1].toLowerCase(Locale.ROOT))) {
+                String prefix = args[2].toLowerCase(Locale.ROOT);
+                for (Player online : Bukkit.getOnlinePlayers()) {
+                    if (online.getName().toLowerCase(Locale.ROOT).startsWith(prefix)) {
+                        result.add(online.getName());
+                    }
+                }
+            }
+        }
         return result;
     }
 

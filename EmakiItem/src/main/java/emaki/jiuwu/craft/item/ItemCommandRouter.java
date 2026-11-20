@@ -129,6 +129,10 @@ final class ItemCommandRouter implements TabExecutor {
         if (args.length == 2) {
             switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "give", "inspect", "update" -> result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
+                case "edit" -> plugin.itemLoader().all().keySet().stream()
+                        .filter(id -> id.startsWith(args[1].toLowerCase(Locale.ROOT)))
+                        .forEach(result::add);
+                case "list", "browse" -> result.addAll(CommandTabHelper.completeIntRange(args[1], 1, 10));
                 case "components", "component" -> {
                     if ("yaml".startsWith(args[1].toLowerCase(Locale.ROOT))) {
                         result.add("yaml");
@@ -164,6 +168,39 @@ final class ItemCommandRouter implements TabExecutor {
             if (target != null) {
                 componentsCommand.completeComponentIds(result, target, args[3]);
             }
+            return result;
+        }
+        if (args.length == 3 && "alias".equalsIgnoreCase(args[0]) && "remove".equalsIgnoreCase(args[1])) {
+            plugin.aliasLoader().all().keySet().stream()
+                    .filter(id -> id.startsWith(args[2].toLowerCase(Locale.ROOT)))
+                    .forEach(result::add);
+            return result;
+        }
+        if (args.length == 4 && "alias".equalsIgnoreCase(args[0]) && "add".equalsIgnoreCase(args[1])) {
+            plugin.itemLoader().all().keySet().stream()
+                    .filter(id -> id.startsWith(args[3].toLowerCase(Locale.ROOT)))
+                    .forEach(result::add);
+            return result;
+        }
+        if (args.length == 4 && "migrate".equalsIgnoreCase(args[0]) && "id".equalsIgnoreCase(args[1])) {
+            plugin.itemLoader().all().keySet().stream()
+                    .filter(id -> id.startsWith(args[3].toLowerCase(Locale.ROOT)))
+                    .forEach(result::add);
+            return result;
+        }
+        if (args.length == 5 && "migrate".equalsIgnoreCase(args[0]) && "id".equalsIgnoreCase(args[1])) {
+            for (String mode : List.of("--dry-run", "--apply")) {
+                if (mode.startsWith(args[4].toLowerCase(Locale.ROOT))) {
+                    result.add(mode);
+                }
+            }
+            return result;
+        }
+        if (args.length == 3 && "migrate".equalsIgnoreCase(args[0]) && "inventory".equalsIgnoreCase(args[1])) {
+            if ("all".startsWith(args[2].toLowerCase(Locale.ROOT))) {
+                result.add("all");
+            }
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
             return result;
         }
         if (args.length == 3 && "give".equalsIgnoreCase(args[0])) {

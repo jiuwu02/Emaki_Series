@@ -119,9 +119,18 @@ final class CookingCommandRouter implements TabExecutor {
         }
         if (args.length == 3) {
             result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
+            if ("get".equalsIgnoreCase(args[1]) && plugin.nutritionTypeRegistry() != null) {
+                String prefix = args[2].toLowerCase(Locale.ROOT);
+                plugin.nutritionTypeRegistry().all().forEach(type -> {
+                    if (type.id().startsWith(prefix)) {
+                        result.add(type.id());
+                    }
+                });
+            }
             return result;
         }
-        if (args.length == 4 && plugin.nutritionTypeRegistry() != null) {
+        if (args.length == 4 && plugin.nutritionTypeRegistry() != null
+                && Bukkit.getPlayerExact(args[2]) != null) {
             String prefix = args[3].toLowerCase(Locale.ROOT);
             plugin.nutritionTypeRegistry().all().forEach(type -> {
                 if (type.id().startsWith(prefix)) {

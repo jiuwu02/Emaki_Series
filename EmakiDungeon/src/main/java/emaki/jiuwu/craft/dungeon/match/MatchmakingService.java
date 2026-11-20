@@ -110,6 +110,18 @@ public final class MatchmakingService {
         }
     }
 
+    public List<Integer> recruitIds() {
+        List<Integer> ids = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        for (RecruitEntry entry : recruits.values()) {
+            if (entry.expiresAt() > now) {
+                ids.add(entry.id());
+            }
+        }
+        ids.sort(Integer::compare);
+        return ids;
+    }
+
     public void listRecruits(CommandSender sender) {
         List<RecruitEntry> entries = new ArrayList<>();
         long now = System.currentTimeMillis();

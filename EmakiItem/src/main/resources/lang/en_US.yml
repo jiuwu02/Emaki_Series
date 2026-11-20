@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "3.0.8"
+version: "3.0.9"
 
 tags:
   effect: '[ effect ]'

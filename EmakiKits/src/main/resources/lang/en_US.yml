@@ -2,7 +2,7 @@
 # Messages use MiniMessage, placeholders are noted beside each group
 # version is maintained by the resource sync flow
 
-version: "1.0.3"
+version: "1.0.4"
 
 tags:
   kits: "[ kits ]"

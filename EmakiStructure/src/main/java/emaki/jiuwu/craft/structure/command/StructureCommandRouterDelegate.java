@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.structure.command;
 
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.structure.EmakiStructurePlugin;
 import emaki.jiuwu.craft.structure.config.AppConfig;
@@ -124,6 +125,9 @@ final class StructureCommandRouterDelegate {
         if (args.length == 4 && "adjust".equals(args[1].toLowerCase(Locale.ROOT))) {
             String prefix = args[3].toLowerCase(Locale.ROOT);
             return AdjustDirection.configValues().stream().filter(value -> value.startsWith(prefix)).toList();
+        }
+        if (args.length == 5 && "adjust".equals(args[1].toLowerCase(Locale.ROOT))) {
+            return CommandTabHelper.completeIntRange(args[4], 1, 100);
         }
         return List.of();
     }

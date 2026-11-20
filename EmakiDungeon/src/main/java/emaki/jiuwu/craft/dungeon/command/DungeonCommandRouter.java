@@ -1,12 +1,14 @@
 package emaki.jiuwu.craft.dungeon.command;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -46,7 +48,7 @@ public final class DungeonCommandRouter {
 
     private static final List<String> ROOT_SUBS = List.of(
             "help", "list", "enter", "leave", "cancel", "ready", "rewards",
-            "party", "stats", "rank", "globalchat", "editor", "admin", "recruit", "match", "spectate"
+            "party", "stats", "rank", "globalchat", "editor", "admin", "recruit", "match", "spectate", "random"
     );
     private static final List<String> PARTY_SUBS = List.of(
             "create", "invite", "accept", "deny", "kick", "leave", "disband", "chat"
@@ -758,13 +760,37 @@ public final class DungeonCommandRouter {
             if (args.length == 3 && "mark".equals(Texts.lower(args[1]))) {
                 return EditorService.markTypes();
             }
+            if (args.length == 3 && "fill".equals(Texts.lower(args[1]))) {
+                String prefix = Texts.lower(args[2]);
+                List<String> blocks = new ArrayList<>();
+                for (Material material : Material.values()) {
+                    if (material.isBlock() && Texts.lower(material.name()).startsWith(prefix)) {
+                        blocks.add(Texts.lower(material.name()));
+                    }
+                }
+                return blocks;
+            }
         }
         if ("recruit".equals(root)) {
             if (args.length == 2) {
                 return RECRUIT_SUBS;
             }
-            if ("open".equals(Texts.lower(args[1])) && args.length == 3) {
+            String recruitSub = Texts.lower(args[1]);
+            if ("open".equals(recruitSub) && args.length == 3) {
                 return templates.discoverDungeons();
+            }
+            if ("open".equals(recruitSub) && args.length == 4) {
+                return difficultiesFor(args[2], Texts.lower(args[3]));
+            }
+            if ("join".equals(recruitSub) && args.length == 3 && matchmaking != null) {
+                String prefix = Texts.lower(args[2]);
+                List<String> ids = new ArrayList<>();
+                for (int id : matchmaking.recruitIds()) {
+                    if (String.valueOf(id).startsWith(prefix)) {
+                        ids.add(String.valueOf(id));
+                    }
+                }
+                return ids;
             }
         }
         if ("match".equals(root)) {
@@ -773,6 +799,9 @@ public final class DungeonCommandRouter {
             }
             if ("join".equals(Texts.lower(args[1])) && args.length == 3) {
                 return templates.discoverDungeons();
+            }
+            if ("join".equals(Texts.lower(args[1])) && args.length == 4) {
+                return difficultiesFor(args[2], Texts.lower(args[3]));
             }
         }
         if ("spectate".equals(root)) {
@@ -784,12 +813,16 @@ public final class DungeonCommandRouter {
             if (args.length == 2) {
                 return ADMIN_SUBS;
             }
-            if ("inspect".equals(Texts.lower(args[1])) && args.length == 3) {
+            String adminSub = Texts.lower(args[1]);
+            if (("inspect".equals(adminSub) || "stop".equals(adminSub)) && args.length == 3) {
                 List<String> ids = new ArrayList<>();
                 for (DungeonInstance instance : registry.all()) {
                     ids.add(instance.instanceId());
                 }
                 return ids;
+            }
+            if ("poolreset".equals(adminSub) && args.length == 3) {
+                return templates.discoverDungeons();
             }
         }
         if ("party".equals(root)) {
@@ -805,6 +838,51 @@ public final class DungeonCommandRouter {
                 return names;
             }
         }
+        if ("stats".equals(root)) {
+            if (args.length == 2) {
+                List<String> names = new ArrayList<>();
+                for (Player online : Bukkit.getOnlinePlayers()) {
+                    names.add(online.getName());
+                }
+                return names;
+            }
+            if (args.length == 3) {
+                return templates.discoverDungeons();
+            }
+        }
+        if ("rank".equals(root) && args.length == 2) {
+            return templates.discoverDungeons();
+        }
+        if ("globalchat".equals(root) && args.length == 2) {
+            String prefix = Texts.lower(args[1]);
+            List<String> modes = new ArrayList<>();
+            for (String mode : List.of("on", "off")) {
+                if (mode.startsWith(prefix)) {
+                    modes.add(mode);
+                }
+            }
+            return modes;
+        }
+        if ("random".equals(root) && randomCommands != null) {
+            return randomCommands.complete(Arrays.copyOfRange(args, 1, args.length));
+        }
         return List.of();
+    }
+
+    private List<String> difficultiesFor(String dungeonId, String prefix) {
+        List<String> result = new ArrayList<>();
+        if (configOf == null) {
+            return result;
+        }
+        DungeonConfig config = configOf.apply(dungeonId);
+        if (config == null) {
+            return result;
+        }
+        for (String difficulty : config.difficulties()) {
+            if (Texts.lower(difficulty).startsWith(prefix)) {
+                result.add(difficulty);
+            }
+        }
+        return result;
     }
 }

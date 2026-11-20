@@ -341,7 +341,7 @@ public final class AttributeCommand implements TabExecutor {
         List<String> result = new ArrayList<>();
         boolean admin = sender.hasPermission(AttributePermissions.POINTS_ADMIN) || sender.hasPermission(AttributePermissions.ADMIN);
         if (args.length == 2) {
-            for (String sub : List.of("view", "open", "add", "reset", "grant", "set", "setreset")) {
+            for (String sub : List.of("view", "info", "open", "gui", "add", "reset", "grant", "set", "setreset")) {
                 if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -349,8 +349,13 @@ public final class AttributeCommand implements TabExecutor {
             return result;
         }
         String sub = args[1].toLowerCase(Locale.ROOT);
+        sub = switch (sub) {
+            case "info" -> "view";
+            case "gui" -> "open";
+            default -> sub;
+        };
         if (args.length == 3) {
-            if (List.of("view", "open", "reset").contains(sub) || admin && List.of("grant", "set", "setreset").contains(sub)) {
+            if (admin && List.of("view", "open", "reset", "grant", "set", "setreset").contains(sub)) {
                 result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
                 return result;
             }
@@ -366,11 +371,24 @@ public final class AttributeCommand implements TabExecutor {
             Player target = Bukkit.getPlayerExact(args[2]);
             if (target != null) {
                 completeParentAttributeIds(result, args[3]);
+            } else {
+                result.addAll(CommandTabHelper.completeIntRange(args[3], 1, 100));
             }
             return result;
         }
-        if (args.length == 4 && "reset".equals(sub) && "free".startsWith(args[3].toLowerCase(Locale.ROOT))) {
-            result.add("free");
+        if (args.length == 4 && "reset".equals(sub)) {
+            if (admin && "free".startsWith(args[3].toLowerCase(Locale.ROOT))) {
+                result.add("free");
+            }
+            return result;
+        }
+        if (args.length == 4 && List.of("grant", "set", "setreset").contains(sub)) {
+            result.addAll(CommandTabHelper.completeIntRange(args[3], 1, 100));
+            return result;
+        }
+        if (args.length == 5 && "add".equals(sub)) {
+            result.addAll(CommandTabHelper.completeIntRange(args[4], 1, 100));
+            return result;
         }
         return result;
     }

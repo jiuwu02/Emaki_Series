@@ -102,7 +102,8 @@ public final class CoreLibCommandRouter implements TabExecutor {
         } else if (args.length == 4 && "debug".equalsIgnoreCase(args[0]) && "action".equalsIgnoreCase(args[1])
                 && "run".equalsIgnoreCase(args[2])) {
             complete(args[3], DEBUG_ACTION_RUN_MODES, result);
-        } else if (args.length == 4 && "debug".equalsIgnoreCase(args[0]) && "loops".equalsIgnoreCase(args[1]) && "player".equalsIgnoreCase(args[2])) {
+        } else if (args.length == 4 && "debug".equalsIgnoreCase(args[0]) && "loops".equalsIgnoreCase(args[1])
+                && ("player".equalsIgnoreCase(args[2]) || "cancel-player".equalsIgnoreCase(args[2]))) {
             String prefix = args[3].toLowerCase(Locale.ROOT);
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.getName().toLowerCase(Locale.ROOT).startsWith(prefix)) {

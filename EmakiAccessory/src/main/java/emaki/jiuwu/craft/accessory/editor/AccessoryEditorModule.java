@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.accessory.editor;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -160,6 +161,24 @@ public final class AccessoryEditorModule implements EditorModule {
     }
 
     private record Resolved(EditorBrowserRoot root, Path file) {
+    }
+
+    public List<String> completeEditIds() {
+        List<String> ids = new ArrayList<>();
+        plugin.setLoader().entries().values().forEach(entry -> ids.add(entry.id()));
+        plugin.pageLoader().entries().values().forEach(entry -> ids.add(entry.id()));
+        for (DirectoryRoot root : List.of(setsRoot, pagesRoot)) {
+            File directory = plugin.getDataFolder().toPath().resolve(root.directory()).toFile();
+            File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml"));
+            if (files == null) {
+                continue;
+            }
+            for (File file : files) {
+                String name = file.getName();
+                ids.add(name.substring(0, name.length() - ".yml".length()));
+            }
+        }
+        return ids.stream().distinct().toList();
     }
 
     private Resolved resolve(String id) {

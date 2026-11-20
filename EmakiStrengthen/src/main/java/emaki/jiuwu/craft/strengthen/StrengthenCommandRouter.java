@@ -173,6 +173,18 @@ final class StrengthenCommandRouter implements TabExecutor {
                         }
                     }
                 }
+                case "pity" -> {
+                    String pityAction = args[1].toLowerCase(Locale.ROOT);
+                    if ("set".equals(pityAction)) {
+                        for (String scope : List.of("player", "item")) {
+                            if (scope.startsWith(args[2].toLowerCase(Locale.ROOT))) {
+                                result.add(scope);
+                            }
+                        }
+                    } else if ("list".equals(pityAction) || "clear".equals(pityAction)) {
+                        completePityGroups(result, args[2]);
+                    }
+                }
                 default -> {
                 }
             }
@@ -181,7 +193,26 @@ final class StrengthenCommandRouter implements TabExecutor {
         if (args.length == 4 && "givecatalyst".equalsIgnoreCase(args[0])) {
             result.addAll(CommandTabHelper.completeOnlinePlayers(args[3]));
         }
+        if (args.length == 4 && "pity".equalsIgnoreCase(args[0]) && "set".equalsIgnoreCase(args[1])) {
+            completePityGroups(result, args[3]);
+        }
+        if (args.length == 6 && "pity".equalsIgnoreCase(args[0]) && "set".equalsIgnoreCase(args[1])) {
+            result.addAll(CommandTabHelper.completeIntRange(args[5], 1, 100));
+        }
         return result;
+    }
+
+    private void completePityGroups(List<String> result, String rawPrefix) {
+        EmakiResult<List<EnhancementPityStateView>> states = pityOperations().pityStates("");
+        if (!states.isSuccess()) {
+            return;
+        }
+        String prefix = rawPrefix.toLowerCase(Locale.ROOT);
+        states.orElse(List.of()).stream()
+                .map(EnhancementPityStateView::group)
+                .distinct()
+                .filter(group -> group != null && group.toLowerCase(Locale.ROOT).startsWith(prefix))
+                .forEach(result::add);
     }
 
     private boolean handleEdit(CommandSender sender, String[] args) {

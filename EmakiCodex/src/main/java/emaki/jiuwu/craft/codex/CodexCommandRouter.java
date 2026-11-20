@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -388,7 +389,16 @@ final class CodexCommandRouter implements TabExecutor {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if (args.length == 3 && ("grant".equals(sub) || "revoke".equals(sub))) {
-            return CommandTabHelper.filterByPrefix(plugin.advancementRegistrar().registered().keySet(), args[2]);
+            Set<String> keys = plugin.advancementRegistrar().registered().keySet();
+            List<String> candidates = new ArrayList<>(keys);
+            String namespace = plugin.getName().toLowerCase(Locale.ROOT);
+            for (String key : keys) {
+                int colon = key.indexOf(':');
+                if (colon > 0 && namespace.equals(key.substring(0, colon))) {
+                    candidates.add(key.substring(colon + 1));
+                }
+            }
+            return CommandTabHelper.filterByPrefix(candidates, args[2]).stream().distinct().toList();
         }
         if ("admin".equals(sub) && ADMIN_ACTIONS.contains(args[1].toLowerCase(Locale.ROOT))) {
             if (args.length == 3) {

@@ -64,6 +64,9 @@ public final class DummyCommandRouter {
             return prefixFilter(SUB_COMMANDS, args.length == 0 ? "" : args[0]);
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
+        if ("click".equals(sub) && args.length == 3) {
+            return CommandTabHelper.completeIntRange(args[2], 0, 53);
+        }
         if (List.of("leave", "say", "cmd", "walk", "look", "interact", "attack", "click")
                 .contains(sub)) {
             return dummyNames(args);

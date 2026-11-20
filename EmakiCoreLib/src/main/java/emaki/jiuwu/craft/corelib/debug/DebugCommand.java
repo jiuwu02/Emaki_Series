@@ -70,7 +70,7 @@ public final class DebugCommand {
     public List<String> tabComplete(String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("status", "on", "off", "player", "module")) {
+            for (String sub : List.of("status", "on", "off", "player", "module", "action")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -92,7 +92,23 @@ public final class DebugCommand {
                             .filter(module -> module.startsWith(prefix))
                             .forEach(result::add);
                 }
+                case "action" -> {
+                    String prefix = args[1].toLowerCase(Locale.ROOT);
+                    for (String mode : ActionDebugRunner.MODES) {
+                        if (mode.startsWith(prefix)) {
+                            result.add(mode);
+                        }
+                    }
+                }
                 default -> {
+                }
+            }
+        }
+        if (args.length == 3 && "action".equalsIgnoreCase(args[0]) && "run".equalsIgnoreCase(args[1])) {
+            String prefix = args[2].toLowerCase(Locale.ROOT);
+            for (String mode : ActionDebugRunner.RUN_MODES) {
+                if (mode.startsWith(prefix)) {
+                    result.add(mode);
                 }
             }
         }

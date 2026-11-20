@@ -516,11 +516,12 @@ public final class StorageCommandRouter implements TabExecutor {
                     ? CommandTabHelper.completeLiterals(args[1], editRootIds().toArray(new String[0]))
                     : List.of();
             case "autopickup" -> args.length == 2
-                    ? CommandTabHelper.completeLiterals(args[1], "on", "off", "toggle")
+                    ? CommandTabHelper.completeLiterals(args[1], "on", "off", "toggle", "true", "false", "enable", "disable")
                     : List.of();
             case "slot" -> switch (args.length) {
                 case 2 -> CommandTabHelper.completeLiterals(args[1], "grant");
                 case 3 -> CommandTabHelper.completeOnlinePlayers(args[2]);
+                case 4 -> CommandTabHelper.completeIntRange(args[3], 1, 100);
                 default -> List.of();
             };
             case "stacklimit" -> switch (args.length) {
@@ -528,7 +529,7 @@ public final class StorageCommandRouter implements TabExecutor {
                 case 3 -> CommandTabHelper.completeOnlinePlayers(args[2]);
                 case 4 -> args[1].equalsIgnoreCase("player")
                         ? CommandTabHelper.completeLiterals(args[3], "0", "100", "max")
-                        : List.of();
+                        : completeSlotIndices(args[2], args[3]);
                 case 5 -> args[1].equalsIgnoreCase("slot")
                         ? CommandTabHelper.completeLiterals(args[4], "0", "100", "max")
                         : List.of();
@@ -538,6 +539,18 @@ public final class StorageCommandRouter implements TabExecutor {
                     .tabComplete(Arrays.copyOfRange(args, 1, args.length));
             default -> List.of();
         };
+    }
+
+    private List<String> completeSlotIndices(String targetName, String prefix) {
+        Player target = Bukkit.getPlayerExact(targetName);
+        if (target == null) {
+            return List.of();
+        }
+        PlayerStorage storage = plugin.dataStore().cached(target.getUniqueId());
+        if (storage == null) {
+            return List.of();
+        }
+        return CommandTabHelper.completeIntRange(prefix, 0, Math.max(0, storage.entryOrder().size() - 1));
     }
 
     static List<StorageKey> orderedKeys(PlayerStorage storage) {

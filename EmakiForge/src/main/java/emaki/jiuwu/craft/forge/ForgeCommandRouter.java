@@ -74,10 +74,15 @@ final class ForgeCommandRouter implements TabExecutor {
                     args[0]);
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
-            return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
+            List<String> debugSuggestions = new ArrayList<>(
+                    plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length)));
+            if (args.length == 2 && "stats".startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                debugSuggestions.add("stats");
+            }
+            return debugSuggestions.stream().distinct().toList();
         }
         if (args.length == 2 && "list".equalsIgnoreCase(args[0])) {
-            for (String sub : List.of("recipe")) {
+            for (String sub : List.of("recipe", "recipes")) {
                 if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -249,7 +254,7 @@ final class ForgeCommandRouter implements TabExecutor {
         lines.put("reload", plugin.messageService().message("command.help.commands.reload"));
         lines.put("list <type>", plugin.messageService().message("command.help.commands.list <type>"));
         lines.put("edit [id]", plugin.messageService().message("command.help.commands.edit recipe <id>"));
-        lines.put("debug [player|module|on|off]", plugin.messageService().message("command.help.commands.debug"));
+        lines.put("debug [stats|status|player|module|on|off|action]", plugin.messageService().message("command.help.commands.debug"));
         lines.forEach((commandName, description)
                 -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.line", Map.of("cmd", commandName, "desc", description))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));

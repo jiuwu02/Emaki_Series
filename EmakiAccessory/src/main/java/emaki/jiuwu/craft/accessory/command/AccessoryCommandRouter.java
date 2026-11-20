@@ -85,17 +85,10 @@ public final class AccessoryCommandRouter {
                     && "parts".startsWith(prefix)) {
                 result.add("parts");
             }
-            if (plugin.setLoader() != null) {
-                for (String setId : plugin.setLoader().all().keySet()) {
-                    if (setId.startsWith(prefix)) {
-                        result.add(setId);
-                    }
-                }
-            }
-            if (plugin.pageRegistry() != null) {
-                for (String pageId : plugin.pageRegistry().pageIds()) {
-                    if (pageId.startsWith(prefix)) {
-                        result.add(pageId);
+            if (plugin.editorModule() != null) {
+                for (String id : plugin.editorModule().completeEditIds()) {
+                    if (id.startsWith(prefix)) {
+                        result.add(id);
                     }
                 }
             }
@@ -116,7 +109,7 @@ public final class AccessoryCommandRouter {
                 }
                 return result;
             }
-            if (args.length == 3) {
+            if (args.length == 3 && !"save".equals(Texts.lower(args[1]))) {
                 String prefix = args[2].toLowerCase(Locale.ROOT);
                 for (Player online : Bukkit.getOnlinePlayers()) {
                     if (online.getName().toLowerCase(Locale.ROOT).startsWith(prefix)) {

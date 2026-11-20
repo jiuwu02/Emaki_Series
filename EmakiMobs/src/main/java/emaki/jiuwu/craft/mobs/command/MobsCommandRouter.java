@@ -105,8 +105,9 @@ public final class MobsCommandRouter {
                     .sorted()
                     .toList();
         }
-        if ("list".equals(subcommand) && args.length == 2 && "1".startsWith(args[1])) {
-            return List.of("1");
+        if ("list".equals(subcommand) && args.length == 2) {
+            int pages = Math.max(1, (plugin.mobRegistry().get().size() + PAGE_SIZE - 1) / PAGE_SIZE);
+            return CommandTabHelper.completeIntRange(args[1], 1, pages);
         }
         if ("edit".equals(subcommand) && args.length == 2) {
             if (plugin.editorModule() == null) {
@@ -116,6 +117,21 @@ public final class MobsCommandRouter {
             return plugin.editorModule().completeIds().stream()
                     .filter(id -> id.toLowerCase(Locale.ROOT).startsWith(prefix))
                     .toList();
+        }
+        if ("tp".equals(subcommand) && args.length == 2 && sender instanceof Player player) {
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            List<String> result = new ArrayList<>();
+            if (plugin.mobIdentifier() != null) {
+                for (Entity entity : player.getNearbyEntities(64, 64, 64)) {
+                    if (entity instanceof LivingEntity living && plugin.mobIdentifier().readId(living) != null) {
+                        String uuid = entity.getUniqueId().toString();
+                        if (uuid.startsWith(prefix)) {
+                            result.add(uuid);
+                        }
+                    }
+                }
+            }
+            return result;
         }
         if ("debug".equals(subcommand) && plugin.debugCommand() != null) {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));

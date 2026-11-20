@@ -256,11 +256,13 @@ public final class RandomCommands {
             candidates.addAll(List.of("start", "pos1", "pos2", "meta", "anchor", "node", "save", "discard", "status"));
         } else if (args.length == 3 && "template".equalsIgnoreCase(args[0]) && "meta".equalsIgnoreCase(args[1])) {
             candidates.addAll(List.of("type", "tags", "floors", "mirrorable", "intrusion-policy", "door-policy", "seal-block", "rotations"));
-        } else if (args.length == 3 && "enter".equalsIgnoreCase(args[0])) {
+        } else if (args.length == 4 && "template".equalsIgnoreCase(args[0]) && "save".equalsIgnoreCase(args[1])) {
+            candidates.add("confirm");
+        } else if (args.length == 2 && ("enter".equalsIgnoreCase(args[0]) || "stop".equalsIgnoreCase(args[0]))) {
             for (var instance : service.instances()) {
                 candidates.add(instance.instanceId());
             }
-        } else if (args.length == 3 && "replay".equalsIgnoreCase(args[0])) {
+        } else if (args.length == 2 && "replay".equalsIgnoreCase(args[0])) {
             candidates.addAll(service.records());
         }
         String prefix = args.length == 0 ? "" : args[args.length - 1].toLowerCase(java.util.Locale.ROOT);

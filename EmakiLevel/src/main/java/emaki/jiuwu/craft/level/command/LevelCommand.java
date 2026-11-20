@@ -382,11 +382,22 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
             return CommandTabHelper.completeSubcommands(
-                    List.of("help", "info", "gui", "edit", "levelup", "top", "topgui", "giveexp", "takeexp",
-                            "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "debug"),
+                    List.of("help", "info", "gui", "open", "edit", "levelup", "up", "top", "topgui", "topopen",
+                            "giveexp", "addexp", "takeexp", "removeexp", "setexp", "addlevel", "givelevel",
+                            "takelevel", "removelevel", "setlevel", "reset", "reload", "debug"),
                     args[0]);
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
+        sub = switch (sub) {
+            case "open" -> "gui";
+            case "up" -> "levelup";
+            case "topopen" -> "topgui";
+            case "addexp" -> "giveexp";
+            case "removeexp" -> "takeexp";
+            case "givelevel" -> "addlevel";
+            case "removelevel" -> "takelevel";
+            default -> sub;
+        };
         if ("edit".equals(sub) && args.length == 2) {
             if (plugin.editorModule() != null) {
                 for (String id : plugin.editorModule().completeIds()) {
@@ -400,6 +411,8 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
                 result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
             } else if (args.length == 3) {
                 completeTypes(result, args[2]);
+            } else if (args.length == 4 && !"reset".equals(sub)) {
+                result.addAll(CommandTabHelper.completeIntRange(args[3], 1, 100));
             }
             return result;
         }
@@ -415,6 +428,8 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
                 }
             } else if (args.length == 3 && "requirement".equalsIgnoreCase(args[1])) {
                 completeTypes(result, args[2]);
+            } else if (args.length == 4 && "requirement".equalsIgnoreCase(args[1])) {
+                result.addAll(CommandTabHelper.completeIntRange(args[3], 1, 100));
             } else if (args.length == 3 && "pdc".equalsIgnoreCase(args[1])) {
                 result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
             } else if (args.length == 3) {

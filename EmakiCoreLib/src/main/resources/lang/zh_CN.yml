@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.9"
+version: "5.0.10"
 
 # tags: 日志/消息分类头文案; 由 CoreLib 统一定义, 各模块消息发送接口按枚举拼接
 tags:

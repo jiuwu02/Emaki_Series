@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage, 占位符见各分组旁注释
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.3"
+version: "1.0.4"
 
 tags:
   kits: "[ 礼包 ]"

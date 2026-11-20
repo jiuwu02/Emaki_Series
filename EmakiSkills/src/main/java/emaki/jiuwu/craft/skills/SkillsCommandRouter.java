@@ -114,12 +114,15 @@ final class SkillsCommandRouter implements TabExecutor {
         }
         if (args.length == 3) {
             if ("clearslot".equalsIgnoreCase(args[0])) {
-                for (int i = 0; i < 9; i++) {
-                    String slot = String.valueOf(i);
-                    if (slot.startsWith(args[2])) {
-                        result.add(slot);
+                int slotCount = plugin.appConfig().defaultSlotCount();
+                Player target = Bukkit.getPlayerExact(args[1]);
+                if (target != null) {
+                    var profile = plugin.playerSkillStateService().getProfile(target);
+                    if (profile != null) {
+                        slotCount = profile.bindings().size();
                     }
                 }
+                result.addAll(CommandTabHelper.completeIntRange(args[2], 0, Math.max(0, slotCount - 1)));
             } else if ("level".equalsIgnoreCase(args[0])) {
                 result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
             } else if ("grant".equalsIgnoreCase(args[0]) || "revoke".equalsIgnoreCase(args[0])) {
@@ -657,7 +660,7 @@ final class SkillsCommandRouter implements TabExecutor {
         commands.put("revoke <player> <skill>", "command.help.desc.revoke");
         commands.put("list [player]", "command.help.desc.list");
         commands.put("reset <player>", "command.help.desc.reset");
-        commands.put("debug <status|player|module|all> [...]", "command.help.desc.debug");
+        commands.put("debug <status|on|off|player|module|action> [...]", "command.help.desc.debug");
         commands.put("inspect [player]", "command.help.desc.inspect");
         commands.put("clearslot <player> <slot>", "command.help.desc.clearslot");
         commands.put("resync [player]", "command.help.desc.resync");

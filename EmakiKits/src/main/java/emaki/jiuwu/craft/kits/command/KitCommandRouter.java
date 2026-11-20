@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.kits.command;
 import emaki.jiuwu.craft.kits.EmakiKitsPlugin;
 import emaki.jiuwu.craft.kits.config.AppConfig;
 import emaki.jiuwu.craft.kits.config.KitIds;
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.kits.limit.TimeWindow;
 import emaki.jiuwu.craft.kits.model.ChoiceOption;
@@ -41,7 +42,7 @@ public final class KitCommandRouter {
             "redeem", "invite", "open", "inspect", "grant", "cdk", "reload",
             "check", "preview", "edit", "top");
     private static final List<String> KIT_ARG_SUBS = List.of(
-            "claim", "choose", "buy", "redeem", "open", "grant", "preview", "edit");
+            "claim", "choose", "buy", "redeem", "open", "preview", "edit");
 
     private final EmakiKitsPlugin plugin;
     private final KitService service;
@@ -232,12 +233,61 @@ public final class KitCommandRouter {
         }
         if (args.length == 2) {
             String sub = args[0].toLowerCase(Locale.ROOT);
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            List<String> result = new ArrayList<>();
             if (KIT_ARG_SUBS.contains(sub)) {
-                String prefix = args[1].toLowerCase(Locale.ROOT);
+                for (String id : config.get().kits().keySet()) {
+                    if (id.startsWith(prefix)) {
+                        result.add(id);
+                    }
+                }
+                return result;
+            }
+            if ("grant".equals(sub) || "invite".equals(sub) || "inspect".equals(sub)) {
+                for (Player online : Bukkit.getOnlinePlayers()) {
+                    if (online.getName().toLowerCase(Locale.ROOT).startsWith(prefix)) {
+                        result.add(online.getName());
+                    }
+                }
+                return result;
+            }
+            if ("cdk".equals(sub)) {
+                for (String action : List.of("list", "disable")) {
+                    if (action.startsWith(prefix)) {
+                        result.add(action);
+                    }
+                }
+                return result;
+            }
+            if ("top".equals(sub)) {
+                return CommandTabHelper.completeIntRange(args[1], 1, 10);
+            }
+            return result;
+        }
+        if (args.length >= 3) {
+            String sub = args[0].toLowerCase(Locale.ROOT);
+            String prefix = args[args.length - 1].toLowerCase(Locale.ROOT);
+            if ("grant".equals(sub) && args.length == 3) {
                 List<String> result = new ArrayList<>();
                 for (String id : config.get().kits().keySet()) {
                     if (id.startsWith(prefix)) {
                         result.add(id);
+                    }
+                }
+                return result;
+            }
+            if ("claim".equals(sub) && args.length == 3) {
+                return "makeup".startsWith(prefix) ? List.of("makeup") : List.of();
+            }
+            if ("choose".equals(sub)) {
+                KitDefinition def = config.get().kit(KitIds.normalize(args[1]));
+                if (def == null) {
+                    return List.of();
+                }
+                List<String> result = new ArrayList<>();
+                for (ChoiceOption option : def.choice().options()) {
+                    if (option.optionId().toLowerCase(Locale.ROOT).startsWith(prefix)) {
+                        result.add(option.optionId());
                     }
                 }
                 return result;
