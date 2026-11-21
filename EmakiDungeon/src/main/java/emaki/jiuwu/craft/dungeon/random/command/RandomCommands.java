@@ -269,4 +269,16 @@ public final class RandomCommands {
         candidates.removeIf(candidate -> !candidate.toLowerCase(java.util.Locale.ROOT).startsWith(prefix));
         return candidates;
     }
+
+    public List<String> instanceIds() {
+        List<String> ids = new ArrayList<>();
+        for (var instance : service.instances()) {
+            ids.add(instance.instanceId());
+        }
+        return ids;
+    }
+
+    public List<String> recordIds() {
+        return new ArrayList<>(service.records());
+    }
 }

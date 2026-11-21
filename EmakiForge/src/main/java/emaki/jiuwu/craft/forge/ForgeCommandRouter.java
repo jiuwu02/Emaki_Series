@@ -2,11 +2,11 @@ package emaki.jiuwu.craft.forge;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -44,12 +44,12 @@ final class ForgeCommandRouter implements TabExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sendHelp(sender);
+            sendHelp(sender, label);
             return true;
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "help" -> {
-                sendHelp(sender);
+                sendHelpPage(sender, helpRoot(label), Arrays.asList(args).subList(1, args.length));
                 yield true;
             }
             case "forge" -> handleForge(sender);
@@ -245,18 +245,118 @@ final class ForgeCommandRouter implements TabExecutor {
         return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());
     }
 
-    private void sendHelp(CommandSender sender) {
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
-        Map<String, String> lines = new LinkedHashMap<>();
-        lines.put("help", plugin.messageService().message("command.help.commands.help"));
-        lines.put("forge", plugin.messageService().message("command.help.commands.forge"));
-        lines.put("book", plugin.messageService().message("command.help.commands.book"));
-        lines.put("reload", plugin.messageService().message("command.help.commands.reload"));
-        lines.put("list <type>", plugin.messageService().message("command.help.commands.list <type>"));
-        lines.put("edit [id]", plugin.messageService().message("command.help.commands.edit recipe <id>"));
-        lines.put("debug [stats|status|player|module|on|off|action]", plugin.messageService().message("command.help.commands.debug"));
-        lines.forEach((commandName, description)
-                -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.line", Map.of("cmd", commandName, "desc", description))));
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));
+    private void sendHelp(CommandSender sender, String label) {
+        sendHelpPage(sender, helpRoot(label), List.of());
+    }
+
+    private String helpRoot(String label) {
+        return "/" + (label == null || label.isBlank() ? "emakiforge" : label);
+    }
+
+    private void sendHelpPage(CommandSender sender, String root, List<String> path) {
+        if (path.isEmpty()) {
+            sendHelpLines(sender, root, "command.help_header",
+                    "command.help_entry_forge", "command.help_entry_book", "command.help_entry_reload",
+                    "command.help_entry_list", "command.help_entry_edit", "command.help_entry_debug",
+                    "command.help_entry_help");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(0).toLowerCase(Locale.ROOT)) {
+            case "list" -> {
+                sendHelpLines(sender, root, "command.help_list_header",
+                        "command.help_list_entry_recipe");
+                sendHelpFooter(sender);
+            }
+            case "edit" -> sendValuePage(sender, root, "command.help_edit_id_header",
+                    "command.help_value_desc_edit_id", "edit", editorIds());
+            case "debug" -> sendDebugHelp(sender, root, path);
+            default -> sendHelpPage(sender, root, List.of());
+        }
+    }
+
+    private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() < 2) {
+            sendHelpLines(sender, root, "command.help_debug_header",
+                    "command.help_debug_entry_stats", "command.help_debug_entry_on", "command.help_debug_entry_off",
+                    "command.help_debug_entry_player", "command.help_debug_entry_module", "command.help_debug_entry_action");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(1).toLowerCase(Locale.ROOT)) {
+            case "player" -> sendValuePage(sender, root, "command.help_debug_player_header",
+                    "command.help_value_desc_debug_player", "debug player", onlinePlayerNames());
+            case "action" -> sendDebugActionHelp(sender, root, path);
+            default -> sendHelpPage(sender, root, List.of("debug"));
+        }
+    }
+
+    private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
+            sendHelpLines(sender, root, "command.help_debug_action_run_header",
+                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            sendHelpFooter(sender);
+            return;
+        }
+        sendHelpLines(sender, root, "command.help_debug_action_header",
+                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
+                "command.help_debug_action_entry_registry");
+        sendHelpFooter(sender);
+    }
+
+    private void sendValuePage(CommandSender sender, String root, String headerKey, String descKey,
+            String command, List<String> values) {
+        sendHelpLine(sender, plugin.messageService().message(headerKey, Map.of("root", root)));
+        if (values.isEmpty()) {
+            sendHelpLine(sender, plugin.messageService().message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String value : values) {
+            sendValueEntry(sender, value,
+                    plugin.messageService().message(descKey, Map.of("value", value)),
+                    root + " " + command + " " + value);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private List<String> onlinePlayerNames() {
+        List<String> names = new ArrayList<>();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            names.add(player.getName());
+        }
+        names.sort(String.CASE_INSENSITIVE_ORDER);
+        return names;
+    }
+
+    private List<String> editorIds() {
+        List<String> ids = new ArrayList<>();
+        if (plugin.editorModule() != null) {
+            ids.addAll(plugin.editorModule().knownIds());
+        }
+        ids.sort(String.CASE_INSENSITIVE_ORDER);
+        return ids;
+    }
+
+    private void sendValueEntry(CommandSender sender, String value, String desc, String run) {
+        sendHelpLine(sender, plugin.messageService().message("command.help_value_entry", Map.of(
+                "value", value,
+                "desc", desc,
+                "run", run)));
+    }
+
+    private void sendHelpLines(CommandSender sender, String root, String... keys) {
+        Map<String, ?> replacements = Map.of("root", root);
+        for (String key : keys) {
+            sendHelpLine(sender, plugin.messageService().message(key, replacements));
+        }
+    }
+
+    private void sendHelpLine(CommandSender sender, String line) {
+        plugin.messageService().sendComponent(sender, plugin.messageService().render(line));
+    }
+
+    private void sendHelpFooter(CommandSender sender) {
+        sendHelpLine(sender, plugin.messageService().message("command.help_footer"));
     }
 }

@@ -1,7 +1,7 @@
 package emaki.jiuwu.craft.level.command;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -45,7 +45,10 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             return handleInfo(sender, new String[0]);
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "help" -> handleHelp(sender);
+            case "help" -> {
+                sendHelpPage(sender, helpRoot(label), List.of(tail(args)));
+                yield true;
+            }
             case "info" -> handleInfo(sender, tail(args));
             case "gui", "open" -> handleGui(sender, tail(args));
             case "edit" -> handleEdit(sender, tail(args));
@@ -68,27 +71,118 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
         };
     }
 
-    private boolean handleHelp(CommandSender sender) {
-        var messages = plugin.messages();
-        messages.sendRaw(sender, messages.message("command.help.header"));
-        Map<String, String> lines = new LinkedHashMap<>();
-        lines.put("info [type]", messages.message("command.help.commands.info"));
-        lines.put("gui [type]", messages.message("command.help.commands.gui"));
-        lines.put("levelup <type>", messages.message("command.help.commands.levelup"));
-        lines.put("top [type]", messages.message("command.help.commands.top"));
-        lines.put("topgui [type]", messages.message("command.help.commands.topgui"));
-        lines.put("edit [id]", messages.message("command.help.commands.edit"));
-        lines.put("addexp|takeexp|setexp <player> <type> <amount>",
-                messages.message("command.help.commands.exp"));
-        lines.put("addlevel|takelevel|setlevel <player> <type> <amount>",
-                messages.message("command.help.commands.level"));
-        lines.put("reset <player> <type>", messages.message("command.help.commands.reset"));
-        lines.put("reload", messages.message("command.help.commands.reload"));
-        lines.put("debug", messages.message("command.help.commands.debug"));
-        lines.forEach((usage, description) -> messages.sendRaw(sender,
-                messages.message("command.help.line", Map.of("cmd", usage, "desc", description))));
-        messages.sendRaw(sender, messages.message("command.help.footer"));
-        return true;
+    private String helpRoot(String label) {
+        return "/" + (label == null || label.isBlank() ? "elv" : label);
+    }
+
+    private void sendHelpPage(CommandSender sender, String root, List<String> path) {
+        if (path.isEmpty()) {
+            sendHelpLines(sender, root, "command.help_header",
+                    "command.help_entry_help", "command.help_entry_info", "command.help_entry_gui",
+                    "command.help_entry_levelup", "command.help_entry_top", "command.help_entry_topgui",
+                    "command.help_entry_edit", "command.help_entry_giveexp", "command.help_entry_takeexp",
+                    "command.help_entry_setexp", "command.help_entry_addlevel", "command.help_entry_takelevel",
+                    "command.help_entry_setlevel", "command.help_entry_reset", "command.help_entry_reload",
+                    "command.help_entry_debug");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(0).toLowerCase(Locale.ROOT)) {
+            case "debug" -> sendDebugHelp(sender, root, path);
+            default -> sendHelpPage(sender, root, List.of());
+        }
+    }
+
+    private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() < 2) {
+            sendHelpLines(sender, root, "command.help_debug_header",
+                    "command.help_debug_entry_status", "command.help_debug_entry_on",
+                    "command.help_debug_entry_off", "command.help_debug_entry_player",
+                    "command.help_debug_entry_module", "command.help_debug_entry_action",
+                    "command.help_debug_entry_requirement", "command.help_debug_entry_pdc");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(1).toLowerCase(Locale.ROOT)) {
+            case "player" -> sendPlayerValueHelp(sender, root, "command.help_debug_player_header",
+                    "command.help_value_desc_debug_player", "debug player");
+            case "module" -> sendDebugModuleHelp(sender, root);
+            case "action" -> sendDebugActionHelp(sender, root, path);
+            default -> sendHelpPage(sender, root, List.of("debug"));
+        }
+    }
+
+    private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
+            sendHelpLines(sender, root, "command.help_debug_action_run_header",
+                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            sendHelpFooter(sender);
+            return;
+        }
+        sendHelpLines(sender, root, "command.help_debug_action_header",
+                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
+                "command.help_debug_action_entry_registry");
+        sendHelpFooter(sender);
+    }
+
+    private void sendDebugModuleHelp(CommandSender sender, String root) {
+        var messageService = plugin.messages();
+        sendHelpLine(sender, messageService.message("command.help_debug_module_header", Map.of("root", root)));
+        List<String> modules = new ArrayList<>(plugin.debugCommand().tabComplete(new String[]{"module", ""}));
+        modules.sort(Comparator.naturalOrder());
+        if (modules.isEmpty()) {
+            sendHelpLine(sender, messageService.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String module : modules) {
+            sendValueEntry(sender, module,
+                    messageService.message("command.help_value_desc_debug_module", Map.of("value", module)),
+                    root + " debug module " + module);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendPlayerValueHelp(CommandSender sender, String root, String headerKey, String descKey, String runPrefix) {
+        var messageService = plugin.messages();
+        sendHelpLine(sender, messageService.message(headerKey, Map.of("root", root)));
+        List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
+        players.sort(Comparator.comparing(Player::getName));
+        if (players.isEmpty()) {
+            sendHelpLine(sender, messageService.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (Player player : players) {
+            String name = player.getName();
+            sendValueEntry(sender, name,
+                    messageService.message(descKey, Map.of("value", name)),
+                    root + " " + runPrefix + " " + name);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendValueEntry(CommandSender sender, String value, String desc, String run) {
+        sendHelpLine(sender, plugin.messages().message("command.help_value_entry", Map.of(
+                "value", value,
+                "desc", desc,
+                "run", run)));
+    }
+
+    private void sendHelpLines(CommandSender sender, String root, String... keys) {
+        var messageService = plugin.messages();
+        Map<String, ?> replacements = Map.of("root", root);
+        for (String key : keys) {
+            sendHelpLine(sender, messageService.message(key, replacements));
+        }
+    }
+
+    private void sendHelpLine(CommandSender sender, String line) {
+        plugin.messages().sendRaw(sender, line);
+    }
+
+    private void sendHelpFooter(CommandSender sender) {
+        sendHelpLine(sender, plugin.messages().message("command.help_footer"));
     }
 
     private boolean handleInfo(CommandSender sender, String[] args) {

@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.attribute.command;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -55,7 +56,7 @@ public final class AttributeCommand implements TabExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sendHelp(sender);
+            sendHelpPage(sender, helpRoot(label), List.of());
             return true;
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
@@ -80,7 +81,7 @@ public final class AttributeCommand implements TabExecutor {
             case "lint" ->
                 handleLint(sender);
             case "help" -> {
-                sendHelp(sender);
+                sendHelpPage(sender, helpRoot(label), Arrays.asList(args).subList(1, args.length));
                 yield true;
             }
             default -> {
@@ -318,19 +319,122 @@ public final class AttributeCommand implements TabExecutor {
                 + "</white>";
     }
 
-    private void sendHelp(CommandSender sender) {
-        messages().sendRaw(sender, messages().message("command.help.header"));
-        messages().send(sender, "command.help.reload");
-        messages().send(sender, "command.help.resync");
-        messages().send(sender, "command.help.preview");
-        messages().send(sender, "command.help.dump");
-        messages().send(sender, "command.help.debug");
-        messages().send(sender, "command.help.source");
-        messages().send(sender, "command.help.trace");
-        messages().send(sender, "command.help.points");
-        messages().send(sender, "command.help.lint");
-        messages().send(sender, "command.help.edit");
-        messages().sendRaw(sender, messages().message("command.help.footer"));
+    private String helpRoot(String label) {
+        return "/" + (label == null || label.isBlank() ? "emakiattribute" : label);
+    }
+
+    private void sendHelpPage(CommandSender sender, String root, List<String> path) {
+        if (path.isEmpty()) {
+            sendHelpLines(sender, root, "command.help_header",
+                    "command.help_entry_help", "command.help_entry_reload", "command.help_entry_resync",
+                    "command.help_entry_preview", "command.help_entry_dump", "command.help_entry_debug",
+                    "command.help_entry_source", "command.help_entry_trace", "command.help_entry_points",
+                    "command.help_entry_lint", "command.help_entry_edit");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(0).toLowerCase(Locale.ROOT)) {
+            case "dump" -> {
+                sendHelpLines(sender, root, "command.help_dump_header",
+                        "command.help_dump_entry_player", "command.help_dump_entry_mode",
+                        "command.help_dump_entry_attribute");
+                sendHelpFooter(sender);
+            }
+            case "debug" -> sendDebugHelp(sender, root, path);
+            case "trace" -> {
+                sendHelpLines(sender, root, "command.help_trace_header",
+                        "command.help_trace_entry_last", "command.help_trace_entry_list",
+                        "command.help_trace_entry_export", "command.help_trace_entry_clear");
+                sendHelpFooter(sender);
+            }
+            case "points" -> {
+                sendHelpLines(sender, root, "command.help_points_header",
+                        "command.help_points_entry_view", "command.help_points_entry_open",
+                        "command.help_points_entry_add", "command.help_points_entry_set",
+                        "command.help_points_entry_grant", "command.help_points_entry_setreset",
+                        "command.help_points_entry_reset");
+                sendHelpFooter(sender);
+            }
+            default -> sendHelpPage(sender, root, List.of());
+        }
+    }
+
+    private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() < 2) {
+            sendHelpLines(sender, root, "command.help_debug_header",
+                    "command.help_debug_entry_status", "command.help_debug_entry_on",
+                    "command.help_debug_entry_off", "command.help_debug_entry_player",
+                    "command.help_debug_entry_module", "command.help_debug_entry_combat_player");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(1).toLowerCase(Locale.ROOT)) {
+            case "player" -> sendPlayerValueHelp(sender, root, "command.help_debug_player_header",
+                    "command.help_value_desc_debug_player", "debug player");
+            case "module" -> sendDebugModuleHelp(sender, root);
+            default -> sendHelpPage(sender, root, List.of("debug"));
+        }
+    }
+
+    private void sendDebugModuleHelp(CommandSender sender, String root) {
+        MessageService messageService = messages();
+        sendHelpLine(sender, messageService.message("command.help_debug_module_header", Map.of("root", root)));
+        List<String> modules = new ArrayList<>(plugin.debugCommand().tabComplete(new String[]{"module", ""}));
+        modules.sort(Comparator.naturalOrder());
+        if (modules.isEmpty()) {
+            sendHelpLine(sender, messageService.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String module : modules) {
+            sendValueEntry(sender, module,
+                    messageService.message("command.help_value_desc_debug_module", Map.of("value", module)),
+                    root + " debug module " + module);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendPlayerValueHelp(CommandSender sender, String root, String headerKey, String descKey, String runPrefix) {
+        MessageService messageService = messages();
+        sendHelpLine(sender, messageService.message(headerKey, Map.of("root", root)));
+        List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
+        players.sort(Comparator.comparing(Player::getName));
+        if (players.isEmpty()) {
+            sendHelpLine(sender, messageService.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (Player player : players) {
+            String name = player.getName();
+            sendValueEntry(sender, name,
+                    messageService.message(descKey, Map.of("value", name)),
+                    root + " " + runPrefix + " " + name);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendValueEntry(CommandSender sender, String value, String desc, String run) {
+        sendHelpLine(sender, messages().message("command.help_value_entry", Map.of(
+                "value", value,
+                "desc", desc,
+                "run", run)));
+    }
+
+    private void sendHelpLines(CommandSender sender, String root, String... keys) {
+        MessageService messageService = messages();
+        Map<String, ?> replacements = Map.of("root", root);
+        for (String key : keys) {
+            sendHelpLine(sender, messageService.message(key, replacements));
+        }
+    }
+
+    private void sendHelpLine(CommandSender sender, String line) {
+        MessageService messageService = messages();
+        messageService.sendComponent(sender, messageService.render(line));
+    }
+
+    private void sendHelpFooter(CommandSender sender) {
+        sendHelpLine(sender, messages().message("command.help_footer"));
     }
 
     private MessageService messages() {

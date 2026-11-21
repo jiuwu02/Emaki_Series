@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.4"
+version: "5.0.5"
 
 tags:
   delivery: '[ 发货 ]'
@@ -19,21 +19,37 @@ general:
   reload_summary: "<gray>已重载配方 %recipes% 个, GUI %guis% 个</gray>"
 
 command:
-  help:
-    header: "<gold>========== Emaki Forge 帮助 ==========</gold>"
-    footer: "<gold>========================================</gold>"
-    line: "<yellow>%cmd%</yellow> <gray>- %desc%</gray>"
-    commands:
-      help: "显示帮助信息"
-      forge: "打开独立锻造台"
-      book: "打开配方图鉴"
-      reload: "重载配置文件"
-      "list <type>": "列出指定类型配置"
-      debug: "管理 Debug 模式"
-      editor: "打开锻造资源编辑器"
-      "edit recipe <id>": "编辑指定配方, 省略 ID 打开定义浏览器"
-      "create recipe [id]": "在定义浏览器中创建新配方"
-      "delete recipe <id>": "在定义浏览器中删除配方"
+  help_header: "<gray><st>        </st></gray> <gradient:#F59E0B:#EF4444>EmakiForge 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_entry_forge: "- <hover:show_text:'<gray>forge</gray> <dark_gray>·</dark_gray> <gray>打开独立锻造台界面</gray><newline><newline><dark_gray>▸</dark_gray> <gray>仅玩家</gray>'><gray>forge</gray></hover> <click:run_command:'%root% forge'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_book: "- <hover:show_text:'<gray>book</gray> <dark_gray>·</dark_gray> <gray>打开配方图鉴界面</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.book</white> <gray>或 </gray><white>emakiforge.admin</white><newline><dark_gray>▸</dark_gray> <gray>仅玩家</gray>'><gray>book</gray></hover> <click:run_command:'%root% book'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_reload: "- <hover:show_text:'<gray>reload</gray> <dark_gray>·</dark_gray> <gray>重载配方与 GUI 配置</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.reload</white> <gray>或 </gray><white>emakiforge.admin</white><newline><dark_gray>▸</dark_gray> <gray>异步重载, 完成后输出配方与 GUI 汇总</gray>'><gray>reload</gray></hover> <click:run_command:'%root% reload'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_list: "- <hover:show_text:'<gray>list</gray> <dark_gray>·</dark_gray> <gray>列出配置清单</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.admin</white>'><gray>list</gray></hover> <click:run_command:'%root% help list'><hover:show_text:'<gray>可选参数</gray><newline><gray>recipe</gray> <dark_gray>·</dark_gray> <gray>列出全部配方</gray>'><gray>[ ✦ 参数 ]</gray></click>"
+  help_entry_edit: "- <hover:show_text:'<gray>edit</gray> <dark_gray>·</dark_gray> <gray>打开锻造资源编辑器</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:定义ID - 点击查看当前可选值</gray><newline><dark_gray>▸</dark_gray> <gray>省略 [定义ID] 时打开定义浏览器</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.edit</white><newline><dark_gray>▸</dark_gray> <gray>仅玩家</gray>'><gray>edit</gray></hover> <click:run_command:'%root% help edit id'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
+  help_entry_debug: "- <hover:show_text:'<gray>debug</gray> <dark_gray>·</dark_gray> <gray>调试工具: 运行统计, 调试开关, 跟踪玩家/模块, 动作管道调试</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.debug</white> <gray>或 </gray><white>emakiforge.admin</white><newline><dark_gray>▸</dark_gray> <gray>不带参数时显示调试状态</gray>'><gray>debug</gray></hover> <click:run_command:'%root% help debug'><hover:show_text:'<gray>可选参数</gray><newline><gray>stats</gray> <dark_gray>·</dark_gray> <gray>运行统计与配方加载报告 (别名 status)</gray><newline><gray>on</gray> <dark_gray>·</dark_gray> <gray>开启全局调试输出</gray><newline><gray>off</gray> <dark_gray>·</dark_gray> <gray>关闭全局调试输出</gray><newline><gray>player</gray> <dark_gray>·</dark_gray> <gray>切换对玩家的调试跟踪</gray><newline><gray>module</gray> <dark_gray>·</dark_gray> <gray>切换模块的调试输出</gray><newline><gray>action</gray> <dark_gray>·</dark_gray> <gray>动作管道调试</gray>'><gray>[ ✦ 参数 ]</gray></click>"
+  help_entry_help: "- <hover:show_text:'<gray>help</gray> <dark_gray>·</dark_gray> <gray>显示本帮助页</gray>'><gray>help</gray></hover> <click:run_command:'%root% help'><green>[ ✦ 点击执行 ]</green></click>"
+  help_list_header: "<gray><st>        </st></gray> <gradient:#F59E0B:#EF4444>EmakiForge list 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_list_entry_recipe: "- <hover:show_text:'<gray>recipe</gray> <dark_gray>·</dark_gray> <gray>列出全部已加载配方的 ID 与显示名</gray><newline><newline><dark_gray>▸</dark_gray> <gray>别名 </gray><white>recipes</white><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.admin</white>'><gray>recipe</gray></hover> <click:run_command:'%root% list recipe'><green>[ ✦ 点击执行 ]</green></click>"
+  help_edit_id_header: "<gray><st>        </st></gray> <gradient:#F59E0B:#EF4444>EmakiForge edit [定义ID] 可选值</gradient> <gray><st>        </st></gray>"
+  help_debug_header: "<gray><st>        </st></gray> <gradient:#F59E0B:#EF4444>EmakiForge debug 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_debug_entry_stats: "- <hover:show_text:'<gray>stats</gray> <dark_gray>·</dark_gray> <gray>显示 EmakiForge 运行状态与配方加载报告</gray><newline><newline><dark_gray>▸</dark_gray> <gray>别名 </gray><white>status</white><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.debug</white> <gray>或 </gray><white>emakiforge.admin</white>'><gray>stats</gray></hover> <click:run_command:'%root% debug stats'><green>[ ✦ 点击执行 ]</green></click>"
+  help_debug_entry_on: "- <hover:show_text:'<gray>on</gray> <dark_gray>·</dark_gray> <gray>开启全局调试输出</gray>'><gray>on</gray></hover> <click:run_command:'%root% debug on'><green>[ ✦ 点击执行 ]</green></click>"
+  help_debug_entry_off: "- <hover:show_text:'<gray>off</gray> <dark_gray>·</dark_gray> <gray>关闭全局调试输出</gray>'><gray>off</gray></hover> <click:run_command:'%root% debug off'><green>[ ✦ 点击执行 ]</green></click>"
+  help_debug_entry_player: "- <hover:show_text:'<gray>player</gray> <dark_gray>·</dark_gray> <gray>切换对指定玩家的调试跟踪</gray><newline><newline><dark_gray>▸</dark_gray> <gray>省略 [玩家] 时列出可调试模块</gray>'><gray>player</gray></hover> <click:run_command:'%root% help debug player'><hover:show_text:'<gray>参数:玩家</gray><newline><gray>在线玩家名, 点击查看当前可选玩家</gray>'><gray>[ ✦ 玩家 ]</gray></hover></click>"
+  help_debug_entry_module: "- <hover:show_text:'<gray>module</gray> <dark_gray>·</dark_gray> <gray>切换指定模块的调试输出</gray><newline><newline><dark_gray>▸</dark_gray> <gray>省略 [模块ID] 时列出可调试模块</gray>'><gray>module</gray></hover> <hover:show_text:'<gray>参数:模块ID</gray><newline><gray>要切换调试输出的模块 ID</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 模块ID ]</gray></hover>"
+  help_debug_entry_action: "- <hover:show_text:'<gray>action</gray> <dark_gray>·</dark_gray> <gray>动作管道调试: 干跑预演, 静态体检, 注册表检查</gray>'><gray>action</gray></hover> <click:run_command:'%root% help debug action'><hover:show_text:'<gray>可选参数</gray><newline><gray>run</gray> <dark_gray>·</dark_gray> <gray>干跑或执行一条动作管道</gray><newline><gray>check</gray> <dark_gray>·</dark_gray> <gray>静态体检一条动作管道</gray><newline><gray>registry</gray> <dark_gray>·</dark_gray> <gray>检查动作段注册表</gray>'><gray>[ ✦ 参数 ]</gray></click>"
+  help_debug_player_header: "<gray><st>        </st></gray> <gradient:#F59E0B:#EF4444>EmakiForge debug player [玩家] 可选值</gradient> <gray><st>        </st></gray>"
+  help_debug_action_header: "<gray><st>        </st></gray> <gradient:#F59E0B:#EF4444>EmakiForge debug action 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_debug_action_entry_run: "- <hover:show_text:'<gray>run</gray> <dark_gray>·</dark_gray> <gray>干跑预演或真实执行一条动作管道</gray>'><gray>run</gray></hover> <click:run_command:'%root% help debug action run'><hover:show_text:'<gray>可选参数</gray><newline><gray>shadow</gray> <dark_gray>·</dark_gray> <gray>干跑预演, 不产生实际效果</gray><newline><gray>execute</gray> <dark_gray>·</dark_gray> <gray>真实执行动作管道</gray>'><gray>[ ✦ 参数 ]</gray></click>"
+  help_debug_action_entry_check: "- <hover:show_text:'<gray>check</gray> <dark_gray>·</dark_gray> <gray>静态体检一条动作管道: 只编译并输出诊断, 不执行</gray>'><gray>check</gray></hover> <hover:show_text:'<gray>参数:管道行</gray><newline><gray>一条动作管道文本, 需要自己填写</gray><newline><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 管道行 ]</gray></hover>"
+  help_debug_action_entry_registry: "- <hover:show_text:'<gray>registry</gray> <dark_gray>·</dark_gray> <gray>检查动作段注册表并输出诊断</gray>'><gray>registry</gray></hover> <click:run_command:'%root% debug action registry'><green>[ ✦ 点击执行 ]</green></click>"
+  help_debug_action_run_header: "<gray><st>        </st></gray> <gradient:#F59E0B:#EF4444>EmakiForge debug action run 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_debug_action_run_entry_shadow: "- <hover:show_text:'<gray>shadow</gray> <dark_gray>·</dark_gray> <gray>按 shadow 模式干跑预演: 只输出每段回显, 不产生实际效果</gray><newline><newline><dark_gray>▸</dark_gray> <gray>省略模式时默认为 shadow</gray>'><gray>shadow</gray></hover> <hover:show_text:'<gray>参数:管道行</gray><newline><gray>一条动作管道文本, 需要自己填写</gray><newline><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 管道行 ]</gray></hover>"
+  help_debug_action_run_entry_execute: "- <hover:show_text:'<gray>execute</gray> <dark_gray>·</dark_gray> <gray>真实执行动作管道并输出每段回显与结果汇总</gray>'><gray>execute</gray></hover> <hover:show_text:'<gray>参数:管道行</gray><newline><gray>一条动作管道文本, 需要自己填写</gray><newline><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 管道行 ]</gray></hover>"
+  help_value_entry: "- <hover:show_text:'<gray>%value%</gray> <dark_gray>·</dark_gray> <gray>%desc%</gray>'><gray>%value%</gray></hover> <click:run_command:'%run%'><green>[ ✦ 点击执行 ]</green></click>"
+  help_value_empty: "<dark_gray>( 当前没有可选值 )</dark_gray>"
+  help_value_desc_edit_id: "编辑 %value% 的定义"
+  help_value_desc_debug_player: "切换对 %value% 的调试跟踪"
+  help_footer: "<gray><st>                                        </st></gray>"
   debug:
     # 命令: 锻造运行状态调试输出; 占位符: %status%, %generation%, %gui%, %recipes%, %issues%, %source_states%, %reload_candidates%, %reload_installed%, %reload_failed%, %reload_stale%, %gui_stale%, %execution_stale%, %settlement_failures%, %last_ms%
     runtime: "<gray>EmakiForge 运行状态:</gray> <white>status=%status% generation=%generation% gui=%gui% recipes=%recipes% issues=%issues% source_states=%source_states% reload_candidates=%reload_candidates% reload_installed=%reload_installed% reload_failed=%reload_failed% reload_stale=%reload_stale% gui_stale=%gui_stale% execution_stale=%execution_stale% settlement_failures=%settlement_failures% last_ms=%last_ms%</white>"

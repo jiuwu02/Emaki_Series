@@ -2,7 +2,7 @@ package emaki.jiuwu.craft.skills;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -46,12 +46,12 @@ final class SkillsCommandRouter implements TabExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sendHelp(sender);
+            sendHelpPage(sender, helpRoot(label), List.of());
             return true;
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "help" -> {
-                sendHelp(sender);
+                sendHelpPage(sender, helpRoot(label), Arrays.asList(args).subList(1, args.length));
                 yield true;
             }
             case "gui" -> handleGui(sender);
@@ -645,27 +645,153 @@ final class SkillsCommandRouter implements TabExecutor {
         result.addAll(CommandTabHelper.filterByPrefix(plugin.skillRegistryService().allDefinitions().keySet(), prefix));
     }
 
-    private void sendHelp(CommandSender sender) {
-        var ms = plugin.messageService();
-        ms.sendRaw(sender, ms.message("command.help.header"));
-        Map<String, String> commands = new LinkedHashMap<>();
-        commands.put("help", "command.help.desc.help");
-        commands.put("gui", "command.help.desc.gui");
-        commands.put("edit [id]", "command.help.desc.edit");
-        commands.put("reload", "command.help.desc.reload");
-        commands.put("castmode <on|off|toggle>", "command.help.desc.castmode");
-        commands.put("upgrade <skill>", "command.help.desc.upgrade");
-        commands.put("level get|set|add <player> <skill> [value]", "command.help.desc.level");
-        commands.put("grant <player> <skill>", "command.help.desc.grant");
-        commands.put("revoke <player> <skill>", "command.help.desc.revoke");
-        commands.put("list [player]", "command.help.desc.list");
-        commands.put("reset <player>", "command.help.desc.reset");
-        commands.put("debug <status|on|off|player|module|action> [...]", "command.help.desc.debug");
-        commands.put("inspect [player]", "command.help.desc.inspect");
-        commands.put("clearslot <player> <slot>", "command.help.desc.clearslot");
-        commands.put("resync [player]", "command.help.desc.resync");
-        commands.forEach((cmd, descKey) -> ms.sendRaw(sender,
-                ms.message("command.help.line", Map.of("cmd", cmd, "desc", ms.message(descKey)))));
-        ms.sendRaw(sender, ms.message("command.help.footer"));
+    private String helpRoot(String label) {
+        return "/" + (label == null || label.isBlank() ? "eskills" : label);
+    }
+
+    private void sendHelpPage(CommandSender sender, String root, List<String> path) {
+        if (path.isEmpty()) {
+            sendHelpLines(sender, root, "command.help_header",
+                    "command.help_entry_help", "command.help_entry_gui", "command.help_entry_reload",
+                    "command.help_entry_edit", "command.help_entry_castmode", "command.help_entry_upgrade",
+                    "command.help_entry_level", "command.help_entry_grant", "command.help_entry_revoke",
+                    "command.help_entry_list", "command.help_entry_reset", "command.help_entry_debug",
+                    "command.help_entry_inspect", "command.help_entry_clearslot", "command.help_entry_resync");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(0).toLowerCase(Locale.ROOT)) {
+            case "castmode" -> {
+                sendHelpLines(sender, root, "command.help_castmode_header",
+                        "command.help_castmode_entry_on", "command.help_castmode_entry_off",
+                        "command.help_castmode_entry_toggle");
+                sendHelpFooter(sender);
+            }
+            case "level" -> {
+                sendHelpLines(sender, root, "command.help_level_header",
+                        "command.help_level_entry_get", "command.help_level_entry_set",
+                        "command.help_level_entry_add");
+                sendHelpFooter(sender);
+            }
+            case "upgrade" -> sendUpgradeSkillHelp(sender, root);
+            case "reset" -> sendResetPlayerHelp(sender, root);
+            case "debug" -> sendDebugHelp(sender, root, path);
+            default -> sendHelpPage(sender, root, List.of());
+        }
+    }
+
+    private void sendUpgradeSkillHelp(CommandSender sender, String root) {
+        var messageService = plugin.messageService();
+        sendHelpLine(sender, messageService.message("command.help_upgrade_skill_header", Map.of("root", root)));
+        List<String> skillIds = new ArrayList<>(plugin.skillRegistryService().allDefinitions().keySet());
+        skillIds.sort(Comparator.naturalOrder());
+        if (skillIds.isEmpty()) {
+            sendHelpLine(sender, messageService.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String skillId : skillIds) {
+            sendValueEntry(sender, skillId,
+                    messageService.message("command.help_value_desc_upgrade_skill", Map.of("value", skillId)),
+                    root + " upgrade " + skillId);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendResetPlayerHelp(CommandSender sender, String root) {
+        sendPlayerValueHelp(sender, root, "command.help_reset_player_header",
+                "command.help_value_desc_reset_player", "reset");
+    }
+
+    private void sendPlayerValueHelp(CommandSender sender, String root, String headerKey, String descKey, String runPrefix) {
+        var messageService = plugin.messageService();
+        sendHelpLine(sender, messageService.message(headerKey, Map.of("root", root)));
+        List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
+        players.sort(Comparator.comparing(Player::getName));
+        if (players.isEmpty()) {
+            sendHelpLine(sender, messageService.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (Player player : players) {
+            String name = player.getName();
+            sendValueEntry(sender, name,
+                    messageService.message(descKey, Map.of("value", name)),
+                    root + " " + runPrefix + " " + name);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() < 2) {
+            sendHelpLines(sender, root, "command.help_debug_header",
+                    "command.help_debug_entry_status", "command.help_debug_entry_on",
+                    "command.help_debug_entry_off", "command.help_debug_entry_player",
+                    "command.help_debug_entry_module", "command.help_debug_entry_action");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(1).toLowerCase(Locale.ROOT)) {
+            case "player" -> sendPlayerValueHelp(sender, root, "command.help_debug_player_header",
+                    "command.help_value_desc_debug_player", "debug player");
+            case "module" -> sendDebugModuleHelp(sender, root);
+            case "action" -> sendDebugActionHelp(sender, root, path);
+            default -> sendHelpPage(sender, root, List.of("debug"));
+        }
+    }
+
+    private void sendDebugModuleHelp(CommandSender sender, String root) {
+        var messageService = plugin.messageService();
+        sendHelpLine(sender, messageService.message("command.help_debug_module_header", Map.of("root", root)));
+        List<String> modules = new ArrayList<>(plugin.debugCommand().tabComplete(new String[]{"module", ""}));
+        modules.sort(Comparator.naturalOrder());
+        if (modules.isEmpty()) {
+            sendHelpLine(sender, messageService.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String module : modules) {
+            sendValueEntry(sender, module,
+                    messageService.message("command.help_value_desc_debug_module", Map.of("value", module)),
+                    root + " debug module " + module);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
+            sendHelpLines(sender, root, "command.help_debug_action_run_header",
+                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            sendHelpFooter(sender);
+            return;
+        }
+        sendHelpLines(sender, root, "command.help_debug_action_header",
+                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
+                "command.help_debug_action_entry_registry");
+        sendHelpFooter(sender);
+    }
+
+    private void sendValueEntry(CommandSender sender, String value, String desc, String run) {
+        sendHelpLine(sender, plugin.messageService().message("command.help_value_entry", Map.of(
+                "value", value,
+                "desc", desc,
+                "run", run)));
+    }
+
+    private void sendHelpLines(CommandSender sender, String root, String... keys) {
+        var messageService = plugin.messageService();
+        Map<String, ?> replacements = Map.of("root", root);
+        for (String key : keys) {
+            sendHelpLine(sender, messageService.message(key, replacements));
+        }
+    }
+
+    private void sendHelpLine(CommandSender sender, String line) {
+        var messageService = plugin.messageService();
+        messageService.sendComponent(sender, messageService.render(line));
+    }
+
+    private void sendHelpFooter(CommandSender sender) {
+        sendHelpLine(sender, plugin.messageService().message("command.help_footer"));
     }
 }

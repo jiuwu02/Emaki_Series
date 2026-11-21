@@ -19,7 +19,6 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -36,6 +35,7 @@ public final class MobsCommandRouter {
     private static final String PERMISSION_DEBUG = "emakimobs.debug";
     private static final String PERMISSION_EDIT = "emakimobs.edit";
     private static final String PERMISSION_ADMIN = "emakimobs.admin";
+    private static final String HELP_ROOT = "/emakimobs";
     private static final int PAGE_SIZE = 10;
     private static final int FIND_LIST_LIMIT = 20;
     private static final List<String> SUBCOMMANDS =
@@ -56,7 +56,7 @@ public final class MobsCommandRouter {
             return;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "help" -> sendHelp(sender);
+            case "help" -> sendHelp(sender, Arrays.asList(args).subList(1, args.length));
             case "spawn" -> handleSpawn(sender, args);
             case "reload" -> handleReload(sender);
             case "list" -> handleList(sender, args);
@@ -501,22 +501,160 @@ public final class MobsCommandRouter {
                 .toList();
     }
 
-    private void sendHelp(CommandSender sender) {
-        var messages = plugin.messageService();
-        messages.sendRaw(sender, messages.message("command.help.header"));
-        Map<String, String> lines = new LinkedHashMap<>();
-        lines.put("spawn <mob_id> [玩家]", messages.message("command.help.commands.spawn"));
-        lines.put("list [页码]", messages.message("command.help.commands.list"));
-        lines.put("info <mob_id>", messages.message("command.help.commands.info"));
-        lines.put("count <mob_id>", messages.message("command.help.commands.count"));
-        lines.put("find <mob_id> [半径]", messages.message("command.help.commands.find"));
-        lines.put("kill <mob_id|all> [半径]", messages.message("command.help.commands.kill"));
-        lines.put("edit [id]", messages.message("command.help.commands.edit"));
-        lines.put("reload", messages.message("command.help.commands.reload"));
-        lines.put("debug", messages.message("command.help.commands.debug"));
-        lines.forEach((usage, description) -> messages.sendRaw(sender,
-                messages.message("command.help.line", Map.of("cmd", usage, "desc", description))));
-        messages.sendRaw(sender, messages.message("command.help.footer"));
+    private void sendHelp(CommandSender sender, List<String> path) {
+        sendHelpPage(sender, HELP_ROOT, path);
+    }
+
+    private void sendHelpPage(CommandSender sender, String root, List<String> path) {
+        if (path.isEmpty()) {
+            sendHelpLines(sender, root, "command.help_header",
+                    "command.help_entry_help", "command.help_entry_spawn", "command.help_entry_reload",
+                    "command.help_entry_list", "command.help_entry_info", "command.help_entry_count",
+                    "command.help_entry_find", "command.help_entry_kill", "command.help_entry_tp",
+                    "command.help_entry_debug", "command.help_entry_edit");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(0).toLowerCase(Locale.ROOT)) {
+            case "spawn" -> sendMobIdHelp(sender, root, "spawn",
+                    "command.help_spawn_header", "command.help_value_desc_spawn");
+            case "info" -> sendMobIdHelp(sender, root, "info",
+                    "command.help_info_header", "command.help_value_desc_info");
+            case "find" -> sendMobIdHelp(sender, root, "find",
+                    "command.help_find_header", "command.help_value_desc_find");
+            case "kill" -> sendKillHelp(sender, root);
+            case "debug" -> sendDebugHelp(sender, root, path);
+            default -> sendHelpPage(sender, root, List.of());
+        }
+    }
+
+    private void sendMobIdHelp(CommandSender sender, String root, String command,
+            String headerKey, String descKey) {
+        var messageService = plugin.messageService();
+        sendHelpLine(sender, messageService.message(headerKey, Map.of("root", root)));
+        List<String> ids = new ArrayList<>(plugin.mobRegistry().get().keySet());
+        ids.sort(Comparator.naturalOrder());
+        if (ids.isEmpty()) {
+            sendHelpLine(sender, messageService.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String id : ids) {
+            sendValueEntry(sender, id,
+                    messageService.message(descKey, Map.of("value", id)),
+                    root + " " + command + " " + id);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendKillHelp(CommandSender sender, String root) {
+        var messageService = plugin.messageService();
+        sendHelpLine(sender, messageService.message("command.help_kill_header", Map.of("root", root)));
+        sendValueEntry(sender, "all",
+                messageService.message("command.help_value_desc_kill_all"),
+                root + " kill all");
+        List<String> ids = new ArrayList<>(plugin.mobRegistry().get().keySet());
+        ids.sort(Comparator.naturalOrder());
+        for (String id : ids) {
+            sendValueEntry(sender, id,
+                    messageService.message("command.help_value_desc_kill", Map.of("value", id)),
+                    root + " kill " + id);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() < 2) {
+            sendHelpLines(sender, root, "command.help_debug_header",
+                    "command.help_debug_entry_status", "command.help_debug_entry_on",
+                    "command.help_debug_entry_off", "command.help_debug_entry_player",
+                    "command.help_debug_entry_module", "command.help_debug_entry_action");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(1).toLowerCase(Locale.ROOT)) {
+            case "player" -> sendPlayerHelp(sender, root, "debug player",
+                    "command.help_debug_player_header", "command.help_value_desc_debug_player");
+            case "module" -> sendModuleHelp(sender, root);
+            case "action" -> sendDebugActionHelp(sender, root, path);
+            default -> sendHelpPage(sender, root, List.of("debug"));
+        }
+    }
+
+    private void sendPlayerHelp(CommandSender sender, String root, String command,
+            String headerKey, String descKey) {
+        var messageService = plugin.messageService();
+        sendHelpLine(sender, messageService.message(headerKey, Map.of("root", root)));
+        List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
+        players.sort(Comparator.comparing(Player::getName));
+        if (players.isEmpty()) {
+            sendHelpLine(sender, messageService.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (Player player : players) {
+            String name = player.getName();
+            sendValueEntry(sender, name,
+                    messageService.message(descKey, Map.of("value", name)),
+                    root + " " + command + " " + name);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendModuleHelp(CommandSender sender, String root) {
+        var messageService = plugin.messageService();
+        sendHelpLine(sender, messageService.message("command.help_debug_module_header", Map.of("root", root)));
+        List<String> modules = plugin.debugCommand() == null
+                ? List.of()
+                : plugin.debugCommand().tabComplete(new String[] {"module", ""});
+        if (modules.isEmpty()) {
+            sendHelpLine(sender, messageService.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String module : modules) {
+            sendValueEntry(sender, module,
+                    messageService.message("command.help_value_desc_debug_module", Map.of("value", module)),
+                    root + " debug module " + module);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
+            sendHelpLines(sender, root, "command.help_debug_action_run_header",
+                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            sendHelpFooter(sender);
+            return;
+        }
+        sendHelpLines(sender, root, "command.help_debug_action_header",
+                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
+                "command.help_debug_action_entry_registry");
+        sendHelpFooter(sender);
+    }
+
+    private void sendValueEntry(CommandSender sender, String value, String desc, String run) {
+        sendHelpLine(sender, plugin.messageService().message("command.help_value_entry", Map.of(
+                "value", value,
+                "desc", desc,
+                "run", run)));
+    }
+
+    private void sendHelpLines(CommandSender sender, String root, String... keys) {
+        var messageService = plugin.messageService();
+        Map<String, ?> replacements = Map.of("root", root);
+        for (String key : keys) {
+            sendHelpLine(sender, messageService.message(key, replacements));
+        }
+    }
+
+    private void sendHelpLine(CommandSender sender, String line) {
+        var messageService = plugin.messageService();
+        messageService.sendComponent(sender, messageService.render(line));
+    }
+
+    private void sendHelpFooter(CommandSender sender) {
+        sendHelpLine(sender, plugin.messageService().message("command.help_footer"));
     }
 
     private String permissionFor(String subcommand) {

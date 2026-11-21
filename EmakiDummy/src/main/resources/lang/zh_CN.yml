@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 占位符语法为 %key%
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.5"
+version: "1.0.6"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#14B8A6>EmakiDummy</gradient> ]</gray>"
@@ -11,20 +11,36 @@ general:
   unknown_command: "<red>未知子命令: %sub%, 请使用 /emdum help 查看帮助</red>"
 
 command:
-  help: |
-    <gray>========== </gray><gradient:#22D3EE:#14B8A6>EmakiDummy 命令</gradient><gray> ==========</gray>
-    <gray>/emdum join [名字]</gray> <white>让假人进服 (省略名字自动生成)</white>
-    <gray>/emdum leave <名字></gray> <white>断开指定假人</white>
-    <gray>/emdum say <名字> <文本></gray> <white>假人发送聊天</white>
-    <gray>/emdum cmd <名字> <命令></gray> <white>假人执行指令 (斜杠可省略)</white>
-    <gray>/emdum walk <名字> <x> <y> <z></gray> <white>假人直线走到坐标</white>
-    <gray>/emdum look <名字> <yaw> <pitch></gray> <white>假人调整视角</white>
-    <gray>/emdum interact <名字> [x] [y] [z]</gray> <white>假人右键面前方块 (可指定坐标)</white>
-    <gray>/emdum attack <名字></gray> <white>假人攻击最近的非玩家实体</white>
-    <gray>/emdum click <名字> <槽位></gray> <white>假人左键点击当前窗口槽位 (GUI 选择)</white>
-    <gray>/emdum list</gray> <white>查看在线假人</white>
-    <gray>/emdum scenario <run|stop> <场景ID></gray> <white>执行或停止测试场景</white>
-    <gray>/emdum stop-all</gray> <white>断开全部假人</white>
+  help_header: "<gray><st>        </st></gray> <gradient:#22D3EE:#14B8A6>EmakiDummy 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_entry_join: "- <hover:show_text:'<gray>join</gray> <dark_gray>·</dark_gray> <gray>让一名假人进服</gray><newline><newline><dark_gray>▸</dark_gray> <gray>省略 [假人名] 时自动生成名字</gray><newline><dark_gray>▸</dark_gray> <gray>示例 </gray><white>%root% join 小明</white>'><gray>join</gray></hover> <click:run_command:'%root% join'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_leave: "- <hover:show_text:'<gray>leave</gray> <dark_gray>·</dark_gray> <gray>断开指定假人</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:假人名 - 点击查看当前可选值</gray>'><gray>leave</gray></hover> <click:run_command:'%root% help leave name'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
+  help_entry_say: "- <hover:show_text:'<gray>say</gray> <dark_gray>·</dark_gray> <gray>让假人发送聊天</gray><newline><newline><dark_gray>▸</dark_gray> <gray>用法 </gray><white>%root% say [假人名] [文本]</white>'><gray>say</gray></hover> <hover:show_text:'<gray>参数:假人名</gray><newline><gray>要发言的假人名</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>支持 Tab 补全在线假人</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 假人名 ]</gray></hover> <hover:show_text:'<gray>参数:文本</gray><newline><gray>要发送的聊天文本</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 文本 ]</gray></hover>"
+  help_entry_cmd: "- <hover:show_text:'<gray>cmd</gray> <dark_gray>·</dark_gray> <gray>让假人执行一条命令</gray><newline><newline><dark_gray>▸</dark_gray> <gray>命令前的斜杠可省略</gray><newline><dark_gray>▸</dark_gray> <gray>用法 </gray><white>%root% cmd [假人名] [命令]</white>'><gray>cmd</gray></hover> <hover:show_text:'<gray>参数:假人名</gray><newline><gray>要执行命令的假人名</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>支持 Tab 补全在线假人</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 假人名 ]</gray></hover> <hover:show_text:'<gray>参数:命令</gray><newline><gray>要执行的命令文本, 斜杠可省略</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 命令 ]</gray></hover>"
+  help_entry_walk: "- <hover:show_text:'<gray>walk</gray> <dark_gray>·</dark_gray> <gray>让假人直线走到指定坐标</gray><newline><newline><dark_gray>▸</dark_gray> <gray>用法 </gray><white>%root% walk [假人名] [x] [y] [z]</white>'><gray>walk</gray></hover> <hover:show_text:'<gray>参数:假人名</gray><newline><gray>要移动的假人名</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>支持 Tab 补全在线假人</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 假人名 ]</gray></hover> <hover:show_text:'<gray>参数:x y z</gray><newline><gray>目标坐标, 三个数字一起填写</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ x ] [ y ] [ z ]</gray></hover>"
+  help_entry_look: "- <hover:show_text:'<gray>look</gray> <dark_gray>·</dark_gray> <gray>调整假人的视角朝向</gray><newline><newline><dark_gray>▸</dark_gray> <gray>用法 </gray><white>%root% look [假人名] [yaw] [pitch]</white>'><gray>look</gray></hover> <hover:show_text:'<gray>参数:假人名</gray><newline><gray>要调整视角的假人名</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>支持 Tab 补全在线假人</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 假人名 ]</gray></hover> <hover:show_text:'<gray>参数:yaw pitch</gray><newline><gray>水平角与俯仰角, 两个数字一起填写</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ yaw ] [ pitch ]</gray></hover>"
+  help_entry_interact: "- <hover:show_text:'<gray>interact</gray> <dark_gray>·</dark_gray> <gray>让假人右键面前方块或指定坐标</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:假人名 - 点击查看当前可选值</gray><newline><dark_gray>▸</dark_gray> <gray>省略 [x] [y] [z] 时右键面前的方块</gray><newline><dark_gray>▸</dark_gray> <gray>用法 </gray><white>%root% interact [假人名] [x] [y] [z]</white>'><gray>interact</gray></hover> <click:run_command:'%root% help interact name'><yellow>[ ✦ 查看可选值 ]</yellow></click> <hover:show_text:'<gray>参数:x y z</gray><newline><gray>可选, 指定要右键的方块坐标</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ x ] [ y ] [ z ]</gray></hover>"
+  help_entry_attack: "- <hover:show_text:'<gray>attack</gray> <dark_gray>·</dark_gray> <gray>让假人攻击最近的非玩家实体</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:假人名 - 点击查看当前可选值</gray><newline><dark_gray>▸</dark_gray> <gray>附近没有可攻击实体时会提示</gray>'><gray>attack</gray></hover> <click:run_command:'%root% help attack name'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
+  help_entry_click: "- <hover:show_text:'<gray>click</gray> <dark_gray>·</dark_gray> <gray>让假人左键点击当前打开窗口的槽位</gray><newline><newline><dark_gray>▸</dark_gray> <gray>假人当前没有打开的窗口时会提示</gray><newline><dark_gray>▸</dark_gray> <gray>用法 </gray><white>%root% click [假人名] [槽位]</white>'><gray>click</gray></hover> <hover:show_text:'<gray>参数:假人名</gray><newline><gray>要点击窗口的假人名</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>支持 Tab 补全在线假人</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 假人名 ]</gray></hover> <hover:show_text:'<gray>参数:槽位</gray><newline><gray>窗口槽位编号, 取 0 到 53</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>支持 Tab 补全 0 到 53</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 槽位 ]</gray></hover>"
+  help_entry_list: "- <hover:show_text:'<gray>list</gray> <dark_gray>·</dark_gray> <gray>查看在线假人与它们的状态和位置</gray>'><gray>list</gray></hover> <click:run_command:'%root% list'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_scenario: "- <hover:show_text:'<gray>scenario</gray> <dark_gray>·</dark_gray> <gray>运行或停止测试场景</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakidummy.admin</white><newline><dark_gray>▸</dark_gray> <gray>场景文件位于 </gray><white>plugins/EmakiDummy/scenarios/</white><newline><dark_gray>▸</dark_gray> <gray>同一时间只能运行一个场景</gray>'><gray>scenario</gray></hover> <click:run_command:'%root% help scenario'><hover:show_text:'<gray>可选参数</gray><newline><gray>run</gray> <dark_gray>·</dark_gray> <gray>运行指定场景</gray><newline><gray>stop</gray> <dark_gray>·</dark_gray> <gray>停止指定场景</gray>'><gray>[ ✦ 参数 ]</gray></click>"
+  help_entry_stop_all: "- <hover:show_text:'<gray>stop-all</gray> <dark_gray>·</dark_gray> <gray>断开全部假人并停止正在执行的场景</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakidummy.admin</white>'><gray>stop-all</gray></hover> <click:run_command:'%root% stop-all'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_help: "- <hover:show_text:'<gray>help</gray> <dark_gray>·</dark_gray> <gray>显示本帮助页</gray>'><gray>help</gray></hover> <click:run_command:'%root% help'><green>[ ✦ 点击执行 ]</green></click>"
+  help_scenario_header: "<gray><st>        </st></gray> <gradient:#22D3EE:#14B8A6>EmakiDummy scenario 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_scenario_entry_run: "- <hover:show_text:'<gray>run</gray> <dark_gray>·</dark_gray> <gray>运行指定的测试场景</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:场景ID - 点击查看当前可选值</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakidummy.admin</white>'><gray>run</gray></hover> <click:run_command:'%root% help scenario run'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
+  help_scenario_entry_stop: "- <hover:show_text:'<gray>stop</gray> <dark_gray>·</dark_gray> <gray>停止正在执行的场景</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:场景ID - 点击查看当前可选值</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakidummy.admin</white>'><gray>stop</gray></hover> <click:run_command:'%root% help scenario stop'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
+  help_leave_name_header: "<gray><st>        </st></gray> <gradient:#22D3EE:#14B8A6>EmakiDummy leave [假人名] 可选值</gradient> <gray><st>        </st></gray>"
+  help_attack_name_header: "<gray><st>        </st></gray> <gradient:#22D3EE:#14B8A6>EmakiDummy attack [假人名] 可选值</gradient> <gray><st>        </st></gray>"
+  help_interact_name_header: "<gray><st>        </st></gray> <gradient:#22D3EE:#14B8A6>EmakiDummy interact [假人名] 可选值</gradient> <gray><st>        </st></gray>"
+  help_scenario_run_id_header: "<gray><st>        </st></gray> <gradient:#22D3EE:#14B8A6>EmakiDummy scenario run [场景ID] 可选值</gradient> <gray><st>        </st></gray>"
+  help_scenario_stop_id_header: "<gray><st>        </st></gray> <gradient:#22D3EE:#14B8A6>EmakiDummy scenario stop [场景ID] 可选值</gradient> <gray><st>        </st></gray>"
+  help_value_entry: "- <hover:show_text:'<gray>%value%</gray> <dark_gray>·</dark_gray> <gray>%desc%</gray>'><gray>%value%</gray></hover> <click:run_command:'%run%'><green>[ ✦ 点击执行 ]</green></click>"
+  help_value_empty: "<dark_gray>( 当前没有可选值 )</dark_gray>"
+  help_value_desc_leave_name: "断开假人 %value%"
+  help_value_desc_attack_name: "让假人 %value% 攻击最近的非玩家实体"
+  help_value_desc_interact_name: "让假人 %value% 右键面前的方块"
+  help_value_desc_scenario_run_id: "运行测试场景 %value%"
+  help_value_desc_scenario_stop_id: "停止测试场景 %value%"
+  help_footer: "<gray><st>                                        </st></gray>"
   join:
     duplicate: "<yellow>假人 %name% 已存在</yellow>"
     limit: "<red>假人数量已达上限 %limit%</red>"

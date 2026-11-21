@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.station.command;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -51,7 +52,7 @@ public final class StationCommandRouter {
 
     public boolean onCommand(CommandSender sender, String label, String[] args) {
         if (args.length == 0) {
-            sendHelp(sender);
+            sendHelp(sender, label);
             return true;
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
@@ -65,8 +66,12 @@ public final class StationCommandRouter {
             case "reload" -> handleReload(sender);
             case "debug" -> handleDebug(sender, args);
             case "admin" -> handleAdmin(sender, args);
+            case "help" -> {
+                sendHelpPage(sender, helpRoot(label), Arrays.asList(args).subList(1, args.length));
+                yield true;
+            }
             default -> {
-                sendHelp(sender);
+                sendHelp(sender, label);
                 yield true;
             }
         };
@@ -439,8 +444,178 @@ public final class StationCommandRouter {
         return true;
     }
 
-    private void sendHelp(CommandSender sender) {
-        message(sender, "command.help");
+    private void sendHelp(CommandSender sender, String label) {
+        sendHelpPage(sender, helpRoot(label), List.of());
+    }
+
+    private String helpRoot(String label) {
+        return "/" + (label == null || label.isBlank() ? "emakistation" : label);
+    }
+
+    private void sendHelpPage(CommandSender sender, String root, List<String> path) {
+        if (path.isEmpty()) {
+            sendHelpLines(sender, root, "command.help_header",
+                    "command.help_entry_open", "command.help_entry_dismantle", "command.help_entry_queue",
+                    "command.help_entry_claim", "command.help_entry_cancel", "command.help_entry_list",
+                    "command.help_entry_edit", "command.help_entry_reload", "command.help_entry_debug",
+                    "command.help_entry_admin", "command.help_entry_help");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(0).toLowerCase(Locale.ROOT)) {
+            case "open" -> sendIdHelp(sender, root, "open",
+                    "command.help_open_header", "command.help_value_desc_open", stationIds());
+            case "dismantle" -> sendIdHelp(sender, root, "dismantle",
+                    "command.help_dismantle_header", "command.help_value_desc_dismantle", dismantleIds());
+            case "cancel" -> sendCancelHelp(sender, root);
+            case "admin" -> sendAdminHelp(sender, root, path);
+            case "debug" -> sendDebugHelp(sender, root, path);
+            default -> sendHelpPage(sender, root, List.of());
+        }
+    }
+
+    private List<String> stationIds() {
+        List<String> ids = new ArrayList<>();
+        for (StationDefinition station : plugin.registry().stations()) {
+            ids.add(station.id());
+        }
+        return ids;
+    }
+
+    private List<String> dismantleIds() {
+        List<String> ids = new ArrayList<>();
+        for (DismantleStationDefinition station : plugin.dismantleRegistry().all()) {
+            ids.add(station.id());
+        }
+        return ids;
+    }
+
+    private void sendIdHelp(CommandSender sender, String root, String command,
+            String headerKey, String descKey, List<String> ids) {
+        var messageService = plugin.messageService();
+        sendHelpLine(sender, messageService.message(headerKey, Map.of("root", root)));
+        List<String> values = new ArrayList<>(ids);
+        values.sort(String::compareTo);
+        if (values.isEmpty()) {
+            sendHelpLine(sender, messageService.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String value : values) {
+            sendValueEntry(sender, value,
+                    messageService.message(descKey, Map.of("value", value)),
+                    root + " " + command + " " + value);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendCancelHelp(CommandSender sender, String root) {
+        sendHelpLines(sender, root, "command.help_cancel_header",
+                "command.help_cancel_entry_station", "command.help_cancel_entry_index");
+        sendHelpFooter(sender);
+    }
+
+    private void sendAdminHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 2 && "queue".equalsIgnoreCase(path.get(1))) {
+            sendPlayerHelp(sender, root, "admin queue",
+                    "command.help_admin_queue_header", "command.help_value_desc_admin_queue");
+            return;
+        }
+        sendHelpLines(sender, root, "command.help_admin_header", "command.help_admin_entry_queue");
+        sendHelpFooter(sender);
+    }
+
+    private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() < 2) {
+            sendHelpLines(sender, root, "command.help_debug_header",
+                    "command.help_debug_entry_status", "command.help_debug_entry_on",
+                    "command.help_debug_entry_off", "command.help_debug_entry_player",
+                    "command.help_debug_entry_module", "command.help_debug_entry_action");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(1).toLowerCase(Locale.ROOT)) {
+            case "player" -> sendPlayerHelp(sender, root, "debug player",
+                    "command.help_debug_player_header", "command.help_value_desc_debug_player");
+            case "module" -> sendModuleHelp(sender, root);
+            case "action" -> sendDebugActionHelp(sender, root, path);
+            default -> sendHelpPage(sender, root, List.of("debug"));
+        }
+    }
+
+    private void sendPlayerHelp(CommandSender sender, String root, String command, String headerKey, String descKey) {
+        var messageService = plugin.messageService();
+        sendHelpLine(sender, messageService.message(headerKey, Map.of("root", root)));
+        List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
+        players.sort(Comparator.comparing(Player::getName));
+        if (players.isEmpty()) {
+            sendHelpLine(sender, messageService.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (Player player : players) {
+            String name = player.getName();
+            sendValueEntry(sender, name,
+                    messageService.message(descKey, Map.of("value", name)),
+                    root + " " + command + " " + name);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendModuleHelp(CommandSender sender, String root) {
+        var messageService = plugin.messageService();
+        sendHelpLine(sender, messageService.message("command.help_debug_module_header", Map.of("root", root)));
+        List<String> modules = plugin.debugCommand() == null
+                ? List.of()
+                : plugin.debugCommand().tabComplete(new String[] {"module", ""});
+        if (modules.isEmpty()) {
+            sendHelpLine(sender, messageService.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String module : modules) {
+            sendValueEntry(sender, module,
+                    messageService.message("command.help_value_desc_debug_module", Map.of("value", module)),
+                    root + " debug module " + module);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
+            sendHelpLines(sender, root, "command.help_debug_action_run_header",
+                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            sendHelpFooter(sender);
+            return;
+        }
+        sendHelpLines(sender, root, "command.help_debug_action_header",
+                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
+                "command.help_debug_action_entry_registry");
+        sendHelpFooter(sender);
+    }
+
+    private void sendValueEntry(CommandSender sender, String value, String desc, String run) {
+        sendHelpLine(sender, plugin.messageService().message("command.help_value_entry", Map.of(
+                "value", value,
+                "desc", desc,
+                "run", run)));
+    }
+
+    private void sendHelpLines(CommandSender sender, String root, String... keys) {
+        var messageService = plugin.messageService();
+        Map<String, ?> replacements = Map.of("root", root);
+        for (String key : keys) {
+            sendHelpLine(sender, messageService.message(key, replacements));
+        }
+    }
+
+    private void sendHelpLine(CommandSender sender, String line) {
+        var messageService = plugin.messageService();
+        messageService.sendComponent(sender, messageService.render(line));
+    }
+
+    private void sendHelpFooter(CommandSender sender) {
+        sendHelpLine(sender, plugin.messageService().message("command.help_footer"));
     }
 
     private void message(CommandSender sender, String key) {

@@ -95,7 +95,7 @@ public final class StructureCommandRouter {
             return;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "help" -> sendHelp(sender);
+            case "help" -> sendHelp(sender, Arrays.asList(args).subList(1, args.length));
             case "get" -> handleGet(sender, args);
             case "select" -> handleSelect(sender, args);
             case "structure" -> handleStructure(sender, args);
@@ -758,7 +758,7 @@ public final class StructureCommandRouter {
 
     void reportMultiblockProblems(CommandSender sender, MultiblockRepository repository) { new StructureCommandRouterDelegate(this).reportMultiblockProblems(sender, repository); }
 
-    private void sendHelp(CommandSender sender) { new StructureCommandRouterDelegate(this).sendHelp(sender); }
+    private void sendHelp(CommandSender sender, List<String> path) { new StructureCommandRouterDelegate(this).sendHelp(sender, path); }
 
     private void handleDebug(CommandSender sender, String[] args) { new StructureCommandRouterDelegate(this).handleDebug(sender, args); }
 

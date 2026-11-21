@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.dummy.command;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -38,11 +39,11 @@ public final class DummyCommandRouter {
 
     public void route(CommandSender sender, String[] args) {
         if (args.length == 0) {
-            messages.send(sender, "command.help");
+            sendHelpPage(sender, helpRoot(), List.of());
             return;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "help" -> messages.send(sender, "command.help");
+            case "help" -> sendHelpPage(sender, helpRoot(), Arrays.asList(args).subList(1, args.length));
             case "join" -> routeJoin(sender, args);
             case "leave" -> routeLeave(sender, args);
             case "say" -> routeSay(sender, args);
@@ -321,6 +322,108 @@ public final class DummyCommandRouter {
             return;
         }
         messages.send(sender, "command.stopall.done", Map.of("count", count));
+    }
+
+
+    private String helpRoot() {
+        return "/emdum";
+    }
+
+    private void sendHelpPage(CommandSender sender, String root, List<String> path) {
+        if (path.isEmpty()) {
+            sendHelpLines(sender, root, "command.help_header",
+                    "command.help_entry_join", "command.help_entry_leave", "command.help_entry_say",
+                    "command.help_entry_cmd", "command.help_entry_walk", "command.help_entry_look",
+                    "command.help_entry_interact", "command.help_entry_attack", "command.help_entry_click",
+                    "command.help_entry_list", "command.help_entry_scenario", "command.help_entry_stop_all",
+                    "command.help_entry_help");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(0).toLowerCase(Locale.ROOT)) {
+            case "leave" -> sendNameHelp(sender, root, "command.help_leave_name_header",
+                    "command.help_value_desc_leave_name", "leave");
+            case "attack" -> sendNameHelp(sender, root, "command.help_attack_name_header",
+                    "command.help_value_desc_attack_name", "attack");
+            case "interact" -> sendNameHelp(sender, root, "command.help_interact_name_header",
+                    "command.help_value_desc_interact_name", "interact");
+            case "scenario" -> sendScenarioHelp(sender, root, path);
+            default -> sendHelpPage(sender, root, List.of());
+        }
+    }
+
+    private void sendScenarioHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 2) {
+            String action = path.get(1).toLowerCase(Locale.ROOT);
+            if ("run".equals(action)) {
+                sendValueHelp(sender, root, "command.help_scenario_run_id_header",
+                        "command.help_value_desc_scenario_run_id", "scenario run", scenarioIds());
+                return;
+            }
+            if ("stop".equals(action)) {
+                sendValueHelp(sender, root, "command.help_scenario_stop_id_header",
+                        "command.help_value_desc_scenario_stop_id", "scenario stop", scenarioIds());
+                return;
+            }
+        }
+        sendHelpLines(sender, root, "command.help_scenario_header",
+                "command.help_scenario_entry_run", "command.help_scenario_entry_stop");
+        sendHelpFooter(sender);
+    }
+
+    private void sendNameHelp(CommandSender sender, String root, String headerKey, String descKey, String command) {
+        sendValueHelp(sender, root, headerKey, descKey, command, onlineDummyNames());
+    }
+
+    private void sendValueHelp(CommandSender sender, String root, String headerKey, String descKey,
+            String command, List<String> values) {
+        sendHelpLine(sender, messages.message(headerKey, Map.of("root", root)));
+        if (values.isEmpty()) {
+            sendHelpLine(sender, messages.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String value : values) {
+            sendValueEntry(sender, value,
+                    messages.message(descKey, Map.of("value", value)),
+                    root + " " + command + " " + value);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private List<String> onlineDummyNames() {
+        List<String> names = new ArrayList<>();
+        for (DummySession session : manager.all()) {
+            names.add(session.name());
+        }
+        names.sort(String.CASE_INSENSITIVE_ORDER);
+        return names;
+    }
+
+    private List<String> scenarioIds() {
+        return engine.ids().stream().sorted().toList();
+    }
+
+    private void sendValueEntry(CommandSender sender, String value, String desc, String run) {
+        sendHelpLine(sender, messages.message("command.help_value_entry", Map.of(
+                "value", value,
+                "desc", desc,
+                "run", run)));
+    }
+
+    private void sendHelpLines(CommandSender sender, String root, String... keys) {
+        Map<String, ?> replacements = Map.of("root", root);
+        for (String key : keys) {
+            sendHelpLine(sender, messages.message(key, replacements));
+        }
+    }
+
+    private void sendHelpLine(CommandSender sender, String line) {
+        messages.sendComponent(sender, messages.render(line));
+    }
+
+    private void sendHelpFooter(CommandSender sender) {
+        sendHelpLine(sender, messages.message("command.help_footer"));
     }
 
     private static String describePosition(DummySession session) {

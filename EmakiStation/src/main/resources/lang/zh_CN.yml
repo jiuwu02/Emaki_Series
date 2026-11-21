@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "2.0.4"
+version: "2.0.5"
 
 console:
   plugin_starting: "正在启动 EmakiStation..."
@@ -51,16 +51,6 @@ general:
   unknown_command: "<red>未知子指令, 使用 /emakistation help 查看帮助</red>"
 
 command:
-  help: |-
-    <gray>=== <aqua>EmakiStation</aqua> ===</gray>
-    <gray>/emakistation open <工作站></gray> <dark_gray>-</dark_gray> <white>打开工作站界面</white>
-    <gray>/emakistation dismantle <工作站></gray> <dark_gray>-</dark_gray> <white>打开分解界面</white>
-    <gray>/emakistation queue</gray> <dark_gray>-</dark_gray> <white>查看自己的队列</white>
-    <gray>/emakistation claim</gray> <dark_gray>-</dark_gray> <white>领取待领取的产物</white>
-    <gray>/emakistation cancel <工作站> <序号></gray> <dark_gray>-</dark_gray> <white>取消队列条目</white>
-    <gray>/emakistation list [工作站]</gray> <dark_gray>-</dark_gray> <white>列出工作站或其配方</white>
-    <gray>/emakistation edit [ID]</gray> <dark_gray>-</dark_gray> <white>打开游戏内定义编辑器</white>
-    <gray>/emakistation reload</gray> <dark_gray>-</dark_gray> <white>重载配置</white>
   open_usage: "<red>用法: /emakistation open <工作站></red>"
   open_failed: "<red>无法打开工作站:<gray>%reason%</gray></red>"
   dismantle_usage: "<red>用法: /emakistation dismantle <工作站></red>"
@@ -82,6 +72,50 @@ command:
   unknown_station: "<red>未知工作站:<gray>%station%</gray></red>"
   unknown_player: "<red>未知玩家:<gray>%player%</gray></red>"
   debug_unavailable: "<red>调试功能当前不可用</red>"
+  help_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiStation 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_entry_open: "- <hover:show_text:'<gray>open</gray> <dark_gray>·</dark_gray> <gray>打开工作站的制作界面</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistation.use</white><newline><dark_gray>▸</dark_gray> <gray>参数 [工作站] 必填, 点击查看当前可选值</gray><newline><dark_gray>▸</dark_gray> <gray>工作站可配置独立访问权限, 默认 </gray><white>emakistation.access.[工作站]</white><newline><dark_gray>▸</dark_gray> <gray>只能由玩家执行</gray>'><gray>open</gray></hover> <click:run_command:'%root% help open'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
+  help_entry_dismantle: "- <hover:show_text:'<gray>dismantle</gray> <dark_gray>·</dark_gray> <gray>打开分解台的物品分解界面</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistation.dismantle</white><newline><dark_gray>▸</dark_gray> <gray>参数 [分解台] 必填, 点击查看当前可选值</gray><newline><dark_gray>▸</dark_gray> <gray>分解台可配置独立访问权限, 默认 </gray><white>emakistation.dismantle.access.[分解台]</white><newline><dark_gray>▸</dark_gray> <gray>只能由玩家执行</gray>'><gray>dismantle</gray></hover> <click:run_command:'%root% help dismantle'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
+  help_entry_queue: "- <hover:show_text:'<gray>queue</gray> <dark_gray>·</dark_gray> <gray>查看自己的全部工作站队列</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistation.use</white><newline><dark_gray>▸</dark_gray> <gray>只能由玩家执行</gray>'><gray>queue</gray></hover> <click:run_command:'%root% queue'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_claim: "- <hover:show_text:'<gray>claim</gray> <dark_gray>·</dark_gray> <gray>领取全部完成的产物</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistation.use</white><newline><dark_gray>▸</dark_gray> <gray>只能由玩家执行</gray>'><gray>claim</gray></hover> <click:run_command:'%root% claim'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_cancel: "- <hover:show_text:'<gray>cancel</gray> <dark_gray>·</dark_gray> <gray>取消一条排队中的制作</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistation.use</white><newline><dark_gray>▸</dark_gray> <gray>参数 [工作站] [序号] 都必填, 序号从 1 开始, 见 queue 输出</gray><newline><dark_gray>▸</dark_gray> <gray>只能由玩家执行</gray>'><gray>cancel</gray></hover> <click:run_command:'%root% help cancel'><hover:show_text:'<gray>可选参数</gray><newline><gray>[工作站]</gray> <dark_gray>·</dark_gray> <gray>要取消条目所在的工作站</gray><newline><gray>[序号]</gray> <dark_gray>·</dark_gray> <gray>要取消的队列条目序号</gray>'><gray>[ ✦ 参数 ]</gray></hover></click>"
+  help_entry_list: "- <hover:show_text:'<gray>list</gray> <dark_gray>·</dark_gray> <gray>列出工作站及其配方</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistation.use</white><newline><dark_gray>▸</dark_gray> <gray>参数 [工作站] 可选, 留空列出全部工作站, 支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>控制台也可执行</gray>'><gray>list</gray></hover> <click:run_command:'%root% list'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_edit: "- <hover:show_text:'<gray>edit</gray> <dark_gray>·</dark_gray> <gray>打开游戏内定义编辑器</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistation.edit</white><newline><dark_gray>▸</dark_gray> <gray>参数 [定义ID] 可选, 留空打开定义浏览器, 支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>只能由玩家执行</gray>'><gray>edit</gray></hover> <click:run_command:'%root% edit'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_reload: "- <hover:show_text:'<gray>reload</gray> <dark_gray>·</dark_gray> <gray>重载工作站与配方定义</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistation.reload</white><newline><dark_gray>▸</dark_gray> <gray>输出重载统计与耗时</gray>'><gray>reload</gray></hover> <click:run_command:'%root% reload'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_debug: "- <hover:show_text:'<gray>debug</gray> <dark_gray>·</dark_gray> <gray>调试工具: 开关调试输出, 玩家追踪, 模块开关, 动作管道调试</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistation.debug</white><newline><dark_gray>▸</dark_gray> <gray>不带参数显示调试状态</gray>'><gray>debug</gray></hover> <click:run_command:'%root% help debug'><hover:show_text:'<gray>可选参数</gray><newline><gray>status</gray> <dark_gray>·</dark_gray> <gray>查看调试开关与追踪状态</gray><newline><gray>on</gray> <dark_gray>·</dark_gray> <gray>开启全部调试输出</gray><newline><gray>off</gray> <dark_gray>·</dark_gray> <gray>关闭全部调试输出</gray><newline><gray>player</gray> <dark_gray>·</dark_gray> <gray>切换玩家调试追踪</gray><newline><gray>module</gray> <dark_gray>·</dark_gray> <gray>开关指定调试模块</gray><newline><gray>action</gray> <dark_gray>·</dark_gray> <gray>动作管道调试</gray>'><gray>[ ✦ 参数 ]</gray></hover></click>"
+  help_entry_admin: "- <hover:show_text:'<gray>admin</gray> <dark_gray>·</dark_gray> <gray>管理工具: 查看指定玩家的工作站队列</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistation.admin</white>'><gray>admin</gray></hover> <click:run_command:'%root% help admin'><hover:show_text:'<gray>可选参数</gray><newline><gray>queue</gray> <dark_gray>·</dark_gray> <gray>查看指定玩家的工作站队列</gray>'><gray>[ ✦ 参数 ]</gray></hover></click>"
+  help_entry_help: "- <hover:show_text:'<gray>help</gray> <dark_gray>·</dark_gray> <gray>显示本帮助页</gray>'><gray>help</gray></hover> <click:run_command:'%root% help'><green>[ ✦ 点击执行 ]</green></click>"
+  help_open_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiStation open [工作站] 可选值</gradient> <gray><st>        </st></gray>"
+  help_value_desc_open: "打开 %value% 工作站的制作界面"
+  help_dismantle_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiStation dismantle [分解台] 可选值</gradient> <gray><st>        </st></gray>"
+  help_value_desc_dismantle: "打开 %value% 分解台的分解界面"
+  help_cancel_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiStation cancel 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_cancel_entry_station: "- <hover:show_text:'<gray>参数:工作站</gray><newline><gray>要取消条目所在的工作站 ID, 必填</gray><newline><newline><dark_gray>▸</dark_gray> <gray>支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 工作站 ]</gray></hover>"
+  help_cancel_entry_index: "- <hover:show_text:'<gray>参数:序号</gray><newline><gray>要取消的队列条目序号, 从 1 开始, 必填</gray><newline><newline><dark_gray>▸</dark_gray> <gray>支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 序号 ]</gray></hover>"
+  help_admin_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiStation admin 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_admin_entry_queue: "- <hover:show_text:'<gray>queue</gray> <dark_gray>·</dark_gray> <gray>查看指定玩家的工作站队列</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数 [玩家] 必填, 也可填已缓存的离线玩家名</gray>'><gray>queue</gray></hover> <click:run_command:'%root% help admin queue'><hover:show_text:'<gray>参数:玩家</gray><newline><gray>在线玩家名, 点击查看当前可选玩家</gray>'><gray>[ ✦ 玩家 ]</gray></hover></click>"
+  help_admin_queue_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiStation admin queue [玩家] 可选值</gradient> <gray><st>        </st></gray>"
+  help_value_desc_admin_queue: "查看 %value% 的工作站队列"
+  help_debug_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiStation debug 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_debug_entry_status: "- <hover:show_text:'<gray>status</gray> <dark_gray>·</dark_gray> <gray>查看调试开关与追踪状态</gray>'><gray>status</gray></hover> <click:run_command:'%root% debug status'><green>[ ✦ 点击执行 ]</green></click>"
+  help_debug_entry_on: "- <hover:show_text:'<gray>on</gray> <dark_gray>·</dark_gray> <gray>开启本插件全部调试输出</gray>'><gray>on</gray></hover> <click:run_command:'%root% debug on'><green>[ ✦ 点击执行 ]</green></click>"
+  help_debug_entry_off: "- <hover:show_text:'<gray>off</gray> <dark_gray>·</dark_gray> <gray>关闭本插件全部调试输出</gray>'><gray>off</gray></hover> <click:run_command:'%root% debug off'><green>[ ✦ 点击执行 ]</green></click>"
+  help_debug_entry_player: "- <hover:show_text:'<gray>player</gray> <dark_gray>·</dark_gray> <gray>跟踪或取消跟踪玩家的调试输出</gray><newline><newline><dark_gray>▸</dark_gray> <gray>对同一玩家再次执行即取消</gray><newline><dark_gray>▸</dark_gray> <gray>参数 [玩家] 必填</gray>'><gray>player</gray></hover> <click:run_command:'%root% help debug player'><hover:show_text:'<gray>参数:玩家</gray><newline><gray>在线玩家名, 点击查看当前可选玩家</gray>'><gray>[ ✦ 玩家 ]</gray></hover></click>"
+  help_debug_entry_module: "- <hover:show_text:'<gray>module</gray> <dark_gray>·</dark_gray> <gray>开关指定模块的调试输出</gray><newline><newline><dark_gray>▸</dark_gray> <gray>对同一模块再次执行即关闭</gray><newline><dark_gray>▸</dark_gray> <gray>参数 [模块] 必填, 点击查看当前可选值</gray>'><gray>module</gray></hover> <click:run_command:'%root% help debug module'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
+  help_debug_entry_action: "- <hover:show_text:'<gray>action</gray> <dark_gray>·</dark_gray> <gray>动作管道调试: 干跑预演, 静态体检, 注册表检查</gray>'><gray>action</gray></hover> <click:run_command:'%root% help debug action'><hover:show_text:'<gray>可选参数</gray><newline><gray>run</gray> <dark_gray>·</dark_gray> <gray>干跑或执行一条动作管道</gray><newline><gray>check</gray> <dark_gray>·</dark_gray> <gray>静态体检一条动作管道</gray><newline><gray>registry</gray> <dark_gray>·</dark_gray> <gray>检查动作段注册表</gray>'><gray>[ ✦ 参数 ]</gray></hover></click>"
+  help_debug_player_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiStation debug player [玩家] 可选值</gradient> <gray><st>        </st></gray>"
+  help_value_desc_debug_player: "跟踪 %value% 的调试输出"
+  help_debug_module_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiStation debug module [模块] 可选值</gradient> <gray><st>        </st></gray>"
+  help_value_desc_debug_module: "切换 %value% 模块的调试输出"
+  help_debug_action_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiStation debug action 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_debug_action_entry_run: "- <hover:show_text:'<gray>run</gray> <dark_gray>·</dark_gray> <gray>干跑预演或真实执行一条动作管道</gray>'><gray>run</gray></hover> <click:run_command:'%root% help debug action run'><hover:show_text:'<gray>可选参数</gray><newline><gray>shadow</gray> <dark_gray>·</dark_gray> <gray>干跑预演, 不产生实际效果</gray><newline><gray>execute</gray> <dark_gray>·</dark_gray> <gray>真实执行动作管道</gray>'><gray>[ ✦ 参数 ]</gray></hover></click>"
+  help_debug_action_entry_check: "- <hover:show_text:'<gray>check</gray> <dark_gray>·</dark_gray> <gray>静态体检一条动作管道: 只编译并输出诊断, 不执行</gray>'><gray>check</gray></hover> <hover:show_text:'<gray>参数:管道行</gray><newline><gray>一条动作管道文本, 需要自己填写</gray><newline><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 管道行 ]</gray></hover>"
+  help_debug_action_entry_registry: "- <hover:show_text:'<gray>registry</gray> <dark_gray>·</dark_gray> <gray>检查动作段注册表并输出诊断</gray>'><gray>registry</gray></hover> <click:run_command:'%root% debug action registry'><green>[ ✦ 点击执行 ]</green></click>"
+  help_debug_action_run_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiStation debug action run 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_debug_action_run_entry_shadow: "- <hover:show_text:'<gray>shadow</gray> <dark_gray>·</dark_gray> <gray>按 shadow 模式干跑预演: 只输出每段回显, 不产生实际效果</gray>'><gray>shadow</gray></hover> <hover:show_text:'<gray>参数:管道行</gray><newline><gray>一条动作管道文本, 需要自己填写</gray><newline><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 管道行 ]</gray></hover>"
+  help_debug_action_run_entry_execute: "- <hover:show_text:'<gray>execute</gray> <dark_gray>·</dark_gray> <gray>真实执行动作管道并输出每段回显与结果汇总</gray>'><gray>execute</gray></hover> <hover:show_text:'<gray>参数:管道行</gray><newline><gray>一条动作管道文本, 需要自己填写</gray><newline><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 管道行 ]</gray></hover>"
+  help_value_entry: "- <hover:show_text:'<gray>%value%</gray> <dark_gray>·</dark_gray> <gray>%desc%</gray>'><gray>%value%</gray></hover> <click:run_command:'%run%'><green>[ ✦ 点击执行 ]</green></click>"
+  help_value_empty: "<dark_gray>( 当前没有可选值 )</dark_gray>"
+  help_footer: "<gray><st>                                        </st></gray>"
 
 station:
   station_missing_id: "<yellow>工作站文件缺少 id: %file%</yellow>"

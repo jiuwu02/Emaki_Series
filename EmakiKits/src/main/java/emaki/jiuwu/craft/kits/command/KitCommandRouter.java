@@ -43,6 +43,7 @@ public final class KitCommandRouter {
             "check", "preview", "edit", "top");
     private static final List<String> KIT_ARG_SUBS = List.of(
             "claim", "choose", "buy", "redeem", "open", "preview", "edit");
+    private static final String HELP_ROOT = "/emakikits";
 
     private final EmakiKitsPlugin plugin;
     private final KitService service;
@@ -77,7 +78,7 @@ public final class KitCommandRouter {
         switch (sub) {
             case "help" -> {
                 if (denied(sender, "emakikits.use", sub)) return;
-                messages.send(sender, "help.lines");
+                sendHelpPage(sender, Arrays.asList(args).subList(1, args.length));
             }
             case "list" -> {
                 if (denied(sender, "emakikits.use", sub)) return;
@@ -294,6 +295,103 @@ public final class KitCommandRouter {
             }
         }
         return List.of();
+    }
+
+    private void sendHelpPage(CommandSender sender, List<String> path) {
+        if (path.isEmpty()) {
+            sendHelpLines(sender, "general.help_header",
+                    "general.help_entry_list", "general.help_entry_claim", "general.help_entry_choose",
+                    "general.help_entry_buy", "general.help_entry_redeem", "general.help_entry_invite",
+                    "general.help_entry_open", "general.help_entry_inspect", "general.help_entry_grant",
+                    "general.help_entry_cdk", "general.help_entry_reload", "general.help_entry_check",
+                    "general.help_entry_preview", "general.help_entry_edit", "general.help_entry_top",
+                    "general.help_entry_help");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(0).toLowerCase(Locale.ROOT)) {
+            case "claim" -> sendKitHelp(sender, "general.help_claim_kit_header",
+                    "general.help_value_desc_claim_kit", "claim");
+            case "choose" -> sendKitHelp(sender, "general.help_choose_kit_header",
+                    "general.help_value_desc_choose_kit", "choose");
+            case "buy" -> sendKitHelp(sender, "general.help_buy_kit_header",
+                    "general.help_value_desc_buy_kit", "buy");
+            case "open" -> sendKitHelp(sender, "general.help_open_kit_header",
+                    "general.help_value_desc_open_kit", "open");
+            case "preview" -> sendKitHelp(sender, "general.help_preview_kit_header",
+                    "general.help_value_desc_preview_kit", "preview");
+            case "invite" -> sendPlayerHelp(sender, "invite",
+                    "general.help_invite_player_header", "general.help_value_desc_invite_player");
+            case "inspect" -> sendPlayerHelp(sender, "inspect",
+                    "general.help_inspect_player_header", "general.help_value_desc_inspect_player");
+            case "cdk" -> sendCdkHelp(sender);
+            default -> sendHelpPage(sender, List.of());
+        }
+    }
+
+    private void sendKitHelp(CommandSender sender, String headerKey, String descKey, String command) {
+        sendHelpLine(sender, messages.message(headerKey, Map.of("root", HELP_ROOT)));
+        List<String> kitIds = new ArrayList<>(config.get().kits().keySet());
+        kitIds.sort(String::compareTo);
+        if (kitIds.isEmpty()) {
+            sendHelpLine(sender, messages.message("general.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String kitId : kitIds) {
+            sendValueEntry(sender, kitId,
+                    messages.message(descKey, Map.of("value", kitId)),
+                    HELP_ROOT + " " + command + " " + kitId);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendPlayerHelp(CommandSender sender, String command, String headerKey, String descKey) {
+        sendHelpLine(sender, messages.message(headerKey, Map.of("root", HELP_ROOT)));
+        List<String> names = new ArrayList<>();
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            names.add(online.getName());
+        }
+        names.sort(String::compareTo);
+        if (names.isEmpty()) {
+            sendHelpLine(sender, messages.message("general.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String name : names) {
+            sendValueEntry(sender, name,
+                    messages.message(descKey, Map.of("value", name)),
+                    HELP_ROOT + " " + command + " " + name);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendCdkHelp(CommandSender sender) {
+        sendHelpLines(sender, "general.help_cdk_header",
+                "general.help_cdk_entry_list", "general.help_cdk_entry_disable");
+        sendHelpFooter(sender);
+    }
+
+    private void sendValueEntry(CommandSender sender, String value, String desc, String run) {
+        sendHelpLine(sender, messages.message("general.help_value_entry", Map.of(
+                "value", value,
+                "desc", desc,
+                "run", run)));
+    }
+
+    private void sendHelpLines(CommandSender sender, String... keys) {
+        Map<String, ?> replacements = Map.of("root", HELP_ROOT);
+        for (String key : keys) {
+            sendHelpLine(sender, messages.message(key, replacements));
+        }
+    }
+
+    private void sendHelpLine(CommandSender sender, String line) {
+        messages.sendComponent(sender, messages.render(line));
+    }
+
+    private void sendHelpFooter(CommandSender sender) {
+        sendHelpLine(sender, messages.message("general.help_footer"));
     }
 
     private void listKits(CommandSender sender) {

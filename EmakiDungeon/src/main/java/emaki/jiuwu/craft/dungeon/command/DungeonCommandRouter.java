@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.dungeon.command;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -367,7 +368,8 @@ public final class DungeonCommandRouter {
 
     public void route(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == 0 || "help".equalsIgnoreCase(args[0])) {
-            messages.send(sender, "command.help");
+            sendHelpPage(sender, helpRoot(), args.length == 0
+                    ? List.of() : Arrays.asList(args).subList(1, args.length));
             return;
         }
         String sub = args[0];
@@ -884,5 +886,305 @@ public final class DungeonCommandRouter {
             }
         }
         return result;
+    }
+
+    private String helpRoot() {
+        return "/edg";
+    }
+
+    private void sendHelpPage(CommandSender sender, String root, List<String> path) {
+        if (path.isEmpty()) {
+            sendHelpLines(sender, root, "command.help_header",
+                    "command.help_entry_list", "command.help_entry_enter", "command.help_entry_leave",
+                    "command.help_entry_cancel", "command.help_entry_ready", "command.help_entry_rewards",
+                    "command.help_entry_party", "command.help_entry_stats", "command.help_entry_rank",
+                    "command.help_entry_globalchat", "command.help_entry_editor", "command.help_entry_admin",
+                    "command.help_entry_recruit", "command.help_entry_match", "command.help_entry_spectate",
+                    "command.help_entry_random", "command.help_entry_help");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (Texts.lower(path.get(0))) {
+            case "enter" -> sendValueHelp(sender, root, "command.help_enter_header",
+                    "command.help_value_desc_enter", "enter", templates.discoverDungeons());
+            case "rank" -> sendValueHelp(sender, root, "command.help_rank_header",
+                    "command.help_value_desc_rank", "rank", templates.discoverDungeons());
+            case "stats" -> sendValueHelp(sender, root, "command.help_stats_header",
+                    "command.help_value_desc_stats", "stats", onlinePlayerNames());
+            case "party" -> sendPartyHelp(sender, root, path);
+            case "globalchat" -> sendGlobalChatHelp(sender, root);
+            case "editor" -> sendEditorHelp(sender, root, path);
+            case "admin" -> sendAdminHelp(sender, root, path);
+            case "recruit" -> sendRecruitHelp(sender, root, path);
+            case "match" -> sendMatchHelp(sender, root, path);
+            case "spectate" -> sendSpectateHelp(sender, root);
+            case "random" -> sendRandomHelp(sender, root, path);
+            default -> sendHelpPage(sender, root, List.of());
+        }
+    }
+
+    private void sendPartyHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 2) {
+            String tail = Texts.lower(path.get(1));
+            if ("invite".equals(tail)) {
+                sendValueHelp(sender, root, "command.help_party_invite_header",
+                        "command.help_value_desc_party_invite", "party invite", onlinePlayerNames());
+                return;
+            }
+            if ("kick".equals(tail)) {
+                sendValueHelp(sender, root, "command.help_party_kick_header",
+                        "command.help_value_desc_party_kick", "party kick", onlinePlayerNames());
+                return;
+            }
+        }
+        sendHelpLines(sender, root, "command.help_party_header",
+                "command.help_party_entry_create", "command.help_party_entry_invite",
+                "command.help_party_entry_accept", "command.help_party_entry_deny",
+                "command.help_party_entry_kick", "command.help_party_entry_leave",
+                "command.help_party_entry_disband", "command.help_party_entry_chat");
+        sendHelpFooter(sender);
+    }
+
+    private void sendGlobalChatHelp(CommandSender sender, String root) {
+        sendHelpLines(sender, root, "command.help_globalchat_header",
+                "command.help_globalchat_entry_on", "command.help_globalchat_entry_off");
+        sendHelpFooter(sender);
+    }
+
+    private void sendEditorHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 2) {
+            String tail = Texts.lower(path.get(1));
+            if ("dungeon".equals(tail)) {
+                sendValueHelp(sender, root, "command.help_editor_dungeon_header",
+                        "command.help_value_desc_editor_dungeon", "editor", templates.discoverDungeons());
+                return;
+            }
+            if ("mark".equals(tail)) {
+                sendValueHelp(sender, root, "command.help_editor_mark_header",
+                        "command.help_value_desc_editor_mark", "editor mark", EditorService.markTypes());
+                return;
+            }
+        }
+        sendHelpLines(sender, root, "command.help_editor_header",
+                "command.help_editor_entry_dungeon", "command.help_editor_entry_exit",
+                "command.help_editor_entry_pos_one", "command.help_editor_entry_pos_two",
+                "command.help_editor_entry_mark", "command.help_editor_entry_marks",
+                "command.help_editor_entry_test", "command.help_editor_entry_fill");
+        sendHelpFooter(sender);
+    }
+
+    private void sendAdminHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 2) {
+            String tail = Texts.lower(path.get(1));
+            if ("inspect".equals(tail)) {
+                sendValueHelp(sender, root, "command.help_admin_inspect_header",
+                        "command.help_value_desc_admin_inspect", "admin inspect", instanceIds());
+                return;
+            }
+            if ("stop".equals(tail)) {
+                sendValueHelp(sender, root, "command.help_admin_stop_header",
+                        "command.help_value_desc_admin_stop", "admin stop", instanceIds());
+                return;
+            }
+            if ("poolreset".equals(tail)) {
+                sendValueHelp(sender, root, "command.help_admin_poolreset_header",
+                        "command.help_value_desc_admin_poolreset", "admin poolreset", templates.discoverDungeons());
+                return;
+            }
+        }
+        sendHelpLines(sender, root, "command.help_admin_header",
+                "command.help_admin_entry_instances", "command.help_admin_entry_inspect",
+                "command.help_admin_entry_stop", "command.help_admin_entry_status",
+                "command.help_admin_entry_reload", "command.help_admin_entry_validate",
+                "command.help_admin_entry_poolreset", "command.help_admin_entry_clearslots");
+        sendHelpFooter(sender);
+    }
+
+    private void sendRecruitHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 2) {
+            String tail = Texts.lower(path.get(1));
+            if ("open".equals(tail)) {
+                sendValueHelp(sender, root, "command.help_recruit_open_header",
+                        "command.help_value_desc_recruit_open", "recruit open", templates.discoverDungeons());
+                return;
+            }
+            if ("join".equals(tail)) {
+                sendValueHelp(sender, root, "command.help_recruit_join_header",
+                        "command.help_value_desc_recruit_join", "recruit join", recruitIds());
+                return;
+            }
+        }
+        sendHelpLines(sender, root, "command.help_recruit_header",
+                "command.help_recruit_entry_open", "command.help_recruit_entry_close",
+                "command.help_recruit_entry_list", "command.help_recruit_entry_join");
+        sendHelpFooter(sender);
+    }
+
+    private void sendMatchHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 2 && "join".equals(Texts.lower(path.get(1)))) {
+            sendValueHelp(sender, root, "command.help_match_join_header",
+                    "command.help_value_desc_match_join", "match join", templates.discoverDungeons());
+            return;
+        }
+        sendHelpLines(sender, root, "command.help_match_header",
+                "command.help_match_entry_join", "command.help_match_entry_leave");
+        sendHelpFooter(sender);
+    }
+
+    private void sendSpectateHelp(CommandSender sender, String root) {
+        sendHelpLines(sender, root, "command.help_spectate_header",
+                "command.help_spectate_entry_next", "command.help_spectate_entry_prev");
+        sendHelpFooter(sender);
+    }
+
+    private void sendRandomHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 2) {
+            String tail = Texts.lower(path.get(1));
+            if ("template".equals(tail)) {
+                sendRandomTemplateHelp(sender, root, path);
+                return;
+            }
+            if ("enter".equals(tail)) {
+                sendValueHelp(sender, root, "command.help_random_enter_header",
+                        "command.help_value_desc_random_enter", "random enter", randomInstanceIds());
+                return;
+            }
+            if ("stop".equals(tail)) {
+                sendValueHelp(sender, root, "command.help_random_stop_header",
+                        "command.help_value_desc_random_stop", "random stop", randomInstanceIds());
+                return;
+            }
+            if ("replay".equals(tail)) {
+                sendValueHelp(sender, root, "command.help_random_replay_header",
+                        "command.help_value_desc_random_replay", "random replay", randomRecordIds());
+                return;
+            }
+        }
+        sendHelpLines(sender, root, "command.help_random_header",
+                "command.help_random_entry_template", "command.help_random_entry_create",
+                "command.help_random_entry_enter", "command.help_random_entry_leave",
+                "command.help_random_entry_list", "command.help_random_entry_records",
+                "command.help_random_entry_stop", "command.help_random_entry_replay",
+                "command.help_random_entry_reload");
+        sendHelpFooter(sender);
+    }
+
+    private void sendRandomTemplateHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 3) {
+            String tail = Texts.lower(path.get(2));
+            if ("meta".equals(tail)) {
+                sendHelpLines(sender, root, "command.help_random_template_meta_header",
+                        "command.help_random_template_meta_entry_type",
+                        "command.help_random_template_meta_entry_tags",
+                        "command.help_random_template_meta_entry_floors",
+                        "command.help_random_template_meta_entry_mirrorable",
+                        "command.help_random_template_meta_entry_intrusion_policy",
+                        "command.help_random_template_meta_entry_door_policy",
+                        "command.help_random_template_meta_entry_seal_block",
+                        "command.help_random_template_meta_entry_rotations");
+                sendHelpFooter(sender);
+                return;
+            }
+            if ("anchor".equals(tail)) {
+                sendHelpLines(sender, root, "command.help_random_template_anchor_header",
+                        "command.help_random_template_anchor_entry_add",
+                        "command.help_random_template_anchor_entry_remove");
+                sendHelpFooter(sender);
+                return;
+            }
+            if ("node".equals(tail)) {
+                sendHelpLines(sender, root, "command.help_random_template_node_header",
+                        "command.help_random_template_node_entry_add",
+                        "command.help_random_template_node_entry_param");
+                sendHelpFooter(sender);
+                return;
+            }
+        }
+        sendHelpLines(sender, root, "command.help_random_template_header",
+                "command.help_random_template_entry_start", "command.help_random_template_entry_pos_one",
+                "command.help_random_template_entry_pos_two", "command.help_random_template_entry_meta",
+                "command.help_random_template_entry_anchor", "command.help_random_template_entry_node",
+                "command.help_random_template_entry_save", "command.help_random_template_entry_discard",
+                "command.help_random_template_entry_status");
+        sendHelpFooter(sender);
+    }
+
+    private void sendValueHelp(CommandSender sender, String root, String headerKey, String descKey,
+            String command, List<String> values) {
+        sendHelpLine(sender, messages.message(headerKey, Map.of("root", root)));
+        if (values.isEmpty()) {
+            sendHelpLine(sender, messages.message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String value : values) {
+            sendValueEntry(sender, value,
+                    messages.message(descKey, Map.of("value", value)),
+                    root + " " + command + " " + value);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private List<String> onlinePlayerNames() {
+        List<String> names = new ArrayList<>();
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            names.add(online.getName());
+        }
+        names.sort(Comparator.naturalOrder());
+        return names;
+    }
+
+    private List<String> instanceIds() {
+        List<String> ids = new ArrayList<>();
+        for (DungeonInstance instance : registry.all()) {
+            ids.add(instance.instanceId());
+        }
+        return ids;
+    }
+
+    private List<String> recruitIds() {
+        List<String> ids = new ArrayList<>();
+        if (matchmaking != null) {
+            for (int id : matchmaking.recruitIds()) {
+                ids.add(String.valueOf(id));
+            }
+        }
+        return ids;
+    }
+
+    private List<String> randomInstanceIds() {
+        if (randomCommands == null) {
+            return List.of();
+        }
+        return randomCommands.instanceIds();
+    }
+
+    private List<String> randomRecordIds() {
+        if (randomCommands == null) {
+            return List.of();
+        }
+        return randomCommands.recordIds();
+    }
+
+    private void sendValueEntry(CommandSender sender, String value, String desc, String run) {
+        sendHelpLine(sender, messages.message("command.help_value_entry", Map.of(
+                "value", value,
+                "desc", desc,
+                "run", run)));
+    }
+
+    private void sendHelpLines(CommandSender sender, String root, String... keys) {
+        Map<String, ?> replacements = Map.of("root", root);
+        for (String key : keys) {
+            sendHelpLine(sender, messages.message(key, replacements));
+        }
+    }
+
+    private void sendHelpLine(CommandSender sender, String line) {
+        messages.sendComponent(sender, messages.render(line));
+    }
+
+    private void sendHelpFooter(CommandSender sender) {
+        sendHelpLine(sender, messages.message("command.help_footer"));
     }
 }

@@ -54,12 +54,12 @@ final class ItemCommandRouter implements TabExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sendHelp(sender);
+            sendHelp(sender, label);
             return true;
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "help" -> {
-                sendHelp(sender);
+                sendHelpPage(sender, helpRoot(label), Arrays.asList(args).subList(1, args.length));
                 yield true;
             }
             case "list" -> handleList(sender, args);
@@ -536,26 +536,169 @@ final class ItemCommandRouter implements TabExecutor {
         return true;
     }
 
-    private void sendHelp(CommandSender sender) {
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
-        Map<String, String> lines = new LinkedHashMap<>();
-        lines.put("help", plugin.messageService().message("command.help.desc.help"));
-        lines.put("list [page]", plugin.messageService().message("command.help.desc.list"));
-        lines.put("browse [page]", plugin.messageService().message("command.help.desc.browse"));
-        lines.put("edit <itemId>", plugin.messageService().message("command.help.desc.edit"));
-        lines.put("give <player> <id> [amount]", plugin.messageService().message("command.help.desc.give"));
-        lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
-        lines.put("components [yaml] [player] [component_id]", plugin.messageService().message("command.help.desc.components"));
-        lines.put("repair", plugin.messageService().message("command.help.desc.repair"));
-        lines.put("state query|repair|recompute [player]", plugin.messageService().message("command.help.desc.state"));
-        lines.put("update [player]", plugin.messageService().message("command.help.desc.update"));
-        lines.put("alias list|add|remove", plugin.messageService().message("command.help.desc.alias"));
-        lines.put("migrate id|inventory", plugin.messageService().message("command.help.desc.migrate"));
-        lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
-        lines.put("debug [player|module|on|off]", plugin.messageService().message("command.help.desc.debug"));
-        lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,
-                plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))));
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));
+    private void sendHelp(CommandSender sender, String label) {
+        sendHelpPage(sender, helpRoot(label), List.of());
+    }
+
+    private String helpRoot(String label) {
+        return "/" + (label == null || label.isBlank() ? "emakiitem" : label);
+    }
+
+    private void sendHelpPage(CommandSender sender, String root, List<String> path) {
+        if (path.isEmpty()) {
+            sendHelpLines(sender, root, "command.help_header",
+                    "command.help_entry_list", "command.help_entry_browse", "command.help_entry_edit",
+                    "command.help_entry_give", "command.help_entry_inspect", "command.help_entry_components",
+                    "command.help_entry_repair", "command.help_entry_state", "command.help_entry_update",
+                    "command.help_entry_alias", "command.help_entry_migrate", "command.help_entry_reload",
+                    "command.help_entry_debug", "command.help_entry_help");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(0).toLowerCase(Locale.ROOT)) {
+            case "edit" -> sendEditItemHelp(sender, root);
+            case "state" -> sendStateHelp(sender, root);
+            case "alias" -> sendAliasHelp(sender, root, path);
+            case "migrate" -> sendMigrateHelp(sender, root, path);
+            case "debug" -> sendDebugHelp(sender, root, path);
+            default -> sendHelpPage(sender, root, List.of());
+        }
+    }
+
+    private void sendEditItemHelp(CommandSender sender, String root) {
+        sendHelpLine(sender, plugin.messageService().message("command.help_edit_header", Map.of("root", root)));
+        List<String> itemIds = new ArrayList<>(plugin.itemLoader().all().keySet());
+        itemIds.sort(String::compareTo);
+        if (itemIds.isEmpty()) {
+            sendHelpLine(sender, plugin.messageService().message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String itemId : itemIds) {
+            sendValueEntry(sender, itemId,
+                    plugin.messageService().message("command.help_value_desc_edit", Map.of("value", itemId)),
+                    root + " edit " + itemId);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendStateHelp(CommandSender sender, String root) {
+        sendHelpLines(sender, root, "command.help_state_header",
+                "command.help_state_entry_query", "command.help_state_entry_repair",
+                "command.help_state_entry_recompute");
+        sendHelpFooter(sender);
+    }
+
+    private void sendAliasHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 2 && "remove".equalsIgnoreCase(path.get(1))) {
+            sendHelpLine(sender, plugin.messageService().message("command.help_alias_remove_header", Map.of("root", root)));
+            List<String> aliasIds = new ArrayList<>(plugin.aliasLoader().all().keySet());
+            aliasIds.sort(String::compareTo);
+            if (aliasIds.isEmpty()) {
+                sendHelpLine(sender, plugin.messageService().message("command.help_value_empty"));
+                sendHelpFooter(sender);
+                return;
+            }
+            for (String aliasId : aliasIds) {
+                sendValueEntry(sender, aliasId,
+                        plugin.messageService().message("command.help_value_desc_alias_remove", Map.of("value", aliasId)),
+                        root + " alias remove " + aliasId);
+            }
+            sendHelpFooter(sender);
+            return;
+        }
+        sendHelpLines(sender, root, "command.help_alias_header",
+                "command.help_alias_entry_list", "command.help_alias_entry_add", "command.help_alias_entry_remove");
+        sendHelpFooter(sender);
+    }
+
+    private void sendMigrateHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 2 && "inventory".equalsIgnoreCase(path.get(1))) {
+            if (path.size() >= 3 && "player".equalsIgnoreCase(path.get(2))) {
+                sendPlayerHelp(sender, root, "migrate inventory player",
+                        "command.help_migrate_inventory_player_header", "command.help_value_desc_migrate_inventory_player");
+                return;
+            }
+            sendHelpLines(sender, root, "command.help_migrate_inventory_header",
+                    "command.help_migrate_inventory_entry_all", "command.help_migrate_inventory_entry_player");
+            sendHelpFooter(sender);
+            return;
+        }
+        sendHelpLines(sender, root, "command.help_migrate_header",
+                "command.help_migrate_entry_id", "command.help_migrate_entry_inventory");
+        sendHelpFooter(sender);
+    }
+
+    private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() < 2) {
+            sendHelpLines(sender, root, "command.help_debug_header",
+                    "command.help_debug_entry_status", "command.help_debug_entry_on", "command.help_debug_entry_off",
+                    "command.help_debug_entry_stats", "command.help_debug_entry_player",
+                    "command.help_debug_entry_module", "command.help_debug_entry_action");
+            sendHelpFooter(sender);
+            return;
+        }
+        switch (path.get(1).toLowerCase(Locale.ROOT)) {
+            case "player" -> sendPlayerHelp(sender, root, "debug player",
+                    "command.help_debug_player_header", "command.help_value_desc_debug_player");
+            case "action" -> sendDebugActionHelp(sender, root, path);
+            default -> sendHelpPage(sender, root, List.of("debug"));
+        }
+    }
+
+    private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
+            sendHelpLines(sender, root, "command.help_debug_action_run_header",
+                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            sendHelpFooter(sender);
+            return;
+        }
+        sendHelpLines(sender, root, "command.help_debug_action_header",
+                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
+                "command.help_debug_action_entry_registry");
+        sendHelpFooter(sender);
+    }
+
+    private void sendPlayerHelp(CommandSender sender, String root, String command, String headerKey, String descKey) {
+        sendHelpLine(sender, plugin.messageService().message(headerKey, Map.of("root", root)));
+        List<String> names = new ArrayList<>();
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            names.add(online.getName());
+        }
+        names.sort(String::compareTo);
+        if (names.isEmpty()) {
+            sendHelpLine(sender, plugin.messageService().message("command.help_value_empty"));
+            sendHelpFooter(sender);
+            return;
+        }
+        for (String name : names) {
+            sendValueEntry(sender, name,
+                    plugin.messageService().message(descKey, Map.of("value", name)),
+                    root + " " + command + " " + name);
+        }
+        sendHelpFooter(sender);
+    }
+
+    private void sendValueEntry(CommandSender sender, String value, String desc, String run) {
+        sendHelpLine(sender, plugin.messageService().message("command.help_value_entry", Map.of(
+                "value", value,
+                "desc", desc,
+                "run", run)));
+    }
+
+    private void sendHelpLines(CommandSender sender, String root, String... keys) {
+        Map<String, ?> replacements = Map.of("root", root);
+        for (String key : keys) {
+            sendHelpLine(sender, plugin.messageService().message(key, replacements));
+        }
+    }
+
+    private void sendHelpLine(CommandSender sender, String line) {
+        plugin.messageService().sendComponent(sender, plugin.messageService().render(line));
+    }
+
+    private void sendHelpFooter(CommandSender sender) {
+        sendHelpLine(sender, plugin.messageService().message("command.help_footer"));
     }
 
     private boolean handleDebug(CommandSender sender, String[] args) {

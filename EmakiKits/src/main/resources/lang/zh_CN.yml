@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage, 占位符见各分组旁注释
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.4"
+version: "1.0.5"
 
 tags:
   kits: "[ 礼包 ]"
@@ -23,9 +23,43 @@ general:
   usage_cdk: "<yellow>用法: /emakikits cdk list|disable <code></yellow>"
   unknown_command: "<red>未知命令, 请使用 /emakikits help</red>"
   player_only: "<red>此命令只能由玩家执行</red>"
-
-help:
-  lines: "<yellow>/emakikits claim|choose|buy|redeem|invite|open|list|inspect|grant|cdk|check|preview|edit|top|reload</yellow>"
+  help_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiKits 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_entry_list: "- <hover:show_text:'<gray>list</gray> <dark_gray>·</dark_gray> <gray>列出全部已加载的礼包</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.use</white>'><gray>list</gray></hover> <click:run_command:'%root% list'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_claim: "- <hover:show_text:'<gray>claim</gray> <dark_gray>·</dark_gray> <gray>参数:礼包ID - 领取该礼包</gray><newline><newline><dark_gray>▸</dark_gray> <gray>可选参数 </gray><white>[makeup]</white><gray> 补领上一个周期, 需要礼包开启补领</gray><newline><dark_gray>▸</dark_gray> <gray>仅限玩家使用</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.claim</white><newline><dark_gray>▸</dark_gray> <gray>点击查看当前可选的礼包ID清单</gray>'><gray>claim</gray></hover> <click:run_command:'%root% help claim'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
+  help_entry_choose: "- <hover:show_text:'<gray>choose</gray> <dark_gray>·</dark_gray> <gray>参数:礼包ID - 打开该自选礼包的选择界面</gray><newline><newline><dark_gray>▸</dark_gray> <gray>可选参数 </gray><white>[选项...]</white><gray> 直接给出选项 ID 领取</gray><newline><dark_gray>▸</dark_gray> <gray>仅限玩家使用</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.open</white><newline><dark_gray>▸</dark_gray> <gray>点击查看当前可选的礼包ID清单</gray>'><gray>choose</gray></hover> <click:run_command:'%root% help choose'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
+  help_entry_buy: "- <hover:show_text:'<gray>buy</gray> <dark_gray>·</dark_gray> <gray>参数:礼包ID - 购买该礼包并获得一次可领取次数</gray><newline><newline><dark_gray>▸</dark_gray> <gray>按配置价格扣费, 受购买次数上限限制</gray><newline><dark_gray>▸</dark_gray> <gray>仅限玩家使用</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.buy</white><newline><dark_gray>▸</dark_gray> <gray>点击查看当前可选的礼包ID清单</gray>'><gray>buy</gray></hover> <click:run_command:'%root% help buy'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
+  help_entry_redeem: "- <hover:show_text:'<gray>redeem</gray> <dark_gray>·</dark_gray> <gray>用兑换码领取 CDK 礼包</gray><newline><newline><dark_gray>▸</dark_gray> <gray>仅限玩家使用</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.redeem</white>'><gray>redeem</gray></hover> <hover:show_text:'<gray>参数</gray><newline><gray>礼包ID</gray> <dark_gray>·</dark_gray> <gray>兑换码所属的礼包</gray><newline><gray>兑换码</gray> <dark_gray>·</dark_gray> <gray>要使用的兑换码</gray><newline><newline><dark_gray>▸</dark_gray> <gray>礼包 ID 支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 礼包ID ] [ 兑换码 ]</gray></hover>"
+  help_entry_invite: "- <hover:show_text:'<gray>invite</gray> <dark_gray>·</dark_gray> <gray>邀请一名玩家并绑定邀请关系</gray><newline><newline><dark_gray>▸</dark_gray> <gray>被邀请玩家是否首次进服会套用不同绑定规则</gray><newline><dark_gray>▸</dark_gray> <gray>仅限玩家使用</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.invite</white>'><gray>invite</gray></hover> <click:run_command:'%root% help invite'><hover:show_text:'<gray>参数:玩家</gray><newline><gray>在线玩家名, 点击查看当前可选玩家</gray>'><gray>[ ✦ 玩家 ]</gray></hover></click>"
+  help_entry_open: "- <hover:show_text:'<gray>open</gray> <dark_gray>·</dark_gray> <gray>参数:礼包ID - 开启该礼包并领取奖励</gray><newline><newline><dark_gray>▸</dark_gray> <gray>领取流程与 claim 相同, 不支持 makeup</gray><newline><dark_gray>▸</dark_gray> <gray>仅限玩家使用</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.open</white><newline><dark_gray>▸</dark_gray> <gray>点击查看当前可选的礼包ID清单</gray>'><gray>open</gray></hover> <click:run_command:'%root% help open'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
+  help_entry_inspect: "- <hover:show_text:'<gray>inspect</gray> <dark_gray>·</dark_gray> <gray>查看玩家的领取审计记录</gray><newline><newline><dark_gray>▸</dark_gray> <gray>支持玩家名、UUID 或离线玩家名</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.inspect</white>'><gray>inspect</gray></hover> <click:run_command:'%root% help inspect'><hover:show_text:'<gray>参数:玩家</gray><newline><gray>在线玩家名, 点击查看当前可选玩家</gray>'><gray>[ ✦ 玩家 ]</gray></hover></click>"
+  help_entry_grant: "- <hover:show_text:'<gray>grant</gray> <dark_gray>·</dark_gray> <gray>给玩家增加一次礼包可领取次数</gray><newline><newline><dark_gray>▸</dark_gray> <gray>不扣费, 直接计入</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.grant</white>'><gray>grant</gray></hover> <hover:show_text:'<gray>参数</gray><newline><gray>玩家</gray> <dark_gray>·</dark_gray> <gray>目标玩家名</gray><newline><gray>礼包ID</gray> <dark_gray>·</dark_gray> <gray>要增加次数的礼包</gray><newline><newline><dark_gray>▸</dark_gray> <gray>玩家名与礼包 ID 支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 玩家 ] [ 礼包ID ]</gray></hover>"
+  help_entry_cdk: "- <hover:show_text:'<gray>cdk</gray> <dark_gray>·</dark_gray> <gray>CDK 兑换码管理</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.cdk</white>'><gray>cdk</gray></hover> <click:run_command:'%root% help cdk'><hover:show_text:'<gray>可选参数</gray><newline><gray>list</gray> <dark_gray>·</dark_gray> <gray>列出 CDK 礼包与兑换码数量</gray><newline><gray>disable</gray> <dark_gray>·</dark_gray> <gray>停用兑换码</gray>'><gray>[ ✦ 参数 ]</gray></hover></click>"
+  help_entry_reload: "- <hover:show_text:'<gray>reload</gray> <dark_gray>·</dark_gray> <gray>重载礼包配置与内容</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.reload</white>'><gray>reload</gray></hover> <click:run_command:'%root% reload'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_check: "- <hover:show_text:'<gray>check</gray> <dark_gray>·</dark_gray> <gray>体检输出礼包配置与存储状态</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.check</white>'><gray>check</gray></hover> <click:run_command:'%root% check'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_preview: "- <hover:show_text:'<gray>preview</gray> <dark_gray>·</dark_gray> <gray>参数:礼包ID - 预览该礼包的奖励构成</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.preview</white><newline><dark_gray>▸</dark_gray> <gray>点击查看当前可选的礼包ID清单</gray>'><gray>preview</gray></hover> <click:run_command:'%root% help preview'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
+  help_entry_edit: "- <hover:show_text:'<gray>edit</gray> <dark_gray>·</dark_gray> <gray>打开礼包编辑器</gray><newline><newline><dark_gray>▸</dark_gray> <gray>可选参数 </gray><white>[礼包ID]</white><gray> 直接打开该礼包的编辑页</gray><newline><dark_gray>▸</dark_gray> <gray>不带参数打开编辑器浏览器</gray><newline><dark_gray>▸</dark_gray> <gray>仅限玩家使用</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.edit</white><newline><dark_gray>▸</dark_gray> <gray>礼包 ID 支持 Tab 补全</gray>'><gray>edit</gray></hover> <click:run_command:'%root% edit'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_top: "- <hover:show_text:'<gray>top</gray> <dark_gray>·</dark_gray> <gray>打开邀请排行榜界面</gray><newline><newline><dark_gray>▸</dark_gray> <gray>可选参数 </gray><white>[页码]</white><newline><dark_gray>▸</dark_gray> <gray>仅限玩家使用</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.top</white>'><gray>top</gray></hover> <click:run_command:'%root% top'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_help: "- <hover:show_text:'<gray>help</gray> <dark_gray>·</dark_gray> <gray>显示本帮助页</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.use</white>'><gray>help</gray></hover> <click:run_command:'%root% help'><green>[ ✦ 点击执行 ]</green></click>"
+  help_cdk_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiKits cdk 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_cdk_entry_list: "- <hover:show_text:'<gray>list</gray> <dark_gray>·</dark_gray> <gray>列出 CDK 礼包、模式与兑换码数量</gray>'><gray>list</gray></hover> <click:run_command:'%root% cdk list'><green>[ ✦ 点击执行 ]</green></click>"
+  help_cdk_entry_disable: "- <hover:show_text:'<gray>disable</gray> <dark_gray>·</dark_gray> <gray>停用一个兑换码, 之后无法再使用</gray>'><gray>disable</gray></hover> <hover:show_text:'<gray>参数:兑换码</gray><newline><gray>需要自己填写要停用的兑换码</gray><newline><newline><dark_gray>▸</dark_gray> <gray>兑换码按配置决定大小写</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 兑换码 ]</gray></hover>"
+  help_claim_kit_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiKits claim [礼包ID] 可选值</gradient> <gray><st>        </st></gray>"
+  help_choose_kit_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiKits choose [礼包ID] 可选值</gradient> <gray><st>        </st></gray>"
+  help_buy_kit_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiKits buy [礼包ID] 可选值</gradient> <gray><st>        </st></gray>"
+  help_open_kit_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiKits open [礼包ID] 可选值</gradient> <gray><st>        </st></gray>"
+  help_preview_kit_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiKits preview [礼包ID] 可选值</gradient> <gray><st>        </st></gray>"
+  help_invite_player_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiKits invite [玩家] 可选值</gradient> <gray><st>        </st></gray>"
+  help_inspect_player_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiKits inspect [玩家] 可选值</gradient> <gray><st>        </st></gray>"
+  help_value_entry: "- <hover:show_text:'<gray>%value%</gray> <dark_gray>·</dark_gray> <gray>%desc%</gray>'><gray>%value%</gray></hover> <click:run_command:'%run%'><green>[ ✦ 点击执行 ]</green></click>"
+  help_value_desc_claim_kit: "领取 %value% 礼包"
+  help_value_desc_choose_kit: "打开 %value% 的选择界面"
+  help_value_desc_buy_kit: "购买 %value% 礼包"
+  help_value_desc_open_kit: "开启 %value% 礼包"
+  help_value_desc_preview_kit: "预览 %value% 礼包的奖励"
+  help_value_desc_invite_player: "邀请 %value% 并绑定邀请关系"
+  help_value_desc_inspect_player: "查看 %value% 的领取审计记录"
+  help_value_empty: "<dark_gray>( 当前没有可选值 )</dark_gray>"
+  help_footer: "<gray><st>                                        </st></gray>"
 
 claim:
   success: "<green>已领取礼包 %kit% (周期 %period%)</green>"
