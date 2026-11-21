@@ -15,6 +15,11 @@ public final class RandomCommands {
 
     private final RandomDungeonService service;
     private final MessageService messages;
+    private emaki.jiuwu.craft.dungeon.random.template.CaptureGui gui;
+
+    public void bindGui(emaki.jiuwu.craft.dungeon.random.template.CaptureGui gui) {
+        this.gui = gui;
+    }
 
     public RandomCommands(RandomDungeonService service, MessageService messages) {
         this.service = service;
@@ -34,9 +39,14 @@ public final class RandomCommands {
                     messages.send(player, "random.no_permission", Map.of());
                     return;
                 }
-                int players = args.length >= 3 ? parseInt(args[2], 1) : 1;
-                Long seed = args.length >= 4 ? parseLong(args[3]) : null;
-                report(player, service.create(Math.max(1, players), seed));
+                if (args.length < 3 || args[2].isBlank()) {
+                    messages.send(player, "random.create_usage", Map.of());
+                    return;
+                }
+                String dungeonId = args[2];
+                int players = args.length >= 4 ? parseInt(args[3], 1) : 1;
+                Long seed = args.length >= 5 ? parseLong(args[4]) : null;
+                report(player, service.create(dungeonId, Math.max(1, players), seed));
             }
             case "enter" -> {
                 if (!player.hasPermission("emakidungeon.play")) {
@@ -124,7 +134,17 @@ public final class RandomCommands {
         }
         String sub = args[2].toLowerCase(java.util.Locale.ROOT);
         switch (sub) {
-            case "start" -> report(player, captures.start(player));
+            case "start" -> {
+                report(player, captures.start(player));
+                if (gui != null) {
+                    gui.openMain(player);
+                }
+            }
+            case "menu" -> {
+                if (gui != null) {
+                    gui.openMain(player);
+                }
+            }
             case "pos1" -> report(player, captures.pos(player, 1));
             case "pos2" -> report(player, captures.pos(player, 2));
             case "meta" -> {
@@ -253,11 +273,13 @@ public final class RandomCommands {
         if (args.length <= 1) {
             candidates.addAll(List.of("template", "create", "enter", "leave", "list", "records", "stop", "replay", "reload"));
         } else if (args.length == 2 && "template".equalsIgnoreCase(args[0])) {
-            candidates.addAll(List.of("start", "pos1", "pos2", "meta", "anchor", "node", "save", "discard", "status"));
+            candidates.addAll(List.of("start", "menu", "pos1", "pos2", "meta", "anchor", "node", "save", "discard", "status"));
         } else if (args.length == 3 && "template".equalsIgnoreCase(args[0]) && "meta".equalsIgnoreCase(args[1])) {
             candidates.addAll(List.of("type", "tags", "floors", "mirrorable", "intrusion-policy", "door-policy", "seal-block", "rotations"));
         } else if (args.length == 4 && "template".equalsIgnoreCase(args[0]) && "save".equalsIgnoreCase(args[1])) {
             candidates.add("confirm");
+        } else if (args.length == 2 && "create".equalsIgnoreCase(args[0])) {
+            candidates.addAll(service.dungeonIds());
         } else if (args.length == 2 && ("enter".equalsIgnoreCase(args[0]) || "stop".equalsIgnoreCase(args[0]))) {
             for (var instance : service.instances()) {
                 candidates.add(instance.instanceId());

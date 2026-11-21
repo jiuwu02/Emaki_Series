@@ -54,7 +54,7 @@ public final class DungeonCommandRouter {
     private static final List<String> PARTY_SUBS = List.of(
             "create", "invite", "accept", "deny", "kick", "leave", "disband", "chat"
     );
-    private static final List<String> EDITOR_SUBS = List.of("exit", "pos1", "pos2", "mark", "marks", "test", "fill");
+    private static final List<String> EDITOR_SUBS = List.of("menu", "save", "exit", "pos1", "pos2", "mark", "marks", "test", "fill");
     private static final List<String> RECRUIT_SUBS = List.of("open", "close", "list", "join");
     private static final List<String> MATCH_SUBS = List.of("join", "leave");
     private static final List<String> SPECTATE_SUBS = List.of("next", "prev");
@@ -632,6 +632,8 @@ public final class DungeonCommandRouter {
                     }
                     editor.exit(player);
                 }
+                case "menu" -> editor.openMenu(player);
+                case "save" -> editor.save(player);
                 case "pos1" -> editor.markPos(player, 1);
                 case "pos2" -> editor.markPos(player, 2);
                 case "mark" -> {

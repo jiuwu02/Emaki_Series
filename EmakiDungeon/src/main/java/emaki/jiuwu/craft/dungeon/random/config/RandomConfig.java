@@ -317,8 +317,8 @@ public final class RandomConfig {
     private static WorldPolicy parseWorld(YamlSection section, List<String> errors) {
         YamlSection node = section.getSection("world");
         String type = node == null ? "air" : node.getString("type", "air").toLowerCase(Locale.ROOT);
-        if (!"air".equals(type)) {
-            errors.add("world.type: 唯一合法值 air");
+        if (!"air".equals(type) && !"normal".equals(type) && !"nether".equals(type) && !"end".equals(type)) {
+            errors.add("world.type: 合法值 air/normal/nether/end");
         }
         int prewarm = node == null ? 2 : node.getInt("prewarm-radius-chunks", 2);
         int simulation = node == null ? 6 : node.getInt("simulation-distance", 6);

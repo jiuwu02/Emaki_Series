@@ -26,10 +26,12 @@ public final class EditorSession {
     private World editWorld;
     private FlowPoint pos1;
     private FlowPoint pos2;
+    private FlowPoint pendingPoint;
     private EditorDocument configDoc;
     private EditorDocument flowDoc;
     private TaskToken pump;
     private boolean dirty;
+    private boolean exitPending;
     private boolean ready;
     private volatile int inFlight;
     private volatile List<org.bukkit.entity.Entity> markers = new ArrayList<>();
@@ -97,6 +99,14 @@ public final class EditorSession {
         this.pos2 = pos2;
     }
 
+    public FlowPoint pendingPoint() {
+        return pendingPoint;
+    }
+
+    public void pendingPoint(FlowPoint pendingPoint) {
+        this.pendingPoint = pendingPoint;
+    }
+
     public EditorDocument configDoc() {
         return configDoc;
     }
@@ -127,6 +137,14 @@ public final class EditorSession {
 
     public void dirty(boolean dirty) {
         this.dirty = dirty;
+    }
+
+    public boolean exitPending() {
+        return exitPending;
+    }
+
+    public void exitPending(boolean exitPending) {
+        this.exitPending = exitPending;
     }
 
     public boolean ready() {

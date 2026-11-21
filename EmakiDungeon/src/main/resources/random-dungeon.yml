@@ -65,7 +65,7 @@ random-dungeon:
     fixed-value: 0
     persist-config-fingerprint: true
 
-  # 9. 实例世界: 全 AIR 空岛型, 只经世界池形态创建回收
+  # 9. 实例世界: 生成跟随 world.type (air=空岛/normal=主世界/nether=下界/end=末地), 只经世界池形态创建回收
   world:
     type: air
     prewarm-radius-chunks: 2

@@ -122,14 +122,19 @@ final class EditorServiceDelegate {
                 "which", String.valueOf(which),
                 "coord", ownerRef.formatPoint(point)
         ));
+        ownerRef.refreshMarkers(session);
     }
 
     void finishSave(EditorSession session, boolean terrainChanged) {
-        int generation = ownerRef.states.bump(session.dungeonId());
-        ownerRef.reloadConfigCache(session.dungeonId());
-        ownerRef.invalidateReserves(session.dungeonId());
-        session.dirty(false);
-        session.stagedMarks().clear();
+        boolean changed = terrainChanged || session.dirty();
+        int generation = changed ? ownerRef.states.bump(session.dungeonId())
+                : ownerRef.states.generationOf(session.dungeonId());
+        if (changed) {
+            ownerRef.reloadConfigCache(session.dungeonId());
+            ownerRef.invalidateReserves(session.dungeonId());
+            session.dirty(false);
+            session.stagedMarks().clear();
+        }
         Player player = Bukkit.getPlayer(session.playerId());
         if (player != null) {
             ownerRef.messages.send(player, "editor.saved", Map.of(
@@ -137,6 +142,9 @@ final class EditorServiceDelegate {
                     "generation", String.valueOf(generation),
                     "terrain", String.valueOf(terrainChanged)
             ));
+        }
+        if (session.exitPending()) {
+            ownerRef.discardSession(session);
         }
     }
 
@@ -177,6 +185,10 @@ final class EditorServiceDelegate {
                 session.regionSnapshot().put(sub + "/" + file.getName(), file.lastModified());
             }
         }
+        File levelFile = new File(editDir, "level.dat");
+        if (levelFile.isFile()) {
+            session.regionSnapshot().put("level.dat", levelFile.lastModified());
+        }
     }
 
     boolean copyChangedRegions(EditorSession session) {
@@ -207,6 +219,22 @@ final class EditorServiceDelegate {
                 } catch (IOException exception) {
                     ownerRef.messages.warning(LogTag.EDITOR, "console.editor_region_writeback_failed", Map.of(
                             "file", String.valueOf(sub + "/" + file.getName()),
+                            "error", String.valueOf(exception.getMessage())));
+                }
+            }
+        }
+        File levelFile = new File(editDir, "level.dat");
+        if (levelFile.isFile()) {
+            long previous = session.regionSnapshot().getOrDefault("level.dat", -1L);
+            if (levelFile.lastModified() != previous) {
+                File target = new File(templateDir, "level.dat");
+                try {
+                    Files.copy(levelFile.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    session.regionSnapshot().put("level.dat", levelFile.lastModified());
+                    changed = true;
+                } catch (IOException exception) {
+                    ownerRef.messages.warning(LogTag.EDITOR, "console.editor_region_writeback_failed", Map.of(
+                            "file", "level.dat",
                             "error", String.valueOf(exception.getMessage())));
                 }
             }
@@ -285,11 +313,11 @@ final class EditorServiceDelegate {
             ownerRef.messages.send(player, "editor.no_session", Map.of());
             return;
         }
-        if (session.dirty()) {
-            ownerRef.messages.send(player, "editor.exit_dirty", Map.of());
+        if (session.queue().pending() > 0 || session.inFlight() > 0) {
+            ownerRef.messages.send(player, "editor.save_busy", Map.of());
             return;
         }
-        ownerRef.discardSession(session);
+        ownerRef.save(player, true);
     }
 
     void closeAll() {

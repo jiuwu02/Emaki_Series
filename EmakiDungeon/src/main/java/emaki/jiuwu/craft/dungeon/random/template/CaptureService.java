@@ -33,6 +33,25 @@ public final class CaptureService {
 
         public int[] pos1;
         public int[] pos2;
+        public String worldName = "";
+        public UUID playerId;
+        public Block pendingBlock;
+        public final List<org.bukkit.entity.Entity> markers = new ArrayList<>();
+
+        public int[] nodeWorldPos(ModuleNode node) {
+            int[] anchorPos = {0, 0, 0};
+            if (node.anchorId() != null && !node.anchorId().isBlank()) {
+                for (DoorAnchor anchor : anchors) {
+                    if (anchor.id().equals(node.anchorId())) {
+                        anchorPos = new int[] {anchor.x(), anchor.y(), anchor.z()};
+                        break;
+                    }
+                }
+            }
+            return new int[] {(int) Math.round(node.dx()) + anchorPos[0],
+                    (int) Math.round(node.dy()) + anchorPos[1],
+                    (int) Math.round(node.dz()) + anchorPos[2]};
+        }
         public String structureType = TemplateModel.TYPE_ROOM;
         public final List<String> tags = new ArrayList<>();
         public int floors = 1;
@@ -57,10 +76,24 @@ public final class CaptureService {
     }
 
     private final Map<UUID, Session> sessions = new ConcurrentHashMap<>();
-    private final TemplateStore store;
+    private final java.util.function.Function<String, TemplateStore> storeProvider;
 
-    public CaptureService(TemplateStore store) {
-        this.store = store;
+    public CaptureService(java.util.function.Function<String, TemplateStore> storeProvider) {
+        this.storeProvider = storeProvider;
+    }
+
+    private volatile java.util.function.Consumer<Session> refreshHook;
+
+    public void bindRefreshHook(java.util.function.Consumer<Session> refreshHook) {
+        this.refreshHook = refreshHook;
+    }
+
+    void fireRefresh(UUID playerId) {
+        java.util.function.Consumer<Session> hook = refreshHook;
+        Session session = playerId == null ? null : sessions.get(playerId);
+        if (hook != null && session != null) {
+            hook.accept(session);
+        }
     }
 
     public boolean hasSession(UUID player) {
@@ -79,11 +112,22 @@ public final class CaptureService {
         if (world == null || !world.getName().startsWith(EDIT_WORLD_PREFIX)) {
             return Result.fail("random.template.world_forbidden", Map.of());
         }
-        sessions.put(player.getUniqueId(), new Session());
+        Session session = new Session();
+        session.worldName = world.getName();
+        session.playerId = player.getUniqueId();
+        sessions.put(player.getUniqueId(), session);
         return Result.ok("random.template.started", Map.of("world", world.getName()));
     }
 
     public Result pos(Player player, int which) {
+        try {
+            return posInner(player, which);
+        } finally {
+            fireRefresh(player.getUniqueId());
+        }
+    }
+
+    Result posInner(Player player, int which) {
         Session session = sessions.get(player.getUniqueId());
         if (session == null) {
             return Result.fail("random.template.no_session", Map.of());
@@ -103,6 +147,14 @@ public final class CaptureService {
     }
 
     public Result meta(Player player, String key, String value) {
+        try {
+            return metaInner(player, key, value);
+        } finally {
+            fireRefresh(player.getUniqueId());
+        }
+    }
+
+    Result metaInner(Player player, String key, String value) {
         Session session = sessions.get(player.getUniqueId());
         if (session == null) {
             return Result.fail("random.template.no_session", Map.of());
@@ -152,6 +204,14 @@ public final class CaptureService {
     }
 
     public Result anchorAdd(Player player, String id, String facing, int width, int height) {
+        try {
+            return anchorAddInner(player, id, facing, width, height);
+        } finally {
+            fireRefresh(player.getUniqueId());
+        }
+    }
+
+    Result anchorAddInner(Player player, String id, String facing, int width, int height) {
         Session session = sessions.get(player.getUniqueId());
         if (session == null) {
             return Result.fail("random.template.no_session", Map.of());
@@ -179,6 +239,14 @@ public final class CaptureService {
     }
 
     public Result anchorRemove(Player player, String id) {
+        try {
+            return anchorRemoveInner(player, id);
+        } finally {
+            fireRefresh(player.getUniqueId());
+        }
+    }
+
+    Result anchorRemoveInner(Player player, String id) {
         Session session = sessions.get(player.getUniqueId());
         if (session == null) {
             return Result.fail("random.template.no_session", Map.of());
@@ -190,6 +258,18 @@ public final class CaptureService {
     }
 
     public Result nodeAdd(Player player, String module, String nodeId, String anchorId) {
+        return nodeAdd(player, module, nodeId, anchorId, null);
+    }
+
+    public Result nodeAdd(Player player, String module, String nodeId, String anchorId, Block target) {
+        try {
+            return nodeAddInner(player, module, nodeId, anchorId, target);
+        } finally {
+            fireRefresh(player.getUniqueId());
+        }
+    }
+
+    Result nodeAddInner(Player player, String module, String nodeId, String anchorId, Block target) {
         Session session = sessions.get(player.getUniqueId());
         if (session == null) {
             return Result.fail("random.template.no_session", Map.of());
@@ -197,7 +277,7 @@ public final class CaptureService {
         if ("spawn_point".equals(module)) {
             return Result.fail("random.template.node_forbidden", Map.of("module", module));
         }
-        Block block = player.getTargetBlockExact(12);
+        Block block = target != null ? target : player.getTargetBlockExact(12);
         if (block == null) {
             return Result.fail("random.template.no_target", Map.of());
         }
@@ -225,6 +305,14 @@ public final class CaptureService {
     }
 
     public Result nodeParam(Player player, String nodeId, String key, String value) {
+        try {
+            return nodeParamInner(player, nodeId, key, value);
+        } finally {
+            fireRefresh(player.getUniqueId());
+        }
+    }
+
+    Result nodeParamInner(Player player, String nodeId, String key, String value) {
         Session session = sessions.get(player.getUniqueId());
         if (session == null) {
             return Result.fail("random.template.no_session", Map.of());
@@ -254,13 +342,19 @@ public final class CaptureService {
         if (normalizedId.isBlank() || !normalizedId.matches("[a-z0-9_-]+")) {
             return Result.fail("random.template.id_invalid", Map.of("id", String.valueOf(typeId)));
         }
+        World world = player.getWorld();
+        String dungeonId = world == null || !world.getName().startsWith(EDIT_WORLD_PREFIX)
+                ? "" : world.getName().substring(EDIT_WORLD_PREFIX.length());
+        if (dungeonId.isBlank()) {
+            return Result.fail("random.template.world_forbidden", Map.of());
+        }
+        TemplateStore store = storeProvider.apply(dungeonId);
         if (store.exists(normalizedId) && !confirmed) {
             if (config != null && "confirm".equals(config.editor.overwritePolicy())) {
                 return Result.fail("random.template.overwrite_confirm", Map.of("id", normalizedId));
             }
             return Result.fail("random.template.overwrite_denied", Map.of("id", normalizedId));
         }
-        World world = player.getWorld();
         int minX = Math.min(session.pos1[0], session.pos2[0]);
         int minY = Math.min(session.pos1[1], session.pos2[1]);
         int minZ = Math.min(session.pos1[2], session.pos2[2]);
@@ -345,7 +439,8 @@ public final class CaptureService {
                 List.copyOf(session.tags), sizeX, sizeY, sizeZ, session.floors,
                 List.copyOf(session.anchors), List.copyOf(session.rotations), session.mirrorable,
                 session.intrusionPolicy, session.doorPolicy, session.sealBlock,
-                List.copyOf(session.nodes), mask, entities);
+                List.copyOf(session.nodes), mask, entities,
+                List.of(minX, minY, minZ, maxX, maxY, maxZ));
         try {
             store.save(normalizedId, meta, data);
         } catch (IOException exception) {
@@ -392,8 +487,114 @@ public final class CaptureService {
         return null;
     }
 
+    public record StructureHit(String templateId, String nodeId) {
+    }
+
+    public ModuleNode nodeAt(Session session, Block block) {
+        for (ModuleNode node : session.nodes) {
+            int[] anchorPos = anchorPos(session, node.anchorId());
+            int bx = (int) Math.round(node.dx()) + anchorPos[0];
+            int by = (int) Math.round(node.dy()) + anchorPos[1];
+            int bz = (int) Math.round(node.dz()) + anchorPos[2];
+            if (bx == block.getX() && by == block.getY() && bz == block.getZ()) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    public boolean deleteNode(Session session, String nodeId) {
+        return session.nodes.removeIf(node -> node.nodeId().equals(nodeId));
+    }
+
+    public StructureHit structureAt(String dungeonId, Block block) {
+        for (Map.Entry<String, TemplateMeta> entry : storeProvider.apply(dungeonId).loadAll().entrySet()) {
+            TemplateMeta meta = entry.getValue();
+            List<Integer> sel = meta.selection();
+            if (sel.size() != 6) {
+                continue;
+            }
+            int minX = Math.min(sel.get(0), sel.get(3));
+            int minY = Math.min(sel.get(1), sel.get(4));
+            int minZ = Math.min(sel.get(2), sel.get(5));
+            int maxX = Math.max(sel.get(0), sel.get(3));
+            int maxY = Math.max(sel.get(1), sel.get(4));
+            int maxZ = Math.max(sel.get(2), sel.get(5));
+            if (block.getX() < minX || block.getX() > maxX
+                    || block.getY() < minY || block.getY() > maxY
+                    || block.getZ() < minZ || block.getZ() > maxZ) {
+                continue;
+            }
+            for (ModuleNode node : meta.nodes()) {
+                int[] anchorPos = anchorPosOf(meta, node.anchorId());
+                int bx = (int) Math.round(node.dx()) + anchorPos[0];
+                int by = (int) Math.round(node.dy()) + anchorPos[1];
+                int bz = (int) Math.round(node.dz()) + anchorPos[2];
+                if (bx == block.getX() && by == block.getY() && bz == block.getZ()) {
+                    return new StructureHit(entry.getKey(), node.nodeId());
+                }
+            }
+            return new StructureHit(entry.getKey(), null);
+        }
+        return null;
+    }
+
+    public TemplateMeta structure(Session session, String templateId) {
+        return storeProvider.apply(dungeonOf(session)).loadMeta(templateId);
+    }
+
+    public boolean saveStructure(Session session, TemplateMeta meta) {
+        TemplateStore store = storeProvider.apply(dungeonOf(session));
+        StructureNbt.StructureData data = store.loadTemplate(meta.id());
+        if (data == null) {
+            return false;
+        }
+        try {
+            store.save(meta.id(), meta, data);
+            return true;
+        } catch (IOException exception) {
+            return false;
+        }
+    }
+
+    public boolean deleteStructure(Session session, String templateId) {
+        TemplateStore store = storeProvider.apply(dungeonOf(session));
+        boolean yml = new java.io.File(store.root(), templateId + ".yml").delete();
+        boolean nbt = new java.io.File(store.root(), templateId + ".nbt").delete();
+        return yml || nbt;
+    }
+
+    private String dungeonOf(Session session) {
+        return session.worldName != null && session.worldName.startsWith(EDIT_WORLD_PREFIX)
+                ? session.worldName.substring(EDIT_WORLD_PREFIX.length())
+                : "";
+    }
+
+    private int[] anchorPos(Session session, String anchorId) {
+        if (anchorId == null || anchorId.isBlank()) {
+            return new int[] {0, 0, 0};
+        }
+        for (DoorAnchor anchor : session.anchors) {
+            if (anchor.id().equals(anchorId)) {
+                return new int[] {anchor.x(), anchor.y(), anchor.z()};
+            }
+        }
+        return new int[] {0, 0, 0};
+    }
+
+    private int[] anchorPosOf(TemplateMeta meta, String anchorId) {
+        if (anchorId == null || anchorId.isBlank()) {
+            return new int[] {0, 0, 0};
+        }
+        DoorAnchor anchor = meta.anchor(anchorId);
+        return anchor == null ? new int[] {0, 0, 0} : new int[] {anchor.x(), anchor.y(), anchor.z()};
+    }
+
     public Result discard(Player player) {
         Session removed = sessions.remove(player.getUniqueId());
+        if (removed != null) {
+            emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers.removeAll(removed.markers);
+        }
         return removed == null
                 ? Result.fail("random.template.no_session", Map.of())
                 : Result.ok("random.template.discarded", Map.of());

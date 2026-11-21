@@ -16,10 +16,13 @@ import org.bukkit.Difficulty;
 import org.bukkit.GameRules;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.WorldCreator;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
@@ -43,6 +46,7 @@ import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
 import emaki.jiuwu.craft.dungeon.world.WorldFolders;
 import emaki.jiuwu.craft.dungeon.world.WorldMounts;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
+import emaki.jiuwu.craft.dungeon.world.WorldTypeSupport;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.nio.file.Path;
 import org.bukkit.block.Block;
@@ -197,7 +201,7 @@ public final class EditorService implements Listener {
         }
         World world;
         try {
-            world = WorldMounts.create(new WorldCreator(session.editWorldName()));
+            world = WorldMounts.create(WorldTypeSupport.creator(session.editWorldName()));
             if (world == null) {
                 throw new IllegalStateException("createWorld returned null");
             }
@@ -233,9 +237,20 @@ public final class EditorService implements Listener {
         }, () -> discardSession(session));
     }
 
+    public void openMenu(Player player) {
+        EditorGui bound = gui;
+        if (bound != null && sessions.containsKey(player.getUniqueId())) {
+            bound.openMain(player);
+        }
+    }
+
     public void markPos(Player player, int which) { new EditorServiceDelegate(this).markPos(player, which); }
 
     public void mark(Player player, String rawType, String rawId) {
+        mark(player, rawType, rawId, null);
+    }
+
+    public void mark(Player player, String rawType, String rawId, FlowPoint clickPoint) {
         EditorSession session = requireReady(player);
         if (session == null) {
             return;
@@ -252,7 +267,7 @@ public final class EditorService implements Listener {
         FlowPoint second = session.pos2();
         if (region) {
             if (first == null && second == null) {
-                FlowPoint point = lookPoint(player);
+                FlowPoint point = clickPoint != null ? clickPoint : lookPoint(player);
                 if (point == null) {
                     messages.send(player, "editor.no_target", Map.of());
                     return;
@@ -271,7 +286,7 @@ public final class EditorService implements Listener {
                 return;
             }
         }
-        FlowPoint point = pointRequired ? lookPoint(player) : null;
+        FlowPoint point = pointRequired ? (clickPoint != null ? clickPoint : lookPoint(player)) : null;
         if (pointRequired && point == null) {
             messages.send(player, "editor.no_target", Map.of());
             return;
@@ -353,15 +368,17 @@ public final class EditorService implements Listener {
     }
 
     public void save(Player player) {
+        save(player, false);
+    }
+
+    public void save(Player player, boolean exitAfter) {
         EditorSession session = requireReady(player);
         if (session == null) {
             return;
         }
-        if (!session.dirty()) {
-            messages.send(player, "editor.save_nothing", Map.of());
-            return;
-        }
+        session.exitPending(exitAfter);
         if (session.queue().pending() > 0 || session.inFlight() > 0) {
+            session.exitPending(false);
             messages.send(player, "editor.save_busy", Map.of());
             return;
         }
@@ -375,6 +392,7 @@ public final class EditorService implements Listener {
         }
         if (!configResult.saved() || !flowResult.saved()) {
             EditorDocument.SaveResult failed = !flowResult.saved() ? flowResult : configResult;
+            session.exitPending(false);
             messages.send(player, "editor.save_failed", Map.of(
                     "error", failed.status().name() + " " + failed.detail()));
             return;
@@ -508,6 +526,159 @@ public final class EditorService implements Listener {
 
     FlowPoint lookPoint(Player player) { return new EditorServiceDelegate(this).lookPoint(player); }
 
+    public record ModuleRef(String type, String nodeId) {
+    }
+
+    public ModuleRef moduleAt(EditorSession session, Block block) {
+        EditorModuleMarkers markerRef = markers;
+        if (markerRef == null || block == null) {
+            return null;
+        }
+        YamlTextDocument view = session.flowDoc().view();
+        for (EditorModules.Coord coord : List.of(EditorModules.Coord.POINT, EditorModules.Coord.REGION)) {
+            for (EditorModules.ModuleSpec spec : EditorModules.all()) {
+                if (spec.coord() != coord) {
+                    continue;
+                }
+                Object raw = view.value(spec.section());
+                if (!(raw instanceof Map<?, ?> value)) {
+                    continue;
+                }
+                if (spec.single()) {
+                    ModuleRef hit = hitNode(markerRef, spec, spec.section(), value, block);
+                    if (hit != null) {
+                        return hit;
+                    }
+                    continue;
+                }
+                for (Map.Entry<?, ?> entry : value.entrySet()) {
+                    String nodeId = String.valueOf(entry.getKey());
+                    if (!(entry.getValue() instanceof Map<?, ?> node)) {
+                        continue;
+                    }
+                    ModuleRef hit = hitNode(markerRef, spec, nodeId, node, block);
+                    if (hit != null) {
+                        return hit;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private ModuleRef hitNode(EditorModuleMarkers markerRef, EditorModules.ModuleSpec spec,
+            String nodeId, Map<?, ?> node, Block block) {
+        EditorModuleMarkers.Box box = markerRef.boxOf(node);
+        if (box == null) {
+            return null;
+        }
+        boolean hit;
+        if (spec.coord() == EditorModules.Coord.POINT) {
+            hit = Math.floor(box.centerX()) == block.getX()
+                    && Math.floor(box.centerY()) == block.getY()
+                    && Math.floor(box.centerZ()) == block.getZ();
+        } else {
+            hit = block.getX() >= Math.floor(box.minX()) && block.getX() <= Math.floor(box.maxX())
+                    && block.getY() >= Math.floor(box.minY()) && block.getY() <= Math.floor(box.maxY())
+                    && block.getZ() >= Math.floor(box.minZ()) && block.getZ() <= Math.floor(box.maxZ());
+        }
+        return hit ? new ModuleRef(spec.type(), nodeId) : null;
+    }
+
+    public void deleteModule(Player player, String rawType, String rawNodeId) {
+        EditorSession session = requireReady(player);
+        if (session == null) {
+            return;
+        }
+        EditorModules.ModuleSpec spec = EditorModules.of(Texts.lower(rawType));
+        String nodeId = Texts.isBlank(rawNodeId) ? null : rawNodeId;
+        if (spec == null) {
+            messages.send(player, "editor.mark_unknown_type", Map.of("type", String.valueOf(rawType)));
+            return;
+        }
+        EditorDocument flowDoc = session.flowDoc();
+        EditorDocument.SaveResult result;
+        synchronized (flowDoc) {
+            YamlTextDocument view = flowDoc.view();
+            if (spec.single()) {
+                if (view.value(spec.section()) == null) {
+                    messages.send(player, "editor.module_missing", Map.of("id", String.valueOf(nodeId)));
+                    return;
+                }
+                result = flowDoc.mutate(document -> document.remove(spec.section()));
+            } else {
+                if (nodeId == null || view.value(spec.section(), nodeId) == null) {
+                    messages.send(player, "editor.module_missing", Map.of("id", String.valueOf(nodeId)));
+                    return;
+                }
+                String target = nodeId;
+                result = flowDoc.mutate(document -> document.remove(spec.section(), target));
+            }
+        }
+        if (!result.saved()) {
+            messages.send(player, "editor.module_delete_failed", Map.of("error", result.detail()));
+            return;
+        }
+        session.dirty(true);
+        refreshMarkers(session);
+        messages.send(player, "editor.module_deleted", Map.of(
+                "type", spec.type(),
+                "id", String.valueOf(nodeId)));
+    }
+
+    public void applyRegion(Player player, String rawType, String rawNodeId) {
+        EditorSession session = requireReady(player);
+        if (session == null) {
+            return;
+        }
+        EditorModules.ModuleSpec spec = EditorModules.of(Texts.lower(rawType));
+        String nodeId = Texts.isBlank(rawNodeId) ? null : rawNodeId;
+        if (spec == null) {
+            messages.send(player, "editor.mark_unknown_type", Map.of("type", String.valueOf(rawType)));
+            return;
+        }
+        FlowPoint first = session.pos1();
+        FlowPoint second = session.pos2();
+        if (first == null) {
+            messages.send(player, "editor.pos_missing", Map.of("which", "1"));
+            return;
+        }
+        if (second == null) {
+            messages.send(player, "editor.pos_missing", Map.of("which", "2"));
+            return;
+        }
+        Map<String, Object> region = nestedRegion(first, second);
+        EditorDocument flowDoc = session.flowDoc();
+        EditorDocument.SaveResult result;
+        synchronized (flowDoc) {
+            YamlTextDocument view = flowDoc.view();
+            if (spec.single()) {
+                if (view.value(spec.section()) == null) {
+                    messages.send(player, "editor.module_missing", Map.of("id", String.valueOf(nodeId)));
+                    return;
+                }
+                result = flowDoc.mutate(document -> document.set(region, spec.section(), "region"));
+            } else {
+                if (nodeId == null || view.value(spec.section(), nodeId) == null) {
+                    messages.send(player, "editor.module_missing", Map.of("id", String.valueOf(nodeId)));
+                    return;
+                }
+                String target = nodeId;
+                result = flowDoc.mutate(document -> document.set(region, spec.section(), target, "region"));
+            }
+        }
+        if (!result.saved()) {
+            messages.send(player, "editor.region_update_failed", Map.of("error", result.detail()));
+            return;
+        }
+        session.dirty(true);
+        refreshMarkers(session);
+        messages.send(player, "editor.region_updated", Map.of(
+                "type", spec.type(),
+                "id", String.valueOf(nodeId),
+                "coord", formatRegion(first, second)));
+    }
+
     private Map<String, Object> markNode(EditorModules.ModuleSpec spec, String id, FlowPoint point,
             FlowPoint first, FlowPoint second, YamlTextDocument view) {
         Map<String, Object> node = new LinkedHashMap<>();
@@ -637,6 +808,10 @@ public final class EditorService implements Listener {
         return node;
     }
 
+    String nextId(EditorSession session, EditorModules.ModuleSpec spec) {
+        return new EditorServiceDelegate(this).nextId(session.flowDoc().view(), spec.section(), spec.prefix());
+    }
+
     private String nextId(YamlTextDocument view, String section, String prefix) { return new EditorServiceDelegate(this).nextId(view, section, prefix); }
 
     private Map<String, Object> locationMap(FlowPoint point) { return new EditorServiceDelegate(this).locationMap(point); }
@@ -734,6 +909,34 @@ public final class EditorService implements Listener {
     public void sweepLeftoverWorlds() { new EditorServiceDelegate(this).sweepLeftoverWorlds(); }
 
     private void preservePlayerDataWhenOffline(EditorSession session) { new EditorServiceDelegate(this).preservePlayerDataWhenOffline(session); }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBlockPlace(BlockPlaceEvent event) {
+        markWorldDirty(event.getPlayer(), event.getBlock().getWorld());
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBlockBreak(BlockBreakEvent event) {
+        markWorldDirty(event.getPlayer(), event.getBlock().getWorld());
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBucketEmpty(PlayerBucketEmptyEvent event) {
+        markWorldDirty(event.getPlayer(), event.getBlockClicked().getWorld());
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBucketFill(PlayerBucketFillEvent event) {
+        markWorldDirty(event.getPlayer(), event.getBlockClicked().getWorld());
+    }
+
+    private void markWorldDirty(Player player, World world) {
+        EditorSession session = sessions.get(player.getUniqueId());
+        if (session != null && session.ready() && world != null
+                && world.getName().equals(session.editWorldName())) {
+            session.dirty(true);
+        }
+    }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {

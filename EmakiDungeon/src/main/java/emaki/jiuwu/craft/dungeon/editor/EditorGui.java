@@ -57,6 +57,8 @@ public final class EditorGui implements Listener {
     private static final int SLOT_BRANCHES = 13;
     private static final int SLOT_MODULES = 16;
     private static final int MODULE_INFO_SLOT = 44;
+    private static final int SLOT_MODULE_DELETE = 48;
+    private static final int SLOT_MODULE_REGION = 51;
     private static final int OPTION_PAGE_SIZE = 27;
     static final int LIST_PAGE_SIZE = 45;
 
@@ -116,6 +118,29 @@ public final class EditorGui implements Listener {
     }
 
     public void openMain(Player player) { new EditorGuiDelegate(this).openMain(player); }
+
+    public void openPlacement(Player player, FlowPoint point) {
+        EditorSession session = service.sessionOf(player.getUniqueId());
+        if (session == null) {
+            return;
+        }
+        session.pendingPoint(point);
+        open(player, Panel.MODULES, new String[0], 0);
+    }
+
+    public void openModule(Player player, EditorService.ModuleRef ref) {
+        EditorSession session = service.sessionOf(player.getUniqueId());
+        if (session == null) {
+            return;
+        }
+        EditorModules.ModuleSpec spec = EditorModules.of(ref.type());
+        if (spec == null) {
+            return;
+        }
+        List<String> ids = moduleNodeIds(session.flowDoc().view(), spec);
+        int index = Math.max(0, ids.indexOf(spec.single() ? "" : ref.nodeId()));
+        open(player, Panel.MODULE_FIELDS, new String[] {spec.type()}, index);
+    }
 
     public void closeIfEditor(Player player) { new EditorGuiDelegate(this).closeIfEditor(player); }
 
@@ -368,6 +393,17 @@ public final class EditorGui implements Listener {
         }
         renderNav(inventory, holder, pages, Material.CHEST);
         inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.module_back"));
+        if (!nodeIds.isEmpty()) {
+            inventory.setItem(SLOT_MODULE_DELETE, navItem(Material.RED_CONCRETE, "editor.gui.module_delete"));
+            String[] regionPath = spec.single()
+                    ? new String[] {spec.section(), "region"}
+                    : new String[] {spec.section(), nodeIds.get(Math.max(0,
+                            Math.min(holder.page, nodeIds.size() - 1))), "region"};
+            if (view.value(regionPath) instanceof Map<?, ?>) {
+                inventory.setItem(SLOT_MODULE_REGION, navItem(Material.LIME_TERRACOTTA,
+                        "editor.gui.module_apply_region"));
+            }
+        }
     }
 
     List<String> moduleNodeIds(YamlTextDocument view, EditorModules.ModuleSpec spec) { return new EditorGuiDelegate(this).moduleNodeIds(view, spec); }
@@ -696,6 +732,16 @@ public final class EditorGui implements Listener {
         }
         int nodeIndex = Math.max(0, Math.min(holder.page, nodeIds.size() - 1));
         String nodeId = nodeIds.get(nodeIndex);
+        if (slot == SLOT_MODULE_DELETE) {
+            service.deleteModule(player, spec.type(), spec.single() ? spec.section() : nodeId);
+            open(player, Panel.MODULES, new String[0], 0);
+            return;
+        }
+        if (slot == SLOT_MODULE_REGION) {
+            service.applyRegion(player, spec.type(), spec.single() ? spec.section() : nodeId);
+            reopen(player, holder);
+            return;
+        }
         List<EditorModules.Field> fields = spec.fields();
         if (slot < 0 || slot >= fields.size()) {
             return;

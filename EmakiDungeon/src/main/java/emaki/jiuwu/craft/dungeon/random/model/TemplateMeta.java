@@ -11,9 +11,11 @@ import emaki.jiuwu.craft.dungeon.random.model.TemplateModel.ModuleNode;
 public record TemplateMeta(String id, String templateRef, String structureType, List<String> tags,
         int sizeX, int sizeY, int sizeZ, int floors, List<DoorAnchor> anchors,
         List<Integer> rotations, boolean mirrorable, String intrusionPolicy, String doorPolicy,
-        String sealBlock, List<ModuleNode> nodes, Mask mask, List<Map<String, Object>> entities) {
+        String sealBlock, List<ModuleNode> nodes, Mask mask, List<Map<String, Object>> entities,
+        List<Integer> selection) {
 
     public TemplateMeta {
+        selection = selection == null ? List.of() : List.copyOf(selection);
         tags = tags == null ? List.of() : List.copyOf(tags);
         anchors = anchors == null ? List.of() : List.copyOf(anchors);
         rotations = rotations == null ? List.of(0, 90, 180, 270) : List.copyOf(rotations);
@@ -90,6 +92,9 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
         root.put("mask", mask == null ? "" : mask.serialize());
         if (!entities.isEmpty()) {
             root.put("entities", new ArrayList<>(entities));
+        }
+        if (!selection.isEmpty()) {
+            root.put("selection", new ArrayList<>(selection));
         }
         return root;
     }
@@ -170,6 +175,13 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
                 }
             }
         }
+        List<Integer> selection = new ArrayList<>();
+        Object rawSelection = root.get("selection");
+        if (rawSelection instanceof List<?> list) {
+            for (Object entry : list) {
+                selection.add(intValue(Map.of("v", entry), "v", 0));
+            }
+        }
         Mask mask = Mask.deserialize(String.valueOf(root.getOrDefault("mask", "")));
         return new TemplateMeta(
                 id,
@@ -188,7 +200,8 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
                 String.valueOf(root.getOrDefault("seal-block", "")),
                 nodes,
                 mask,
-                entities);
+                entities,
+                selection);
     }
 
     private static int intValue(Map<String, Object> map, String key, int fallback) {

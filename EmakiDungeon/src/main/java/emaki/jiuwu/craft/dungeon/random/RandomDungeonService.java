@@ -82,13 +82,13 @@ public final class RandomDungeonService {
     private final Consumer<DungeonInstance> registerHook;
     private final WorldNames worldNames;
 
-    private final TemplateStore templateStore;
     private final CaptureService captureService;
     private final InstanceStore instanceStore;
     private final TreasureMapService mapService = new TreasureMapService();
     private final Map<String, RandomInstance> instances = new ConcurrentHashMap<>();
-    private final Map<String, TemplateMeta> metas = new ConcurrentHashMap<>();
-    private final Map<String, StructureNbt.StructureData> templates = new ConcurrentHashMap<>();
+    private final Map<String, TemplateStore> stores = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, TemplateMeta>> metasByDungeon = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, StructureNbt.StructureData>> templatesByDungeon = new ConcurrentHashMap<>();
 
     private volatile RandomConfig config;
     private volatile List<String> configErrors = List.of();
@@ -109,8 +109,7 @@ public final class RandomDungeonService {
         this.worldNames = worldNames;
         this.flowFactory = flowFactory;
         this.registerHook = registerHook;
-        this.templateStore = new TemplateStore(dataFolder);
-        this.captureService = new CaptureService(templateStore);
+        this.captureService = new CaptureService(this::storeOf);
         this.instanceStore = new InstanceStore(dataFolder);
     }
 
@@ -139,6 +138,7 @@ public final class RandomDungeonService {
         RandomConfig.Loaded loaded = RandomConfig.parse(root);
         if (loaded.valid()) {
             config = loaded.config();
+            emaki.jiuwu.craft.dungeon.world.WorldTypeSupport.setWorldType(config.world.type());
             configErrors = List.of();
         } else {
             configErrors = List.copyOf(loaded.errors());
@@ -146,14 +146,22 @@ public final class RandomDungeonService {
     }
 
     public void reloadTemplates() {
-        metas.clear();
-        templates.clear();
-        for (Map.Entry<String, TemplateMeta> entry : templateStore.loadAll().entrySet()) {
-            metas.put(entry.getKey(), entry.getValue());
-            StructureNbt.StructureData data = templateStore.loadTemplate(entry.getKey());
-            if (data != null) {
-                templates.put(entry.getKey(), data);
+        TemplateStore.migrateLegacy(dataFolder, dungeonIds());
+        metasByDungeon.clear();
+        templatesByDungeon.clear();
+        for (String dungeonId : dungeonIds()) {
+            TemplateStore store = storeOf(dungeonId);
+            Map<String, TemplateMeta> dungeonMetas = new ConcurrentHashMap<>();
+            Map<String, StructureNbt.StructureData> dungeonTemplates = new ConcurrentHashMap<>();
+            for (Map.Entry<String, TemplateMeta> entry : store.loadAll().entrySet()) {
+                dungeonMetas.put(entry.getKey(), entry.getValue());
+                StructureNbt.StructureData data = store.loadTemplate(entry.getKey());
+                if (data != null) {
+                    dungeonTemplates.put(entry.getKey(), data);
+                }
             }
+            metasByDungeon.put(dungeonId, dungeonMetas);
+            templatesByDungeon.put(dungeonId, dungeonTemplates);
         }
     }
 
@@ -169,12 +177,36 @@ public final class RandomDungeonService {
         return captureService;
     }
 
-    public TemplateStore templates() {
-        return templateStore;
+    public TemplateStore storeOf(String dungeonId) {
+        return stores.computeIfAbsent(dungeonId,
+                id -> TemplateStore.forDungeon(dataFolder, id));
     }
 
-    public Map<String, TemplateMeta> templateMetas() {
-        return metas;
+    public List<String> dungeonIds() {
+        File root = new File(dataFolder, "world");
+        File[] children = root.listFiles(File::isDirectory);
+        List<String> ids = new ArrayList<>();
+        if (children != null) {
+            for (File child : children) {
+                if (new File(child, "config.yml").isFile()) {
+                    ids.add(child.getName());
+                }
+            }
+        }
+        ids.sort(String::compareTo);
+        return ids;
+    }
+
+    public Map<String, TemplateMeta> templateMetas(String dungeonId) {
+        return metasByDungeon.getOrDefault(dungeonId, Map.of());
+    }
+
+    private Map<String, TemplateMeta> metasOf(String dungeonId) {
+        return metasByDungeon.getOrDefault(dungeonId, Map.of());
+    }
+
+    private Map<String, StructureNbt.StructureData> templatesOf(String dungeonId) {
+        return templatesByDungeon.getOrDefault(dungeonId, Map.of());
     }
 
     public List<RandomInstance> instances() {
@@ -185,11 +217,16 @@ public final class RandomDungeonService {
         return instances.get(instanceId);
     }
 
-    public Result create(int players, Long seedOverride) {
+    public Result create(String dungeonId, int players, Long seedOverride) {
         if (config == null) {
             return Result.fail("random.config_invalid", Map.of("errors",
                     String.join("; ", configErrors)));
         }
+        if (dungeonId == null || dungeonId.isBlank()) {
+            return Result.fail("random.create_no_dungeon", Map.of());
+        }
+        Map<String, TemplateMeta> metas = metasOf(dungeonId);
+        Map<String, StructureNbt.StructureData> templates = templatesOf(dungeonId);
         int active = 0;
         for (RandomInstance instance : instances.values()) {
             if (instance.state() != RandomInstanceState.DESTROYED
@@ -213,7 +250,7 @@ public final class RandomDungeonService {
             Seeds seeds = Seeds.derive(seed);
             Topology topology = new TopologyGenerator().generate(seeds.topology(), roomCount);
             Assigner.Result assignment = new Assigner().assign(seeds.assignment(), topology,
-                    templateOptions(), mandatoryRules());
+                    templateOptions(metas), mandatoryRules());
             if (assignment.nodeTemplate().isEmpty()) {
                 continue;
             }
@@ -238,7 +275,7 @@ public final class RandomDungeonService {
             instance.forceState(RandomInstanceState.GENERATING);
             instances.put(instanceId, instance);
             instanceStore.save(instance);
-            buildWorld(instance, baked);
+            buildWorld(instance, baked, metas, templates);
             return Result.ok("random.create_started", Map.of(
                     "instance", instanceId,
                     "seed", String.valueOf(seed),
@@ -247,7 +284,7 @@ public final class RandomDungeonService {
         return Result.fail("random.allocation_failed", Map.of("limit", String.valueOf(ALLOCATION_LIMIT)));
     }
 
-    private List<Assigner.TemplateOption> templateOptions() {
+    private List<Assigner.TemplateOption> templateOptions(Map<String, TemplateMeta> metas) {
         List<Assigner.TemplateOption> options = new ArrayList<>();
         for (Map.Entry<String, TemplateMeta> entry : metas.entrySet()) {
             RandomConfig.RoomType type = config.roomTypes.get(entry.getKey());
@@ -270,11 +307,12 @@ public final class RandomDungeonService {
         return rules;
     }
 
-    private void buildWorld(RandomInstance instance, Bake.Result baked) {
+    private void buildWorld(RandomInstance instance, Bake.Result baked,
+            Map<String, TemplateMeta> metas, Map<String, StructureNbt.StructureData> templates) {
         dispatcher.runGlobal(plugin, () -> {
             World world;
             try {
-                world = WorldBootstrap.createAirWorld(instance.instanceId());
+                world = WorldBootstrap.createWorld(instance.instanceId(), config.world.type());
             } catch (RuntimeException exception) {
                 failInstance(instance, "world_create_failed");
                 return;

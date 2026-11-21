@@ -554,8 +554,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new emaki.jiuwu.craft.dungeon.editor.EditorGui(this, editorService, messageService,
                         chatInputService);
         editorService.bindGui(editorGui);
-        editorService.bindMarkers(new emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers(
-                this, dispatcher, messageService));
+        var moduleMarkers = new emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers(
+                this, dispatcher, messageService);
+        editorService.bindMarkers(moduleMarkers);
         TicketService ticketService = new TicketService(this, dispatcher, getDataFolder());
         ChallengeGuiService challengeGui = new ChallengeGuiService(this, guiService, languageLoader);
         challenge = new ChallengeService(this, dispatcher, messageService, languageLoader, debugLogger(),
@@ -648,6 +649,18 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         router.bindRandom(randomCommands);
         randomService.loadAll();
         this.randomService = randomService;
+        var captureGui = new emaki.jiuwu.craft.dungeon.random.template.CaptureGui(
+                this, randomService.captures(), messageService, chatInputService);
+        captureGui.bindConfigSupplier(randomService::config);
+        var captureMarkers = new emaki.jiuwu.craft.dungeon.random.template.CaptureMarkers(
+                this, dispatcher, moduleMarkers, randomService::storeOf);
+        randomService.captures().bindRefreshHook(captureMarkers::refresh);
+        moduleMarkers.bindStoreProvider(randomService::storeOf);
+        randomCommands.bindGui(captureGui);
+        getServer().getPluginManager().registerEvents(captureGui, this);
+        getServer().getPluginManager().registerEvents(
+                new emaki.jiuwu.craft.dungeon.random.template.CaptureInteractListener(
+                        randomService.captures(), captureGui), this);
 
         getServer().getPluginManager().registerEvents(
                 new DungeonLifecycleListener(recovery, parties, scriptManager, ticketService), this);
@@ -655,6 +668,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         getServer().getPluginManager().registerEvents(chatInputService, this);
         getServer().getPluginManager().registerEvents(editorService, this);
         getServer().getPluginManager().registerEvents(editorGui, this);
+        getServer().getPluginManager().registerEvents(
+                new emaki.jiuwu.craft.dungeon.editor.EditorInteractListener(editorService, editorGui), this);
         getServer().getPluginManager().registerEvents(
                 new DungeonChatListener(parties, isolation, languageLoader.getMessage("party.chat_format")), this);
         getServer().getPluginManager().registerEvents(commandGuard, this);

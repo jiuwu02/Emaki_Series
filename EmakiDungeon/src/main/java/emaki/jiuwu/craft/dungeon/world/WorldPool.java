@@ -12,7 +12,6 @@ import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.WorldCreator;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -176,7 +175,7 @@ public final class WorldPool {
             return;
         }
         try {
-            World world = WorldMounts.create(new WorldCreator(worldName));
+            World world = WorldMounts.create(WorldTypeSupport.creator(worldName));
             if (world == null) {
                 throw new IllegalStateException("createWorld returned null");
             }
@@ -296,7 +295,7 @@ public final class WorldPool {
                 }
                 if (world == null && dataPresent) {
                     try {
-                        World remounted = WorldMounts.create(new WorldCreator(worldName));
+                        World remounted = WorldMounts.create(WorldTypeSupport.creator(worldName));
                         if (remounted != null) {
                             if (audit != null) {
                                 audit.write("instance", Map.of(

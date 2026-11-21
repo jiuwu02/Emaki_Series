@@ -51,6 +51,12 @@ final class EditorGuiDelegate {
     }
 
     void open(Player player, EditorGui.Panel panel, String[] path, int page) {
+        if (panel == EditorGui.Panel.MAIN) {
+            EditorSession current = ownerRef.service.sessionOf(player.getUniqueId());
+            if (current != null) {
+                current.pendingPoint(null);
+            }
+        }
         EditorGui.EditorHolder holder = new EditorGui.EditorHolder(player.getUniqueId(), panel, path, page);
         Inventory inventory = ownerRef.render(player, holder);
         holder.inventory = inventory;
@@ -485,7 +491,18 @@ final class EditorGuiDelegate {
         if (slot < 0 || slot >= specs.size()) {
             return;
         }
-        ownerRef.open(player, EditorGui.Panel.MODULE_FIELDS, new String[] { specs.get(slot).type() }, 0);
+        EditorModules.ModuleSpec spec = specs.get(slot);
+        emaki.jiuwu.craft.dungeon.flow.FlowPoint pending = session.pendingPoint();
+        if (pending != null) {
+            session.pendingPoint(null);
+            String id = spec.single() ? spec.section() : ownerRef.service.nextId(session, spec);
+            ownerRef.service.mark(player, spec.type(), id, pending);
+            List<String> ids = moduleNodeIds(session.flowDoc().view(), spec);
+            int index = Math.max(0, ids.indexOf(id));
+            ownerRef.open(player, EditorGui.Panel.MODULE_FIELDS, new String[] { spec.type() }, index);
+            return;
+        }
+        ownerRef.open(player, EditorGui.Panel.MODULE_FIELDS, new String[] { spec.type() }, 0);
     }
 
     boolean handleCommonNav(Player player, EditorGui.EditorHolder holder, EditorSession session, int slot, EditorGui.Panel backPanel) {

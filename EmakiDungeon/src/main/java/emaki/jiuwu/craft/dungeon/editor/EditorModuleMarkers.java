@@ -58,17 +58,17 @@ public final class EditorModuleMarkers {
         }
     }
 
-    private record Box(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
+    public record Box(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
 
-        double centerX() {
+        public double centerX() {
             return (minX + maxX) / 2.0D;
         }
 
-        double centerY() {
+        public double centerY() {
             return (minY + maxY) / 2.0D;
         }
 
-        double centerZ() {
+        public double centerZ() {
             return (minZ + maxZ) / 2.0D;
         }
     }
@@ -76,6 +76,12 @@ public final class EditorModuleMarkers {
     private final Plugin plugin;
     private final ExecutionDispatcher dispatcher;
     private final MessageService messages;
+    private volatile java.util.function.Function<String, emaki.jiuwu.craft.dungeon.random.template.TemplateStore> storeProvider;
+
+    public void bindStoreProvider(
+            java.util.function.Function<String, emaki.jiuwu.craft.dungeon.random.template.TemplateStore> storeProvider) {
+        this.storeProvider = storeProvider;
+    }
 
     public EditorModuleMarkers(Plugin plugin, ExecutionDispatcher dispatcher, MessageService messages) {
         this.plugin = plugin;
@@ -106,6 +112,8 @@ public final class EditorModuleMarkers {
                             "error", String.valueOf(exception)));
                 }
             }
+            renderStructures(world, session, spawned);
+            renderSelection(world, session, spawned);
             session.markers(spawned);
             if (!spawned.isEmpty()) {
                 messages.info(LogTag.EDITOR, "console.editor_markers_spawned", Map.of(
@@ -128,6 +136,55 @@ public final class EditorModuleMarkers {
             }
         }
         session.markers(new ArrayList<>());
+    }
+
+    private void renderStructures(World world, EditorSession session, List<Entity> out) {
+        java.util.function.Function<String, emaki.jiuwu.craft.dungeon.random.template.TemplateStore> provider =
+                storeProvider;
+        if (provider == null) {
+            return;
+        }
+        for (Map.Entry<String, emaki.jiuwu.craft.dungeon.random.model.TemplateMeta> entry
+                : provider.apply(session.dungeonId()).loadAll().entrySet()) {
+            emaki.jiuwu.craft.dungeon.random.model.TemplateMeta meta = entry.getValue();
+            List<Integer> sel = meta.selection();
+            if (sel.size() != 6) {
+                continue;
+            }
+            Box box = new Box(Math.min(sel.get(0), sel.get(3)), Math.min(sel.get(1), sel.get(4)),
+                    Math.min(sel.get(2), sel.get(5)), Math.max(sel.get(0), sel.get(3)),
+                    Math.max(sel.get(1), sel.get(4)), Math.max(sel.get(2), sel.get(5)));
+            Color color = "corridor".equals(meta.structureType()) ? Color.ORANGE : Color.AQUA;
+            out.addAll(spawnEdges(world, session.playerId(), box, color));
+            String text = "<white>" + plain(meta.structureType()) + "</white> <gray>"
+                    + plain(entry.getKey()) + " [" + plain(String.join(",", meta.tags())) + "]</gray>";
+            Entity label = spawnTag(world, session.playerId(), box, text);
+            if (label != null) {
+                out.add(label);
+            }
+        }
+    }
+
+    private void renderSelection(World world, EditorSession session, List<Entity> out) {
+        emaki.jiuwu.craft.dungeon.flow.FlowPoint first = session.pos1();
+        emaki.jiuwu.craft.dungeon.flow.FlowPoint second = session.pos2();
+        if (first == null && second == null) {
+            return;
+        }
+        emaki.jiuwu.craft.dungeon.flow.FlowPoint a = first != null ? first : second;
+        emaki.jiuwu.craft.dungeon.flow.FlowPoint b = second != null ? second : first;
+        double pad = first == null || second == null ? 0.75D : 0.0D;
+        Box box = new Box(Math.min(Math.floor(a.x()), Math.floor(b.x())) - pad,
+                Math.min(Math.floor(a.y()), Math.floor(b.y())) - pad,
+                Math.min(Math.floor(a.z()), Math.floor(b.z())) - pad,
+                Math.max(Math.floor(a.x()), Math.floor(b.x())) + pad,
+                Math.max(Math.floor(a.y()), Math.floor(b.y())) + pad,
+                Math.max(Math.floor(a.z()), Math.floor(b.z())) + pad);
+        out.addAll(spawnEdges(world, session.playerId(), box, Color.YELLOW));
+    }
+
+    private String plain(String raw) {
+        return raw == null ? "" : raw.replace("<", "").replace(">", "");
     }
 
     private void renderSection(World world, EditorSession session, YamlTextDocument view,
@@ -165,14 +222,14 @@ public final class EditorModuleMarkers {
                     "id", String.valueOf(moduleId)));
             return;
         }
-        out.addAll(spawnEdges(world, session, box, colorOf(type)));
-        Entity label = spawnLabel(world, session, box, type, moduleId);
+        out.addAll(spawnEdges(world, session.playerId(), box, colorOf(type)));
+        Entity label = spawnLabel(world, session.playerId(), box, type, moduleId);
         if (label != null) {
             out.add(label);
         }
     }
 
-    private Box boxOf(Map<?, ?> module) {
+    public Box boxOf(Map<?, ?> module) {
         Object region = module.get("region");
         if (region instanceof Map<?, ?> map) {
             Box box = regionBox(map);
@@ -236,7 +293,7 @@ public final class EditorModuleMarkers {
         }
     }
 
-    private List<Entity> spawnEdges(World world, EditorSession session, Box box, Color color) {
+    public List<Entity> spawnEdges(World world, UUID ownerId, Box box, Color color) {
         List<Entity> spawned = new ArrayList<>(12);
         for (Edge edge : edges(box)) {
             Location corner = new Location(world, edge.x1(), edge.y1(), edge.z1());
@@ -252,13 +309,13 @@ public final class EditorModuleMarkers {
                 display.setInterpolationDuration(0);
                 display.setPersistent(false);
             });
-            hideFromOthers(session.playerId(), line);
+            hideFromOthers(ownerId, line);
             spawned.add(line);
         }
         return spawned;
     }
 
-    private Entity spawnLabel(World world, EditorSession session, Box box, String type, String moduleId) {
+    public Entity spawnLabel(World world, UUID ownerId, Box box, String type, String moduleId) {
         String key = "editor.marker." + type;
         String text = messages.messageOrFallback(key, type);
         Location center = new Location(world, box.centerX(),
@@ -275,8 +332,39 @@ public final class EditorModuleMarkers {
             display.setPersistent(false);
             display.setAlignment(TextDisplay.TextAlignment.CENTER);
         });
-        hideFromOthers(session.playerId(), label);
+        hideFromOthers(ownerId, label);
         return label;
+    }
+
+    public Entity spawnTag(World world, UUID ownerId, Box box, String text) {
+        Location center = new Location(world, box.centerX(),
+                Math.min(box.maxY() + 0.6D, box.centerY() + 1.2D), box.centerZ());
+        TextDisplay label = world.spawn(center, TextDisplay.class, display -> {
+            display.text(MiniMessages.parse(text));
+            display.setBillboard(Display.Billboard.CENTER);
+            display.setSeeThrough(false);
+            display.setDefaultBackground(false);
+            display.setBackgroundColor(Color.fromARGB(180, 0, 0, 0));
+            display.setShadowed(true);
+            display.setBrightness(new Display.Brightness(15, 0));
+            display.setViewRange(VIEW_RANGE);
+            display.setPersistent(false);
+            display.setAlignment(TextDisplay.TextAlignment.CENTER);
+        });
+        hideFromOthers(ownerId, label);
+        return label;
+    }
+
+    public static void removeAll(List<Entity> entities) {
+        if (entities == null) {
+            return;
+        }
+        for (Entity entity : entities) {
+            if (entity != null && entity.isValid()) {
+                entity.remove();
+            }
+        }
+        entities.clear();
     }
 
     private void hideFromOthers(UUID ownerId, Entity entity) {
