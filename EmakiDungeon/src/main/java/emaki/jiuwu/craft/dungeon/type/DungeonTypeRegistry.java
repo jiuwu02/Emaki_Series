@@ -11,6 +11,7 @@ public final class DungeonTypeRegistry {
 
     public static final String NORMAL = "normal";
     public static final String AFFIX = "affix";
+    public static final String RANDOM = "random";
 
     private final Map<String, DungeonType> types = new ConcurrentHashMap<>();
     private final Map<String, List<DungeonAffix>> affixes = new ConcurrentHashMap<>();
@@ -21,6 +22,7 @@ public final class DungeonTypeRegistry {
                 ? (dungeon, raw) -> { } : unknownTypeWarning;
         register(new NormalDungeonType());
         register(new AffixDungeonType());
+        register(new RandomDungeonType());
     }
 
     public void register(DungeonType type) {

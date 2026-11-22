@@ -33,7 +33,6 @@ public final class RandomCommands {
         }
         String sub = args[1].toLowerCase(java.util.Locale.ROOT);
         switch (sub) {
-            case "template" -> routeTemplate(player, args);
             case "create" -> {
                 if (!player.hasPermission("emakidungeon.play")) {
                     messages.send(player, "random.no_permission", Map.of());
@@ -122,118 +121,73 @@ public final class RandomCommands {
         }
     }
 
-    private void routeTemplate(Player player, String[] args) {
-        if (!player.hasPermission("emakidungeon.editor")) {
-            messages.send(player, "random.no_permission", Map.of());
+    public void regionMenu(Player player) {
+        if (!ensureRegionSession(player)) {
+            return;
+        }
+        if (gui != null) {
+            gui.openMain(player);
+        }
+    }
+
+    public void regionPos(Player player, int which) {
+        if (!ensureRegionSession(player)) {
+            return;
+        }
+        report(player, service.captures().pos(player, which));
+    }
+
+    public void regionStatus(Player player) {
+        var session = service.captures().sessionOf(player.getUniqueId());
+        if (session == null) {
+            messages.send(player, "random.template.no_session", Map.of());
+            return;
+        }
+        messages.send(player, "random.template.status", Map.of(
+                "type", session.structureType,
+                "tags", String.join(",", session.tags),
+                "anchors", String.valueOf(session.anchors.size()),
+                "nodes", String.valueOf(session.nodes.size()),
+                "floors", String.valueOf(session.floors)));
+    }
+
+    private boolean ensureRegionSession(Player player) {
+        CaptureService captures = service.captures();
+        if (captures.hasSession(player.getUniqueId())) {
+            return true;
+        }
+        report(player, captures.start(player));
+        return captures.hasSession(player.getUniqueId());
+    }
+
+    public void regionAnchor(Player player, String[] args) {
+        if (!ensureRegionSession(player)) {
             return;
         }
         CaptureService captures = service.captures();
         if (args.length < 3) {
-            messages.send(player, "random.template.usage", Map.of());
+            messages.send(player, "editor.anchor_usage", Map.of());
             return;
         }
-        String sub = args[2].toLowerCase(java.util.Locale.ROOT);
-        switch (sub) {
-            case "start" -> {
-                report(player, captures.start(player));
-                if (gui != null) {
-                    gui.openMain(player);
-                }
-            }
-            case "menu" -> {
-                if (gui != null) {
-                    gui.openMain(player);
-                }
-            }
-            case "pos1" -> report(player, captures.pos(player, 1));
-            case "pos2" -> report(player, captures.pos(player, 2));
-            case "meta" -> {
-                if (args.length < 5) {
-                    messages.send(player, "random.template.usage", Map.of());
-                    return;
-                }
-                report(player, captures.meta(player, args[3], join(args, 4)));
-            }
-            case "anchor" -> routeAnchor(player, args);
-            case "node" -> routeNode(player, args);
-            case "save" -> {
-                if (args.length < 4) {
-                    messages.send(player, "random.template.usage", Map.of());
-                    return;
-                }
-                boolean confirmed = args.length >= 5 && "confirm".equalsIgnoreCase(args[4]);
-                report(player, captures.save(player, args[3], service.config(), confirmed));
-            }
-            case "discard" -> report(player, captures.discard(player));
-            case "status" -> {
-                var session = captures.sessionOf(player.getUniqueId());
-                if (session == null) {
-                    messages.send(player, "random.template.no_session", Map.of());
-                    return;
-                }
-                messages.send(player, "random.template.status", Map.of(
-                        "type", session.structureType,
-                        "tags", String.join(",", session.tags),
-                        "anchors", String.valueOf(session.anchors.size()),
-                        "nodes", String.valueOf(session.nodes.size()),
-                        "floors", String.valueOf(session.floors)));
-            }
-            default -> messages.send(player, "random.template.usage", Map.of());
-        }
-    }
-
-    private void routeAnchor(Player player, String[] args) {
-        CaptureService captures = service.captures();
-        if (args.length < 4) {
-            messages.send(player, "random.template.usage", Map.of());
-            return;
-        }
-        String action = args[3].toLowerCase(java.util.Locale.ROOT);
+        String action = args[2].toLowerCase(java.util.Locale.ROOT);
         if ("add".equals(action)) {
-            if (args.length < 8) {
-                messages.send(player, "random.template.usage", Map.of());
+            if (args.length < 7) {
+                messages.send(player, "editor.anchor_usage", Map.of());
                 return;
             }
-            report(player, captures.anchorAdd(player, args[4], args[5],
-                    parseInt(args[6], 1), parseInt(args[7], 1)));
+            report(player, captures.anchorAdd(player, args[3], args[4],
+                    parseInt(args[5], 1), parseInt(args[6], 1)));
             return;
         }
         if ("remove".equals(action)) {
-            if (args.length < 5) {
-                messages.send(player, "random.template.usage", Map.of());
+            if (args.length < 4) {
+                messages.send(player, "editor.anchor_usage", Map.of());
                 return;
             }
-            report(player, captures.anchorRemove(player, args[4]));
+            report(player, captures.anchorRemove(player, args[3]));
             return;
         }
-        messages.send(player, "random.template.usage", Map.of());
-    }
-
-    private void routeNode(Player player, String[] args) {
-        CaptureService captures = service.captures();
-        if (args.length < 4) {
-            messages.send(player, "random.template.usage", Map.of());
-            return;
-        }
-        String action = args[3].toLowerCase(java.util.Locale.ROOT);
-        if ("add".equals(action)) {
-            if (args.length < 6) {
-                messages.send(player, "random.template.usage", Map.of());
-                return;
-            }
-            report(player, captures.nodeAdd(player, args[4], args[5],
-                    args.length >= 7 ? args[6] : ""));
-            return;
-        }
-        if ("param".equals(action)) {
-            if (args.length < 7) {
-                messages.send(player, "random.template.usage", Map.of());
-                return;
-            }
-            report(player, captures.nodeParam(player, args[4], args[5], join(args, 6)));
-            return;
-        }
-        messages.send(player, "random.template.usage", Map.of());
+        messages.send(player, "editor.anchor_usage", Map.of());
     }
 
     private void report(Player player, Result result) {
@@ -260,24 +214,10 @@ public final class RandomCommands {
         }
     }
 
-    private static String join(String[] args, int from) {
-        List<String> parts = new ArrayList<>();
-        for (int i = from; i < args.length; i++) {
-            parts.add(args[i]);
-        }
-        return String.join(" ", parts);
-    }
-
     public List<String> complete(String[] args) {
         List<String> candidates = new ArrayList<>();
         if (args.length <= 1) {
-            candidates.addAll(List.of("template", "create", "enter", "leave", "list", "records", "stop", "replay", "reload"));
-        } else if (args.length == 2 && "template".equalsIgnoreCase(args[0])) {
-            candidates.addAll(List.of("start", "menu", "pos1", "pos2", "meta", "anchor", "node", "save", "discard", "status"));
-        } else if (args.length == 3 && "template".equalsIgnoreCase(args[0]) && "meta".equalsIgnoreCase(args[1])) {
-            candidates.addAll(List.of("type", "tags", "floors", "mirrorable", "intrusion-policy", "door-policy", "seal-block", "rotations"));
-        } else if (args.length == 4 && "template".equalsIgnoreCase(args[0]) && "save".equalsIgnoreCase(args[1])) {
-            candidates.add("confirm");
+            candidates.addAll(List.of("create", "enter", "leave", "list", "records", "stop", "replay", "reload"));
         } else if (args.length == 2 && "create".equalsIgnoreCase(args[0])) {
             candidates.addAll(service.dungeonIds());
         } else if (args.length == 2 && ("enter".equalsIgnoreCase(args[0]) || "stop".equalsIgnoreCase(args[0]))) {

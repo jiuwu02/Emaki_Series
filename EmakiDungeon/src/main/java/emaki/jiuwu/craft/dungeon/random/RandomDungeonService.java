@@ -92,7 +92,12 @@ public final class RandomDungeonService {
 
     private volatile RandomConfig config;
     private volatile List<String> configErrors = List.of();
+    private volatile Function<String, emaki.jiuwu.craft.dungeon.config.DungeonConfig> configOf;
     private TaskToken sweepTask = TaskToken.UNAVAILABLE;
+
+    public void bindConfigOf(Function<String, emaki.jiuwu.craft.dungeon.config.DungeonConfig> configOf) {
+        this.configOf = configOf;
+    }
 
     public RandomDungeonService(JavaPlugin plugin, ExecutionDispatcher dispatcher, MessageService messages,
             File dataFolder, File worldContainer, WorldDisposer disposer, InstanceRegistry registry,
@@ -227,6 +232,11 @@ public final class RandomDungeonService {
         }
         if (dungeonId == null || dungeonId.isBlank()) {
             return Result.fail("random.create_no_dungeon", Map.of());
+        }
+        var dungeonConfig = configOf == null ? null : configOf.apply(dungeonId);
+        if (dungeonConfig == null || !emaki.jiuwu.craft.dungeon.type.DungeonTypeRegistry.RANDOM
+                .equals(dungeonConfig.type())) {
+            return Result.fail("random.not_random_type", Map.of("dungeon", dungeonId));
         }
         Map<String, TemplateMeta> metas = metasOf(dungeonId);
         Map<String, StructureNbt.StructureData> templates = templatesOf(dungeonId);

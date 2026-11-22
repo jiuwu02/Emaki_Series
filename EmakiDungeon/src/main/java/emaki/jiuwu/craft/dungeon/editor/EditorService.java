@@ -244,6 +244,15 @@ public final class EditorService implements Listener {
         }
     }
 
+    public String dungeonTypeOf(UUID playerId) {
+        EditorSession session = sessions.get(playerId);
+        if (session == null) {
+            return "";
+        }
+        DungeonConfig config = configCache == null ? null : configCache.get(session.dungeonId());
+        return config == null ? "" : config.type();
+    }
+
     public void markPos(Player player, int which) { new EditorServiceDelegate(this).markPos(player, which); }
 
     public void mark(Player player, String rawType, String rawId) {

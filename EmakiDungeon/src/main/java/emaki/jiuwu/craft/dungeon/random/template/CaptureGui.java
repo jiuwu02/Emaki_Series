@@ -35,7 +35,7 @@ public final class CaptureGui implements Listener {
             "temp_items", "kill_targets");
 
     private enum Panel {
-        MAIN, META, ANCHORS, NODES, NODE, PLACE, STRUCTURE
+        MAIN, META, ANCHORS, NODES, NODE, PLACE, STRUCTURE, CREATE
     }
 
     private static final class Holder implements org.bukkit.inventory.InventoryHolder {
@@ -137,6 +137,7 @@ public final class CaptureGui implements Listener {
             case NODE -> renderNode(inventory, session, holder);
             case PLACE -> renderPlace(inventory);
             case STRUCTURE -> renderStructure(inventory, session, holder);
+            case CREATE -> renderCreate(inventory);
         }
     }
 
@@ -150,7 +151,7 @@ public final class CaptureGui implements Listener {
                 List.of(String.valueOf(session.anchors.size()))));
         inventory.setItem(SLOT_NODES, item(Material.CHEST, "random.gui.nodes",
                 List.of(String.valueOf(session.nodes.size()))));
-        inventory.setItem(SLOT_SAVE, item(Material.LIME_CONCRETE, "random.gui.save", List.of()));
+        inventory.setItem(SLOT_SAVE, item(Material.LIME_CONCRETE, "random.gui.create_region", List.of()));
         inventory.setItem(SLOT_DISCARD, item(Material.ORANGE_CONCRETE, "random.gui.discard", List.of()));
         inventory.setItem(SLOT_STATUS, item(Material.ENDER_EYE, "random.gui.status",
                 List.of(session.structureType, String.join(",", session.tags),
@@ -247,6 +248,12 @@ public final class CaptureGui implements Listener {
         inventory.setItem(SLOT_BACK, item(Material.OAK_DOOR, "random.gui.back", List.of()));
     }
 
+    private void renderCreate(Inventory inventory) {
+        inventory.setItem(10, item(Material.LIGHT_BLUE_CONCRETE, "random.gui.create_room", List.of()));
+        inventory.setItem(11, item(Material.ORANGE_CONCRETE, "random.gui.create_corridor", List.of()));
+        inventory.setItem(SLOT_BACK, item(Material.OAK_DOOR, "random.gui.back", List.of()));
+    }
+
     private void renderStructure(Inventory inventory, CaptureService.Session session, Holder holder) {
         TemplateMeta meta = captures.structure(session, holder.path[0]);
         if (meta == null) {
@@ -314,6 +321,7 @@ public final class CaptureGui implements Listener {
             case NODE -> handleNode(player, holder, session, slot);
             case PLACE -> handlePlace(player, session, slot);
             case STRUCTURE -> handleStructure(player, holder, session, slot);
+            case CREATE -> handleCreate(player, slot);
         }
     }
 
@@ -330,11 +338,7 @@ public final class CaptureGui implements Listener {
             case SLOT_META -> open(player, new Holder(Panel.META, new String[0], 0));
             case SLOT_ANCHORS -> open(player, new Holder(Panel.ANCHORS, new String[0], 0));
             case SLOT_NODES -> open(player, new Holder(Panel.NODES, new String[0], 0));
-            case SLOT_SAVE -> {
-                RandomConfig config = configSupplier == null ? null : configSupplier.get();
-                report(player, captures.save(player, null, config, true));
-                player.closeInventory();
-            }
+            case SLOT_SAVE -> open(player, new Holder(Panel.CREATE, new String[0], 0));
             case SLOT_DISCARD -> {
                 captures.discard(player);
                 player.closeInventory();
@@ -500,6 +504,20 @@ public final class CaptureGui implements Listener {
             }
         }
         open(player, new Holder(Panel.NODES, new String[0], 0));
+    }
+
+    private void handleCreate(Player player, int slot) {
+        if (slot == SLOT_BACK) {
+            open(player, new Holder(Panel.MAIN, new String[0], 0));
+            return;
+        }
+        String type = slot == 10 ? TemplateModel.TYPE_ROOM : slot == 11 ? TemplateModel.TYPE_CORRIDOR : null;
+        if (type == null) {
+            return;
+        }
+        RandomConfig config = configSupplier == null ? null : configSupplier.get();
+        report(player, captures.createRegion(player, type, config));
+        open(player, new Holder(Panel.MAIN, new String[0], 0));
     }
 
     private void handleStructure(Player player, Holder holder, CaptureService.Session session, int slot) {

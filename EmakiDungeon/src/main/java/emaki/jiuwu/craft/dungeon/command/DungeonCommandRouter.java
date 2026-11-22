@@ -54,7 +54,7 @@ public final class DungeonCommandRouter {
     private static final List<String> PARTY_SUBS = List.of(
             "create", "invite", "accept", "deny", "kick", "leave", "disband", "chat"
     );
-    private static final List<String> EDITOR_SUBS = List.of("menu", "save", "exit", "pos1", "pos2", "mark", "marks", "test", "fill");
+    private static final List<String> EDITOR_SUBS = List.of("menu", "save", "exit", "pos1", "pos2", "anchor", "status", "mark", "marks", "test", "fill");
     private static final List<String> RECRUIT_SUBS = List.of("open", "close", "list", "join");
     private static final List<String> MATCH_SUBS = List.of("join", "leave");
     private static final List<String> SPECTATE_SUBS = List.of("next", "prev");
@@ -632,10 +632,28 @@ public final class DungeonCommandRouter {
                     }
                     editor.exit(player);
                 }
-                case "menu" -> editor.openMenu(player);
+                case "menu" -> {
+                    if (randomDungeon(player)) {
+                        routeRegionCommand(player, args, "menu");
+                    } else {
+                        editor.openMenu(player);
+                    }
+                }
                 case "save" -> editor.save(player);
-                case "pos1" -> editor.markPos(player, 1);
-                case "pos2" -> editor.markPos(player, 2);
+                case "pos1" -> {
+                    if (randomDungeon(player)) {
+                        routeRegionCommand(player, args, "pos1");
+                    } else {
+                        editor.markPos(player, 1);
+                    }
+                }
+                case "pos2" -> {
+                    if (randomDungeon(player)) {
+                        routeRegionCommand(player, args, "pos2");
+                    } else {
+                        editor.markPos(player, 2);
+                    }
+                }
                 case "mark" -> {
                     if (args.length < 3 || Texts.isBlank(args[2])) {
                         messages.send(player, "editor.mark_usage", Map.of());
@@ -644,6 +662,8 @@ public final class DungeonCommandRouter {
                     editor.mark(player, args[2], args.length >= 4 ? args[3] : null);
                 }
                 case "marks" -> editor.listMarks(player);
+                case "anchor" -> routeRegionCommand(player, args, "anchor");
+                case "status" -> routeRegionCommand(player, args, "status");
                 case "test" -> {
                     String pointer = snapshots.pointerOf(player.getUniqueId());
                     if (pointer != null && registry.get(pointer) != null) {
@@ -676,7 +696,34 @@ public final class DungeonCommandRouter {
             messages.send(player, "editor.busy_challenge", Map.of());
             return;
         }
+        if ("anchor".equals(Texts.lower(args[1])) || "status".equals(Texts.lower(args[1]))) {
+            messages.send(player, "editor.random_only", Map.of());
+            return;
+        }
         editor.open(player, args[1]);
+    }
+
+    private boolean randomDungeon(Player player) {
+        return editor != null
+                && emaki.jiuwu.craft.dungeon.type.DungeonTypeRegistry.RANDOM.equals(editor.dungeonTypeOf(player.getUniqueId()));
+    }
+
+    private void routeRegionCommand(Player player, String[] args, String sub) {
+        if (!randomDungeon(player)) {
+            messages.send(player, "editor.random_only", Map.of());
+            return;
+        }
+        if (randomCommands == null) {
+            messages.send(player, "command.unknown", Map.of("command", "editor"));
+            return;
+        }
+        switch (sub) {
+            case "menu" -> randomCommands.regionMenu(player);
+            case "pos1" -> randomCommands.regionPos(player, 1);
+            case "pos2" -> randomCommands.regionPos(player, 2);
+            case "anchor" -> randomCommands.regionAnchor(player, args);
+            default -> randomCommands.regionStatus(player);
+        }
     }
 
     private void routeParty(Player player, String[] args) {
@@ -773,6 +820,9 @@ public final class DungeonCommandRouter {
                     }
                 }
                 return blocks;
+            }
+            if (args.length == 3 && "anchor".equals(Texts.lower(args[1]))) {
+                return List.of("add", "remove");
             }
         }
         if ("recruit".equals(root)) {
@@ -966,10 +1016,18 @@ public final class DungeonCommandRouter {
                         "command.help_value_desc_editor_mark", "editor mark", EditorService.markTypes());
                 return;
             }
+            if ("anchor".equals(tail)) {
+                sendHelpLines(sender, root, "command.help_editor_anchor_header",
+                        "command.help_editor_anchor_entry_add",
+                        "command.help_editor_anchor_entry_remove");
+                sendHelpFooter(sender);
+                return;
+            }
         }
         sendHelpLines(sender, root, "command.help_editor_header",
                 "command.help_editor_entry_dungeon", "command.help_editor_entry_exit",
                 "command.help_editor_entry_pos_one", "command.help_editor_entry_pos_two",
+                "command.help_editor_entry_anchor", "command.help_editor_entry_status",
                 "command.help_editor_entry_mark", "command.help_editor_entry_marks",
                 "command.help_editor_entry_test", "command.help_editor_entry_fill");
         sendHelpFooter(sender);
@@ -1042,10 +1100,6 @@ public final class DungeonCommandRouter {
     private void sendRandomHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 2) {
             String tail = Texts.lower(path.get(1));
-            if ("template".equals(tail)) {
-                sendRandomTemplateHelp(sender, root, path);
-                return;
-            }
             if ("enter".equals(tail)) {
                 sendValueHelp(sender, root, "command.help_random_enter_header",
                         "command.help_value_desc_random_enter", "random enter", randomInstanceIds());
@@ -1063,51 +1117,11 @@ public final class DungeonCommandRouter {
             }
         }
         sendHelpLines(sender, root, "command.help_random_header",
-                "command.help_random_entry_template", "command.help_random_entry_create",
-                "command.help_random_entry_enter", "command.help_random_entry_leave",
+                "command.help_random_entry_create", "command.help_random_entry_enter",
+                "command.help_random_entry_leave",
                 "command.help_random_entry_list", "command.help_random_entry_records",
                 "command.help_random_entry_stop", "command.help_random_entry_replay",
                 "command.help_random_entry_reload");
-        sendHelpFooter(sender);
-    }
-
-    private void sendRandomTemplateHelp(CommandSender sender, String root, List<String> path) {
-        if (path.size() >= 3) {
-            String tail = Texts.lower(path.get(2));
-            if ("meta".equals(tail)) {
-                sendHelpLines(sender, root, "command.help_random_template_meta_header",
-                        "command.help_random_template_meta_entry_type",
-                        "command.help_random_template_meta_entry_tags",
-                        "command.help_random_template_meta_entry_floors",
-                        "command.help_random_template_meta_entry_mirrorable",
-                        "command.help_random_template_meta_entry_intrusion_policy",
-                        "command.help_random_template_meta_entry_door_policy",
-                        "command.help_random_template_meta_entry_seal_block",
-                        "command.help_random_template_meta_entry_rotations");
-                sendHelpFooter(sender);
-                return;
-            }
-            if ("anchor".equals(tail)) {
-                sendHelpLines(sender, root, "command.help_random_template_anchor_header",
-                        "command.help_random_template_anchor_entry_add",
-                        "command.help_random_template_anchor_entry_remove");
-                sendHelpFooter(sender);
-                return;
-            }
-            if ("node".equals(tail)) {
-                sendHelpLines(sender, root, "command.help_random_template_node_header",
-                        "command.help_random_template_node_entry_add",
-                        "command.help_random_template_node_entry_param");
-                sendHelpFooter(sender);
-                return;
-            }
-        }
-        sendHelpLines(sender, root, "command.help_random_template_header",
-                "command.help_random_template_entry_start", "command.help_random_template_entry_pos_one",
-                "command.help_random_template_entry_pos_two", "command.help_random_template_entry_meta",
-                "command.help_random_template_entry_anchor", "command.help_random_template_entry_node",
-                "command.help_random_template_entry_save", "command.help_random_template_entry_discard",
-                "command.help_random_template_entry_status");
         sendHelpFooter(sender);
     }
 

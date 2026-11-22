@@ -34,6 +34,10 @@ public final class EditorInteractListener implements Listener {
         if (session == null || !session.ready()) {
             return;
         }
+        if (emaki.jiuwu.craft.dungeon.type.DungeonTypeRegistry.RANDOM
+                .equals(service.dungeonTypeOf(player.getUniqueId()))) {
+            return;
+        }
         Block block = event.getClickedBlock();
         if (block == null || !block.getWorld().getName().equals(session.editWorldName())) {
             return;

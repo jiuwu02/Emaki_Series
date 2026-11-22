@@ -447,11 +447,66 @@ public final class CaptureService {
             return Result.fail("random.template.save_failed", Map.of("error",
                     String.valueOf(exception.getMessage())));
         }
-        sessions.remove(player.getUniqueId());
-        return Result.ok("random.template.saved", Map.of(
+        Result saved = Result.ok("random.template.saved", Map.of(
                 "id", normalizedId,
                 "blocks", String.valueOf(blockCount),
                 "anchors", String.valueOf(session.anchors.size())));
+        resetForNewRegion(session);
+        fireRefresh(player.getUniqueId());
+        return saved;
+    }
+
+    public Result createRegion(Player player, String structureType, RandomConfig config) {
+        Session session = sessions.get(player.getUniqueId());
+        if (session == null) {
+            return Result.fail("random.template.no_session", Map.of());
+        }
+        String normalizedType = structureType == null ? "" : structureType.trim().toLowerCase(Locale.ROOT);
+        if (!TemplateModel.TYPE_ROOM.equals(normalizedType) && !TemplateModel.TYPE_CORRIDOR.equals(normalizedType)) {
+            return Result.fail("random.region_type_invalid", Map.of("type", String.valueOf(structureType)));
+        }
+        World world = player.getWorld();
+        String dungeonId = world == null || !world.getName().startsWith(EDIT_WORLD_PREFIX)
+                ? "" : world.getName().substring(EDIT_WORLD_PREFIX.length());
+        if (dungeonId.isBlank()) {
+            return Result.fail("random.template.world_forbidden", Map.of());
+        }
+        session.structureType = normalizedType;
+        String regionId = nextRegionId(dungeonId, normalizedType);
+        Result saved = save(player, regionId, config, true);
+        return saved.ok() ? Result.ok("random.region_created", saved.params()) : saved;
+    }
+
+    private String nextRegionId(String dungeonId, String prefix) {
+        TemplateStore store = storeProvider.apply(dungeonId);
+        int max = 0;
+        for (String existing : store.ids()) {
+            if (!existing.startsWith(prefix + "_")) {
+                continue;
+            }
+            try {
+                max = Math.max(max, Integer.parseInt(existing.substring(prefix.length() + 1)));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return prefix + "_" + (max + 1);
+    }
+
+    private void resetForNewRegion(Session session) {
+        session.pos1 = null;
+        session.pos2 = null;
+        session.pendingBlock = null;
+        session.structureType = TemplateModel.TYPE_ROOM;
+        session.tags.clear();
+        session.floors = 1;
+        session.mirrorable = false;
+        session.intrusionPolicy = TemplateModel.INTRUSION_ALLOW;
+        session.doorPolicy = TemplateModel.POLICY_SEAL;
+        session.sealBlock = "";
+        session.rotations.clear();
+        session.rotations.addAll(List.of(0, 90, 180, 270));
+        session.anchors.clear();
+        session.nodes.clear();
     }
 
     private Result validateAnchor(DoorAnchor anchor, int minX, int minY, int minZ,
