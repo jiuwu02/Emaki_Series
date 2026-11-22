@@ -113,7 +113,11 @@ public final class StructureCommandRouter {
             result.removeIf(sub -> !hasPermission(sender, sub));
             return result;
         }
-        return switch (args[0].toLowerCase(Locale.ROOT)) {
+        String head = args[0].toLowerCase(Locale.ROOT);
+        if (!hasPermission(sender, head)) {
+            return List.of();
+        }
+        return switch (head) {
             case "get" -> suggestTemplateCommand(sender, args);
             case "structure" -> suggestStructure(args);
             case "select" -> suggestSelect(args);

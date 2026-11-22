@@ -495,21 +495,42 @@ public final class StorageCommandRouter implements TabExecutor {
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, root, "command.help_header",
-                    "command.help_entry_open_self", "command.help_entry_open", "command.help_entry_edit",
-                    "command.help_entry_autopickup", "command.help_entry_slot", "command.help_entry_stacklimit",
-                    "command.help_entry_info", "command.help_entry_export", "command.help_entry_reload",
-                    "command.help_entry_debug", "command.help_entry_help");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_header");
+            if (sender.hasPermission(PERMISSION_USE) || hasAdmin(sender)) {
+                entries.add("command.help_entry_open_self");
+            }
+            if (hasAdmin(sender)) {
+                entries.add("command.help_entry_open");
+            }
+            if (sender.hasPermission(PERMISSION_EDIT)) {
+                entries.add("command.help_entry_edit");
+            }
+            if (sender.hasPermission(StorageAutoPickupService.PERMISSION)) {
+                entries.add("command.help_entry_autopickup");
+            }
+            if (hasAdmin(sender)) {
+                entries.addAll(List.of("command.help_entry_slot", "command.help_entry_stacklimit",
+                        "command.help_entry_info", "command.help_entry_export"));
+            }
+            if (sender.hasPermission(PERMISSION_RELOAD) || hasAdmin(sender)) {
+                entries.add("command.help_entry_reload");
+            }
+            if (sender.hasPermission(PERMISSION_DEBUG) || hasAdmin(sender)) {
+                entries.add("command.help_entry_debug");
+            }
+            entries.add("command.help_entry_help");
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
         switch (path.get(0).toLowerCase(Locale.ROOT)) {
             case "open" -> sendPlayerHelp(sender, root, "open",
-                    "command.help_open_header", "command.help_value_desc_open");
+                    "command.help_open_header", "command.help_value_desc_open", hasAdmin(sender));
             case "info" -> sendPlayerHelp(sender, root, "info",
-                    "command.help_info_header", "command.help_value_desc_info");
+                    "command.help_info_header", "command.help_value_desc_info", hasAdmin(sender));
             case "export" -> sendPlayerHelp(sender, root, "export",
-                    "command.help_export_header", "command.help_value_desc_export");
+                    "command.help_export_header", "command.help_value_desc_export", hasAdmin(sender));
             case "slot" -> sendSlotHelp(sender, root, path);
             case "stacklimit" -> sendStackLimitHelp(sender, root, path);
             case "debug" -> sendDebugHelp(sender, root, path);
@@ -519,55 +540,89 @@ public final class StorageCommandRouter implements TabExecutor {
 
     private void sendSlotHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 2 && "grant".equalsIgnoreCase(path.get(1))) {
-            sendHelpLines(sender, root, "command.help_slot_grant_header",
-                    "command.help_slot_grant_entry_player", "command.help_slot_grant_entry_amount");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_slot_grant_header");
+            if (hasAdmin(sender)) {
+                entries.addAll(List.of("command.help_slot_grant_entry_player",
+                        "command.help_slot_grant_entry_amount"));
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
-        sendHelpLines(sender, root, "command.help_slot_header", "command.help_slot_entry_grant");
+        List<String> entries = new ArrayList<>();
+        entries.add("command.help_slot_header");
+        if (hasAdmin(sender)) {
+            entries.add("command.help_slot_entry_grant");
+        }
+        sendHelpLines(sender, root, entries.toArray(String[]::new));
         sendHelpFooter(sender);
     }
 
     private void sendStackLimitHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 2 && "player".equalsIgnoreCase(path.get(1))) {
-            sendHelpLines(sender, root, "command.help_stacklimit_player_header",
-                    "command.help_stacklimit_player_entry_player", "command.help_stacklimit_player_entry_limit");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_stacklimit_player_header");
+            if (hasAdmin(sender)) {
+                entries.addAll(List.of("command.help_stacklimit_player_entry_player",
+                        "command.help_stacklimit_player_entry_limit"));
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
         if (path.size() >= 2 && "slot".equalsIgnoreCase(path.get(1))) {
-            sendHelpLines(sender, root, "command.help_stacklimit_slot_header",
-                    "command.help_stacklimit_slot_entry_player", "command.help_stacklimit_slot_entry_slot",
-                    "command.help_stacklimit_slot_entry_limit");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_stacklimit_slot_header");
+            if (hasAdmin(sender)) {
+                entries.addAll(List.of("command.help_stacklimit_slot_entry_player",
+                        "command.help_stacklimit_slot_entry_slot", "command.help_stacklimit_slot_entry_limit"));
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
-        sendHelpLines(sender, root, "command.help_stacklimit_header",
-                "command.help_stacklimit_entry_player", "command.help_stacklimit_entry_slot");
+        List<String> entries = new ArrayList<>();
+        entries.add("command.help_stacklimit_header");
+        if (hasAdmin(sender)) {
+            entries.addAll(List.of("command.help_stacklimit_entry_player", "command.help_stacklimit_entry_slot"));
+        }
+        sendHelpLines(sender, root, entries.toArray(String[]::new));
         sendHelpFooter(sender);
     }
 
     private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() < 2) {
-            sendHelpLines(sender, root, "command.help_debug_header",
-                    "command.help_debug_entry_status", "command.help_debug_entry_on",
-                    "command.help_debug_entry_off", "command.help_debug_entry_player",
-                    "command.help_debug_entry_module", "command.help_debug_entry_action");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_debug_header");
+            if (sender.hasPermission(PERMISSION_DEBUG) || hasAdmin(sender)) {
+                entries.addAll(List.of("command.help_debug_entry_status", "command.help_debug_entry_on",
+                        "command.help_debug_entry_off", "command.help_debug_entry_player",
+                        "command.help_debug_entry_module", "command.help_debug_entry_action"));
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
         switch (path.get(1).toLowerCase(Locale.ROOT)) {
             case "player" -> sendPlayerHelp(sender, root, "debug player",
-                    "command.help_debug_player_header", "command.help_value_desc_debug_player");
-            case "module" -> sendModuleHelp(sender, root);
+                    "command.help_debug_player_header", "command.help_value_desc_debug_player",
+                    sender.hasPermission(PERMISSION_DEBUG) || hasAdmin(sender));
+            case "module" -> sendModuleHelp(sender, root,
+                    sender.hasPermission(PERMISSION_DEBUG) || hasAdmin(sender));
             case "action" -> sendDebugActionHelp(sender, root, path);
             default -> sendHelpPage(sender, root, List.of("debug"));
         }
     }
 
-    private void sendPlayerHelp(CommandSender sender, String root, String command, String headerKey, String descKey) {
+    private void sendPlayerHelp(CommandSender sender, String root, String command, String headerKey, String descKey,
+            boolean permitted) {
         var messageService = plugin.messageService();
         sendHelpLine(sender, messageService.message(headerKey, Map.of("root", root)));
+        if (!permitted) {
+            sendHelpFooter(sender);
+            return;
+        }
         List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
         players.sort(Comparator.comparing(Player::getName));
         if (players.isEmpty()) {
@@ -584,9 +639,13 @@ public final class StorageCommandRouter implements TabExecutor {
         sendHelpFooter(sender);
     }
 
-    private void sendModuleHelp(CommandSender sender, String root) {
+    private void sendModuleHelp(CommandSender sender, String root, boolean permitted) {
         var messageService = plugin.messageService();
         sendHelpLine(sender, messageService.message("command.help_debug_module_header", Map.of("root", root)));
+        if (!permitted) {
+            sendHelpFooter(sender);
+            return;
+        }
         List<String> modules = plugin.debugCommand() == null
                 ? List.of()
                 : plugin.debugCommand().tabComplete(new String[] {"module", ""});
@@ -605,14 +664,23 @@ public final class StorageCommandRouter implements TabExecutor {
 
     private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
-            sendHelpLines(sender, root, "command.help_debug_action_run_header",
-                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_debug_action_run_header");
+            if (sender.hasPermission(PERMISSION_DEBUG) || hasAdmin(sender)) {
+                entries.addAll(List.of("command.help_debug_action_run_entry_shadow",
+                        "command.help_debug_action_run_entry_execute"));
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
-        sendHelpLines(sender, root, "command.help_debug_action_header",
-                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
-                "command.help_debug_action_entry_registry");
+        List<String> entries = new ArrayList<>();
+        entries.add("command.help_debug_action_header");
+        if (sender.hasPermission(PERMISSION_DEBUG) || hasAdmin(sender)) {
+            entries.addAll(List.of("command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
+                    "command.help_debug_action_entry_registry"));
+        }
+        sendHelpLines(sender, root, entries.toArray(String[]::new));
         sendHelpFooter(sender);
     }
 
@@ -643,38 +711,71 @@ public final class StorageCommandRouter implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return CommandTabHelper.completeSubcommands(SUBCOMMANDS, args[0]);
+            List<String> subcommands = new ArrayList<>();
+            subcommands.add("help");
+            if (hasAdmin(sender)) {
+                subcommands.add("open");
+            }
+            if (sender.hasPermission(PERMISSION_EDIT)) {
+                subcommands.add("edit");
+            }
+            if (sender.hasPermission(StorageAutoPickupService.PERMISSION)) {
+                subcommands.add("autopickup");
+            }
+            if (hasAdmin(sender)) {
+                subcommands.addAll(List.of("slot", "stacklimit", "info", "export"));
+            }
+            if (sender.hasPermission(PERMISSION_RELOAD) || hasAdmin(sender)) {
+                subcommands.add("reload");
+            }
+            if (sender.hasPermission(PERMISSION_DEBUG) || hasAdmin(sender)) {
+                subcommands.add("debug");
+            }
+            return CommandTabHelper.completeSubcommands(subcommands, args[0]);
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
         return switch (sub) {
-            case "open", "info", "export" -> args.length == 2
+            case "open", "info", "export" -> args.length == 2 && hasAdmin(sender)
                     ? CommandTabHelper.completeOnlinePlayers(args[1])
                     : List.of();
             case "edit" -> args.length == 2 && plugin.editorModule() != null
+                    && sender.hasPermission(PERMISSION_EDIT)
                     ? CommandTabHelper.completeLiterals(args[1], editRootIds().toArray(new String[0]))
                     : List.of();
-            case "autopickup" -> args.length == 2
+            case "autopickup" -> args.length == 2 && sender.hasPermission(StorageAutoPickupService.PERMISSION)
                     ? CommandTabHelper.completeLiterals(args[1], "on", "off")
                     : List.of();
-            case "slot" -> switch (args.length) {
-                case 2 -> CommandTabHelper.completeLiterals(args[1], "grant");
-                case 3 -> CommandTabHelper.completeOnlinePlayers(args[2]);
-                case 4 -> CommandTabHelper.completeIntRange(args[3], 1, 100);
-                default -> List.of();
-            };
-            case "stacklimit" -> switch (args.length) {
-                case 2 -> CommandTabHelper.completeLiterals(args[1], "player", "slot");
-                case 3 -> CommandTabHelper.completeOnlinePlayers(args[2]);
-                case 4 -> args[1].equalsIgnoreCase("player")
-                        ? CommandTabHelper.completeLiterals(args[3], "0", "100", "max")
-                        : completeSlotIndices(args[2], args[3]);
-                case 5 -> args[1].equalsIgnoreCase("slot")
-                        ? CommandTabHelper.completeLiterals(args[4], "0", "100", "max")
-                        : List.of();
-                default -> List.of();
-            };
-            case "debug" -> plugin.debugCommand()
-                    .tabComplete(Arrays.copyOfRange(args, 1, args.length));
+            case "slot" -> {
+                if (!hasAdmin(sender)) {
+                    yield List.of();
+                }
+                yield switch (args.length) {
+                    case 2 -> CommandTabHelper.completeLiterals(args[1], "grant");
+                    case 3 -> CommandTabHelper.completeOnlinePlayers(args[2]);
+                    case 4 -> CommandTabHelper.completeIntRange(args[3], 1, 100);
+                    default -> List.of();
+                };
+            }
+            case "stacklimit" -> {
+                if (!hasAdmin(sender)) {
+                    yield List.of();
+                }
+                yield switch (args.length) {
+                    case 2 -> CommandTabHelper.completeLiterals(args[1], "player", "slot");
+                    case 3 -> CommandTabHelper.completeOnlinePlayers(args[2]);
+                    case 4 -> args[1].equalsIgnoreCase("player")
+                            ? CommandTabHelper.completeLiterals(args[3], "0", "100", "max")
+                            : completeSlotIndices(args[2], args[3]);
+                    case 5 -> args[1].equalsIgnoreCase("slot")
+                            ? CommandTabHelper.completeLiterals(args[4], "0", "100", "max")
+                            : List.of();
+                    default -> List.of();
+                };
+            }
+            case "debug" -> sender.hasPermission(PERMISSION_DEBUG) || hasAdmin(sender)
+                    ? plugin.debugCommand()
+                            .tabComplete(Arrays.copyOfRange(args, 1, args.length))
+                    : List.of();
             default -> List.of();
         };
     }

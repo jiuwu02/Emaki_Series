@@ -77,13 +77,51 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, root, "command.help_header",
-                    "command.help_entry_help", "command.help_entry_info", "command.help_entry_gui",
-                    "command.help_entry_levelup", "command.help_entry_top", "command.help_entry_topgui",
-                    "command.help_entry_edit", "command.help_entry_giveexp", "command.help_entry_takeexp",
-                    "command.help_entry_setexp", "command.help_entry_addlevel", "command.help_entry_takelevel",
-                    "command.help_entry_setlevel", "command.help_entry_reset", "command.help_entry_reload",
-                    "command.help_entry_debug");
+            List<String> keys = new ArrayList<>();
+            keys.add("command.help_header");
+            keys.add("command.help_entry_help");
+            keys.add("command.help_entry_info");
+            keys.add("command.help_entry_gui");
+            if (hasSubcommandPermission(sender, "levelup")) {
+                keys.add("command.help_entry_levelup");
+            }
+            if (hasSubcommandPermission(sender, "top")) {
+                keys.add("command.help_entry_top");
+            }
+            if (hasSubcommandPermission(sender, "topgui")) {
+                keys.add("command.help_entry_topgui");
+            }
+            if (hasSubcommandPermission(sender, "edit")) {
+                keys.add("command.help_entry_edit");
+            }
+            if (hasSubcommandPermission(sender, "giveexp")) {
+                keys.add("command.help_entry_giveexp");
+            }
+            if (hasSubcommandPermission(sender, "takeexp")) {
+                keys.add("command.help_entry_takeexp");
+            }
+            if (hasSubcommandPermission(sender, "setexp")) {
+                keys.add("command.help_entry_setexp");
+            }
+            if (hasSubcommandPermission(sender, "addlevel")) {
+                keys.add("command.help_entry_addlevel");
+            }
+            if (hasSubcommandPermission(sender, "takelevel")) {
+                keys.add("command.help_entry_takelevel");
+            }
+            if (hasSubcommandPermission(sender, "setlevel")) {
+                keys.add("command.help_entry_setlevel");
+            }
+            if (hasSubcommandPermission(sender, "reset")) {
+                keys.add("command.help_entry_reset");
+            }
+            if (hasSubcommandPermission(sender, "reload")) {
+                keys.add("command.help_entry_reload");
+            }
+            if (hasSubcommandPermission(sender, "debug")) {
+                keys.add("command.help_entry_debug");
+            }
+            sendHelpLines(sender, root, keys.toArray(new String[0]));
             sendHelpFooter(sender);
             return;
         }
@@ -95,11 +133,19 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
 
     private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() < 2) {
-            sendHelpLines(sender, root, "command.help_debug_header",
-                    "command.help_debug_entry_status", "command.help_debug_entry_on",
-                    "command.help_debug_entry_off", "command.help_debug_entry_player",
-                    "command.help_debug_entry_module", "command.help_debug_entry_action",
-                    "command.help_debug_entry_requirement", "command.help_debug_entry_pdc");
+            List<String> keys = new ArrayList<>();
+            keys.add("command.help_debug_header");
+            if (hasSubcommandPermission(sender, "debug")) {
+                keys.add("command.help_debug_entry_status");
+                keys.add("command.help_debug_entry_on");
+                keys.add("command.help_debug_entry_off");
+                keys.add("command.help_debug_entry_player");
+                keys.add("command.help_debug_entry_module");
+                keys.add("command.help_debug_entry_action");
+                keys.add("command.help_debug_entry_requirement");
+                keys.add("command.help_debug_entry_pdc");
+            }
+            sendHelpLines(sender, root, keys.toArray(new String[0]));
             sendHelpFooter(sender);
             return;
         }
@@ -114,31 +160,43 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
 
     private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
-            sendHelpLines(sender, root, "command.help_debug_action_run_header",
-                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            List<String> runKeys = new ArrayList<>();
+            runKeys.add("command.help_debug_action_run_header");
+            if (hasSubcommandPermission(sender, "debug")) {
+                runKeys.add("command.help_debug_action_run_entry_shadow");
+                runKeys.add("command.help_debug_action_run_entry_execute");
+            }
+            sendHelpLines(sender, root, runKeys.toArray(new String[0]));
             sendHelpFooter(sender);
             return;
         }
-        sendHelpLines(sender, root, "command.help_debug_action_header",
-                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
-                "command.help_debug_action_entry_registry");
+        List<String> keys = new ArrayList<>();
+        keys.add("command.help_debug_action_header");
+        if (hasSubcommandPermission(sender, "debug")) {
+            keys.add("command.help_debug_action_entry_run");
+            keys.add("command.help_debug_action_entry_check");
+            keys.add("command.help_debug_action_entry_registry");
+        }
+        sendHelpLines(sender, root, keys.toArray(new String[0]));
         sendHelpFooter(sender);
     }
 
     private void sendDebugModuleHelp(CommandSender sender, String root) {
         var messageService = plugin.messages();
         sendHelpLine(sender, messageService.message("command.help_debug_module_header", Map.of("root", root)));
-        List<String> modules = new ArrayList<>(plugin.debugCommand().tabComplete(new String[]{"module", ""}));
-        modules.sort(Comparator.naturalOrder());
-        if (modules.isEmpty()) {
-            sendHelpLine(sender, messageService.message("command.help_value_empty"));
-            sendHelpFooter(sender);
-            return;
-        }
-        for (String module : modules) {
-            sendValueEntry(sender, module,
-                    messageService.message("command.help_value_desc_debug_module", Map.of("value", module)),
-                    root + " debug module " + module);
+        if (hasSubcommandPermission(sender, "debug")) {
+            List<String> modules = new ArrayList<>(plugin.debugCommand().tabComplete(new String[]{"module", ""}));
+            modules.sort(Comparator.naturalOrder());
+            if (modules.isEmpty()) {
+                sendHelpLine(sender, messageService.message("command.help_value_empty"));
+                sendHelpFooter(sender);
+                return;
+            }
+            for (String module : modules) {
+                sendValueEntry(sender, module,
+                        messageService.message("command.help_value_desc_debug_module", Map.of("value", module)),
+                        root + " debug module " + module);
+            }
         }
         sendHelpFooter(sender);
     }
@@ -146,18 +204,20 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
     private void sendPlayerValueHelp(CommandSender sender, String root, String headerKey, String descKey, String runPrefix) {
         var messageService = plugin.messages();
         sendHelpLine(sender, messageService.message(headerKey, Map.of("root", root)));
-        List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
-        players.sort(Comparator.comparing(Player::getName));
-        if (players.isEmpty()) {
-            sendHelpLine(sender, messageService.message("command.help_value_empty"));
-            sendHelpFooter(sender);
-            return;
-        }
-        for (Player player : players) {
-            String name = player.getName();
-            sendValueEntry(sender, name,
-                    messageService.message(descKey, Map.of("value", name)),
-                    root + " " + runPrefix + " " + name);
+        if (hasSubcommandPermission(sender, "debug")) {
+            List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
+            players.sort(Comparator.comparing(Player::getName));
+            if (players.isEmpty()) {
+                sendHelpLine(sender, messageService.message("command.help_value_empty"));
+                sendHelpFooter(sender);
+                return;
+            }
+            for (Player player : players) {
+                String name = player.getName();
+                sendValueEntry(sender, name,
+                        messageService.message(descKey, Map.of("value", name)),
+                        root + " " + runPrefix + " " + name);
+            }
         }
         sendHelpFooter(sender);
     }
@@ -475,11 +535,12 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            return CommandTabHelper.completeSubcommands(
-                    List.of("help", "info", "gui", "open", "edit", "levelup", "up", "top", "topgui", "topopen",
-                            "giveexp", "addexp", "takeexp", "removeexp", "setexp", "addlevel", "givelevel",
-                            "takelevel", "removelevel", "setlevel", "reset", "reload", "debug"),
-                    args[0]);
+            List<String> subcommands = new ArrayList<>(List.of(
+                    "help", "info", "gui", "open", "edit", "levelup", "up", "top", "topgui", "topopen",
+                    "giveexp", "addexp", "takeexp", "removeexp", "setexp", "addlevel", "givelevel",
+                    "takelevel", "removelevel", "setlevel", "reset", "reload", "debug"));
+            subcommands.removeIf(sub -> !hasSubcommandPermission(sender, sub));
+            return CommandTabHelper.completeSubcommands(subcommands, args[0]);
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
         sub = switch (sub) {
@@ -492,6 +553,9 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             case "removelevel" -> "takelevel";
             default -> sub;
         };
+        if (!hasSubcommandPermission(sender, sub)) {
+            return result;
+        }
         if ("edit".equals(sub) && args.length == 2) {
             if (plugin.editorModule() != null) {
                 for (String id : plugin.editorModule().completeIds()) {
@@ -531,6 +595,22 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             }
         }
         return result;
+    }
+
+    private boolean hasSubcommandPermission(CommandSender sender, String sub) {
+        return switch (sub) {
+            case "edit" -> sender.hasPermission(LevelPermissions.EDIT);
+            case "levelup", "up" -> sender.hasPermission(LevelPermissions.LEVELUP);
+            case "top", "topgui", "topopen" -> sender.hasPermission(LevelPermissions.TOP);
+            case "giveexp", "addexp", "takeexp", "removeexp", "setexp", "addlevel", "givelevel",
+                    "takelevel", "removelevel", "setlevel", "reset" ->
+                    sender.hasPermission(LevelPermissions.ADMIN);
+            case "reload" -> sender.hasPermission(LevelPermissions.RELOAD)
+                    || sender.hasPermission(LevelPermissions.ADMIN);
+            case "debug" -> sender.hasPermission(LevelPermissions.DEBUG)
+                    || sender.hasPermission(LevelPermissions.ADMIN);
+            default -> true;
+        };
     }
 
     private void completeTypes(List<String> result, String prefix) {

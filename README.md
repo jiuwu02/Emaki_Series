@@ -2,30 +2,31 @@
 
 Emaki Series 是一组面向 Minecraft Paper 系服务端的 Java 插件, 采用多模块 Gradle 工程组织.项目以 `EmakiCoreLib` 为共享基础库, 向上承载属性战斗, 装备成长, 技能, 烹饪, 制作, 图鉴, 仓库与自定义生物等 RPG 玩法模块
 
-当前源码版本线为: `EmakiCoreLib 5.0.3`, `EmakiAttribute 5.0.6`, `EmakiForge 5.0.2`, `EmakiStrengthen 5.0.2`, `EmakiCooking 5.0.2`, `EmakiGem 3.0.2`, `EmakiSkills 3.0.2`, `EmakiItem 3.0.5`, `EmakiLevel 2.0.2`, `EmakiCodex 2.0.1`, `EmakiStorage 2.0.1`, `EmakiStation 2.0.2`, `EmakiAccessory 2.0.2`, `EmakiMobs 2.0.2`, `EmakiStructure 1.0.9`, `EmakiDungeon 1.0.17`, `EmakiKits 1.0.1`, `EmakiDummy 1.0.4`
+当前源码版本线为: `EmakiCoreLib 5.0.14`, `EmakiAttribute 5.0.10`, `EmakiForge 5.0.6`, `EmakiStrengthen 5.0.6`, `EmakiCooking 5.0.6`, `EmakiGem 3.0.5`, `EmakiSkills 3.0.8`, `EmakiItem 3.0.11`, `EmakiLevel 2.0.6`, `EmakiCodex 2.0.5`, `EmakiStorage 2.0.6`, `EmakiStation 2.0.6`, `EmakiAccessory 2.0.6`, `EmakiMobs 2.0.6`, `EmakiStructure 1.0.13`, `EmakiDungeon 1.0.33`, `EmakiKits 1.0.6`, `EmakiDummy 1.0.7`, `EmakiNms 1.0.1`
 
 ## 模块概览
 
 | 模块              | 当前版本 | 角色       | 说明                                                                                  |
 | ----------------- | -------- | ---------- | ------------------------------------------------------------------------------------- |
-| `EmakiCoreLib`    | `5.0.3`   | 核心基础库 | 提供 GUI, 动作系统, 物品源桥接, 物品装配, 表达式, YAML, PDC, 经济桥接与共享运行时能力 |
-| `EmakiAttribute`  | `5.0.6`  | 属性系统   | 提供 RPG 属性, 三系伤害, 资源状态, PDC 属性接入, 条件检查, 快照调试与战斗反馈能力     |
-| `EmakiForge`      | `5.0.2`  | 锻造系统   | 提供配方驱动锻造, 品质随机, 材料贡献, 图鉴, 编辑器, 结果组装与 PDC 属性写入能力       |
-| `EmakiStrengthen` | `5.0.2`  | 强化系统   | 提供星级强化, 成功率配置, 锻印 / 里程碑, 强化 GUI, 材料消耗与强化层刷新能力           |
-| `EmakiCooking`    | `5.0.2`  | 烹饪系统   | 提供多类世界工位运行时, 配方判定, 输入限制, 展示与状态持久化能力                      |
-| `EmakiGem`        | `3.0.2`  | 宝石系统   | 提供装备开孔, 宝石镶嵌, 取出, 升级, 装备模板, 宝石定义与可选属性系统接入能力          |
-| `EmakiSkills`     | `3.0.2`  | 技能系统   | 提供主动技能槽位, 被动触发器, 施法模式, 冷却与 MythicMobs / Attribute 桥接能力        |
-| `EmakiItem`       | `3.0.5`   | 物品系统   | 提供自定义物品定义, 原版组件, 修复, 自动更新, 套装, 触发器与物品状态管理能力          |
-| `EmakiLevel`      | `2.0.2`  | 等级系统   | 提供多等级类型, 经验来源, 升级需求, PDC, 占位符与跨模块成长桥接                       |
-| `EmakiCodex`      | `2.0.1`  | 图鉴系统   | 提供图鉴, 进度追踪, Gameplay Event 条件, 奖励与客户端成就提示桥接                     |
-| `EmakiStorage`    | `2.0.1`  | 仓库系统   | 提供分页 GUI 仓库, 单槽大额存量, 容量档位与权限, 付费解锁与存取事件                   |
-| `EmakiStation`    | `2.0.2`  | 制作工位   | 提供世界制作工位, 制作队列与开销, 配方与材料清单, 装备拆解与产出回收                  |
-| `EmakiAccessory`  | `2.0.2`  | 饰品系统   | 提供饰品部位与槽位展开, 饰品套装, 唯一性与死亡掉落策略, 属性系统接入                  |
-| `EmakiMobs`       | `2.0.2`  | 生物系统   | 提供自定义生物, 刷新规则, 掉落表, 技能行为与 Attribute / Skills / Item 集成            |
-| `EmakiStructure`  | `1.0.9`  | 结构系统   | 提供结构框选导出, 模板按朝向放置, 多方块交互定义与原版结构替换能力                    |
-| `EmakiDungeon`    | `1.0.17` | 组队副本   | 提供模板克隆副本世界, 队伍挑战流程, 次数限制, 奖励暂存与评分结算能力                  |
-| `EmakiKits`       | `1.0.1`  | 礼包系统   | 提供配置驱动的礼包定义, 奖励发放, CDK, 自选礼包与购买能力                            |
-| `EmakiDummy`      | `1.0.4`  | 假人测试   | 提供基于 MCProtocolLib 的协议假人与场景脚本测试能力                                  |
+| `EmakiCoreLib`    | `5.0.14`   | 核心基础库 | 提供 GUI, 动作系统, 物品源桥接, 物品装配, 表达式, YAML, PDC, 经济桥接与共享运行时能力 |
+| `EmakiAttribute`  | `5.0.10`  | 属性系统   | 提供 RPG 属性, 三系伤害, 资源状态, PDC 属性接入, 条件检查, 快照调试与战斗反馈能力     |
+| `EmakiForge`      | `5.0.6`  | 锻造系统   | 提供配方驱动锻造, 品质随机, 材料贡献, 图鉴, 编辑器, 结果组装与 PDC 属性写入能力       |
+| `EmakiStrengthen` | `5.0.6`  | 强化系统   | 提供星级强化, 成功率配置, 锻印 / 里程碑, 强化 GUI, 材料消耗与强化层刷新能力           |
+| `EmakiCooking`    | `5.0.6`  | 烹饪系统   | 提供多类世界工位运行时, 配方判定, 输入限制, 展示与状态持久化能力                      |
+| `EmakiGem`        | `3.0.5`  | 宝石系统   | 提供装备开孔, 宝石镶嵌, 取出, 升级, 装备模板, 宝石定义与可选属性系统接入能力          |
+| `EmakiSkills`     | `3.0.8`  | 技能系统   | 提供主动技能槽位, 被动触发器, 施法模式, 冷却与 MythicMobs / Attribute 桥接能力        |
+| `EmakiItem`       | `3.0.11`   | 物品系统   | 提供自定义物品定义, 原版组件, 修复, 自动更新, 套装, 触发器与物品状态管理能力          |
+| `EmakiLevel`      | `2.0.6`  | 等级系统   | 提供多等级类型, 经验来源, 升级需求, PDC, 占位符与跨模块成长桥接                       |
+| `EmakiCodex`      | `2.0.5`  | 图鉴系统   | 提供图鉴, 进度追踪, Gameplay Event 条件, 奖励与客户端成就提示桥接                     |
+| `EmakiStorage`    | `2.0.6`  | 仓库系统   | 提供分页 GUI 仓库, 单槽大额存量, 容量档位与权限, 付费解锁与存取事件                   |
+| `EmakiStation`    | `2.0.6`  | 制作工位   | 提供世界制作工位, 制作队列与开销, 配方与材料清单, 装备拆解与产出回收                  |
+| `EmakiAccessory`  | `2.0.6`  | 饰品系统   | 提供饰品部位与槽位展开, 饰品套装, 唯一性与死亡掉落策略, 属性系统接入                  |
+| `EmakiMobs`       | `2.0.6`  | 生物系统   | 提供自定义生物, 刷新规则, 掉落表, 技能行为与 Attribute / Skills / Item 集成            |
+| `EmakiStructure`  | `1.0.13`  | 结构系统   | 提供结构框选导出, 模板按朝向放置, 多方块交互定义与原版结构替换能力                    |
+| `EmakiDungeon`    | `1.0.33` | 组队副本   | 提供模板克隆副本世界, 队伍挑战流程, 次数限制, 奖励暂存与评分结算, 以及 `type: random` 随机地牢生成能力                  |
+| `EmakiKits`       | `1.0.6`  | 礼包系统   | 提供配置驱动的礼包定义, 奖励发放, CDK, 自选礼包与购买能力                            |
+| `EmakiDummy`      | `1.0.7`  | 假人测试   | 提供基于 MCProtocolLib 的协议假人与场景脚本测试能力                                  |
+| `EmakiNms`        | `1.0.1`   | 世界桥运行库 | 非插件运行库: 提供 NMS 世界桥接实现, 由 EmakiCoreLib 运行时下载装载, 不放入 `plugins/`          |
 
 除上述运行时模块外, 仓库还包含各模块对应的 `Emaki*Api` 编译期契约模块.装备技能 PDC 协议不是独立模块, 而是 `EmakiSkillsApi` 的 `emaki.jiuwu.craft.skills.api.pdc` 包, 由需要它的运行时模块在 shade 时嵌入并 relocate.这些 Api 模块不是服务器插件, 不要放入 `plugins/`
 
@@ -61,7 +62,8 @@ EmakiCoreLib
 ├── EmakiStructure
 ├── EmakiDungeon
 ├── EmakiKits
-└── EmakiDummy
+├── EmakiDummy
+└── EmakiNms
 ```
 
 - `EmakiCoreLib` 是所有业务模块的强依赖, 负责共享 GUI, 动作, 物品源, 配置, 经济, PDC 与运行时服务
@@ -82,6 +84,7 @@ EmakiCoreLib
 - `EmakiDungeon` 提供组队副本世界与挑战流程, 桥接 MythicMobs, PlaceholderAPI 与 BetterHUD
 - `EmakiKits` 通过 CoreLib 物品源与动作系统发放礼包奖励, 覆盖入服, 周期, CDK, 自选与购买场景
 - `EmakiDummy` 基于 MCProtocolLib 登录协议假人, 用于场景脚本与压力测试
+- `EmakiNms` 是 NMS 世界桥运行库 (Folia 调度与世界挂载等桥接实现), 不放入 `plugins/`, 由 EmakiCoreLib 运行时下载装载
 
 ## 仓库结构
 
@@ -105,15 +108,16 @@ Project/
 ├── EmakiDungeon/          # 组队副本系统
 ├── EmakiKits/             # 礼包系统
 ├── EmakiDummy/            # 协议假人与场景测试
+├── EmakiNms/             # NMS 世界桥运行库 (非插件, CoreLib 运行时下载装载)
 ├── Emaki*Api/             # 各模块编译期 API 契约 (不部署到服务器)
 │                          #   装备技能 PDC 协议在 EmakiSkillsApi 的 api.pdc 包内
-├── settings.gradle        # 模块清单 (默认 29 个 + .key 门控的 6 个私有模块)
+├── settings.gradle        # 模块清单 (默认 30 个 + .key 门控的 6 个私有模块)
 ├── build.gradle           # 根构建脚本: 共享编译 / javadoc / shade 约定
 ├── gradle/libs.versions.toml  # 版本目录: 依赖版本的唯一来源
 └── gradlew, gradlew.bat   # Gradle wrapper (固定 Gradle 9.8.0)
 ```
 
-私有模块由根目录的 `.key` 标记门控 (而非 Maven profile): `settings.gradle` 仅在仓库根目录存在 `.key` 文件时纳入 `EmakiSkills`, `EmakiGem`, `EmakiItem`, `EmakiStorage`, `EmakiStructure`, `EmakiAccessory` 六个模块.`.key` 被 `.gitignore` 忽略且不受 git 跟踪, 因此新克隆的仓库默认不存在该文件, 此时构建默认的 29 个项目模块而不报错; 这是受支持的合法状态, 需要私有模块时在仓库根目录创建空文件 `.key` 即可
+私有模块由根目录的 `.key` 标记门控 (而非 Maven profile): `settings.gradle` 仅在仓库根目录存在 `.key` 文件时纳入 `EmakiSkills`, `EmakiGem`, `EmakiItem`, `EmakiStorage`, `EmakiStructure`, `EmakiAccessory` 六个模块.`.key` 被 `.gitignore` 忽略且不受 git 跟踪, 因此新克隆的仓库默认不存在该文件, 此时构建默认的 30 个项目模块而不报错; 这是受支持的合法状态, 需要私有模块时在仓库根目录创建空文件 `.key` 即可
 
 ## 默认资源定位
 
@@ -172,7 +176,7 @@ Project/
 1. 使用 Java `25` 和 Paper `26.1+` (或兼容的 Paper 系服务端)
 2. 将 `EmakiCoreLib-*.jar` 与所需的运行时模块 Jar 放入服务器 `plugins/`
 3. 不要将 `emaki-*-api-*.jar` 放入 `plugins/`; API Jar 仅用于开发者编译依赖
-4. 启动服务器后, 可执行 `/corelib check` 检查已加载模块与配置预检结果
+4. 启动服务器后, 可执行 `/ecorelib check` 检查已加载模块与配置预检结果
 
 ## Maven 仓库
 
@@ -197,7 +201,7 @@ Maven 配置使用以下仓库地址:
 <dependency>
   <groupId>emaki.jiuwu.craft</groupId>
   <artifactId>emaki-corelib-api</artifactId>
-  <version>5.0.2</version>
+  <version>5.0.7</version>
   <scope>provided</scope>
 </dependency>
 ```

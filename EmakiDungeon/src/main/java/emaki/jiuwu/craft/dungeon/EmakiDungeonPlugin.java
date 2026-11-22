@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.dungeon;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -209,6 +210,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugLogger().setFallbackLoader(EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
+        ensureDataDirectories();
         bootstrapInstanceRuntime();
         registerCommandHandler();
         installPublicApi();
@@ -419,6 +421,21 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         betterHudBridge = new DungeonBetterHudBridge(this, registry, parties);
         getServer().getPluginManager().registerEvents(betterHudBridge, this);
         betterHudBridge.register();
+    }
+
+    private static final List<String> DATA_DIRECTORIES = List.of(
+            "world", "examples", "gui", "lang", "editor", "snapshots", "players",
+            "records", "leaderboards", "logs", "rewardbox", "pending_tickets",
+            "random-dungeon" + File.separator + "instances", "edit-backups", "scripts");
+
+    private void ensureDataDirectories() {
+        for (String relative : DATA_DIRECTORIES) {
+            try {
+                Files.createDirectories(getDataFolder().toPath().resolve(relative));
+            } catch (java.io.IOException ignored) {
+                emaki.jiuwu.craft.corelib.debug.FailureRecorder.recordIgnoredFailure(getName(), "EmakiDungeonPlugin.java#ensure", ignored);
+            }
+        }
     }
 
     private void bootstrapInstanceRuntime() {

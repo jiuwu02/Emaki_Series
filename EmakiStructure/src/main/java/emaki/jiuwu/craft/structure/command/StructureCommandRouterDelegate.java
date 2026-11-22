@@ -410,14 +410,24 @@ final class StructureCommandRouterDelegate {
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, root, "command.help_header",
-                    "command.help_entry_help", "command.help_entry_get", "command.help_entry_select",
-                    "command.help_entry_structure", "command.help_entry_reload",
-                    "command.help_entry_multiblock", "command.help_entry_debug");
+            List<String> keys = new ArrayList<>();
+            keys.add("command.help_header");
+            keys.add("command.help_entry_help");
+            for (String subcommand : List.of("get", "select", "structure", "reload", "multiblock", "debug")) {
+                if (ownerRef.hasPermission(sender, subcommand)) {
+                    keys.add("command.help_entry_" + subcommand);
+                }
+            }
+            sendHelpLines(sender, root, keys.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
-        switch (path.get(0).toLowerCase(Locale.ROOT)) {
+        String head = path.get(0).toLowerCase(Locale.ROOT);
+        if (!ownerRef.hasPermission(sender, head)) {
+            sendHelpPage(sender, root, List.of());
+            return;
+        }
+        switch (head) {
             case "get" -> sendTemplateHelp(sender, root, "get", "",
                     "command.help_get_header", "command.help_value_desc_get");
             case "select" -> sendSelectHelp(sender, root);
@@ -449,20 +459,23 @@ final class StructureCommandRouterDelegate {
     private void sendMultiblockHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 2) {
             String tail = path.get(1).toLowerCase(Locale.ROOT);
-            if ("place".equals(tail)) {
+            if ("place".equals(tail) && hasMultiblockPermission(sender, "place")) {
                 sendMultiblockIdHelp(sender, root, "multiblock place",
                         "command.help_multiblock_place_header", "command.help_value_desc_multiblock_place");
                 return;
             }
-            if ("validate".equals(tail)) {
+            if ("validate".equals(tail) && hasMultiblockPermission(sender, "validate")) {
                 sendMultiblockIdHelp(sender, root, "multiblock validate",
                         "command.help_multiblock_validate_header", "command.help_value_desc_multiblock_validate");
                 return;
             }
         }
-        sendHelpLines(sender, root, "command.help_multiblock_header",
-                "command.help_multiblock_entry_export", "command.help_multiblock_entry_place",
-                "command.help_multiblock_entry_list", "command.help_multiblock_entry_validate");
+        sendHelpLines(sender, root, "command.help_multiblock_header");
+        for (String value : List.of("export", "place", "list", "validate")) {
+            if (hasMultiblockPermission(sender, value)) {
+                sendHelpLines(sender, root, "command.help_multiblock_entry_" + value);
+            }
+        }
         sendHelpFooter(sender);
     }
 

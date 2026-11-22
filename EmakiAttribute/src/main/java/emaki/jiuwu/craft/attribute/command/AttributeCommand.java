@@ -95,14 +95,33 @@ public final class AttributeCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            return CommandTabHelper.completeSubcommands(
-                    List.of("help", "reload", "resync", "preview", "dump", "debug", "source", "trace", "points", "lint", "edit"),
-                    args[0]);
+            List<String> subcommands = new ArrayList<>();
+            subcommands.add("help");
+            if (sender.hasPermission(AttributePermissions.RELOAD) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                subcommands.add("reload");
+            }
+            if (sender.hasPermission(AttributePermissions.RESYNC) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                subcommands.add("resync");
+            }
+            if (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                subcommands.addAll(List.of("preview", "dump", "debug", "source", "trace"));
+            }
+            if (sender.hasPermission(AttributePermissions.POINTS) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                subcommands.add("points");
+            }
+            if (sender.hasPermission(AttributePermissions.RELOAD) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                subcommands.add("lint");
+            }
+            if (sender.hasPermission(AttributePermissions.EDIT) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                subcommands.add("edit");
+            }
+            return CommandTabHelper.completeSubcommands(subcommands, args[0]);
         }
         if (args.length >= 2 && "points".equalsIgnoreCase(args[0])) {
             return completePoints(sender, args);
         }
-        if (args.length == 2 && "edit".equalsIgnoreCase(args[0])) {
+        if (args.length == 2 && "edit".equalsIgnoreCase(args[0])
+                && (sender.hasPermission(AttributePermissions.EDIT) || sender.hasPermission(AttributePermissions.ADMIN))) {
             if (plugin.editorModule() != null) {
                 for (String id : plugin.editorModule().completeIds()) {
                     if (id.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) {
@@ -112,16 +131,19 @@ public final class AttributeCommand implements TabExecutor {
             }
             return result;
         }
-        if (args.length == 2 && "resync".equalsIgnoreCase(args[0])) {
+        if (args.length == 2 && "resync".equalsIgnoreCase(args[0])
+                && (sender.hasPermission(AttributePermissions.RESYNC) || sender.hasPermission(AttributePermissions.ADMIN))) {
             result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
             result.add("all");
             return result;
         }
-        if (args.length == 2 && "dump".equalsIgnoreCase(args[0])) {
+        if (args.length == 2 && "dump".equalsIgnoreCase(args[0])
+                && (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN))) {
             result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
             return result;
         }
-        if (args.length == 3 && "dump".equalsIgnoreCase(args[0])) {
+        if (args.length == 3 && "dump".equalsIgnoreCase(args[0])
+                && (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN))) {
             if ("sources".startsWith(args[2].toLowerCase(Locale.ROOT))) {
                 result.add("sources");
             }
@@ -130,19 +152,23 @@ public final class AttributeCommand implements TabExecutor {
             }
             return result;
         }
-        if (args.length == 4 && "dump".equalsIgnoreCase(args[0]) && "sources".equalsIgnoreCase(args[2])) {
+        if (args.length == 4 && "dump".equalsIgnoreCase(args[0]) && "sources".equalsIgnoreCase(args[2])
+                && (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN))) {
             completeAttributeIds(result, args[3]);
             return result;
         }
-        if (args.length == 2 && "source".equalsIgnoreCase(args[0])) {
+        if (args.length == 2 && "source".equalsIgnoreCase(args[0])
+                && (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN))) {
             result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
             return result;
         }
-        if (args.length == 3 && "source".equalsIgnoreCase(args[0])) {
+        if (args.length == 3 && "source".equalsIgnoreCase(args[0])
+                && (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN))) {
             completeAttributeIds(result, args[2]);
             return result;
         }
-        if (args.length == 2 && "trace".equalsIgnoreCase(args[0])) {
+        if (args.length == 2 && "trace".equalsIgnoreCase(args[0])
+                && (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN))) {
             for (String sub : List.of("last", "list", "export", "clear")) {
                 if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
@@ -150,11 +176,13 @@ public final class AttributeCommand implements TabExecutor {
             }
             return result;
         }
-        if (args.length == 3 && "trace".equalsIgnoreCase(args[0])) {
+        if (args.length == 3 && "trace".equalsIgnoreCase(args[0])
+                && (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN))) {
             result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
             return result;
         }
-        if (args.length == 2 && "preview".equalsIgnoreCase(args[0])) {
+        if (args.length == 2 && "preview".equalsIgnoreCase(args[0])
+                && (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN))) {
             result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
             for (String slot : previewSlots()) {
                 if (slot.startsWith(args[1].toLowerCase(Locale.ROOT))) {
@@ -163,7 +191,8 @@ public final class AttributeCommand implements TabExecutor {
             }
             return result;
         }
-        if (args.length == 3 && "preview".equalsIgnoreCase(args[0])) {
+        if (args.length == 3 && "preview".equalsIgnoreCase(args[0])
+                && (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN))) {
             for (String slot : previewSlots()) {
                 if (slot.startsWith(args[2].toLowerCase(Locale.ROOT))) {
                     result.add(slot);
@@ -171,7 +200,8 @@ public final class AttributeCommand implements TabExecutor {
             }
             return result;
         }
-        if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
+        if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])
+                && (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN))) {
             return completeDebug(args);
         }
         return result;
@@ -325,34 +355,69 @@ public final class AttributeCommand implements TabExecutor {
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, root, "command.help_header",
-                    "command.help_entry_help", "command.help_entry_reload", "command.help_entry_resync",
-                    "command.help_entry_preview", "command.help_entry_dump", "command.help_entry_debug",
-                    "command.help_entry_source", "command.help_entry_trace", "command.help_entry_points",
-                    "command.help_entry_lint", "command.help_entry_edit");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_header");
+            entries.add("command.help_entry_help");
+            if (sender.hasPermission(AttributePermissions.RELOAD) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                entries.add("command.help_entry_reload");
+            }
+            if (sender.hasPermission(AttributePermissions.RESYNC) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                entries.add("command.help_entry_resync");
+            }
+            if (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                entries.addAll(List.of("command.help_entry_preview", "command.help_entry_dump",
+                        "command.help_entry_debug", "command.help_entry_source", "command.help_entry_trace"));
+            }
+            if (sender.hasPermission(AttributePermissions.POINTS) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                entries.add("command.help_entry_points");
+            }
+            if (sender.hasPermission(AttributePermissions.RELOAD) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                entries.add("command.help_entry_lint");
+            }
+            if (sender.hasPermission(AttributePermissions.EDIT) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                entries.add("command.help_entry_edit");
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
         switch (path.get(0).toLowerCase(Locale.ROOT)) {
             case "dump" -> {
-                sendHelpLines(sender, root, "command.help_dump_header",
-                        "command.help_dump_entry_player", "command.help_dump_entry_mode",
-                        "command.help_dump_entry_attribute");
+                List<String> entries = new ArrayList<>();
+                entries.add("command.help_dump_header");
+                if (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                    entries.addAll(List.of("command.help_dump_entry_player", "command.help_dump_entry_mode",
+                            "command.help_dump_entry_attribute"));
+                }
+                sendHelpLines(sender, root, entries.toArray(String[]::new));
                 sendHelpFooter(sender);
             }
             case "debug" -> sendDebugHelp(sender, root, path);
             case "trace" -> {
-                sendHelpLines(sender, root, "command.help_trace_header",
-                        "command.help_trace_entry_last", "command.help_trace_entry_list",
-                        "command.help_trace_entry_export", "command.help_trace_entry_clear");
+                List<String> entries = new ArrayList<>();
+                entries.add("command.help_trace_header");
+                if (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                    entries.addAll(List.of("command.help_trace_entry_last", "command.help_trace_entry_list",
+                            "command.help_trace_entry_export", "command.help_trace_entry_clear"));
+                }
+                sendHelpLines(sender, root, entries.toArray(String[]::new));
                 sendHelpFooter(sender);
             }
             case "points" -> {
-                sendHelpLines(sender, root, "command.help_points_header",
-                        "command.help_points_entry_view", "command.help_points_entry_open",
-                        "command.help_points_entry_add", "command.help_points_entry_set",
-                        "command.help_points_entry_grant", "command.help_points_entry_setreset",
-                        "command.help_points_entry_reset");
+                List<String> entries = new ArrayList<>();
+                entries.add("command.help_points_header");
+                if (sender.hasPermission(AttributePermissions.POINTS) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                    entries.addAll(List.of("command.help_points_entry_view", "command.help_points_entry_open",
+                            "command.help_points_entry_add"));
+                }
+                if (sender.hasPermission(AttributePermissions.POINTS_ADMIN) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                    entries.addAll(List.of("command.help_points_entry_set", "command.help_points_entry_grant",
+                            "command.help_points_entry_setreset"));
+                }
+                if (sender.hasPermission(AttributePermissions.POINTS) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                    entries.add("command.help_points_entry_reset");
+                }
+                sendHelpLines(sender, root, entries.toArray(String[]::new));
                 sendHelpFooter(sender);
             }
             default -> sendHelpPage(sender, root, List.of());
@@ -361,24 +426,34 @@ public final class AttributeCommand implements TabExecutor {
 
     private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() < 2) {
-            sendHelpLines(sender, root, "command.help_debug_header",
-                    "command.help_debug_entry_status", "command.help_debug_entry_on",
-                    "command.help_debug_entry_off", "command.help_debug_entry_player",
-                    "command.help_debug_entry_module", "command.help_debug_entry_combat_player");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_debug_header");
+            if (sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN)) {
+                entries.addAll(List.of("command.help_debug_entry_status", "command.help_debug_entry_on",
+                        "command.help_debug_entry_off", "command.help_debug_entry_player",
+                        "command.help_debug_entry_module", "command.help_debug_entry_combat_player"));
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
         switch (path.get(1).toLowerCase(Locale.ROOT)) {
             case "player" -> sendPlayerValueHelp(sender, root, "command.help_debug_player_header",
-                    "command.help_value_desc_debug_player", "debug player");
-            case "module" -> sendDebugModuleHelp(sender, root);
+                    "command.help_value_desc_debug_player", "debug player",
+                    sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN));
+            case "module" -> sendDebugModuleHelp(sender, root,
+                    sender.hasPermission(AttributePermissions.DEBUG) || sender.hasPermission(AttributePermissions.ADMIN));
             default -> sendHelpPage(sender, root, List.of("debug"));
         }
     }
 
-    private void sendDebugModuleHelp(CommandSender sender, String root) {
+    private void sendDebugModuleHelp(CommandSender sender, String root, boolean permitted) {
         MessageService messageService = messages();
         sendHelpLine(sender, messageService.message("command.help_debug_module_header", Map.of("root", root)));
+        if (!permitted) {
+            sendHelpFooter(sender);
+            return;
+        }
         List<String> modules = new ArrayList<>(plugin.debugCommand().tabComplete(new String[]{"module", ""}));
         modules.sort(Comparator.naturalOrder());
         if (modules.isEmpty()) {
@@ -394,9 +469,14 @@ public final class AttributeCommand implements TabExecutor {
         sendHelpFooter(sender);
     }
 
-    private void sendPlayerValueHelp(CommandSender sender, String root, String headerKey, String descKey, String runPrefix) {
+    private void sendPlayerValueHelp(CommandSender sender, String root, String headerKey, String descKey, String runPrefix,
+            boolean permitted) {
         MessageService messageService = messages();
         sendHelpLine(sender, messageService.message(headerKey, Map.of("root", root)));
+        if (!permitted) {
+            sendHelpFooter(sender);
+            return;
+        }
         List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
         players.sort(Comparator.comparing(Player::getName));
         if (players.isEmpty()) {
@@ -444,9 +524,15 @@ public final class AttributeCommand implements TabExecutor {
     private List<String> completePoints(CommandSender sender, String[] args) {
         List<String> result = new ArrayList<>();
         boolean admin = sender.hasPermission(AttributePermissions.POINTS_ADMIN) || sender.hasPermission(AttributePermissions.ADMIN);
+        boolean self = sender.hasPermission(AttributePermissions.POINTS) || sender.hasPermission(AttributePermissions.ADMIN);
         if (args.length == 2) {
-            for (String sub : List.of("view", "open", "add", "reset", "grant", "set", "setreset")) {
-                if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
+            for (String sub : List.of("view", "open", "add", "reset")) {
+                if (sub.startsWith(args[1].toLowerCase(Locale.ROOT)) && self) {
+                    result.add(sub);
+                }
+            }
+            for (String sub : List.of("grant", "set", "setreset")) {
+                if (sub.startsWith(args[1].toLowerCase(Locale.ROOT)) && admin) {
                     result.add(sub);
                 }
             }
@@ -459,7 +545,9 @@ public final class AttributeCommand implements TabExecutor {
                 return result;
             }
             if ("add".equals(sub)) {
-                completeParentAttributeIds(result, args[2]);
+                if (self) {
+                    completeParentAttributeIds(result, args[2]);
+                }
                 if (admin) {
                     result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
                 }
@@ -469,8 +557,10 @@ public final class AttributeCommand implements TabExecutor {
         if (args.length == 4 && "add".equals(sub)) {
             Player target = Bukkit.getPlayerExact(args[2]);
             if (target != null) {
-                completeParentAttributeIds(result, args[3]);
-            } else {
+                if (admin) {
+                    completeParentAttributeIds(result, args[3]);
+                }
+            } else if (self) {
                 result.addAll(CommandTabHelper.completeIntRange(args[3], 1, 100));
             }
             return result;
@@ -482,11 +572,15 @@ public final class AttributeCommand implements TabExecutor {
             return result;
         }
         if (args.length == 4 && List.of("grant", "set", "setreset").contains(sub)) {
-            result.addAll(CommandTabHelper.completeIntRange(args[3], 1, 100));
+            if (admin) {
+                result.addAll(CommandTabHelper.completeIntRange(args[3], 1, 100));
+            }
             return result;
         }
         if (args.length == 5 && "add".equals(sub)) {
-            result.addAll(CommandTabHelper.completeIntRange(args[4], 1, 100));
+            if (admin) {
+                result.addAll(CommandTabHelper.completeIntRange(args[4], 1, 100));
+            }
             return result;
         }
         return result;

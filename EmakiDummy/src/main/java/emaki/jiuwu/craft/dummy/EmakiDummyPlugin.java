@@ -73,6 +73,10 @@ public class EmakiDummyPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         appConfigLoader.load();
         AppConfig appConfig = appConfigLoader.current();
         messageService.info(LogTag.STARTUP, "console.plugin_starting");
+        try {
+            Files.createDirectories(dataPath("logs", "dummy"));
+        } catch (java.io.IOException ignored) {
+        }
         dummyLogger = new DummyLogger(dataPath("logs", "dummy"), appConfig.logRetentionDays(),
                 appConfig.perDummyLogFiles());
         int removed = dummyLogger.open();

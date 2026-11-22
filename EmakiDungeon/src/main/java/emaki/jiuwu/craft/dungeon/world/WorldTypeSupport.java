@@ -16,17 +16,7 @@ public final class WorldTypeSupport {
     private static final class VoidGenerator extends ChunkGenerator {
     }
 
-    private static volatile String worldType = TYPE_AIR;
-
     private WorldTypeSupport() {
-    }
-
-    public static String worldType() {
-        return worldType;
-    }
-
-    public static void setWorldType(String raw) {
-        worldType = normalize(raw);
     }
 
     public static String normalize(String raw) {
@@ -40,7 +30,7 @@ public final class WorldTypeSupport {
     }
 
     public static WorldCreator creator(String worldName) {
-        return apply(new WorldCreator(worldName), worldType);
+        return new WorldCreator(worldName);
     }
 
     public static WorldCreator apply(WorldCreator creator, String raw) {

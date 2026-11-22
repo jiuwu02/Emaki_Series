@@ -68,14 +68,32 @@ final class CookingCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            return CommandTabHelper.completeSubcommands(
-                    List.of("help", "edit", "reload", "inspect", "station", "nutrition",
-                            "debug"), args[0]);
+            List<String> subcommands = new ArrayList<>();
+            subcommands.add("help");
+            if (sender.hasPermission(PERMISSION_EDIT)) {
+                subcommands.add("edit");
+            }
+            if (sender.hasPermission(PERMISSION_RELOAD) || sender.hasPermission(PERMISSION_ADMIN)) {
+                subcommands.add("reload");
+            }
+            if (sender.hasPermission(PERMISSION_INSPECT) || sender.hasPermission(PERMISSION_ADMIN)
+                    || sender.hasPermission(PERMISSION_USE)) {
+                subcommands.add("inspect");
+            }
+            if (sender.hasPermission(PERMISSION_ADMIN)) {
+                subcommands.add("station");
+            }
+            subcommands.add("nutrition");
+            if (sender.hasPermission(PERMISSION_DEBUG) || sender.hasPermission(PERMISSION_ADMIN)) {
+                subcommands.add("debug");
+            }
+            return CommandTabHelper.completeSubcommands(subcommands, args[0]);
         }
-        if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
+        if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])
+                && (sender.hasPermission(PERMISSION_DEBUG) || sender.hasPermission(PERMISSION_ADMIN))) {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
-        if (args.length == 2 && "edit".equalsIgnoreCase(args[0])) {
+        if (args.length == 2 && "edit".equalsIgnoreCase(args[0]) && sender.hasPermission(PERMISSION_EDIT)) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
             if (plugin.editorModule() != null) {
                 for (String id : plugin.editorModule().knownIds()) {
@@ -87,10 +105,12 @@ final class CookingCommandRouter implements TabExecutor {
             return result;
         }
         if ("nutrition".equalsIgnoreCase(args[0])) {
-            return nutritionTabComplete(args);
+            return nutritionTabComplete(sender, args);
         }
         if (args.length == 2) {
-            if ("inspect".equalsIgnoreCase(args[0])) {
+            if ("inspect".equalsIgnoreCase(args[0])
+                    && (sender.hasPermission(PERMISSION_INSPECT) || sender.hasPermission(PERMISSION_ADMIN)
+                            || sender.hasPermission(PERMISSION_USE))) {
                 String prefix = args[1].toLowerCase(Locale.ROOT);
                 for (String option : List.of("hand", "block")) {
                     if (option.startsWith(prefix)) {
@@ -98,7 +118,8 @@ final class CookingCommandRouter implements TabExecutor {
                     }
                 }
             }
-            if ("station".equalsIgnoreCase(args[0]) && "reindex".startsWith(args[1].toLowerCase(Locale.ROOT))) {
+            if ("station".equalsIgnoreCase(args[0]) && sender.hasPermission(PERMISSION_ADMIN)
+                    && "reindex".startsWith(args[1].toLowerCase(Locale.ROOT))) {
                 result.add("reindex");
             }
             return result;
@@ -106,14 +127,17 @@ final class CookingCommandRouter implements TabExecutor {
         return result;
     }
 
-    private List<String> nutritionTabComplete(String[] args) {
+    private List<String> nutritionTabComplete(CommandSender sender, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 2) {
             for (String sub : List.of("get", "set", "add", "remove")) {
-                if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                if (sub.startsWith(args[1].toLowerCase(Locale.ROOT)) && canNutrition(sender, sub)) {
                     result.add(sub);
                 }
             }
+            return result;
+        }
+        if (!canNutrition(sender, args[1])) {
             return result;
         }
         if (args.length == 3) {
@@ -139,6 +163,17 @@ final class CookingCommandRouter implements TabExecutor {
             return result;
         }
         return result;
+    }
+
+    private boolean canNutrition(CommandSender sender, String action) {
+        return switch (action.toLowerCase(Locale.ROOT)) {
+            case "get" -> sender.hasPermission(CookingPermissions.NUTRITION_USE)
+                    || sender.hasPermission(CookingPermissions.NUTRITION_ADMIN)
+                    || sender.hasPermission(PERMISSION_ADMIN);
+            case "set", "add", "remove" -> sender.hasPermission(CookingPermissions.NUTRITION_ADMIN)
+                    || sender.hasPermission(PERMISSION_ADMIN);
+            default -> true;
+        };
     }
 
     private boolean handleEdit(CommandSender sender, String[] args) {
@@ -294,24 +329,51 @@ final class CookingCommandRouter implements TabExecutor {
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, root, "command.help_header",
-                    "command.help_entry_edit", "command.help_entry_reload", "command.help_entry_inspect",
-                    "command.help_entry_station", "command.help_entry_nutrition", "command.help_entry_debug",
-                    "command.help_entry_help");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_header");
+            if (sender.hasPermission(PERMISSION_EDIT)) {
+                entries.add("command.help_entry_edit");
+            }
+            if (sender.hasPermission(PERMISSION_RELOAD) || sender.hasPermission(PERMISSION_ADMIN)) {
+                entries.add("command.help_entry_reload");
+            }
+            if (sender.hasPermission(PERMISSION_INSPECT) || sender.hasPermission(PERMISSION_ADMIN)
+                    || sender.hasPermission(PERMISSION_USE)) {
+                entries.add("command.help_entry_inspect");
+            }
+            if (sender.hasPermission(PERMISSION_ADMIN)) {
+                entries.add("command.help_entry_station");
+            }
+            entries.add("command.help_entry_nutrition");
+            if (sender.hasPermission(PERMISSION_DEBUG) || sender.hasPermission(PERMISSION_ADMIN)) {
+                entries.add("command.help_entry_debug");
+            }
+            entries.add("command.help_entry_help");
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
         switch (path.get(0).toLowerCase(Locale.ROOT)) {
             case "edit" -> sendValuePage(sender, root, "command.help_edit_id_header",
-                    "command.help_value_desc_edit_id", "edit", editorIds());
+                    "command.help_value_desc_edit_id", "edit", editorIds(),
+                    sender.hasPermission(PERMISSION_EDIT));
             case "inspect" -> {
-                sendHelpLines(sender, root, "command.help_inspect_header",
-                        "command.help_inspect_entry_hand", "command.help_inspect_entry_block");
+                List<String> entries = new ArrayList<>();
+                entries.add("command.help_inspect_header");
+                if (sender.hasPermission(PERMISSION_INSPECT) || sender.hasPermission(PERMISSION_ADMIN)
+                        || sender.hasPermission(PERMISSION_USE)) {
+                    entries.addAll(List.of("command.help_inspect_entry_hand", "command.help_inspect_entry_block"));
+                }
+                sendHelpLines(sender, root, entries.toArray(String[]::new));
                 sendHelpFooter(sender);
             }
             case "station" -> {
-                sendHelpLines(sender, root, "command.help_station_header",
-                        "command.help_station_entry_reindex");
+                List<String> entries = new ArrayList<>();
+                entries.add("command.help_station_header");
+                if (sender.hasPermission(PERMISSION_ADMIN)) {
+                    entries.add("command.help_station_entry_reindex");
+                }
+                sendHelpLines(sender, root, entries.toArray(String[]::new));
                 sendHelpFooter(sender);
             }
             case "nutrition" -> sendNutritionHelp(sender, root, path);
@@ -325,9 +387,16 @@ final class CookingCommandRouter implements TabExecutor {
             sendNutritionGetHelp(sender, root, path);
             return;
         }
-        sendHelpLines(sender, root, "command.help_nutrition_header",
-                "command.help_nutrition_entry_get", "command.help_nutrition_entry_set",
-                "command.help_nutrition_entry_add", "command.help_nutrition_entry_remove");
+        List<String> entries = new ArrayList<>();
+        entries.add("command.help_nutrition_header");
+        if (canNutrition(sender, "get")) {
+            entries.add("command.help_nutrition_entry_get");
+        }
+        if (canNutrition(sender, "set")) {
+            entries.addAll(List.of("command.help_nutrition_entry_set", "command.help_nutrition_entry_add",
+                    "command.help_nutrition_entry_remove"));
+        }
+        sendHelpLines(sender, root, entries.toArray(String[]::new));
         sendHelpFooter(sender);
     }
 
@@ -336,31 +405,44 @@ final class CookingCommandRouter implements TabExecutor {
             String tail = path.get(2).toLowerCase(Locale.ROOT);
             if ("player".equals(tail)) {
                 sendValuePage(sender, root, "command.help_nutrition_get_player_header",
-                        "command.help_value_desc_nutrition_get_player", "nutrition get", onlinePlayerNames());
+                        "command.help_value_desc_nutrition_get_player", "nutrition get", onlinePlayerNames(),
+                        canNutrition(sender, "get"));
                 return;
             }
             if ("type".equals(tail)) {
                 sendValuePage(sender, root, "command.help_nutrition_get_type_header",
-                        "command.help_value_desc_nutrition_get_type", "nutrition get", nutritionTypeIds());
+                        "command.help_value_desc_nutrition_get_type", "nutrition get", nutritionTypeIds(),
+                        canNutrition(sender, "get"));
                 return;
             }
         }
-        sendHelpLines(sender, root, "command.help_nutrition_get_header",
-                "command.help_nutrition_get_entry_player", "command.help_nutrition_get_entry_type");
+        List<String> entries = new ArrayList<>();
+        entries.add("command.help_nutrition_get_header");
+        if (canNutrition(sender, "get")) {
+            entries.addAll(List.of("command.help_nutrition_get_entry_player",
+                    "command.help_nutrition_get_entry_type"));
+        }
+        sendHelpLines(sender, root, entries.toArray(String[]::new));
         sendHelpFooter(sender);
     }
 
     private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() < 2) {
-            sendHelpLines(sender, root, "command.help_debug_header",
-                    "command.help_debug_entry_status", "command.help_debug_entry_on", "command.help_debug_entry_off",
-                    "command.help_debug_entry_player", "command.help_debug_entry_module", "command.help_debug_entry_action");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_debug_header");
+            if (sender.hasPermission(PERMISSION_DEBUG) || sender.hasPermission(PERMISSION_ADMIN)) {
+                entries.addAll(List.of("command.help_debug_entry_status", "command.help_debug_entry_on",
+                        "command.help_debug_entry_off", "command.help_debug_entry_player",
+                        "command.help_debug_entry_module", "command.help_debug_entry_action"));
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
         switch (path.get(1).toLowerCase(Locale.ROOT)) {
             case "player" -> sendValuePage(sender, root, "command.help_debug_player_header",
-                    "command.help_value_desc_debug_player", "debug player", onlinePlayerNames());
+                    "command.help_value_desc_debug_player", "debug player", onlinePlayerNames(),
+                    sender.hasPermission(PERMISSION_DEBUG) || sender.hasPermission(PERMISSION_ADMIN));
             case "action" -> sendDebugActionHelp(sender, root, path);
             default -> sendHelpPage(sender, root, List.of("debug"));
         }
@@ -368,20 +450,33 @@ final class CookingCommandRouter implements TabExecutor {
 
     private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
-            sendHelpLines(sender, root, "command.help_debug_action_run_header",
-                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_debug_action_run_header");
+            if (sender.hasPermission(PERMISSION_DEBUG) || sender.hasPermission(PERMISSION_ADMIN)) {
+                entries.addAll(List.of("command.help_debug_action_run_entry_shadow",
+                        "command.help_debug_action_run_entry_execute"));
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
-        sendHelpLines(sender, root, "command.help_debug_action_header",
-                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
-                "command.help_debug_action_entry_registry");
+        List<String> entries = new ArrayList<>();
+        entries.add("command.help_debug_action_header");
+        if (sender.hasPermission(PERMISSION_DEBUG) || sender.hasPermission(PERMISSION_ADMIN)) {
+            entries.addAll(List.of("command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
+                    "command.help_debug_action_entry_registry"));
+        }
+        sendHelpLines(sender, root, entries.toArray(String[]::new));
         sendHelpFooter(sender);
     }
 
     private void sendValuePage(CommandSender sender, String root, String headerKey, String descKey,
-            String command, List<String> values) {
+            String command, List<String> values, boolean permitted) {
         sendHelpLine(sender, plugin.messageService().message(headerKey, Map.of("root", root)));
+        if (!permitted) {
+            sendHelpFooter(sender);
+            return;
+        }
         if (values.isEmpty()) {
             sendHelpLine(sender, plugin.messageService().message("command.help_value_empty"));
             sendHelpFooter(sender);

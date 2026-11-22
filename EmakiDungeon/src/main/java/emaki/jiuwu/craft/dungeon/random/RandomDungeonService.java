@@ -143,8 +143,7 @@ public final class RandomDungeonService {
         RandomConfig.Loaded loaded = RandomConfig.parse(root);
         if (loaded.valid()) {
             config = loaded.config();
-            emaki.jiuwu.craft.dungeon.world.WorldTypeSupport.setWorldType(config.world.type());
-            configErrors = List.of();
+                configErrors = List.of();
         } else {
             configErrors = List.copyOf(loaded.errors());
         }

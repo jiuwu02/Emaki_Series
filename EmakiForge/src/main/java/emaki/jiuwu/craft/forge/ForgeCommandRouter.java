@@ -69,11 +69,28 @@ final class ForgeCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            return CommandTabHelper.completeSubcommands(
-                    List.of("help", "forge", "book", "reload", "list", "edit", "debug"),
-                    args[0]);
+            List<String> subcommands = new ArrayList<>();
+            subcommands.add("help");
+            subcommands.add("forge");
+            if (sender.hasPermission(PERMISSION_BOOK) || sender.hasPermission(PERMISSION_ADMIN)) {
+                subcommands.add("book");
+            }
+            if (sender.hasPermission(PERMISSION_RELOAD) || sender.hasPermission(PERMISSION_ADMIN)) {
+                subcommands.add("reload");
+            }
+            if (sender.hasPermission(PERMISSION_ADMIN)) {
+                subcommands.add("list");
+            }
+            if (sender.hasPermission(PERMISSION_EDIT)) {
+                subcommands.add("edit");
+            }
+            if (sender.hasPermission(PERMISSION_DEBUG) || sender.hasPermission(PERMISSION_ADMIN)) {
+                subcommands.add("debug");
+            }
+            return CommandTabHelper.completeSubcommands(subcommands, args[0]);
         }
-        if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
+        if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])
+                && (sender.hasPermission(PERMISSION_DEBUG) || sender.hasPermission(PERMISSION_ADMIN))) {
             List<String> debugSuggestions = new ArrayList<>(
                     plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length)));
             if (args.length == 2 && "stats".startsWith(args[1].toLowerCase(Locale.ROOT))) {
@@ -81,14 +98,15 @@ final class ForgeCommandRouter implements TabExecutor {
             }
             return debugSuggestions.stream().distinct().toList();
         }
-        if (args.length == 2 && "list".equalsIgnoreCase(args[0])) {
+        if (args.length == 2 && "list".equalsIgnoreCase(args[0]) && sender.hasPermission(PERMISSION_ADMIN)) {
             for (String sub : List.of("recipe")) {
                 if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
             }
         }
-        if (args.length == 2 && "edit".equalsIgnoreCase(args[0]) && plugin.editorModule() != null) {
+        if (args.length == 2 && "edit".equalsIgnoreCase(args[0]) && sender.hasPermission(PERMISSION_EDIT)
+                && plugin.editorModule() != null) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
             for (String id : plugin.editorModule().knownIds()) {
                 if (id.startsWith(prefix)) {
@@ -255,21 +273,42 @@ final class ForgeCommandRouter implements TabExecutor {
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, root, "command.help_header",
-                    "command.help_entry_forge", "command.help_entry_book", "command.help_entry_reload",
-                    "command.help_entry_list", "command.help_entry_edit", "command.help_entry_debug",
-                    "command.help_entry_help");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_header");
+            entries.add("command.help_entry_forge");
+            if (sender.hasPermission(PERMISSION_BOOK) || sender.hasPermission(PERMISSION_ADMIN)) {
+                entries.add("command.help_entry_book");
+            }
+            if (sender.hasPermission(PERMISSION_RELOAD) || sender.hasPermission(PERMISSION_ADMIN)) {
+                entries.add("command.help_entry_reload");
+            }
+            if (sender.hasPermission(PERMISSION_ADMIN)) {
+                entries.add("command.help_entry_list");
+            }
+            if (sender.hasPermission(PERMISSION_EDIT)) {
+                entries.add("command.help_entry_edit");
+            }
+            if (sender.hasPermission(PERMISSION_DEBUG) || sender.hasPermission(PERMISSION_ADMIN)) {
+                entries.add("command.help_entry_debug");
+            }
+            entries.add("command.help_entry_help");
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
         switch (path.get(0).toLowerCase(Locale.ROOT)) {
             case "list" -> {
-                sendHelpLines(sender, root, "command.help_list_header",
-                        "command.help_list_entry_recipe");
+                List<String> entries = new ArrayList<>();
+                entries.add("command.help_list_header");
+                if (sender.hasPermission(PERMISSION_ADMIN)) {
+                    entries.add("command.help_list_entry_recipe");
+                }
+                sendHelpLines(sender, root, entries.toArray(String[]::new));
                 sendHelpFooter(sender);
             }
             case "edit" -> sendValuePage(sender, root, "command.help_edit_id_header",
-                    "command.help_value_desc_edit_id", "edit", editorIds());
+                    "command.help_value_desc_edit_id", "edit", editorIds(),
+                    sender.hasPermission(PERMISSION_EDIT));
             case "debug" -> sendDebugHelp(sender, root, path);
             default -> sendHelpPage(sender, root, List.of());
         }
@@ -277,15 +316,21 @@ final class ForgeCommandRouter implements TabExecutor {
 
     private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() < 2) {
-            sendHelpLines(sender, root, "command.help_debug_header",
-                    "command.help_debug_entry_stats", "command.help_debug_entry_on", "command.help_debug_entry_off",
-                    "command.help_debug_entry_player", "command.help_debug_entry_module", "command.help_debug_entry_action");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_debug_header");
+            if (sender.hasPermission(PERMISSION_DEBUG) || sender.hasPermission(PERMISSION_ADMIN)) {
+                entries.addAll(List.of("command.help_debug_entry_stats", "command.help_debug_entry_on",
+                        "command.help_debug_entry_off", "command.help_debug_entry_player",
+                        "command.help_debug_entry_module", "command.help_debug_entry_action"));
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
         switch (path.get(1).toLowerCase(Locale.ROOT)) {
             case "player" -> sendValuePage(sender, root, "command.help_debug_player_header",
-                    "command.help_value_desc_debug_player", "debug player", onlinePlayerNames());
+                    "command.help_value_desc_debug_player", "debug player", onlinePlayerNames(),
+                    sender.hasPermission(PERMISSION_DEBUG) || sender.hasPermission(PERMISSION_ADMIN));
             case "action" -> sendDebugActionHelp(sender, root, path);
             default -> sendHelpPage(sender, root, List.of("debug"));
         }
@@ -293,20 +338,33 @@ final class ForgeCommandRouter implements TabExecutor {
 
     private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
-            sendHelpLines(sender, root, "command.help_debug_action_run_header",
-                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_debug_action_run_header");
+            if (sender.hasPermission(PERMISSION_DEBUG) || sender.hasPermission(PERMISSION_ADMIN)) {
+                entries.addAll(List.of("command.help_debug_action_run_entry_shadow",
+                        "command.help_debug_action_run_entry_execute"));
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
-        sendHelpLines(sender, root, "command.help_debug_action_header",
-                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
-                "command.help_debug_action_entry_registry");
+        List<String> entries = new ArrayList<>();
+        entries.add("command.help_debug_action_header");
+        if (sender.hasPermission(PERMISSION_DEBUG) || sender.hasPermission(PERMISSION_ADMIN)) {
+            entries.addAll(List.of("command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
+                    "command.help_debug_action_entry_registry"));
+        }
+        sendHelpLines(sender, root, entries.toArray(String[]::new));
         sendHelpFooter(sender);
     }
 
     private void sendValuePage(CommandSender sender, String root, String headerKey, String descKey,
-            String command, List<String> values) {
+            String command, List<String> values, boolean permitted) {
         sendHelpLine(sender, plugin.messageService().message(headerKey, Map.of("root", root)));
+        if (!permitted) {
+            sendHelpFooter(sender);
+            return;
+        }
         if (values.isEmpty()) {
             sendHelpLine(sender, plugin.messageService().message("command.help_value_empty"));
             sendHelpFooter(sender);

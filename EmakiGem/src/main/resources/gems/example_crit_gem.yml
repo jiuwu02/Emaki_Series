@@ -19,8 +19,6 @@ gem_type: "universal"
 
 level: 1
 
-base_item_source: "minecraft-amethyst_shard"
-
 item_sources:
   - "minecraft-amethyst_shard"
 

@@ -356,17 +356,34 @@ final class CodexCommandRouter implements TabExecutor {
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, root, "command.help_header",
-                    "command.help_entry_codex", "command.help_entry_reload", "command.help_entry_edit",
-                    "command.help_entry_grant", "command.help_entry_revoke", "command.help_entry_admin",
-                    "command.help_entry_debug", "command.help_entry_help");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_header");
+            if (hasAdminOr(sender, PERMISSION_USE)) {
+                entries.add("command.help_entry_codex");
+            }
+            if (hasAdminOr(sender, PERMISSION_RELOAD)) {
+                entries.add("command.help_entry_reload");
+            }
+            if (sender.hasPermission(PERMISSION_EDIT)) {
+                entries.add("command.help_entry_edit");
+            }
+            if (hasAdmin(sender)) {
+                entries.addAll(List.of("command.help_entry_grant", "command.help_entry_revoke",
+                        "command.help_entry_admin"));
+            }
+            if (hasAdminOr(sender, PERMISSION_DEBUG)) {
+                entries.add("command.help_entry_debug");
+            }
+            entries.add("command.help_entry_help");
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
         switch (path.get(0).toLowerCase(Locale.ROOT)) {
             case "admin" -> sendAdminHelp(sender, root, path);
             case "edit" -> sendValuePage(sender, root, "command.help_edit_id_header",
-                    "command.help_value_desc_edit_id", "edit", editorIds());
+                    "command.help_value_desc_edit_id", "edit", editorIds(),
+                    sender.hasPermission(PERMISSION_EDIT));
             case "debug" -> sendDebugHelp(sender, root, path);
             default -> sendHelpPage(sender, root, List.of());
         }
@@ -375,25 +392,36 @@ final class CodexCommandRouter implements TabExecutor {
     private void sendAdminHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 2 && "reset".equalsIgnoreCase(path.get(1))) {
             sendValuePage(sender, root, "command.help_admin_reset_player_header",
-                    "command.help_value_desc_admin_reset_player", "admin reset", onlinePlayerNames());
+                    "command.help_value_desc_admin_reset_player", "admin reset", onlinePlayerNames(),
+                    hasAdmin(sender));
             return;
         }
-        sendHelpLines(sender, root, "command.help_admin_header",
-                "command.help_admin_entry_unlock", "command.help_admin_entry_reset");
+        List<String> entries = new ArrayList<>();
+        entries.add("command.help_admin_header");
+        if (hasAdmin(sender)) {
+            entries.addAll(List.of("command.help_admin_entry_unlock", "command.help_admin_entry_reset"));
+        }
+        sendHelpLines(sender, root, entries.toArray(String[]::new));
         sendHelpFooter(sender);
     }
 
     private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() < 2) {
-            sendHelpLines(sender, root, "command.help_debug_header",
-                    "command.help_debug_entry_status", "command.help_debug_entry_on", "command.help_debug_entry_off",
-                    "command.help_debug_entry_player", "command.help_debug_entry_module", "command.help_debug_entry_action");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_debug_header");
+            if (hasAdminOr(sender, PERMISSION_DEBUG)) {
+                entries.addAll(List.of("command.help_debug_entry_status", "command.help_debug_entry_on",
+                        "command.help_debug_entry_off", "command.help_debug_entry_player",
+                        "command.help_debug_entry_module", "command.help_debug_entry_action"));
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
         switch (path.get(1).toLowerCase(Locale.ROOT)) {
             case "player" -> sendValuePage(sender, root, "command.help_debug_player_header",
-                    "command.help_value_desc_debug_player", "debug player", onlinePlayerNames());
+                    "command.help_value_desc_debug_player", "debug player", onlinePlayerNames(),
+                    hasAdminOr(sender, PERMISSION_DEBUG));
             case "action" -> sendDebugActionHelp(sender, root, path);
             default -> sendHelpPage(sender, root, List.of("debug"));
         }
@@ -401,20 +429,33 @@ final class CodexCommandRouter implements TabExecutor {
 
     private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
-            sendHelpLines(sender, root, "command.help_debug_action_run_header",
-                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_debug_action_run_header");
+            if (hasAdminOr(sender, PERMISSION_DEBUG)) {
+                entries.addAll(List.of("command.help_debug_action_run_entry_shadow",
+                        "command.help_debug_action_run_entry_execute"));
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
-        sendHelpLines(sender, root, "command.help_debug_action_header",
-                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
-                "command.help_debug_action_entry_registry");
+        List<String> entries = new ArrayList<>();
+        entries.add("command.help_debug_action_header");
+        if (hasAdminOr(sender, PERMISSION_DEBUG)) {
+            entries.addAll(List.of("command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
+                    "command.help_debug_action_entry_registry"));
+        }
+        sendHelpLines(sender, root, entries.toArray(String[]::new));
         sendHelpFooter(sender);
     }
 
     private void sendValuePage(CommandSender sender, String root, String headerKey, String descKey,
-            String command, List<String> values) {
+            String command, List<String> values, boolean permitted) {
         sendHelpLine(sender, plugin.messageService().message(headerKey, Map.of("root", root)));
+        if (!permitted) {
+            sendHelpFooter(sender);
+            return;
+        }
         if (values.isEmpty()) {
             sendHelpLine(sender, plugin.messageService().message("command.help_value_empty"));
             sendHelpFooter(sender);
@@ -471,27 +512,47 @@ final class CodexCommandRouter implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return CommandTabHelper.completeSubcommands(SUBCOMMANDS, args[0]);
+            List<String> subcommands = new ArrayList<>();
+            subcommands.add("help");
+            if (hasAdminOr(sender, PERMISSION_USE)) {
+                subcommands.add("codex");
+            }
+            if (hasAdminOr(sender, PERMISSION_RELOAD)) {
+                subcommands.add("reload");
+            }
+            if (sender.hasPermission(PERMISSION_EDIT)) {
+                subcommands.add("edit");
+            }
+            if (hasAdmin(sender)) {
+                subcommands.addAll(List.of("grant", "revoke", "admin"));
+            }
+            if (hasAdminOr(sender, PERMISSION_DEBUG)) {
+                subcommands.add("debug");
+            }
+            return CommandTabHelper.completeSubcommands(subcommands, args[0]);
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
         if (args.length == 2) {
             return switch (sub) {
-                case "grant", "revoke" -> CommandTabHelper.completeOnlinePlayers(args[1]);
-                case "admin" -> CommandTabHelper.completeSubcommands(ADMIN_ACTIONS, args[1]);
+                case "grant", "revoke" -> hasAdmin(sender)
+                        ? CommandTabHelper.completeOnlinePlayers(args[1]) : List.of();
+                case "admin" -> hasAdmin(sender)
+                        ? CommandTabHelper.completeSubcommands(ADMIN_ACTIONS, args[1]) : List.of();
                 case "edit" -> {
-                    if (plugin.editorModule() == null) {
+                    if (plugin.editorModule() == null || !sender.hasPermission(PERMISSION_EDIT)) {
                         yield List.of();
                     }
                     yield CommandTabHelper.filterByPrefix(plugin.editorModule().knownIds(), args[1]);
                 }
-                case "debug" -> plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
+                case "debug" -> hasAdminOr(sender, PERMISSION_DEBUG)
+                        ? plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length)) : List.of();
                 default -> List.of();
             };
         }
-        if (args.length >= 2 && "debug".equals(sub)) {
+        if (args.length >= 2 && "debug".equals(sub) && hasAdminOr(sender, PERMISSION_DEBUG)) {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
-        if (args.length == 3 && ("grant".equals(sub) || "revoke".equals(sub))) {
+        if (args.length == 3 && ("grant".equals(sub) || "revoke".equals(sub)) && hasAdmin(sender)) {
             Set<String> keys = plugin.advancementRegistrar().registered().keySet();
             List<String> candidates = new ArrayList<>(keys);
             String namespace = plugin.getName().toLowerCase(Locale.ROOT);
@@ -503,7 +564,7 @@ final class CodexCommandRouter implements TabExecutor {
             }
             return CommandTabHelper.filterByPrefix(candidates, args[2]).stream().distinct().toList();
         }
-        if ("admin".equals(sub) && ADMIN_ACTIONS.contains(args[1].toLowerCase(Locale.ROOT))) {
+        if ("admin".equals(sub) && hasAdmin(sender) && ADMIN_ACTIONS.contains(args[1].toLowerCase(Locale.ROOT))) {
             if (args.length == 3) {
                 return CommandTabHelper.completeOnlinePlayers(args[2]);
             }

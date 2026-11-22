@@ -34,18 +34,11 @@ final class GemDefinitionParser {
         if (Texts.isBlank(id)) {
             return null;
         }
-        if (section.contains("item_sources")) {
-            return null;
-        }
-        Object rawBaseItemSource = section.get("base_item_source");
-        if (rawBaseItemSource instanceof Iterable<?> && !(rawBaseItemSource instanceof String)) {
-            return null;
-        }
-        ItemSourceRef baseItemSource = ItemSourceUtil.parse(rawBaseItemSource);
-        if (baseItemSource == null) {
-            return null;
-        }
         ItemRequirement recognition = ItemRequirement.fromConfig(section);
+        if (recognition.sources().isEmpty()) {
+            return null;
+        }
+        ItemSourceRef baseItemSource = recognition.sources().get(0);
         Set<String> socketCompatibility = new LinkedHashSet<>();
         for (String value : section.getStringList("socket_compatibility")) {
             if (Texts.isNotBlank(value)) {

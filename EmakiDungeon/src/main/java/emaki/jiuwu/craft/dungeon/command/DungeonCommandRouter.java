@@ -918,9 +918,22 @@ public final class DungeonCommandRouter {
             return modes;
         }
         if ("random".equals(root) && randomCommands != null) {
-            return randomCommands.complete(Arrays.copyOfRange(args, 1, args.length));
+            List<String> candidates = randomCommands.complete(Arrays.copyOfRange(args, 1, args.length));
+            if (args.length == 2) {
+                candidates.removeIf(candidate -> !randomPermitted(sender, candidate));
+                return candidates;
+            }
+            return randomPermitted(sender, args[1]) ? candidates : List.of();
         }
         return List.of();
+    }
+
+    private boolean randomPermitted(CommandSender sender, String sub) {
+        return switch (Texts.lower(sub)) {
+            case "create", "enter", "leave" -> sender.hasPermission("emakidungeon.play");
+            case "stop", "replay", "reload" -> sender.hasPermission("emakidungeon.admin");
+            default -> true;
+        };
     }
 
     private List<String> difficultiesFor(String dungeonId, String prefix) {
@@ -950,13 +963,28 @@ public final class DungeonCommandRouter {
                     "command.help_entry_list", "command.help_entry_enter", "command.help_entry_leave",
                     "command.help_entry_cancel", "command.help_entry_ready", "command.help_entry_rewards",
                     "command.help_entry_party", "command.help_entry_stats", "command.help_entry_rank",
-                    "command.help_entry_globalchat", "command.help_entry_editor", "command.help_entry_admin",
-                    "command.help_entry_recruit", "command.help_entry_match", "command.help_entry_spectate",
-                    "command.help_entry_random", "command.help_entry_help");
+                    "command.help_entry_globalchat");
+            if (sender.hasPermission("emakidungeon.editor")) {
+                sendHelpLines(sender, root, "command.help_entry_editor");
+            }
+            if (sender.hasPermission("emakidungeon.admin")) {
+                sendHelpLines(sender, root, "command.help_entry_admin");
+            }
+            sendHelpLines(sender, root, "command.help_entry_recruit", "command.help_entry_match",
+                    "command.help_entry_spectate", "command.help_entry_random", "command.help_entry_help");
             sendHelpFooter(sender);
             return;
         }
-        switch (Texts.lower(path.get(0))) {
+        String head = Texts.lower(path.get(0));
+        if ("editor".equals(head) && !sender.hasPermission("emakidungeon.editor")) {
+            sendHelpPage(sender, root, List.of());
+            return;
+        }
+        if ("admin".equals(head) && !sender.hasPermission("emakidungeon.admin")) {
+            sendHelpPage(sender, root, List.of());
+            return;
+        }
+        switch (head) {
             case "enter" -> sendValueHelp(sender, root, "command.help_enter_header",
                     "command.help_value_desc_enter", "enter", templates.discoverDungeons());
             case "rank" -> sendValueHelp(sender, root, "command.help_rank_header",
@@ -1100,28 +1128,28 @@ public final class DungeonCommandRouter {
     private void sendRandomHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 2) {
             String tail = Texts.lower(path.get(1));
-            if ("enter".equals(tail)) {
+            if ("enter".equals(tail) && randomPermitted(sender, "enter")) {
                 sendValueHelp(sender, root, "command.help_random_enter_header",
                         "command.help_value_desc_random_enter", "random enter", randomInstanceIds());
                 return;
             }
-            if ("stop".equals(tail)) {
+            if ("stop".equals(tail) && randomPermitted(sender, "stop")) {
                 sendValueHelp(sender, root, "command.help_random_stop_header",
                         "command.help_value_desc_random_stop", "random stop", randomInstanceIds());
                 return;
             }
-            if ("replay".equals(tail)) {
+            if ("replay".equals(tail) && randomPermitted(sender, "replay")) {
                 sendValueHelp(sender, root, "command.help_random_replay_header",
                         "command.help_value_desc_random_replay", "random replay", randomRecordIds());
                 return;
             }
         }
-        sendHelpLines(sender, root, "command.help_random_header",
-                "command.help_random_entry_create", "command.help_random_entry_enter",
-                "command.help_random_entry_leave",
-                "command.help_random_entry_list", "command.help_random_entry_records",
-                "command.help_random_entry_stop", "command.help_random_entry_replay",
-                "command.help_random_entry_reload");
+        sendHelpLines(sender, root, "command.help_random_header");
+        for (String entry : List.of("create", "enter", "leave", "list", "records", "stop", "replay", "reload")) {
+            if (randomPermitted(sender, entry)) {
+                sendHelpLines(sender, root, "command.help_random_entry_" + entry);
+            }
+        }
         sendHelpFooter(sender);
     }
 

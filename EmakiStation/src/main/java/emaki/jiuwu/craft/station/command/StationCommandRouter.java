@@ -80,16 +80,22 @@ public final class StationCommandRouter {
     public List<String> onTabComplete(CommandSender sender, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length <= 1) {
-            return CommandTabHelper.completeSubcommands(SUBCOMMANDS,
+            List<String> subcommands = new ArrayList<>();
+            for (String subcommand : SUBCOMMANDS) {
+                if (permitted(sender, subcommand)) {
+                    subcommands.add(subcommand);
+                }
+            }
+            return CommandTabHelper.completeSubcommands(subcommands,
                     args.length == 0 ? "" : args[0]);
         }
         String head = args[0].toLowerCase(Locale.ROOT);
-        if ("debug".equals(head)) {
+        if ("debug".equals(head) && permitted(sender, "debug")) {
             return plugin.debugCommand() == null
                     ? List.of()
                     : plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
-        if ("dismantle".equals(head) && args.length == 2) {
+        if ("dismantle".equals(head) && args.length == 2 && permitted(sender, "dismantle")) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
             for (DismantleStationDefinition station : plugin.dismantleRegistry().all()) {
                 if (station.id().startsWith(prefix)) {
@@ -98,7 +104,8 @@ public final class StationCommandRouter {
             }
             return result;
         }
-        if ("edit".equals(head) && args.length == 2 && plugin.editorModule() != null) {
+        if ("edit".equals(head) && args.length == 2 && permitted(sender, "edit")
+                && plugin.editorModule() != null) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
             for (String id : plugin.editorModule().knownIds()) {
                 if (id.startsWith(prefix)) {
@@ -108,7 +115,7 @@ public final class StationCommandRouter {
             return result;
         }
         boolean stationArgument = "open".equals(head) || "cancel".equals(head) || "list".equals(head);
-        if (stationArgument && args.length == 2) {
+        if (stationArgument && args.length == 2 && permitted(sender, head)) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
             for (StationDefinition station : plugin.registry().stations()) {
                 if (station.id().startsWith(prefix)) {
@@ -116,7 +123,8 @@ public final class StationCommandRouter {
                 }
             }
         }
-        if ("cancel".equals(head) && args.length == 3 && sender instanceof Player player) {
+        if ("cancel".equals(head) && args.length == 3 && permitted(sender, "cancel")
+                && sender instanceof Player player) {
             StationDefinition station = plugin.registry().station(args[1]);
             if (station != null) {
                 PlayerQueues queues = plugin.queueService().cached(player.getUniqueId());
@@ -132,7 +140,7 @@ public final class StationCommandRouter {
                 }
             }
         }
-        if ("admin".equals(head)) {
+        if ("admin".equals(head) && permitted(sender, "admin")) {
             if (args.length == 2) {
                 if ("queue".startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add("queue");
@@ -454,15 +462,25 @@ public final class StationCommandRouter {
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, root, "command.help_header",
-                    "command.help_entry_open", "command.help_entry_dismantle", "command.help_entry_queue",
-                    "command.help_entry_claim", "command.help_entry_cancel", "command.help_entry_list",
-                    "command.help_entry_edit", "command.help_entry_reload", "command.help_entry_debug",
-                    "command.help_entry_admin", "command.help_entry_help");
+            List<String> keys = new ArrayList<>();
+            keys.add("command.help_header");
+            for (String subcommand : List.of("open", "dismantle", "queue", "claim", "cancel", "list",
+                    "edit", "reload", "debug", "admin")) {
+                if (permitted(sender, subcommand)) {
+                    keys.add("command.help_entry_" + subcommand);
+                }
+            }
+            keys.add("command.help_entry_help");
+            sendHelpLines(sender, root, keys.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
-        switch (path.get(0).toLowerCase(Locale.ROOT)) {
+        String head = path.get(0).toLowerCase(Locale.ROOT);
+        if (!permitted(sender, head)) {
+            sendHelpPage(sender, root, List.of());
+            return;
+        }
+        switch (head) {
             case "open" -> sendIdHelp(sender, root, "open",
                     "command.help_open_header", "command.help_value_desc_open", stationIds());
             case "dismantle" -> sendIdHelp(sender, root, "dismantle",
@@ -616,6 +634,18 @@ public final class StationCommandRouter {
 
     private void sendHelpFooter(CommandSender sender) {
         sendHelpLine(sender, plugin.messageService().message("command.help_footer"));
+    }
+
+    private boolean permitted(CommandSender sender, String subcommand) {
+        return switch (subcommand) {
+            case "open", "queue", "claim", "cancel", "list" -> sender.hasPermission(PERMISSION_USE);
+            case "dismantle" -> sender.hasPermission(PERMISSION_DISMANTLE);
+            case "edit" -> sender.hasPermission(PERMISSION_EDIT);
+            case "reload" -> sender.hasPermission(PERMISSION_RELOAD);
+            case "debug" -> sender.hasPermission(PERMISSION_DEBUG);
+            case "admin" -> sender.hasPermission(PERMISSION_ADMIN);
+            default -> true;
+        };
     }
 
     private void message(CommandSender sender, String key) {

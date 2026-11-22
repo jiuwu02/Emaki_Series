@@ -2,7 +2,7 @@
 # EmakiGem 宝石示例: 攻击宝石
 # ============================================================
 # 演示功能: 最基础的攻击向宝石, 提供固定物理攻击, 演示
-#   base_item_source (构造底材), item_sources (识别来源),
+#   item_sources (底材与识别来源),
 #   effects (variables / ea_attribute / 名称与 Lore 操作),
 #   socket_compatibility (插槽兼容), inlay_cost / extract_cost 与提取返还
 # 镶嵌位置: attack 攻击插槽, 或 universal 通用插槽
@@ -23,10 +23,7 @@ gem_type: "attack"
 
 level: 1
 
-# 构造底材: 发放宝石时用哪种物品造出实物 (只负责造, 不负责认)
-base_item_source: "minecraft-quartz"
-
-# 识别判定: 与同级 matcher 取 AND; 本文件只按物品来源识别
+# 底材与识别: 发放时取第一项造实物, 识别按列表任一命中 (与同级 matcher 取 AND)
 item_sources:
   - "minecraft-quartz"
 

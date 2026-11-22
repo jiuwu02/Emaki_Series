@@ -441,6 +441,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         buildSequenceRepository();
         refreshServiceRegistry();
         contentReady = true;
+        replayStageRegistrations();
 
         markModuleReady(getName());
         loadScriptsSafely();
@@ -501,7 +502,6 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                 configModel.pipelineConfig().toLimits()
         );
         animationPlaybackService.invalidateCompiledFrames();
-        replayStageRegistrations();
     }
 
     private void replayStageRegistrations() { new EmakiCoreLibPluginDelegate(this).replayStageRegistrations(); }

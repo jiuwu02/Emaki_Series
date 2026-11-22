@@ -24,8 +24,6 @@ gem_type: "attack"
 
 level: 1
 
-base_item_source: "minecraft-emerald"
-
 item_sources:
   - "minecraft-emerald"
 

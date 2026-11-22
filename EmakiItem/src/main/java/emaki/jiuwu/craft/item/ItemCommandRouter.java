@@ -82,11 +82,15 @@ final class ItemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            return CommandTabHelper.completeSubcommands(
-                    List.of("help", "list", "browse", "edit", "give", "inspect", "components",
-                            "repair", "state", "update", "reload", "debug"), args[0]);
+            List<String> subcommands = new ArrayList<>(List.of("help", "list", "browse", "edit", "give",
+                    "inspect", "components", "repair", "state", "update", "reload", "debug"));
+            subcommands.removeIf(sub -> !hasSubcommandPermission(sender, sub));
+            return CommandTabHelper.completeSubcommands(subcommands, args[0]);
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
+            if (!hasSubcommandPermission(sender, "debug")) {
+                return result;
+            }
             List<String> debugSuggestions = new ArrayList<>(
                     plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length))
             );
@@ -97,14 +101,24 @@ final class ItemCommandRouter implements TabExecutor {
         }
         if (args.length == 2 && "state".equalsIgnoreCase(args[0])) {
             for (String sub : List.of("query", "repair", "recompute")) {
-                if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                boolean permitted = "query".equals(sub)
+                        ? sender.hasPermission(PERMISSION_INSPECT)
+                        : sender.hasPermission(PERMISSION_ADMIN);
+                if (permitted && sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
             }
             return result;
         }
         if (args.length == 3 && "state".equalsIgnoreCase(args[0])) {
+            boolean mutating = "repair".equalsIgnoreCase(args[1]) || "recompute".equalsIgnoreCase(args[1]);
+            if (!sender.hasPermission(mutating ? PERMISSION_ADMIN : PERMISSION_INSPECT)) {
+                return result;
+            }
             return CommandTabHelper.completeOnlinePlayers(args[2]);
+        }
+        if (!hasSubcommandPermission(sender, args[0].toLowerCase(Locale.ROOT))) {
+            return result;
         }
         if (args.length == 2) {
             switch (args[0].toLowerCase(Locale.ROOT)) {
@@ -164,6 +178,23 @@ final class ItemCommandRouter implements TabExecutor {
             }
         }
         return result;
+    }
+
+    private boolean hasSubcommandPermission(CommandSender sender, String subcommand) {
+        return switch (subcommand) {
+            case "list", "repair" -> sender.hasPermission(PERMISSION_USE);
+            case "browse" -> sender.hasPermission(PERMISSION_BROWSE);
+            case "edit" -> sender.hasPermission(PERMISSION_EDIT);
+            case "give" -> sender.hasPermission(PERMISSION_GIVE);
+            case "inspect", "components" -> sender.hasPermission(PERMISSION_INSPECT);
+            case "state" -> sender.hasPermission(PERMISSION_INSPECT)
+                    || sender.hasPermission(PERMISSION_ADMIN);
+            case "update" -> sender.hasPermission(PERMISSION_UPDATE);
+            case "reload" -> sender.hasPermission(PERMISSION_RELOAD);
+            case "debug" -> sender.hasPermission(PERMISSION_DEBUG)
+                    || sender.hasPermission(PERMISSION_ADMIN);
+            default -> true;
+        };
     }
 
     private boolean handleList(CommandSender sender, String[] args) {
@@ -493,12 +524,43 @@ final class ItemCommandRouter implements TabExecutor {
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, root, "command.help_header",
-                    "command.help_entry_list", "command.help_entry_browse", "command.help_entry_edit",
-                    "command.help_entry_give", "command.help_entry_inspect", "command.help_entry_components",
-                    "command.help_entry_repair", "command.help_entry_state", "command.help_entry_update",
-                    "command.help_entry_reload",
-                    "command.help_entry_debug", "command.help_entry_help");
+            List<String> keys = new ArrayList<>();
+            keys.add("command.help_header");
+            if (hasSubcommandPermission(sender, "list")) {
+                keys.add("command.help_entry_list");
+            }
+            if (hasSubcommandPermission(sender, "browse")) {
+                keys.add("command.help_entry_browse");
+            }
+            if (hasSubcommandPermission(sender, "edit")) {
+                keys.add("command.help_entry_edit");
+            }
+            if (hasSubcommandPermission(sender, "give")) {
+                keys.add("command.help_entry_give");
+            }
+            if (hasSubcommandPermission(sender, "inspect")) {
+                keys.add("command.help_entry_inspect");
+            }
+            if (hasSubcommandPermission(sender, "components")) {
+                keys.add("command.help_entry_components");
+            }
+            if (hasSubcommandPermission(sender, "repair")) {
+                keys.add("command.help_entry_repair");
+            }
+            if (hasSubcommandPermission(sender, "state")) {
+                keys.add("command.help_entry_state");
+            }
+            if (hasSubcommandPermission(sender, "update")) {
+                keys.add("command.help_entry_update");
+            }
+            if (hasSubcommandPermission(sender, "reload")) {
+                keys.add("command.help_entry_reload");
+            }
+            if (hasSubcommandPermission(sender, "debug")) {
+                keys.add("command.help_entry_debug");
+            }
+            keys.add("command.help_entry_help");
+            sendHelpLines(sender, root, keys.toArray(new String[0]));
             sendHelpFooter(sender);
             return;
         }
@@ -512,34 +574,51 @@ final class ItemCommandRouter implements TabExecutor {
 
     private void sendEditItemHelp(CommandSender sender, String root) {
         sendHelpLine(sender, plugin.messageService().message("command.help_edit_header", Map.of("root", root)));
-        List<String> itemIds = new ArrayList<>(plugin.itemLoader().all().keySet());
-        itemIds.sort(String::compareTo);
-        if (itemIds.isEmpty()) {
-            sendHelpLine(sender, plugin.messageService().message("command.help_value_empty"));
-            sendHelpFooter(sender);
-            return;
-        }
-        for (String itemId : itemIds) {
-            sendValueEntry(sender, itemId,
-                    plugin.messageService().message("command.help_value_desc_edit", Map.of("value", itemId)),
-                    root + " edit " + itemId);
+        if (hasSubcommandPermission(sender, "edit")) {
+            List<String> itemIds = new ArrayList<>(plugin.itemLoader().all().keySet());
+            itemIds.sort(String::compareTo);
+            if (itemIds.isEmpty()) {
+                sendHelpLine(sender, plugin.messageService().message("command.help_value_empty"));
+                sendHelpFooter(sender);
+                return;
+            }
+            for (String itemId : itemIds) {
+                sendValueEntry(sender, itemId,
+                        plugin.messageService().message("command.help_value_desc_edit", Map.of("value", itemId)),
+                        root + " edit " + itemId);
+            }
         }
         sendHelpFooter(sender);
     }
 
     private void sendStateHelp(CommandSender sender, String root) {
-        sendHelpLines(sender, root, "command.help_state_header",
-                "command.help_state_entry_query", "command.help_state_entry_repair",
-                "command.help_state_entry_recompute");
+        List<String> keys = new ArrayList<>();
+        keys.add("command.help_state_header");
+        if (sender.hasPermission(PERMISSION_INSPECT)) {
+            keys.add("command.help_state_entry_query");
+        }
+        if (sender.hasPermission(PERMISSION_ADMIN)) {
+            keys.add("command.help_state_entry_repair");
+            keys.add("command.help_state_entry_recompute");
+        }
+        sendHelpLines(sender, root, keys.toArray(new String[0]));
         sendHelpFooter(sender);
     }
 
     private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() < 2) {
-            sendHelpLines(sender, root, "command.help_debug_header",
-                    "command.help_debug_entry_status", "command.help_debug_entry_on", "command.help_debug_entry_off",
-                    "command.help_debug_entry_stats", "command.help_debug_entry_player",
-                    "command.help_debug_entry_module", "command.help_debug_entry_action");
+            List<String> keys = new ArrayList<>();
+            keys.add("command.help_debug_header");
+            if (hasSubcommandPermission(sender, "debug")) {
+                keys.add("command.help_debug_entry_status");
+                keys.add("command.help_debug_entry_on");
+                keys.add("command.help_debug_entry_off");
+                keys.add("command.help_debug_entry_stats");
+                keys.add("command.help_debug_entry_player");
+                keys.add("command.help_debug_entry_module");
+                keys.add("command.help_debug_entry_action");
+            }
+            sendHelpLines(sender, root, keys.toArray(new String[0]));
             sendHelpFooter(sender);
             return;
         }
@@ -553,33 +632,45 @@ final class ItemCommandRouter implements TabExecutor {
 
     private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
-            sendHelpLines(sender, root, "command.help_debug_action_run_header",
-                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            List<String> runKeys = new ArrayList<>();
+            runKeys.add("command.help_debug_action_run_header");
+            if (hasSubcommandPermission(sender, "debug")) {
+                runKeys.add("command.help_debug_action_run_entry_shadow");
+                runKeys.add("command.help_debug_action_run_entry_execute");
+            }
+            sendHelpLines(sender, root, runKeys.toArray(new String[0]));
             sendHelpFooter(sender);
             return;
         }
-        sendHelpLines(sender, root, "command.help_debug_action_header",
-                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
-                "command.help_debug_action_entry_registry");
+        List<String> keys = new ArrayList<>();
+        keys.add("command.help_debug_action_header");
+        if (hasSubcommandPermission(sender, "debug")) {
+            keys.add("command.help_debug_action_entry_run");
+            keys.add("command.help_debug_action_entry_check");
+            keys.add("command.help_debug_action_entry_registry");
+        }
+        sendHelpLines(sender, root, keys.toArray(new String[0]));
         sendHelpFooter(sender);
     }
 
     private void sendPlayerHelp(CommandSender sender, String root, String command, String headerKey, String descKey) {
         sendHelpLine(sender, plugin.messageService().message(headerKey, Map.of("root", root)));
-        List<String> names = new ArrayList<>();
-        for (Player online : Bukkit.getOnlinePlayers()) {
-            names.add(online.getName());
-        }
-        names.sort(String::compareTo);
-        if (names.isEmpty()) {
-            sendHelpLine(sender, plugin.messageService().message("command.help_value_empty"));
-            sendHelpFooter(sender);
-            return;
-        }
-        for (String name : names) {
-            sendValueEntry(sender, name,
-                    plugin.messageService().message(descKey, Map.of("value", name)),
-                    root + " " + command + " " + name);
+        if (hasSubcommandPermission(sender, "debug")) {
+            List<String> names = new ArrayList<>();
+            for (Player online : Bukkit.getOnlinePlayers()) {
+                names.add(online.getName());
+            }
+            names.sort(String::compareTo);
+            if (names.isEmpty()) {
+                sendHelpLine(sender, plugin.messageService().message("command.help_value_empty"));
+                sendHelpFooter(sender);
+                return;
+            }
+            for (String name : names) {
+                sendValueEntry(sender, name,
+                        plugin.messageService().message(descKey, Map.of("value", name)),
+                        root + " " + command + " " + name);
+            }
         }
         sendHelpFooter(sender);
     }

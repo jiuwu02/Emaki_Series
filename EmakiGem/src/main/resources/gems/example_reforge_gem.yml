@@ -20,8 +20,6 @@ gem_type: "universal"
 
 level: 1
 
-base_item_source: "minecraft-lapis_lazuli"
-
 item_sources:
   - "minecraft-lapis_lazuli"
 

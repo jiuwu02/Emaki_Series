@@ -507,15 +507,25 @@ public final class MobsCommandRouter {
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, root, "command.help_header",
-                    "command.help_entry_help", "command.help_entry_spawn", "command.help_entry_reload",
-                    "command.help_entry_list", "command.help_entry_info", "command.help_entry_count",
-                    "command.help_entry_find", "command.help_entry_kill", "command.help_entry_tp",
-                    "command.help_entry_debug", "command.help_entry_edit");
+            List<String> keys = new ArrayList<>();
+            keys.add("command.help_header");
+            keys.add("command.help_entry_help");
+            for (String subcommand : List.of("spawn", "reload", "list", "info", "count", "find",
+                    "kill", "tp", "debug", "edit")) {
+                if (sender.hasPermission(permissionFor(subcommand))) {
+                    keys.add("command.help_entry_" + subcommand);
+                }
+            }
+            sendHelpLines(sender, root, keys.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
-        switch (path.get(0).toLowerCase(Locale.ROOT)) {
+        String head = path.get(0).toLowerCase(Locale.ROOT);
+        if (!"help".equals(head) && !sender.hasPermission(permissionFor(head))) {
+            sendHelpPage(sender, root, List.of());
+            return;
+        }
+        switch (head) {
             case "spawn" -> sendMobIdHelp(sender, root, "spawn",
                     "command.help_spawn_header", "command.help_value_desc_spawn");
             case "info" -> sendMobIdHelp(sender, root, "info",

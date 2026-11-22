@@ -71,11 +71,29 @@ public final class AccessoryCommandRouter {
     public List<String> onTabComplete(CommandSender sender, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length <= 1) {
-            return CommandTabHelper.completeSubcommands(SUBCOMMANDS,
+            List<String> subcommands = new ArrayList<>();
+            subcommands.add("help");
+            if (sender.hasPermission(PERMISSION_USE)) {
+                subcommands.addAll(List.of("open", "list", "pages", "retrieve"));
+            }
+            if (sender.hasPermission(PERMISSION_EDIT)) {
+                subcommands.add("edit");
+            }
+            if (sender.hasPermission(PERMISSION_RELOAD)) {
+                subcommands.add("reload");
+            }
+            if (sender.hasPermission(PERMISSION_DEBUG)) {
+                subcommands.add("debug");
+            }
+            if (sender.hasPermission(PERMISSION_ADMIN)) {
+                subcommands.add("admin");
+            }
+            return CommandTabHelper.completeSubcommands(subcommands,
                     args.length == 0 ? "" : args[0]);
         }
         String head = args[0].toLowerCase(Locale.ROOT);
-        if (("open".equals(head) || "retrieve".equals(head)) && args.length == 2) {
+        if (("open".equals(head) || "retrieve".equals(head)) && args.length == 2
+                && sender.hasPermission(PERMISSION_USE)) {
             String prefix = Texts.lower(args[1]);
             for (String pageId : plugin.pageRegistry().pageIds()) {
                 if (pageId.startsWith(prefix)) {
@@ -84,7 +102,7 @@ public final class AccessoryCommandRouter {
             }
             return result;
         }
-        if ("edit".equals(head) && args.length == 2) {
+        if ("edit".equals(head) && args.length == 2 && sender.hasPermission(PERMISSION_EDIT)) {
             String prefix = Texts.lower(args[1]);
             if (plugin.partLoader() != null && plugin.partLoader().file().isFile()
                     && "parts".startsWith(prefix)) {
@@ -99,22 +117,24 @@ public final class AccessoryCommandRouter {
             }
             return result;
         }
-        if ("debug".equals(head)) {
+        if ("debug".equals(head) && sender.hasPermission(PERMISSION_DEBUG)) {
             return plugin.debugCommand() == null
                     ? List.of()
                     : plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
-        if ("admin".equals(head)) {
+        if ("admin".equals(head) && sender.hasPermission(PERMISSION_ADMIN)) {
             if (args.length == 2) {
                 String prefix = args[1].toLowerCase(Locale.ROOT);
                 for (String sub : ADMIN_SUBCOMMANDS) {
-                    if (sub.startsWith(prefix)) {
+                    if (sub.startsWith(prefix)
+                            && (!"edit".equals(sub) || sender.hasPermission(PERMISSION_EDIT_OTHERS))) {
                         result.add(sub);
                     }
                 }
                 return result;
             }
-            if (args.length == 3 && !"save".equals(Texts.lower(args[1]))) {
+            if (args.length == 3 && !"save".equals(Texts.lower(args[1]))
+                    && (!"edit".equals(Texts.lower(args[1])) || sender.hasPermission(PERMISSION_EDIT_OTHERS))) {
                 String prefix = args[2].toLowerCase(Locale.ROOT);
                 for (Player online : Bukkit.getOnlinePlayers()) {
                     if (online.getName().toLowerCase(Locale.ROOT).startsWith(prefix)) {
@@ -459,17 +479,33 @@ public final class AccessoryCommandRouter {
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, root, "command.help_header",
-                    "command.help_entry_help", "command.help_entry_open", "command.help_entry_list",
-                    "command.help_entry_pages", "command.help_entry_retrieve", "command.help_entry_edit",
-                    "command.help_entry_reload", "command.help_entry_debug", "command.help_entry_admin");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_header");
+            entries.add("command.help_entry_help");
+            if (sender.hasPermission(PERMISSION_USE)) {
+                entries.addAll(List.of("command.help_entry_open", "command.help_entry_list",
+                        "command.help_entry_pages", "command.help_entry_retrieve"));
+            }
+            if (sender.hasPermission(PERMISSION_EDIT)) {
+                entries.add("command.help_entry_edit");
+            }
+            if (sender.hasPermission(PERMISSION_RELOAD)) {
+                entries.add("command.help_entry_reload");
+            }
+            if (sender.hasPermission(PERMISSION_DEBUG)) {
+                entries.add("command.help_entry_debug");
+            }
+            if (sender.hasPermission(PERMISSION_ADMIN)) {
+                entries.add("command.help_entry_admin");
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
         switch (path.get(0).toLowerCase(Locale.ROOT)) {
             case "retrieve" -> sendIdHelp(sender, root, "retrieve",
                     "command.help_retrieve_header", "command.help_value_desc_retrieve",
-                    new ArrayList<>(plugin.pageRegistry().pageIds()));
+                    new ArrayList<>(plugin.pageRegistry().pageIds()), sender.hasPermission(PERMISSION_USE));
             case "admin" -> sendAdminHelp(sender, root, path);
             case "debug" -> sendDebugHelp(sender, root, path);
             default -> sendHelpPage(sender, root, List.of());
@@ -477,9 +513,13 @@ public final class AccessoryCommandRouter {
     }
 
     private void sendIdHelp(CommandSender sender, String root, String command,
-            String headerKey, String descKey, List<String> ids) {
+            String headerKey, String descKey, List<String> ids, boolean permitted) {
         var messageService = plugin.messageService();
         sendHelpLine(sender, messageService.message(headerKey, Map.of("root", root)));
+        if (!permitted) {
+            sendHelpFooter(sender);
+            return;
+        }
         List<String> values = new ArrayList<>(ids);
         values.sort(String::compareTo);
         if (values.isEmpty()) {
@@ -500,47 +540,69 @@ public final class AccessoryCommandRouter {
             String tail = path.get(1).toLowerCase(Locale.ROOT);
             if ("view".equals(tail)) {
                 sendPlayerHelp(sender, root, "admin view",
-                        "command.help_admin_view_header", "command.help_value_desc_admin_view");
+                        "command.help_admin_view_header", "command.help_value_desc_admin_view",
+                        sender.hasPermission(PERMISSION_ADMIN));
                 return;
             }
             if ("edit".equals(tail)) {
                 sendPlayerHelp(sender, root, "admin edit",
-                        "command.help_admin_edit_header", "command.help_value_desc_admin_edit");
+                        "command.help_admin_edit_header", "command.help_value_desc_admin_edit",
+                        sender.hasPermission(PERMISSION_ADMIN) && sender.hasPermission(PERMISSION_EDIT_OTHERS));
                 return;
             }
             if ("clear".equals(tail)) {
                 sendPlayerHelp(sender, root, "admin clear",
-                        "command.help_admin_clear_header", "command.help_value_desc_admin_clear");
+                        "command.help_admin_clear_header", "command.help_value_desc_admin_clear",
+                        sender.hasPermission(PERMISSION_ADMIN));
                 return;
             }
         }
-        sendHelpLines(sender, root, "command.help_admin_header",
-                "command.help_admin_entry_view", "command.help_admin_entry_edit",
-                "command.help_admin_entry_clear", "command.help_admin_entry_save");
+        List<String> entries = new ArrayList<>();
+        entries.add("command.help_admin_header");
+        if (sender.hasPermission(PERMISSION_ADMIN)) {
+            entries.add("command.help_admin_entry_view");
+        }
+        if (sender.hasPermission(PERMISSION_ADMIN) && sender.hasPermission(PERMISSION_EDIT_OTHERS)) {
+            entries.add("command.help_admin_entry_edit");
+        }
+        if (sender.hasPermission(PERMISSION_ADMIN)) {
+            entries.addAll(List.of("command.help_admin_entry_clear", "command.help_admin_entry_save"));
+        }
+        sendHelpLines(sender, root, entries.toArray(String[]::new));
         sendHelpFooter(sender);
     }
 
     private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() < 2) {
-            sendHelpLines(sender, root, "command.help_debug_header",
-                    "command.help_debug_entry_status", "command.help_debug_entry_on",
-                    "command.help_debug_entry_off", "command.help_debug_entry_player",
-                    "command.help_debug_entry_module", "command.help_debug_entry_action");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_debug_header");
+            if (sender.hasPermission(PERMISSION_DEBUG)) {
+                entries.addAll(List.of("command.help_debug_entry_status", "command.help_debug_entry_on",
+                        "command.help_debug_entry_off", "command.help_debug_entry_player",
+                        "command.help_debug_entry_module", "command.help_debug_entry_action"));
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
         switch (path.get(1).toLowerCase(Locale.ROOT)) {
             case "player" -> sendPlayerHelp(sender, root, "debug player",
-                    "command.help_debug_player_header", "command.help_value_desc_debug_player");
-            case "module" -> sendModuleHelp(sender, root);
+                    "command.help_debug_player_header", "command.help_value_desc_debug_player",
+                    sender.hasPermission(PERMISSION_DEBUG));
+            case "module" -> sendModuleHelp(sender, root, sender.hasPermission(PERMISSION_DEBUG));
             case "action" -> sendDebugActionHelp(sender, root, path);
             default -> sendHelpPage(sender, root, List.of("debug"));
         }
     }
 
-    private void sendPlayerHelp(CommandSender sender, String root, String command, String headerKey, String descKey) {
+    private void sendPlayerHelp(CommandSender sender, String root, String command, String headerKey, String descKey,
+            boolean permitted) {
         var messageService = plugin.messageService();
         sendHelpLine(sender, messageService.message(headerKey, Map.of("root", root)));
+        if (!permitted) {
+            sendHelpFooter(sender);
+            return;
+        }
         List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
         players.sort(Comparator.comparing(Player::getName));
         if (players.isEmpty()) {
@@ -557,9 +619,13 @@ public final class AccessoryCommandRouter {
         sendHelpFooter(sender);
     }
 
-    private void sendModuleHelp(CommandSender sender, String root) {
+    private void sendModuleHelp(CommandSender sender, String root, boolean permitted) {
         var messageService = plugin.messageService();
         sendHelpLine(sender, messageService.message("command.help_debug_module_header", Map.of("root", root)));
+        if (!permitted) {
+            sendHelpFooter(sender);
+            return;
+        }
         List<String> modules = plugin.debugCommand() == null
                 ? List.of()
                 : plugin.debugCommand().tabComplete(new String[] {"module", ""});
@@ -578,14 +644,23 @@ public final class AccessoryCommandRouter {
 
     private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
-            sendHelpLines(sender, root, "command.help_debug_action_run_header",
-                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            List<String> entries = new ArrayList<>();
+            entries.add("command.help_debug_action_run_header");
+            if (sender.hasPermission(PERMISSION_DEBUG)) {
+                entries.addAll(List.of("command.help_debug_action_run_entry_shadow",
+                        "command.help_debug_action_run_entry_execute"));
+            }
+            sendHelpLines(sender, root, entries.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
-        sendHelpLines(sender, root, "command.help_debug_action_header",
-                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
-                "command.help_debug_action_entry_registry");
+        List<String> entries = new ArrayList<>();
+        entries.add("command.help_debug_action_header");
+        if (sender.hasPermission(PERMISSION_DEBUG)) {
+            entries.addAll(List.of("command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
+                    "command.help_debug_action_entry_registry"));
+        }
+        sendHelpLines(sender, root, entries.toArray(String[]::new));
         sendHelpFooter(sender);
     }
 

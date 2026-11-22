@@ -79,7 +79,15 @@ public final class CoreLibCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            result.addAll(CommandTabHelper.completeSubcommands(SUB_COMMANDS, args[0]));
+            List<String> subcommands = new ArrayList<>();
+            for (String subcommand : SUB_COMMANDS) {
+                if (permitted(sender, subcommand)) {
+                    subcommands.add(subcommand);
+                }
+            }
+            result.addAll(CommandTabHelper.completeSubcommands(subcommands, args[0]));
+        } else if (args.length > 1 && !permitted(sender, args[0].toLowerCase(Locale.ROOT))) {
+            return List.of();
         } else if (args.length == 2 && "check".equalsIgnoreCase(args[0])) {
             complete(args[1], CHECK_MODES, result);
             complete(args[1], plugin.configPrecheckService().registry().moduleIds(), result);
@@ -452,13 +460,27 @@ public final class CoreLibCommandRouter implements TabExecutor {
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, root, "command.help_header",
-                    "command.help_entry_reload", "command.help_entry_check",
-                    "command.help_entry_action", "command.help_entry_debug", "command.help_entry_help");
+            List<String> keys = new ArrayList<>();
+            keys.add("command.help_header");
+            if (sender.hasPermission(PERMISSION_RELOAD)) {
+                keys.add("command.help_entry_reload");
+            }
+            if (sender.hasPermission(PERMISSION_ADMIN)) {
+                keys.add("command.help_entry_check");
+                keys.add("command.help_entry_action");
+                keys.add("command.help_entry_debug");
+            }
+            keys.add("command.help_entry_help");
+            sendHelpLines(sender, root, keys.toArray(String[]::new));
             sendHelpFooter(sender);
             return;
         }
-        switch (path.get(0).toLowerCase(Locale.ROOT)) {
+        String head = path.get(0).toLowerCase(Locale.ROOT);
+        if (!permitted(sender, head)) {
+            sendHelpPage(sender, root, List.of());
+            return;
+        }
+        switch (head) {
             case "check" -> sendCheckHelp(sender, root, path);
             case "action" -> sendActionHelp(sender, root);
             case "debug" -> sendDebugHelp(sender, root, path);
@@ -589,6 +611,15 @@ public final class CoreLibCommandRouter implements TabExecutor {
 
     private void sendHelpFooter(CommandSender sender) {
         sendHelpLine(sender, plugin.messageService().message("command.help_footer"));
+    }
+
+    private boolean permitted(CommandSender sender, String subcommand) {
+        return switch (subcommand) {
+            case "help" -> true;
+            case "reload" -> sender.hasPermission(PERMISSION_RELOAD);
+            case "check", "debug", "action" -> sender.hasPermission(PERMISSION_ADMIN);
+            default -> true;
+        };
     }
 
     private void complete(String rawPrefix, List<String> options, List<String> result) {

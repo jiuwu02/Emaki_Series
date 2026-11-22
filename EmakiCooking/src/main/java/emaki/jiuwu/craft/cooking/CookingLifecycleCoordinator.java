@@ -80,7 +80,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
             "data/stations/index",
             "data/stations-legacy-backup",
             "nutrition",
-            "data/nutrition"
+            "data/nutrition",
+            "data/completions"
     );
 
     @Override

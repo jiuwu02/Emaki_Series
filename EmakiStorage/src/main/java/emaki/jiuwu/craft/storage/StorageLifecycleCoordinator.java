@@ -56,7 +56,7 @@ final class StorageLifecycleCoordinator
     private static final List<String> DEFAULT_DATA_FILES = List.of("unlock_costs.yml",
             "gui/editor_page_gui.yml",
             "gui/editor_browser_gui.yml");
-    private static final List<String> EXTRA_DIRECTORIES = List.of("data", "logs", "corrupt");
+    private static final List<String> EXTRA_DIRECTORIES = List.of("data", "logs", "corrupt", "exports");
 
     @Override
     public StorageRuntimeComponents initialize(EmakiStoragePlugin plugin) {

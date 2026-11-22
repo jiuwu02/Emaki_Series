@@ -65,7 +65,8 @@ random-dungeon:
     fixed-value: 0
     persist-config-fingerprint: true
 
-  # 9. 实例世界: 生成跟随 world.type (air=空岛/normal=主世界/nether=下界/end=末地), 只经世界池形态创建回收
+  # 9. 随机实例世界: 启动随机副本时新建实例世界的生成类型 (air=空岛/normal=主世界/nether=下界/end=末地)
+  #    编辑世界与普通副本实例不看此项, 始终跟随原始地图自身的生成设置
   world:
     type: air
     prewarm-radius-chunks: 2

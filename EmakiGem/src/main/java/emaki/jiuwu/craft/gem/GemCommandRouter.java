@@ -69,14 +69,21 @@ final class GemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            return CommandTabHelper.completeSubcommands(
-                    List.of("help", "gui", "reload", "edit", "inspect", "reroll", "clearstate", "debug"),
-                    args[0]);
+            List<String> subcommands = new ArrayList<>(List.of(
+                    "help", "gui", "reload", "edit", "inspect", "reroll", "clearstate", "debug"));
+            subcommands.removeIf(sub -> !hasSubcommandPermission(sender, sub));
+            return CommandTabHelper.completeSubcommands(subcommands, args[0]);
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
+            if (!hasSubcommandPermission(sender, "debug")) {
+                return result;
+            }
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if (args.length == 2) {
+            if (!hasSubcommandPermission(sender, args[0].toLowerCase(Locale.ROOT))) {
+                return result;
+            }
             switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "gui" -> {
                     for (String sub : List.of("inlay", "upgrade", "extract", "reroll", "recalibrate", "open")) {
@@ -109,6 +116,20 @@ final class GemCommandRouter implements TabExecutor {
             return result;
         }
         return result;
+    }
+
+    private boolean hasSubcommandPermission(CommandSender sender, String subcommand) {
+        return switch (subcommand) {
+            case "gui", "inspect", "reroll" -> sender.hasPermission(PERMISSION_USE)
+                    || sender.hasPermission(PERMISSION_ADMIN);
+            case "reload" -> sender.hasPermission(PERMISSION_RELOAD)
+                    || sender.hasPermission(PERMISSION_ADMIN);
+            case "edit" -> sender.hasPermission(PERMISSION_EDIT);
+            case "clearstate" -> sender.hasPermission(PERMISSION_ADMIN);
+            case "debug" -> sender.hasPermission(PERMISSION_DEBUG)
+                    || sender.hasPermission(PERMISSION_ADMIN);
+            default -> true;
+        };
     }
 
     private boolean handleReload(CommandSender sender) {
@@ -336,17 +357,38 @@ final class GemCommandRouter implements TabExecutor {
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, root, "command.help_header",
-                    "command.help_entry_help", "command.help_entry_gui", "command.help_entry_reload",
-                    "command.help_entry_edit", "command.help_entry_inspect", "command.help_entry_reroll",
-                    "command.help_entry_clearstate", "command.help_entry_debug");
+            List<String> keys = new ArrayList<>();
+            keys.add("command.help_header");
+            keys.add("command.help_entry_help");
+            if (hasSubcommandPermission(sender, "gui")) {
+                keys.add("command.help_entry_gui");
+            }
+            if (hasSubcommandPermission(sender, "reload")) {
+                keys.add("command.help_entry_reload");
+            }
+            if (hasSubcommandPermission(sender, "edit")) {
+                keys.add("command.help_entry_edit");
+            }
+            if (hasSubcommandPermission(sender, "inspect")) {
+                keys.add("command.help_entry_inspect");
+            }
+            if (hasSubcommandPermission(sender, "reroll")) {
+                keys.add("command.help_entry_reroll");
+            }
+            if (hasSubcommandPermission(sender, "clearstate")) {
+                keys.add("command.help_entry_clearstate");
+            }
+            if (hasSubcommandPermission(sender, "debug")) {
+                keys.add("command.help_entry_debug");
+            }
+            sendHelpLines(sender, root, keys.toArray(new String[0]));
             sendHelpFooter(sender);
             return;
         }
         switch (path.get(0).toLowerCase(Locale.ROOT)) {
             case "gui" -> sendGuiHelp(sender, root);
             case "reroll" -> sendRerollHelp(sender, root);
-            case "inspect" -> sendPlayerHelp(sender, root, "inspect",
+            case "inspect" -> sendPlayerHelp(sender, root, "inspect", "inspect",
                     "command.help_inspect_header", "command.help_value_desc_inspect");
             case "debug" -> sendDebugHelp(sender, root, path);
             default -> sendHelpPage(sender, root, List.of());
@@ -354,32 +396,52 @@ final class GemCommandRouter implements TabExecutor {
     }
 
     private void sendGuiHelp(CommandSender sender, String root) {
-        sendHelpLines(sender, root, "command.help_gui_header",
-                "command.help_gui_entry_inlay", "command.help_gui_entry_upgrade",
-                "command.help_gui_entry_extract", "command.help_gui_entry_reroll",
-                "command.help_gui_entry_recalibrate", "command.help_gui_entry_open");
+        List<String> keys = new ArrayList<>();
+        keys.add("command.help_gui_header");
+        if (hasSubcommandPermission(sender, "gui")) {
+            keys.add("command.help_gui_entry_inlay");
+            keys.add("command.help_gui_entry_upgrade");
+            keys.add("command.help_gui_entry_extract");
+            keys.add("command.help_gui_entry_reroll");
+            keys.add("command.help_gui_entry_recalibrate");
+            keys.add("command.help_gui_entry_open");
+        }
+        sendHelpLines(sender, root, keys.toArray(new String[0]));
         sendHelpFooter(sender);
     }
 
     private void sendRerollHelp(CommandSender sender, String root) {
-        sendHelpLines(sender, root, "command.help_reroll_header",
-                "command.help_reroll_entry_full", "command.help_reroll_entry_value",
-                "command.help_reroll_entry_confirm", "command.help_reroll_entry_cancel",
-                "command.help_reroll_entry_status");
+        List<String> keys = new ArrayList<>();
+        keys.add("command.help_reroll_header");
+        if (hasSubcommandPermission(sender, "reroll")) {
+            keys.add("command.help_reroll_entry_full");
+            keys.add("command.help_reroll_entry_value");
+            keys.add("command.help_reroll_entry_confirm");
+            keys.add("command.help_reroll_entry_cancel");
+            keys.add("command.help_reroll_entry_status");
+        }
+        sendHelpLines(sender, root, keys.toArray(new String[0]));
         sendHelpFooter(sender);
     }
 
     private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() < 2) {
-            sendHelpLines(sender, root, "command.help_debug_header",
-                    "command.help_debug_entry_status", "command.help_debug_entry_on",
-                    "command.help_debug_entry_off", "command.help_debug_entry_player",
-                    "command.help_debug_entry_module", "command.help_debug_entry_action");
+            List<String> keys = new ArrayList<>();
+            keys.add("command.help_debug_header");
+            if (hasSubcommandPermission(sender, "debug")) {
+                keys.add("command.help_debug_entry_status");
+                keys.add("command.help_debug_entry_on");
+                keys.add("command.help_debug_entry_off");
+                keys.add("command.help_debug_entry_player");
+                keys.add("command.help_debug_entry_module");
+                keys.add("command.help_debug_entry_action");
+            }
+            sendHelpLines(sender, root, keys.toArray(new String[0]));
             sendHelpFooter(sender);
             return;
         }
         switch (path.get(1).toLowerCase(Locale.ROOT)) {
-            case "player" -> sendPlayerHelp(sender, root, "debug player",
+            case "player" -> sendPlayerHelp(sender, root, "debug", "debug player",
                     "command.help_debug_player_header", "command.help_value_desc_debug_player");
             case "module" -> sendModuleHelp(sender, root);
             case "action" -> sendDebugActionHelp(sender, root, path);
@@ -387,22 +449,24 @@ final class GemCommandRouter implements TabExecutor {
         }
     }
 
-    private void sendPlayerHelp(CommandSender sender, String root, String command,
+    private void sendPlayerHelp(CommandSender sender, String root, String owner, String command,
             String headerKey, String descKey) {
         var messageService = plugin.messageService();
         sendHelpLine(sender, messageService.message(headerKey, Map.of("root", root)));
-        List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
-        players.sort(Comparator.comparing(Player::getName));
-        if (players.isEmpty()) {
-            sendHelpLine(sender, messageService.message("command.help_value_empty"));
-            sendHelpFooter(sender);
-            return;
-        }
-        for (Player player : players) {
-            String name = player.getName();
-            sendValueEntry(sender, name,
-                    messageService.message(descKey, Map.of("value", name)),
-                    root + " " + command + " " + name);
+        if (hasSubcommandPermission(sender, owner)) {
+            List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
+            players.sort(Comparator.comparing(Player::getName));
+            if (players.isEmpty()) {
+                sendHelpLine(sender, messageService.message("command.help_value_empty"));
+                sendHelpFooter(sender);
+                return;
+            }
+            for (Player player : players) {
+                String name = player.getName();
+                sendValueEntry(sender, name,
+                        messageService.message(descKey, Map.of("value", name)),
+                        root + " " + command + " " + name);
+            }
         }
         sendHelpFooter(sender);
     }
@@ -410,32 +474,44 @@ final class GemCommandRouter implements TabExecutor {
     private void sendModuleHelp(CommandSender sender, String root) {
         var messageService = plugin.messageService();
         sendHelpLine(sender, messageService.message("command.help_debug_module_header", Map.of("root", root)));
-        List<String> modules = plugin.debugCommand() == null
-                ? List.of()
-                : plugin.debugCommand().tabComplete(new String[] {"module", ""});
-        if (modules.isEmpty()) {
-            sendHelpLine(sender, messageService.message("command.help_value_empty"));
-            sendHelpFooter(sender);
-            return;
-        }
-        for (String module : modules) {
-            sendValueEntry(sender, module,
-                    messageService.message("command.help_value_desc_debug_module", Map.of("value", module)),
-                    root + " debug module " + module);
+        if (hasSubcommandPermission(sender, "debug")) {
+            List<String> modules = plugin.debugCommand() == null
+                    ? List.of()
+                    : plugin.debugCommand().tabComplete(new String[] {"module", ""});
+            if (modules.isEmpty()) {
+                sendHelpLine(sender, messageService.message("command.help_value_empty"));
+                sendHelpFooter(sender);
+                return;
+            }
+            for (String module : modules) {
+                sendValueEntry(sender, module,
+                        messageService.message("command.help_value_desc_debug_module", Map.of("value", module)),
+                        root + " debug module " + module);
+            }
         }
         sendHelpFooter(sender);
     }
 
     private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
-            sendHelpLines(sender, root, "command.help_debug_action_run_header",
-                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            List<String> runKeys = new ArrayList<>();
+            runKeys.add("command.help_debug_action_run_header");
+            if (hasSubcommandPermission(sender, "debug")) {
+                runKeys.add("command.help_debug_action_run_entry_shadow");
+                runKeys.add("command.help_debug_action_run_entry_execute");
+            }
+            sendHelpLines(sender, root, runKeys.toArray(new String[0]));
             sendHelpFooter(sender);
             return;
         }
-        sendHelpLines(sender, root, "command.help_debug_action_header",
-                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
-                "command.help_debug_action_entry_registry");
+        List<String> keys = new ArrayList<>();
+        keys.add("command.help_debug_action_header");
+        if (hasSubcommandPermission(sender, "debug")) {
+            keys.add("command.help_debug_action_entry_run");
+            keys.add("command.help_debug_action_entry_check");
+            keys.add("command.help_debug_action_entry_registry");
+        }
+        sendHelpLines(sender, root, keys.toArray(new String[0]));
         sendHelpFooter(sender);
     }
 

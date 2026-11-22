@@ -226,11 +226,14 @@ public final class KitCommandRouter {
             String prefix = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
             List<String> result = new ArrayList<>();
             for (String top : TOP) {
-                if (top.startsWith(prefix)) {
+                if (top.startsWith(prefix) && hasSubcommandPermission(sender, top)) {
                     result.add(top);
                 }
             }
             return result;
+        }
+        if (!hasSubcommandPermission(sender, args[0].toLowerCase(Locale.ROOT))) {
+            return List.of();
         }
         if (args.length == 2) {
             String sub = args[0].toLowerCase(Locale.ROOT);
@@ -297,15 +300,77 @@ public final class KitCommandRouter {
         return List.of();
     }
 
+    private boolean hasSubcommandPermission(CommandSender sender, String subcommand) {
+        return switch (subcommand) {
+            case "list" -> sender.hasPermission("emakikits.use");
+            case "claim" -> sender.hasPermission("emakikits.claim");
+            case "choose", "open" -> sender.hasPermission("emakikits.open");
+            case "buy" -> sender.hasPermission("emakikits.buy");
+            case "redeem" -> sender.hasPermission("emakikits.redeem");
+            case "invite" -> sender.hasPermission("emakikits.invite");
+            case "inspect" -> sender.hasPermission("emakikits.inspect");
+            case "grant" -> sender.hasPermission("emakikits.grant");
+            case "cdk" -> sender.hasPermission("emakikits.cdk");
+            case "reload" -> sender.hasPermission("emakikits.reload");
+            case "check" -> sender.hasPermission("emakikits.check");
+            case "preview" -> sender.hasPermission("emakikits.preview");
+            case "edit" -> sender.hasPermission("emakikits.edit");
+            case "top" -> sender.hasPermission("emakikits.top");
+            default -> true;
+        };
+    }
+
     private void sendHelpPage(CommandSender sender, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, "general.help_header",
-                    "general.help_entry_list", "general.help_entry_claim", "general.help_entry_choose",
-                    "general.help_entry_buy", "general.help_entry_redeem", "general.help_entry_invite",
-                    "general.help_entry_open", "general.help_entry_inspect", "general.help_entry_grant",
-                    "general.help_entry_cdk", "general.help_entry_reload", "general.help_entry_check",
-                    "general.help_entry_preview", "general.help_entry_edit", "general.help_entry_top",
-                    "general.help_entry_help");
+            List<String> keys = new ArrayList<>();
+            keys.add("general.help_header");
+            if (hasSubcommandPermission(sender, "list")) {
+                keys.add("general.help_entry_list");
+            }
+            if (hasSubcommandPermission(sender, "claim")) {
+                keys.add("general.help_entry_claim");
+            }
+            if (hasSubcommandPermission(sender, "choose")) {
+                keys.add("general.help_entry_choose");
+            }
+            if (hasSubcommandPermission(sender, "buy")) {
+                keys.add("general.help_entry_buy");
+            }
+            if (hasSubcommandPermission(sender, "redeem")) {
+                keys.add("general.help_entry_redeem");
+            }
+            if (hasSubcommandPermission(sender, "invite")) {
+                keys.add("general.help_entry_invite");
+            }
+            if (hasSubcommandPermission(sender, "open")) {
+                keys.add("general.help_entry_open");
+            }
+            if (hasSubcommandPermission(sender, "inspect")) {
+                keys.add("general.help_entry_inspect");
+            }
+            if (hasSubcommandPermission(sender, "grant")) {
+                keys.add("general.help_entry_grant");
+            }
+            if (hasSubcommandPermission(sender, "cdk")) {
+                keys.add("general.help_entry_cdk");
+            }
+            if (hasSubcommandPermission(sender, "reload")) {
+                keys.add("general.help_entry_reload");
+            }
+            if (hasSubcommandPermission(sender, "check")) {
+                keys.add("general.help_entry_check");
+            }
+            if (hasSubcommandPermission(sender, "preview")) {
+                keys.add("general.help_entry_preview");
+            }
+            if (hasSubcommandPermission(sender, "edit")) {
+                keys.add("general.help_entry_edit");
+            }
+            if (hasSubcommandPermission(sender, "top")) {
+                keys.add("general.help_entry_top");
+            }
+            keys.add("general.help_entry_help");
+            sendHelpLines(sender, keys.toArray(new String[0]));
             sendHelpFooter(sender);
             return;
         }
@@ -331,44 +396,53 @@ public final class KitCommandRouter {
 
     private void sendKitHelp(CommandSender sender, String headerKey, String descKey, String command) {
         sendHelpLine(sender, messages.message(headerKey, Map.of("root", HELP_ROOT)));
-        List<String> kitIds = new ArrayList<>(config.get().kits().keySet());
-        kitIds.sort(String::compareTo);
-        if (kitIds.isEmpty()) {
-            sendHelpLine(sender, messages.message("general.help_value_empty"));
-            sendHelpFooter(sender);
-            return;
-        }
-        for (String kitId : kitIds) {
-            sendValueEntry(sender, kitId,
-                    messages.message(descKey, Map.of("value", kitId)),
-                    HELP_ROOT + " " + command + " " + kitId);
+        if (hasSubcommandPermission(sender, command)) {
+            List<String> kitIds = new ArrayList<>(config.get().kits().keySet());
+            kitIds.sort(String::compareTo);
+            if (kitIds.isEmpty()) {
+                sendHelpLine(sender, messages.message("general.help_value_empty"));
+                sendHelpFooter(sender);
+                return;
+            }
+            for (String kitId : kitIds) {
+                sendValueEntry(sender, kitId,
+                        messages.message(descKey, Map.of("value", kitId)),
+                        HELP_ROOT + " " + command + " " + kitId);
+            }
         }
         sendHelpFooter(sender);
     }
 
     private void sendPlayerHelp(CommandSender sender, String command, String headerKey, String descKey) {
         sendHelpLine(sender, messages.message(headerKey, Map.of("root", HELP_ROOT)));
-        List<String> names = new ArrayList<>();
-        for (Player online : Bukkit.getOnlinePlayers()) {
-            names.add(online.getName());
-        }
-        names.sort(String::compareTo);
-        if (names.isEmpty()) {
-            sendHelpLine(sender, messages.message("general.help_value_empty"));
-            sendHelpFooter(sender);
-            return;
-        }
-        for (String name : names) {
-            sendValueEntry(sender, name,
-                    messages.message(descKey, Map.of("value", name)),
-                    HELP_ROOT + " " + command + " " + name);
+        if (hasSubcommandPermission(sender, command)) {
+            List<String> names = new ArrayList<>();
+            for (Player online : Bukkit.getOnlinePlayers()) {
+                names.add(online.getName());
+            }
+            names.sort(String::compareTo);
+            if (names.isEmpty()) {
+                sendHelpLine(sender, messages.message("general.help_value_empty"));
+                sendHelpFooter(sender);
+                return;
+            }
+            for (String name : names) {
+                sendValueEntry(sender, name,
+                        messages.message(descKey, Map.of("value", name)),
+                        HELP_ROOT + " " + command + " " + name);
+            }
         }
         sendHelpFooter(sender);
     }
 
     private void sendCdkHelp(CommandSender sender) {
-        sendHelpLines(sender, "general.help_cdk_header",
-                "general.help_cdk_entry_list", "general.help_cdk_entry_disable");
+        List<String> keys = new ArrayList<>();
+        keys.add("general.help_cdk_header");
+        if (hasSubcommandPermission(sender, "cdk")) {
+            keys.add("general.help_cdk_entry_list");
+            keys.add("general.help_cdk_entry_disable");
+        }
+        sendHelpLines(sender, keys.toArray(new String[0]));
         sendHelpFooter(sender);
     }
 

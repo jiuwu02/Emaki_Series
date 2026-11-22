@@ -86,10 +86,14 @@ final class StrengthenCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            return CommandTabHelper.completeSubcommands(
-                    List.of("help", "open", "affix", "edit", "reload", "inspect", "refresh", "setstar",
-                            "branch", "clearstate", "clearcrack", "givecatalyst", "operation", "pity",
-                            "debug"), args[0]);
+            List<String> subcommands = new ArrayList<>(List.of("help", "open", "affix", "edit", "reload",
+                    "inspect", "refresh", "setstar", "branch", "clearstate", "clearcrack", "givecatalyst",
+                    "operation", "pity", "debug"));
+            subcommands.removeIf(sub -> !hasSubcommandPermission(sender, sub));
+            return CommandTabHelper.completeSubcommands(subcommands, args[0]);
+        }
+        if (!hasSubcommandPermission(sender, args[0].toLowerCase(Locale.ROOT))) {
+            return result;
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
@@ -201,6 +205,23 @@ final class StrengthenCommandRouter implements TabExecutor {
             result.addAll(CommandTabHelper.completeIntRange(args[5], 1, 100));
         }
         return result;
+    }
+
+    private boolean hasSubcommandPermission(CommandSender sender, String subcommand) {
+        return switch (subcommand) {
+            case "open", "affix", "branch" -> sender.hasPermission(PERMISSION_USE)
+                    || sender.hasPermission(PERMISSION_ADMIN);
+            case "inspect" -> sender.hasPermission(PERMISSION_ADMIN)
+                    || sender.hasPermission(PERMISSION_USE);
+            case "edit" -> sender.hasPermission(PERMISSION_EDIT);
+            case "reload" -> sender.hasPermission(PERMISSION_RELOAD)
+                    || sender.hasPermission(PERMISSION_ADMIN);
+            case "refresh", "setstar", "clearstate", "clearcrack", "givecatalyst", "operation", "pity" ->
+                    sender.hasPermission(PERMISSION_ADMIN);
+            case "debug" -> sender.hasPermission(PERMISSION_DEBUG)
+                    || sender.hasPermission(PERMISSION_ADMIN);
+            default -> true;
+        };
     }
 
     private void completePityGroups(List<String> result, String rawPrefix) {
@@ -669,13 +690,52 @@ final class StrengthenCommandRouter implements TabExecutor {
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
         if (path.isEmpty()) {
-            sendHelpLines(sender, root, "command.help_header",
-                    "command.help_entry_help", "command.help_entry_open", "command.help_entry_affix",
-                    "command.help_entry_edit", "command.help_entry_reload", "command.help_entry_inspect",
-                    "command.help_entry_refresh", "command.help_entry_setstar", "command.help_entry_branch",
-                    "command.help_entry_clearstate", "command.help_entry_clearcrack",
-                    "command.help_entry_givecatalyst", "command.help_entry_operation",
-                    "command.help_entry_pity", "command.help_entry_debug");
+            List<String> keys = new ArrayList<>();
+            keys.add("command.help_header");
+            keys.add("command.help_entry_help");
+            if (hasSubcommandPermission(sender, "open")) {
+                keys.add("command.help_entry_open");
+            }
+            if (hasSubcommandPermission(sender, "affix")) {
+                keys.add("command.help_entry_affix");
+            }
+            if (hasSubcommandPermission(sender, "edit")) {
+                keys.add("command.help_entry_edit");
+            }
+            if (hasSubcommandPermission(sender, "reload")) {
+                keys.add("command.help_entry_reload");
+            }
+            if (hasSubcommandPermission(sender, "inspect")) {
+                keys.add("command.help_entry_inspect");
+            }
+            if (hasSubcommandPermission(sender, "refresh")) {
+                keys.add("command.help_entry_refresh");
+            }
+            if (hasSubcommandPermission(sender, "setstar")) {
+                keys.add("command.help_entry_setstar");
+            }
+            if (hasSubcommandPermission(sender, "branch")) {
+                keys.add("command.help_entry_branch");
+            }
+            if (hasSubcommandPermission(sender, "clearstate")) {
+                keys.add("command.help_entry_clearstate");
+            }
+            if (hasSubcommandPermission(sender, "clearcrack")) {
+                keys.add("command.help_entry_clearcrack");
+            }
+            if (hasSubcommandPermission(sender, "givecatalyst")) {
+                keys.add("command.help_entry_givecatalyst");
+            }
+            if (hasSubcommandPermission(sender, "operation")) {
+                keys.add("command.help_entry_operation");
+            }
+            if (hasSubcommandPermission(sender, "pity")) {
+                keys.add("command.help_entry_pity");
+            }
+            if (hasSubcommandPermission(sender, "debug")) {
+                keys.add("command.help_entry_debug");
+            }
+            sendHelpLines(sender, root, keys.toArray(new String[0]));
             sendHelpFooter(sender);
             return;
         }
@@ -691,15 +751,17 @@ final class StrengthenCommandRouter implements TabExecutor {
     private void sendSetStarHelp(CommandSender sender, String root) {
         var messageService = plugin.messageService();
         sendHelpLine(sender, messageService.message("command.help_setstar_header", Map.of("root", root)));
-        int maxStar = plugin.recipeLoader().all().values().stream()
-                .mapToInt(recipe -> recipe == null ? 0 : recipe.limits().maxStar())
-                .max()
-                .orElse(12);
-        for (int star = 0; star <= maxStar; star++) {
-            String value = Integer.toString(star);
-            sendValueEntry(sender, value,
-                    messageService.message("command.help_value_desc_setstar", Map.of("value", value)),
-                    root + " setstar " + value);
+        if (hasSubcommandPermission(sender, "setstar")) {
+            int maxStar = plugin.recipeLoader().all().values().stream()
+                    .mapToInt(recipe -> recipe == null ? 0 : recipe.limits().maxStar())
+                    .max()
+                    .orElse(12);
+            for (int star = 0; star <= maxStar; star++) {
+                String value = Integer.toString(star);
+                sendValueEntry(sender, value,
+                        messageService.message("command.help_value_desc_setstar", Map.of("value", value)),
+                        root + " setstar " + value);
+            }
         }
         sendHelpFooter(sender);
     }
@@ -707,26 +769,34 @@ final class StrengthenCommandRouter implements TabExecutor {
     private void sendGiveCatalystHelp(CommandSender sender, String root) {
         var messageService = plugin.messageService();
         sendHelpLine(sender, messageService.message("command.help_givecatalyst_header", Map.of("root", root)));
-        List<String> values = new ArrayList<>(plugin.recipeLoader().materialCatalog().keySet());
-        values.sort(String::compareTo);
-        if (values.isEmpty()) {
-            sendHelpLine(sender, messageService.message("command.help_value_empty"));
-            sendHelpFooter(sender);
-            return;
-        }
-        for (String value : values) {
-            sendValueEntry(sender, value,
-                    messageService.message("command.help_value_desc_givecatalyst", Map.of("value", value)),
-                    root + " givecatalyst " + value);
+        if (hasSubcommandPermission(sender, "givecatalyst")) {
+            List<String> values = new ArrayList<>(plugin.recipeLoader().materialCatalog().keySet());
+            values.sort(String::compareTo);
+            if (values.isEmpty()) {
+                sendHelpLine(sender, messageService.message("command.help_value_empty"));
+                sendHelpFooter(sender);
+                return;
+            }
+            for (String value : values) {
+                sendValueEntry(sender, value,
+                        messageService.message("command.help_value_desc_givecatalyst", Map.of("value", value)),
+                        root + " givecatalyst " + value);
+            }
         }
         sendHelpFooter(sender);
     }
 
     private void sendPityHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 2 && "set".equalsIgnoreCase(path.get(1))) {
-            sendHelpLines(sender, root, "command.help_pity_set_header",
-                    "command.help_pity_set_entry_scope", "command.help_pity_set_entry_group",
-                    "command.help_pity_set_entry_key", "command.help_pity_set_entry_counter");
+            List<String> setKeys = new ArrayList<>();
+            setKeys.add("command.help_pity_set_header");
+            if (hasSubcommandPermission(sender, "pity")) {
+                setKeys.add("command.help_pity_set_entry_scope");
+                setKeys.add("command.help_pity_set_entry_group");
+                setKeys.add("command.help_pity_set_entry_key");
+                setKeys.add("command.help_pity_set_entry_counter");
+            }
+            sendHelpLines(sender, root, setKeys.toArray(new String[0]));
             sendHelpFooter(sender);
             return;
         }
@@ -734,25 +804,33 @@ final class StrengthenCommandRouter implements TabExecutor {
             sendPityClearHelp(sender, root);
             return;
         }
-        sendHelpLines(sender, root, "command.help_pity_header",
-                "command.help_pity_entry_list", "command.help_pity_entry_set",
-                "command.help_pity_entry_clear", "command.help_pity_entry_diagnose");
+        List<String> keys = new ArrayList<>();
+        keys.add("command.help_pity_header");
+        if (hasSubcommandPermission(sender, "pity")) {
+            keys.add("command.help_pity_entry_list");
+            keys.add("command.help_pity_entry_set");
+            keys.add("command.help_pity_entry_clear");
+            keys.add("command.help_pity_entry_diagnose");
+        }
+        sendHelpLines(sender, root, keys.toArray(new String[0]));
         sendHelpFooter(sender);
     }
 
     private void sendPityClearHelp(CommandSender sender, String root) {
         var messageService = plugin.messageService();
         sendHelpLine(sender, messageService.message("command.help_pity_clear_header", Map.of("root", root)));
-        List<String> groups = pityGroupIds();
-        if (groups.isEmpty()) {
-            sendHelpLine(sender, messageService.message("command.help_value_empty"));
-            sendHelpFooter(sender);
-            return;
-        }
-        for (String group : groups) {
-            sendValueEntry(sender, group,
-                    messageService.message("command.help_value_desc_pity_clear", Map.of("value", group)),
-                    root + " pity clear " + group);
+        if (hasSubcommandPermission(sender, "pity")) {
+            List<String> groups = pityGroupIds();
+            if (groups.isEmpty()) {
+                sendHelpLine(sender, messageService.message("command.help_value_empty"));
+                sendHelpFooter(sender);
+                return;
+            }
+            for (String group : groups) {
+                sendValueEntry(sender, group,
+                        messageService.message("command.help_value_desc_pity_clear", Map.of("value", group)),
+                        root + " pity clear " + group);
+            }
         }
         sendHelpFooter(sender);
     }
@@ -775,10 +853,17 @@ final class StrengthenCommandRouter implements TabExecutor {
 
     private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() < 2) {
-            sendHelpLines(sender, root, "command.help_debug_header",
-                    "command.help_debug_entry_status", "command.help_debug_entry_on",
-                    "command.help_debug_entry_off", "command.help_debug_entry_player",
-                    "command.help_debug_entry_module", "command.help_debug_entry_action");
+            List<String> keys = new ArrayList<>();
+            keys.add("command.help_debug_header");
+            if (hasSubcommandPermission(sender, "debug")) {
+                keys.add("command.help_debug_entry_status");
+                keys.add("command.help_debug_entry_on");
+                keys.add("command.help_debug_entry_off");
+                keys.add("command.help_debug_entry_player");
+                keys.add("command.help_debug_entry_module");
+                keys.add("command.help_debug_entry_action");
+            }
+            sendHelpLines(sender, root, keys.toArray(new String[0]));
             sendHelpFooter(sender);
             return;
         }
@@ -794,18 +879,20 @@ final class StrengthenCommandRouter implements TabExecutor {
     private void sendPlayerHelp(CommandSender sender, String root, String command, String headerKey, String descKey) {
         var messageService = plugin.messageService();
         sendHelpLine(sender, messageService.message(headerKey, Map.of("root", root)));
-        List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
-        players.sort(Comparator.comparing(Player::getName));
-        if (players.isEmpty()) {
-            sendHelpLine(sender, messageService.message("command.help_value_empty"));
-            sendHelpFooter(sender);
-            return;
-        }
-        for (Player player : players) {
-            String name = player.getName();
-            sendValueEntry(sender, name,
-                    messageService.message(descKey, Map.of("value", name)),
-                    root + " " + command + " " + name);
+        if (hasSubcommandPermission(sender, "debug")) {
+            List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
+            players.sort(Comparator.comparing(Player::getName));
+            if (players.isEmpty()) {
+                sendHelpLine(sender, messageService.message("command.help_value_empty"));
+                sendHelpFooter(sender);
+                return;
+            }
+            for (Player player : players) {
+                String name = player.getName();
+                sendValueEntry(sender, name,
+                        messageService.message(descKey, Map.of("value", name)),
+                        root + " " + command + " " + name);
+            }
         }
         sendHelpFooter(sender);
     }
@@ -813,32 +900,44 @@ final class StrengthenCommandRouter implements TabExecutor {
     private void sendModuleHelp(CommandSender sender, String root) {
         var messageService = plugin.messageService();
         sendHelpLine(sender, messageService.message("command.help_debug_module_header", Map.of("root", root)));
-        List<String> modules = plugin.debugCommand() == null
-                ? List.of()
-                : plugin.debugCommand().tabComplete(new String[] {"module", ""});
-        if (modules.isEmpty()) {
-            sendHelpLine(sender, messageService.message("command.help_value_empty"));
-            sendHelpFooter(sender);
-            return;
-        }
-        for (String module : modules) {
-            sendValueEntry(sender, module,
-                    messageService.message("command.help_value_desc_debug_module", Map.of("value", module)),
-                    root + " debug module " + module);
+        if (hasSubcommandPermission(sender, "debug")) {
+            List<String> modules = plugin.debugCommand() == null
+                    ? List.of()
+                    : plugin.debugCommand().tabComplete(new String[] {"module", ""});
+            if (modules.isEmpty()) {
+                sendHelpLine(sender, messageService.message("command.help_value_empty"));
+                sendHelpFooter(sender);
+                return;
+            }
+            for (String module : modules) {
+                sendValueEntry(sender, module,
+                        messageService.message("command.help_value_desc_debug_module", Map.of("value", module)),
+                        root + " debug module " + module);
+            }
         }
         sendHelpFooter(sender);
     }
 
     private void sendDebugActionHelp(CommandSender sender, String root, List<String> path) {
         if (path.size() >= 3 && "run".equalsIgnoreCase(path.get(2))) {
-            sendHelpLines(sender, root, "command.help_debug_action_run_header",
-                    "command.help_debug_action_run_entry_shadow", "command.help_debug_action_run_entry_execute");
+            List<String> runKeys = new ArrayList<>();
+            runKeys.add("command.help_debug_action_run_header");
+            if (hasSubcommandPermission(sender, "debug")) {
+                runKeys.add("command.help_debug_action_run_entry_shadow");
+                runKeys.add("command.help_debug_action_run_entry_execute");
+            }
+            sendHelpLines(sender, root, runKeys.toArray(new String[0]));
             sendHelpFooter(sender);
             return;
         }
-        sendHelpLines(sender, root, "command.help_debug_action_header",
-                "command.help_debug_action_entry_run", "command.help_debug_action_entry_check",
-                "command.help_debug_action_entry_registry");
+        List<String> keys = new ArrayList<>();
+        keys.add("command.help_debug_action_header");
+        if (hasSubcommandPermission(sender, "debug")) {
+            keys.add("command.help_debug_action_entry_run");
+            keys.add("command.help_debug_action_entry_check");
+            keys.add("command.help_debug_action_entry_registry");
+        }
+        sendHelpLines(sender, root, keys.toArray(new String[0]));
         sendHelpFooter(sender);
     }
 

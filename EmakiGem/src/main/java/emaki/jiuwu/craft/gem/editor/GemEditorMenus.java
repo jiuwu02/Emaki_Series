@@ -100,8 +100,8 @@ public final class GemEditorMenus {
         specs.add(EditorFieldSpec.text("gem_display_name", "editor.field.display_name", "display_name"));
         specs.add(EditorFieldSpec.cycle("gem_type", "editor.field.gem_type", GEM_TYPES, "gem_type"));
         specs.add(EditorFieldSpec.number("gem_level", "editor.field.level", "level"));
-        specs.add(EditorFieldSpec.text("gem_base_item_source", "editor.field.base_item_source",
-                "base_item_source"));
+        specs.add(EditorFieldSpec.list("gem_item_sources", "editor.field.item_sources",
+                LIST_ENTRIES, "item_sources"));
         specs.add(EditorFieldSpec.list("gem_effects", "editor.field.effects", LIST_ENTRIES, "effects"));
         specs.add(EditorFieldSpec.list("gem_socket_compatibility", "editor.field.socket_compatibility",
                 LIST_ENTRIES, "socket_compatibility"));

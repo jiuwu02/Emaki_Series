@@ -62,7 +62,12 @@ public final class DummyCommandRouter {
 
     public Collection<String> suggest(CommandSender sender, String[] args) {
         if (args.length <= 1) {
-            return prefixFilter(SUB_COMMANDS, args.length == 0 ? "" : args[0]);
+            List<String> subcommands = new ArrayList<>(SUB_COMMANDS);
+            if (!sender.hasPermission(PERMISSION_ADMIN)) {
+                subcommands.remove("scenario");
+                subcommands.remove("stop-all");
+            }
+            return prefixFilter(subcommands, args.length == 0 ? "" : args[0]);
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
         if ("click".equals(sub) && args.length == 3) {
@@ -72,11 +77,13 @@ public final class DummyCommandRouter {
                 .contains(sub)) {
             return dummyNames(args);
         }
-        if ("scenario".equals(sub) && args.length == 2) {
-            return prefixFilter(SCENARIO_ACTIONS, args[1]);
-        }
-        if ("scenario".equals(sub) && args.length == 3) {
-            return prefixFilter(engine.ids().stream().sorted().toList(), args[2]);
+        if ("scenario".equals(sub) && sender.hasPermission(PERMISSION_ADMIN)) {
+            if (args.length == 2) {
+                return prefixFilter(SCENARIO_ACTIONS, args[1]);
+            }
+            if (args.length == 3) {
+                return prefixFilter(engine.ids().stream().sorted().toList(), args[2]);
+            }
         }
         return List.of();
     }
@@ -335,8 +342,11 @@ public final class DummyCommandRouter {
                     "command.help_entry_join", "command.help_entry_leave", "command.help_entry_say",
                     "command.help_entry_cmd", "command.help_entry_walk", "command.help_entry_look",
                     "command.help_entry_interact", "command.help_entry_attack", "command.help_entry_click",
-                    "command.help_entry_list", "command.help_entry_scenario", "command.help_entry_stop_all",
-                    "command.help_entry_help");
+                    "command.help_entry_list");
+            if (sender.hasPermission(PERMISSION_ADMIN)) {
+                sendHelpLines(sender, root, "command.help_entry_scenario", "command.help_entry_stop_all");
+            }
+            sendHelpLines(sender, root, "command.help_entry_help");
             sendHelpFooter(sender);
             return;
         }
@@ -347,7 +357,13 @@ public final class DummyCommandRouter {
                     "command.help_value_desc_attack_name", "attack");
             case "interact" -> sendNameHelp(sender, root, "command.help_interact_name_header",
                     "command.help_value_desc_interact_name", "interact");
-            case "scenario" -> sendScenarioHelp(sender, root, path);
+            case "scenario" -> {
+                if (sender.hasPermission(PERMISSION_ADMIN)) {
+                    sendScenarioHelp(sender, root, path);
+                } else {
+                    sendHelpPage(sender, root, List.of());
+                }
+            }
             default -> sendHelpPage(sender, root, List.of());
         }
     }
