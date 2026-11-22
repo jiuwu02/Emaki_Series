@@ -232,24 +232,7 @@ public final class DungeonScriptSession implements AutoCloseable {
                 context = parsed;
             }
             dispatchTrigger(event.sourceId(), context);
-            return;
         }
-        TriggerType legacy;
-        try {
-            legacy = TriggerType.valueOf(event.trigger());
-        } catch (RuntimeException exception) {
-            return;
-        }
-        Map<String, String> context = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : event.payload().entrySet()) {
-            if (entry.getKey() != null && entry.getValue() != null) {
-                context.put(entry.getKey(), String.valueOf(entry.getValue()));
-            }
-        }
-        if (event.sourceId() != null && !event.sourceId().isBlank()) {
-            context.putIfAbsent("player", event.sourceId());
-        }
-        dispatchTrigger(legacy.name(), context);
     }
 
     void dispatchTrigger(String triggerName, Map<String, String> context) {

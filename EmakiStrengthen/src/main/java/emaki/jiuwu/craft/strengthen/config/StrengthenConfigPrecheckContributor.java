@@ -163,31 +163,6 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
     }
 
     private void checkForgeVariableKeys(List<ConfigPrecheckIssue> issues) {
-        Map<String, List<String>> contract = EnhancementTargetVariables.forgeAliasContract();
-        Set<String> declared = new LinkedHashSet<>();
-        for (Map.Entry<String, List<String>> entry : contract.entrySet()) {
-            String path = entry.getKey();
-
-            if (!path.startsWith("forge_") && !path.startsWith("forge.")) {
-                addMessageIssue("enhancement_variables", ERROR, "forge_variable_path_prefix",
-                        Map.of("path", path), issues);
-            }
-
-            declared.addAll(entry.getValue());
-        }
-        for (String required : List.of("forge_quality_id", "forge_quality_display",
-                "forge_quality_multiplier", "forge_recipe_id")) {
-            if (!declared.contains(required)) {
-                addMessageIssue("enhancement_variables", ERROR, "forge_variable_canonical_missing",
-                        Map.of("variable", required), issues);
-            }
-        }
-        for (String legacy : List.of("quality_id", "quality_display", "quality_multiplier")) {
-            if (!declared.contains(legacy)) {
-                addMessageIssue("enhancement_variables", ERROR, "forge_variable_legacy_missing",
-                        Map.of("variable", legacy), issues);
-            }
-        }
         if (!EnhancementTargetVariables.forgeNamespace().equals("emakiforge")) {
             addMessageIssue("enhancement_variables", ERROR, "forge_pdc_namespace_mismatch",
                     Map.of("namespace", EnhancementTargetVariables.forgeNamespace()), issues);

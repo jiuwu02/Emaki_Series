@@ -27,7 +27,6 @@ import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition> {
 
-    private final Map<String, AttributeDefinition> aliasIndex = new LinkedHashMap<>();
     private final Map<String, AttributeDefinition> runtimeDefinitions = new LinkedHashMap<>();
     private final Map<String, String> runtimeSources = new LinkedHashMap<>();
     private final List<PatternEntry> orderedPatterns = new ArrayList<>();
@@ -308,17 +307,12 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
     }
 
     private List<AttributeDefinition> rebuildIndexes() {
-        aliasIndex.clear();
         orderedPatterns.clear();
         Map<String, AttributeDefinition> merged = new LinkedHashMap<>(items);
         merged.putAll(runtimeDefinitions);
         List<AttributeDefinition> definitions = new ArrayList<>(merged.values());
         definitions.sort((left, right) -> Integer.compare(right.priority(), left.priority()));
         for (AttributeDefinition definition : definitions) {
-            aliasIndex.put(definition.id(), definition);
-            if (Texts.isNotBlank(definition.displayName())) {
-                aliasIndex.putIfAbsent(normalizeId(definition.displayName()), definition);
-            }
             orderedPatterns.addAll(compilePatterns(definition));
         }
         orderedPatterns.sort(Comparator.comparingInt(PatternEntry::priority).reversed());
@@ -354,12 +348,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
     }
 
     public AttributeDefinition resolve(String id) {
-        synchronized (stateLock) {
-            if (Texts.isBlank(id)) {
-                return null;
-            }
-            return aliasIndex.get(normalizeId(id));
-        }
+        return get(id);
     }
 
     public AttributeDefinition matchLine(String normalizedLine) {

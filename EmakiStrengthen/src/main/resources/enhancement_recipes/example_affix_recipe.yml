@@ -1,5 +1,5 @@
 # 词条强化示例配方 (mode: affix)
-# 由 /emakistrengthen affix [recipe] 打开的词条界面使用.与整件星级强化完全分离:
+# 由 /estrengthen affix [recipe] 打开的词条界面使用.与整件星级强化完全分离:
 # target.provider 为 affix 时, level 指"选中词条的强化等级", temper 指"词条层剩余容量",
 # 执行过程不读取也不写入整件装备的星级
 

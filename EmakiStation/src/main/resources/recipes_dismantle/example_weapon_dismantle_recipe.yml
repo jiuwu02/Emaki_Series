@@ -7,7 +7,7 @@
 #   3. rolls 投掷次数 (支持固定值或 min/max 范围)
 #   4. pool 概率池与 weight 相对权重
 # 如何触发:
-#   执行 /emakistation dismantle example_weapon_dismantle_station
+#   执行 /estation dismantle example_weapon_dismantle_station
 #   界面会扫描背包, 取第一件能匹配本配方的物品;
 #   点击确认消耗 1 把钻石剑, 按 rolls 从 pool 中抽取产物
 # 依赖:

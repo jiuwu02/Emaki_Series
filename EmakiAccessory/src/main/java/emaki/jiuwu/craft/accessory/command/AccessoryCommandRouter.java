@@ -454,7 +454,7 @@ public final class AccessoryCommandRouter {
     }
 
     private String helpRoot(String label) {
-        return "/" + (label == null || label.isBlank() ? "emakiaccessory" : label);
+        return "/" + (label == null || label.isBlank() ? "eaccessory" : label);
     }
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {

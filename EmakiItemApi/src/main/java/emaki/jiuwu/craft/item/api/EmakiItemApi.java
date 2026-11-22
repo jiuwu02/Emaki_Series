@@ -66,12 +66,6 @@ public final class EmakiItemApi {
         return resolved == null ? UnavailableItem.REPAIR : resolved.repair();
     }
 
-    /** {@return the administrative migration layer or its unavailable implementation} */
-    public static @NotNull ItemMigration migration() {
-        Bridge resolved = bridge.get();
-        return resolved == null ? UnavailableItem.MIGRATION : resolved.migration();
-    }
-
     /** {@return the extension registration layer or its unavailable implementation} */
     public static @NotNull ItemExtensions extensions() {
         Bridge resolved = bridge.get();
@@ -106,9 +100,6 @@ public final class EmakiItemApi {
 
         /** {@return the runtime repair layer} */
         @NotNull ItemRepair repair();
-
-        /** {@return the runtime administrative migration layer} */
-        @NotNull ItemMigration migration();
 
         /** {@return the runtime extension registration layer} */
         @NotNull ItemExtensions extensions();

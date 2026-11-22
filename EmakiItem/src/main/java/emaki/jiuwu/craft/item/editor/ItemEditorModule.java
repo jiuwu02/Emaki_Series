@@ -472,22 +472,6 @@ public final class ItemEditorModule implements EditorModule {
                 }
             }
         }
-        File aliasFile = new File(dataFolder, "id_aliases.yml");
-        if (aliasFile.isFile()) {
-            try {
-                Map<String, Object> root = YamlFiles.load(aliasFile).asMap();
-                if (root.get("aliases") instanceof Map<?, ?> aliases) {
-                    for (Map.Entry<?, ?> entry : aliases.entrySet()) {
-                        Object target = entry.getValue() instanceof Map<?, ?> alias ? alias.get("target") : null;
-                        if (itemId.equals(Texts.normalizeId(Texts.toStringSafe(target)))) {
-                            found.add("id_aliases.yml#aliases." + entry.getKey());
-                        }
-                    }
-                }
-            } catch (RuntimeException failure) {
-                LogTags.send(plugin, LogTag.EDITOR, Level.WARNING, "editor.read_alias_references_failed", Map.of("file", aliasFile, "error", failure));
-            }
-        }
         return found;
     }
 

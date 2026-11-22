@@ -7,10 +7,10 @@ steps:
   - action: join_all
   - action: cmd
     player: dummy_a
-    command: "/edg editor exit"
+    command: "/edungeon editor exit"
   - action: cmd
     player: dummy_a
-    command: "/edg leave"
+    command: "/edungeon leave"
   - action: sleep
     seconds: 1
   - action: say
@@ -20,25 +20,25 @@ steps:
     seconds: 2
   - action: cmd
     player: dummy_a
-    command: "/edg cancel"
+    command: "/edungeon cancel"
   - action: cmd
     player: dummy_a
-    command: "/edg party disband"
+    command: "/edungeon party disband"
   - action: sleep
     seconds: 1
   - action: cmd
     player: dummy_a
-    command: "/edg party create"
+    command: "/edungeon party create"
   - action: sleep
     seconds: 2
   - action: cmd
     player: dummy_a
-    command: "/edg party invite dummy_b"
+    command: "/edungeon party invite dummy_b"
   - action: sleep
     seconds: 2
   - action: cmd
     player: dummy_b
-    command: "/edg party accept"
+    command: "/edungeon party accept"
   - action: sleep
     seconds: 3
   - action: expect
@@ -46,7 +46,7 @@ steps:
     timeout: 10
   - action: cmd
     player: dummy_a
-    command: "/edg enter test_dungeon"
+    command: "/edungeon enter test_dungeon"
   - action: sleep
     seconds: 2
   - action: click
@@ -62,7 +62,7 @@ steps:
     timeout: 60
   - action: cmd
     player: dummy_a
-    command: "/edg cancel"
+    command: "/edungeon cancel"
   - action: wait_event
     type: DungeonChallengeCancelEvent
     timeout: 30

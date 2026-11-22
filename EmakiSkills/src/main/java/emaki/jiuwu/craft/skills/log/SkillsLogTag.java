@@ -6,7 +6,6 @@ public enum SkillsLogTag implements LogTagType {
 
     ACTIONBAR("actionbar"),
     CAST("cast"),
-    COLLECTOR("collector"),
     UPGRADE("upgrade");
 
     private final String key;

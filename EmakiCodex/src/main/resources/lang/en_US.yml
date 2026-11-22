@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "2.0.4"
+version: "2.0.5"
 
 tags:
   advancement: '[ advancement ]'
@@ -14,8 +14,8 @@ general:
   no_permission: "<red>You do not have permission to do that</red>"
   player_only: "<red>This command can only be run by a player</red>"
   player_not_found: "<red>Player %player% not found</red>"
-  unknown_command: "<red>Unknown command. Use /codex help</red>"
-  invalid_args: "<red>Invalid arguments. Use /codex help</red>"
+  unknown_command: "<red>Unknown command. Use /ecodex help</red>"
+  invalid_args: "<red>Invalid arguments. Use /ecodex help</red>"
   reloading: "<gray>Reloading configuration...</gray>"
   reload_success: "<green>Configuration reloaded</green>"
   reload_summary: "<gray>Registered %advancements% advancements</gray>"
@@ -24,7 +24,7 @@ general:
 
 command:
   help_header: "<gray><st>        </st></gray> <gradient:#D946EF:#F59E0B>EmakiCodex Command Help</gradient> <gray><st>        </st></gray>"
-  help_entry_codex: "- <hover:show_text:'<gray>codex</gray> <dark_gray>·</dark_gray> <gray>Open the codex GUI</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Alias </gray><white>open</white><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakicodex.use</white> <gray>or </gray><white>emakicodex.admin</white><newline><dark_gray>▸</dark_gray> <gray>Player only</gray>'><gray>codex</gray></hover> <click:run_command:'%root% codex'><green>[ ✦ Run ]</green></click>"
+  help_entry_codex: "- <hover:show_text:'<gray>codex</gray> <dark_gray>·</dark_gray> <gray>Open the codex GUI</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakicodex.use</white> <gray>or </gray><white>emakicodex.admin</white><newline><dark_gray>▸</dark_gray> <gray>Player only</gray>'><gray>codex</gray></hover> <click:run_command:'%root% codex'><green>[ ✦ Run ]</green></click>"
   help_entry_reload: "- <hover:show_text:'<gray>reload</gray> <dark_gray>·</dark_gray> <gray>Reload config and re-register advancements</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakicodex.reload</white> <gray>or </gray><white>emakicodex.admin</white><newline><dark_gray>▸</dark_gray> <gray>Resyncs advancements for everyone and prints a summary</gray>'><gray>reload</gray></hover> <click:run_command:'%root% reload'><green>[ ✦ Run ]</green></click>"
   help_entry_edit: "- <hover:show_text:'<gray>edit</gray> <dark_gray>·</dark_gray> <gray>Open the in-game editor for a definition</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Argument: definition ID - click to see available values</gray><newline><dark_gray>▸</dark_gray> <gray>Omit [definition ID] to open the definition browser</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakicodex.edit</white><newline><dark_gray>▸</dark_gray> <gray>Player only</gray>'><gray>edit</gray></hover> <click:run_command:'%root% help edit id'><yellow>[ ✦ Show values ]</yellow></click>"
   help_entry_grant: "- <hover:show_text:'<gray>grant</gray> <dark_gray>·</dark_gray> <gray>Grant an advancement to a player</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakicodex.admin</white><newline><dark_gray>▸</dark_gray> <gray>Usage </gray><white>%root% grant [player] [advancement ID]</white><newline><dark_gray>▸</dark_gray> <gray>[advancement ID] looks like </gray><white>emakicodex:page/node</white>'><gray>grant</gray></hover> <hover:show_text:'<gray>Argument: player</gray><newline><gray>the target online player</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Must be typed by you</gray><newline><dark_gray>▸</dark_gray> <gray>Tab completion suggests values</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ player ]</gray></hover> <hover:show_text:'<gray>Argument: advancement ID</gray><newline><gray>the advancement to grant</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Must be typed by you</gray><newline><dark_gray>▸</dark_gray> <gray>Tab completion suggests values</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ advancement ID ]</gray></hover>"
@@ -77,7 +77,7 @@ codex:
   advancement:
     disabled: "The advancement subsystem is disabled in config.yml  (advancement.enabled=false)"
     id_required: "No advancement id given"
-    not_found: "The advancement id is not registered. Check that the page under advancements/ loaded and that the id looks like emakicodex:<pageId>/<nodeId>; /codex reload reports how many are registered"
+    not_found: "The advancement id is not registered. Check that the page under advancements/ loaded and that the id looks like emakicodex:<pageId>/<nodeId>; /ecodex reload reports how many are registered"
     missing_on_server: "The advancement is registered inside the plugin but the server has no matching vanilla advancement. Usually it was cleared by reloadData after registration, or the datapack directory was never written; check the registration count and warnings in the startup log"
   grant:
     already_completed: "The player has already completed this advancement"
@@ -324,8 +324,6 @@ trigger:
   provider_execution_failed: "Advancement trigger provider '%provider%' failed: %error%"
 provider:
   attribute_bonus_calc_failed: "Attribute bonus calculation failed: player %player%, reason: %error%"
-config:
-  advancement_legacy_key_renamed: "Config key advancement.%legacy_key% has been renamed to advancement.%key%; the old key value %value% is currently in effect and will be migrated to the new key at startup"
 shutdown:
   progress_flush_dirty: "Unflushed data remained when the progress flush ended: saved=%saved% failed=%failed% remaining=%remaining%"
 script:

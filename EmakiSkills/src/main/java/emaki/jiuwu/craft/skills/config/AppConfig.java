@@ -21,7 +21,6 @@ public final class AppConfig extends BaseAppConfig {
     private final Map<String, TriggerConfig> passiveTriggers;
     private final PassiveTriggerSettings passiveTriggerSettings;
     private final ScriptEngineSettings scriptEngine;
-    private final TriggerSettings triggerSettings;
     private final ScriptSettings scripts;
 
     public AppConfig(String language,
@@ -37,7 +36,6 @@ public final class AppConfig extends BaseAppConfig {
             Map<String, TriggerConfig> passiveTriggers,
             PassiveTriggerSettings passiveTriggerSettings,
             ScriptEngineSettings scriptEngine,
-            TriggerSettings triggerSettings,
             ScriptSettings scripts) {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
@@ -53,7 +51,6 @@ public final class AppConfig extends BaseAppConfig {
                 ? PassiveTriggerSettings.defaults()
                 : passiveTriggerSettings;
         this.scriptEngine = scriptEngine == null ? ScriptEngineSettings.defaults() : scriptEngine;
-        this.triggerSettings = triggerSettings == null ? TriggerSettings.defaults() : triggerSettings;
         this.scripts = scripts == null ? ScriptSettings.defaults() : scripts;
     }
 
@@ -72,7 +69,6 @@ public final class AppConfig extends BaseAppConfig {
                 Map.of(),
                 PassiveTriggerSettings.defaults(),
                 ScriptEngineSettings.defaults(),
-                TriggerSettings.defaults(),
                 ScriptSettings.defaults()
         );
     }
@@ -119,10 +115,6 @@ public final class AppConfig extends BaseAppConfig {
 
     public ScriptEngineSettings scriptEngine() {
         return scriptEngine;
-    }
-
-    public TriggerSettings triggerSettings() {
-        return triggerSettings;
     }
 
     public ScriptSettings scripts() {
@@ -185,13 +177,6 @@ public final class AppConfig extends BaseAppConfig {
         public TriggerConfig {
             displayName = displayName == null || displayName.isBlank() ? "未知" : displayName;
             incompatibleWith = incompatibleWith == null ? List.of() : List.copyOf(incompatibleWith);
-        }
-    }
-
-    public record TriggerSettings(boolean legacyDispatchCancelledEvents) {
-
-        public static TriggerSettings defaults() {
-            return new TriggerSettings(false);
         }
     }
 

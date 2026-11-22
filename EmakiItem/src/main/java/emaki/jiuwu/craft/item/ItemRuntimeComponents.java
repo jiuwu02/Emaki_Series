@@ -17,7 +17,6 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.editor.ItemEditorModule;
-import emaki.jiuwu.craft.item.loader.EmakiItemAliasLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
 import emaki.jiuwu.craft.item.loader.ItemPackLoader;
@@ -29,7 +28,6 @@ import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 import emaki.jiuwu.craft.item.service.EmakiItemIdResolver;
 import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewService;
-import emaki.jiuwu.craft.item.service.EmakiItemMigrationService;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
 import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemStateService;
@@ -51,10 +49,8 @@ record ItemRuntimeComponents(EmakiScheduling scheduling,
         GuiService guiService,
         EmakiItemLoader itemLoader,
         EmakiItemSetLoader setLoader,
-        EmakiItemAliasLoader aliasLoader,
         ItemPackLoader packLoader,
         EmakiItemIdResolver idResolver,
-        EmakiItemMigrationService migrationService,
         EmakiItemLayerPreviewRegistry layerPreviewRegistry,
         EmakiItemLayerPreviewService layerPreviewService,
         EmakiItemEffectRegistry effectRegistry,
@@ -92,10 +88,8 @@ record ItemRuntimeComponents(EmakiScheduling scheduling,
                 RuntimeComponents.component(GuiService.class, guiService),
                 RuntimeComponents.component(EmakiItemLoader.class, itemLoader),
                 RuntimeComponents.component(EmakiItemSetLoader.class, setLoader),
-                RuntimeComponents.component(EmakiItemAliasLoader.class, aliasLoader),
                 RuntimeComponents.component(ItemPackLoader.class, packLoader),
                 RuntimeComponents.component(EmakiItemIdResolver.class, idResolver),
-                RuntimeComponents.component(EmakiItemMigrationService.class, migrationService),
                 RuntimeComponents.component(EmakiItemLayerPreviewRegistry.class, layerPreviewRegistry),
                 RuntimeComponents.component(EmakiItemLayerPreviewService.class, layerPreviewService),
                 RuntimeComponents.component(EmakiItemEffectRegistry.class, effectRegistry),

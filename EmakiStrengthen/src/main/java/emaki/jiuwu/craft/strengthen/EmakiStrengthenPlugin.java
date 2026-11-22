@@ -68,7 +68,7 @@ import java.util.logging.Level;
 
 public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
-    private static final String ROOT_COMMAND = "emakistrengthen";
+    private static final String ROOT_COMMAND = "estrengthen";
     private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui", "pdc", "pity");
 
     private static final String STARTUP_ASCII = """
@@ -313,7 +313,7 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         registerCommand(
                 ROOT_COMMAND,
                 "EmakiStrengthen 命令",
-                List.of("estrengthen"),
+                List.of("estr"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakistrengthen.use", commandRouter, commandRouter)
         );
     }

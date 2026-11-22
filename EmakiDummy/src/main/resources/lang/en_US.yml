@@ -2,13 +2,13 @@
 # Messages use MiniMessage; placeholder syntax is %key%
 # version is maintained by the resource sync flow to merge new default keys
 
-version: "1.0.6"
+version: "1.0.7"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#14B8A6>EmakiDummy</gradient> ]</gray>"
   no_permission: "<red>You do not have permission to run this command</red>"
   invalid_args: "<red>Invalid arguments</red>"
-  unknown_command: "<red>Unknown subcommand: %sub%. Use /emdum help for help</red>"
+  unknown_command: "<red>Unknown subcommand: %sub%. Use /edummy help for help</red>"
 
 command:
   help_header: "<gray><st>        </st></gray> <gradient:#22D3EE:#14B8A6>EmakiDummy Command Help</gradient> <gray><st>        </st></gray>"
@@ -47,36 +47,36 @@ command:
     connecting: "<gray>Dummy %name% is connecting to %host%:%port% ...</gray>"
     failed: "<red>Dummy %name% failed to connect: %reason%</red>"
   leave:
-    usage: "<red>Usage: /emdum leave <name></red>"
+    usage: "<red>Usage: /edummy leave <name></red>"
     not_found: "<yellow>Dummy %name% does not exist</yellow>"
     done: "<green>Dummy %name% disconnected</green>"
   say:
-    usage: "<red>Usage: /emdum say <name> <text></red>"
+    usage: "<red>Usage: /edummy say <name> <text></red>"
     not_found: "<yellow>Dummy %name% does not exist or has not joined</yellow>"
     sent: "<gray>Dummy %name% sent chat: %text%</gray>"
   cmd:
-    usage: "<red>Usage: /emdum cmd <name> <command></red>"
+    usage: "<red>Usage: /edummy cmd <name> <command></red>"
     not_found: "<yellow>Dummy %name% does not exist or has not joined</yellow>"
     sent: "<gray>Dummy %name% ran: %command%</gray>"
   walk:
-    usage: "<red>Usage: /emdum walk <name> <x> <y> <z></red>"
+    usage: "<red>Usage: /edummy walk <name> <x> <y> <z></red>"
     not_found: "<yellow>Dummy %name% does not exist or has not joined</yellow>"
     started: "<gray>Dummy %name% started walking to %x%, %y%, %z%</gray>"
   look:
-    usage: "<red>Usage: /emdum look <name> <yaw> <pitch></red>"
+    usage: "<red>Usage: /edummy look <name> <yaw> <pitch></red>"
     not_found: "<yellow>Dummy %name% does not exist or has not joined</yellow>"
     done: "<gray>Dummy %name% view set to yaw=%yaw% pitch=%pitch%</gray>"
   interact:
-    usage: "<red>Usage: /emdum interact <name> [x] [y] [z]</red>"
+    usage: "<red>Usage: /edummy interact <name> [x] [y] [z]</red>"
     not_found: "<yellow>Dummy %name% does not exist or has not joined</yellow>"
     done: "<gray>Dummy %name% right clicked block %block%</gray>"
   attack:
-    usage: "<red>Usage: /emdum attack <name></red>"
+    usage: "<red>Usage: /edummy attack <name></red>"
     not_found: "<yellow>Dummy %name% does not exist or has not joined</yellow>"
     no_target: "<yellow>No attackable entity near dummy %name%</yellow>"
     done: "<gray>Dummy %name% attacked entity #%entity%</gray>"
   click:
-    usage: "<red>Usage: /emdum click <name> <slot></red>"
+    usage: "<red>Usage: /edummy click <name> <slot></red>"
     not_found: "<yellow>Dummy %name% does not exist or has not joined</yellow>"
     no_window: "<yellow>Dummy %name% has no open window right now</yellow>"
     done: "<gray>Dummy %name% clicked slot %slot%</gray>"
@@ -85,7 +85,7 @@ command:
     entry: "<gray>- </gray><white>%name%</white><gray> [</gray><yellow>%state%</yellow><gray>] </gray><gray>@ %position%</gray>"
     empty: "<yellow>No dummies currently</yellow>"
   scenario:
-    usage: "<red>Usage: /emdum scenario <run|stop> <scenarioId></red>"
+    usage: "<red>Usage: /edummy scenario <run|stop> <scenarioId></red>"
     not_found: "<yellow>Scenario %id% not found (see plugins/EmakiDummy/scenarios/)</yellow>"
     busy: "<yellow>A scenario is already running: %active%</yellow>"
     started: "<gray>Scenario %id% started (players: %players%)</gray>"

@@ -11,7 +11,6 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import java.util.Set;
 
 public final class PipelineParser {
 
@@ -33,23 +32,9 @@ public final class PipelineParser {
 
     public static final String RETRY_DELAY = "retry_delay";
 
-    private static final int MAX_ALIAS_DEPTH = 8;
-
-    private static final Set<String> RESERVED_KEYWORDS = Set.of(
-            IF, ELSE, RUN, WEIGHT, ON_ERROR, UNION, PARSE_IF);
-
     private final PipelineLexer lexer = new PipelineLexer();
 
-    private final Map<String, String> aliases;
-
     public PipelineParser() {
-        this(Map.of());
-    }
-
-    public PipelineParser(@Nullable Map<String, String> aliases) {
-        this.aliases = aliases == null || aliases.isEmpty()
-                ? Map.of()
-                : Map.copyOf(aliases);
     }
 
     public @NotNull Result parse(@Nullable String line) {
@@ -64,11 +49,7 @@ public final class PipelineParser {
         if (lexed.tokens().isEmpty()) {
             return Result.empty();
         }
-        ExpandResult expanded = expandAliases(lexed.tokens());
-        if (expanded.diagnostic() != null) {
-            return Result.failed(expanded.diagnostic());
-        }
-        Cursor cursor = new Cursor(expanded.tokens());
+        Cursor cursor = new Cursor(lexed.tokens());
         List<ActionAst> nodes = parseSequence(cursor, false);
         if (cursor.diagnostic != null) {
             return Result.failed(cursor.diagnostic);
@@ -80,75 +61,6 @@ public final class PipelineParser {
             return Result.failed(CompileDiagnostic.at("action.parse.empty_pipeline", cursor.lastConsumed()));
         }
         return Result.ok(List.copyOf(nodes));
-    }
-
-    private ExpandResult expandAliases(List<PipelineToken> tokens) {
-        if (aliases.isEmpty()) {
-            return new ExpandResult(tokens, null);
-        }
-        return expandAliases(tokens, 0, null);
-    }
-
-    private ExpandResult expandAliases(List<PipelineToken> tokens, int depth, PipelineToken site) {
-        if (depth > MAX_ALIAS_DEPTH) {
-            return new ExpandResult(List.of(), CompileDiagnostic.at(
-                    "action.parse.alias_cycle",
-                    site == null ? tokens.get(0) : site,
-                    Map.of("alias", site == null ? "" : Texts.lower(site.text()),
-                            "max", MAX_ALIAS_DEPTH)));
-        }
-        List<PipelineToken> output = new ArrayList<>(tokens.size());
-        PipelineToken expandAt = null;
-        String expandName = null;
-        for (PipelineToken token : tokens) {
-            if (expandAt != null) {
-                output.add(token);
-                continue;
-            }
-            if (token.kind() != PipelineToken.Kind.WORD || token.isKeyValue() || token.quoted()) {
-                output.add(token);
-                continue;
-            }
-            String name = Texts.lower(token.text());
-            if (RESERVED_KEYWORDS.contains(name) || !aliases.containsKey(name)) {
-                output.add(token);
-                continue;
-            }
-            expandAt = token;
-            expandName = name;
-        }
-        if (expandAt == null) {
-            return new ExpandResult(output, null);
-        }
-        PipelineLexer.Result lexed = lexer.lex(aliases.get(expandName));
-        if (!lexed.successful()) {
-            return new ExpandResult(List.of(), lexed.diagnostic());
-        }
-        if (lexed.tokens().isEmpty()) {
-            return new ExpandResult(List.of(), CompileDiagnostic.at(
-                    "action.parse.alias_empty", expandAt, Map.of("alias", expandName)));
-        }
-        List<PipelineToken> replaced = new ArrayList<>(output.size() + lexed.tokens().size());
-        boolean placed = false;
-        for (PipelineToken token : output) {
-            if (!placed && token.equals(expandAt)) {
-                for (PipelineToken fragmentToken : lexed.tokens()) {
-                    replaced.add(shift(fragmentToken, token.column()));
-                }
-                placed = true;
-                continue;
-            }
-            replaced.add(token);
-        }
-        return expandAliases(replaced, depth + 1, expandAt);
-    }
-
-    private static PipelineToken shift(PipelineToken token, int baseColumn) {
-        return new PipelineToken(token.kind(), token.text(),
-                token.column() + baseColumn - 1, token.quoted(), token.keySplit());
-    }
-
-    private record ExpandResult(List<PipelineToken> tokens, CompileDiagnostic diagnostic) {
     }
 
     private List<ActionAst> parseSequence(Cursor cursor, boolean insideBracket) {

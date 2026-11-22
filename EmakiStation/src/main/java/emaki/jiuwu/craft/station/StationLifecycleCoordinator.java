@@ -7,9 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -71,9 +69,6 @@ final class StationLifecycleCoordinator
             "queue_costs.yml");
     private static final List<String> EXTRA_DIRECTORIES =
             List.of("stations", "stations_dismantle", "gui", "recipes", "recipes_dismantle", "data");
-    private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
-            new ConfigKeyMigration.Rename("persistence.autosave_interval", "persistence.autosave_interval_seconds"),
-            new ConfigKeyMigration.Rename("gui.refresh_interval", "gui.refresh_interval_ticks"));
 
     @Override
     public StationRuntimeComponents initialize(EmakiStationPlugin plugin) {
@@ -92,12 +87,7 @@ final class StationLifecycleCoordinator
                 DEFAULT_DATA_FILES,
                 EXTRA_DIRECTORIES,
                 bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData),
-                        (relativePath, runtime, bundled) -> {
-                            if (!"config.yml".equals(relativePath)) {
-                                return;
-                            }
-                            ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
-                        },
+                        null,
                         null));
 
         ExecutionDispatcher executionDispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);

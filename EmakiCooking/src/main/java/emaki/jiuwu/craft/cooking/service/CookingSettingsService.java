@@ -38,9 +38,6 @@ import emaki.jiuwu.craft.cooking.model.NutritionSingleThreshold;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationInteractionType;
 import emaki.jiuwu.craft.cooking.model.StationType;
-import emaki.jiuwu.craft.corelib.log.LogTags;
-import emaki.jiuwu.craft.corelib.log.LogTag;
-import java.util.logging.Level;
 
 public final class CookingSettingsService {
 
@@ -104,42 +101,16 @@ public final class CookingSettingsService {
     }
 
     public void reload() {
-        configuration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("config.yml").toFile());
+        YamlSection loadedConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("config.yml").toFile());
+        configuration = loadedConfiguration;
         steamerGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("steamer.yml").toFile());
         ovenGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("oven.yml").toFile());
         juicerGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("juicer.yml").toFile());
         fermentationBarrelGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("fermentation_barrel.yml").toFile());
-        reportDeprecatedMatcherKeys();
         itemAdjustments = loadItemAdjustments();
         globalDisabledWorlds = disabledWorldSet(configuration.get("station.disabled_worlds"));
         stationDisabledWorlds = loadStationDisabledWorlds();
         stationBlockSourceCache = loadStationBlockSources();
-    }
-
-    private void reportDeprecatedMatcherKeys() {
-        reportDeprecatedMatcherKeys("stations.chopping_board", "tool", "tool_item_sources", "tool_matcher");
-        reportDeprecatedMatcherKeys("stations.wok", "spatula", "spatula_item_sources", "spatula_matcher");
-        reportDeprecatedMatcherKeys("stations.juicer", "container", "container_item_sources", "container_matcher");
-        int index = 0;
-        for (Map<?, ?> raw : configuration.getMapList("stations.steamer.moisture_rules")) {
-            Map<String, Object> rule = MapYamlSection.normalizeMap(raw);
-            if (rule.containsKey("input_item_sources") || rule.containsKey("input_matcher")) {
-                boolean nested = rule.get("input") instanceof Map<?, ?>;
-                LogTags.send(plugin, LogTag.CONFIG, Level.WARNING, "config.deprecated_moisture_rule_matcher_keys", Map.of("index", index, "hint", deprecatedKeyHint(nested, "嵌套输入配置优先")));
-            }
-            index++;
-        }
-    }
-
-    private static String deprecatedKeyHint(boolean nested, String nestedHint) { return CookingSettingsServiceDelegate.deprecatedKeyHint(nested, nestedHint); }
-
-    private void reportDeprecatedMatcherKeys(String ownerPath, String nestedKey, String legacySourcesKey, String legacyMatcherKey) {
-        YamlSection owner = configuration.getSection(ownerPath);
-        if (owner == null || (!owner.contains(legacySourcesKey) && !owner.contains(legacyMatcherKey))) {
-            return;
-        }
-        YamlSection nested = owner.getSection(nestedKey);
-        LogTags.send(plugin, LogTag.CONFIG, Level.WARNING, "config.deprecated_matcher_keys", Map.of("path", ownerPath, "legacy_sources", legacySourcesKey, "legacy_matcher", legacyMatcherKey, "nested", nestedKey, "hint", deprecatedKeyHint(nested != null && !nested.isEmpty(), "嵌套配置优先")));
     }
 
     public List<ItemSourceRef> stationBlockSources(StationType stationType) { return new CookingSettingsServiceDelegate(this).stationBlockSources(stationType); }

@@ -13,22 +13,20 @@ public record AccessorySlotSourceConfig(boolean pdcEnabled,
         boolean loreEnabled,
         List<Pattern> lorePatterns,
         Map<String, String> patternErrors,
-        String separator,
-        Map<String, String> aliases) {
+        String separator) {
 
     public static final String DEFAULT_SEPARATOR = ",";
 
     public static AccessorySlotSourceConfig defaults() {
         return new AccessorySlotSourceConfig(
-                false, "", false, List.of(), Map.of(), DEFAULT_SEPARATOR, Map.of());
+                false, "", false, List.of(), Map.of(), DEFAULT_SEPARATOR);
     }
 
     public static AccessorySlotSourceConfig of(boolean pdcEnabled,
             String pdcKey,
             boolean loreEnabled,
             List<String> rawPatterns,
-            String separator,
-            Map<String, String> aliases) {
+            String separator) {
         List<Pattern> compiled = new ArrayList<>();
         Map<String, String> errors = new LinkedHashMap<>();
         if (rawPatterns != null) {
@@ -46,7 +44,7 @@ public record AccessorySlotSourceConfig(boolean pdcEnabled,
             }
         }
         return new AccessorySlotSourceConfig(
-                pdcEnabled, pdcKey, loreEnabled, compiled, errors, separator, aliases);
+                pdcEnabled, pdcKey, loreEnabled, compiled, errors, separator);
     }
 
     public AccessorySlotSourceConfig {
@@ -54,7 +52,6 @@ public record AccessorySlotSourceConfig(boolean pdcEnabled,
         lorePatterns = lorePatterns == null ? List.of() : List.copyOf(lorePatterns);
         patternErrors = patternErrors == null ? Map.of() : Map.copyOf(patternErrors);
         separator = Texts.isBlank(separator) ? DEFAULT_SEPARATOR : separator;
-        aliases = aliases == null ? Map.of() : normalizeAliases(aliases);
     }
 
     public boolean pdcUsable() {
@@ -65,27 +62,4 @@ public record AccessorySlotSourceConfig(boolean pdcEnabled,
         return loreEnabled && !lorePatterns.isEmpty();
     }
 
-    public String resolveAlias(String declared) {
-        String candidate = Texts.trim(declared);
-        if (Texts.isBlank(candidate)) {
-            return "";
-        }
-        String mapped = aliases.get(candidate);
-        if (mapped == null) {
-            mapped = aliases.get(Texts.lower(candidate));
-        }
-        return Texts.isNotBlank(mapped) ? mapped : Texts.normalizeId(candidate);
-    }
-
-    private static Map<String, String> normalizeAliases(Map<String, String> raw) {
-        Map<String, String> normalized = new LinkedHashMap<>();
-        raw.forEach((display, partId) -> {
-            String source = Texts.trim(display);
-            String target = Texts.normalizeId(partId);
-            if (Texts.isNotBlank(source) && Texts.isNotBlank(target)) {
-                normalized.put(source, target);
-            }
-        });
-        return Map.copyOf(normalized);
-    }
 }

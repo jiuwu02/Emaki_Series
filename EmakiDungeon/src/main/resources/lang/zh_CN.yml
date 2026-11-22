@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.32"
+version: "1.0.33"
 
 tags:
   challenge: '[ 挑战 ]'
@@ -14,7 +14,7 @@ general:
   no_permission: "<red>你没有权限执行此命令</red>"
   player_only: "<red>此命令只能由玩家执行</red>"
   invalid_args: "<red>参数错误</red>"
-  unknown_command: "<red>未知命令, 请使用 /edg help 查看帮助</red>"
+  unknown_command: "<red>未知命令, 请使用 /edungeon help 查看帮助</red>"
   reloading: "<gray>正在重载配置...</gray>"
   reload_success: "<green>配置已重载</green>"
 
@@ -108,7 +108,7 @@ command:
   help_random_template_meta_entry_seal_block: "- <hover:show_text:'<gray>seal-block</gray> <dark_gray>·</dark_gray> <gray>封印方块</gray>'><gray>seal-block</gray></hover> <hover:show_text:'<gray>参数:值</gray><newline><gray>方块ID, 如 </gray><white>iron_block</white><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 值 ]</gray></hover>"
   help_random_template_meta_entry_rotations: "- <hover:show_text:'<gray>rotations</gray> <dark_gray>·</dark_gray> <gray>允许旋转角度</gray>'><gray>rotations</gray></hover> <hover:show_text:'<gray>参数:值</gray><newline><gray>逗号分隔的 0/90/180/270</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 值 ]</gray></hover>"
   help_random_template_anchor_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiDungeon random template anchor 命令帮助</gradient> <gray><st>        </st></gray>"
-  help_random_template_anchor_entry_add: "- <hover:show_text:'<gray>add</gray> <dark_gray>·</dark_gray> <gray>新增门锚点</gray>'><gray>add</gray></hover> <hover:show_text:'<gray>参数:锚点ID 朝向 宽 高</gray><newline><gray>在准星方块上新增一个门锚点</gray><newline><newline><dark_gray>▸</dark_gray> <gray>朝向取 n/e/s/w 或 north/east/south/west</gray><newline><dark_gray>▸</dark_gray> <gray>宽与高为 1-16 的格数</gray><newline><dark_gray>▸</dark_gray> <gray>需先用 pos1 或 pos2 记录角点</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 锚点ID ] [ 朝向 ] [ 宽 ] [ 高 ]</gray></hover>"
+  help_random_template_anchor_entry_add: "- <hover:show_text:'<gray>add</gray> <dark_gray>·</dark_gray> <gray>新增门锚点</gray>'><gray>add</gray></hover> <hover:show_text:'<gray>参数:锚点ID 朝向 宽 高</gray><newline><gray>在准星方块上新增一个门锚点</gray><newline><newline><dark_gray>▸</dark_gray> <gray>朝向取 north/east/south/west</gray><newline><dark_gray>▸</dark_gray> <gray>宽与高为 1-16 的格数</gray><newline><dark_gray>▸</dark_gray> <gray>需先用 pos1 或 pos2 记录角点</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 锚点ID ] [ 朝向 ] [ 宽 ] [ 高 ]</gray></hover>"
   help_random_template_anchor_entry_remove: "- <hover:show_text:'<gray>remove</gray> <dark_gray>·</dark_gray> <gray>移除门锚点</gray>'><gray>remove</gray></hover> <hover:show_text:'<gray>参数:锚点ID</gray><newline><gray>按 ID 移除已添加的门锚点</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 锚点ID ]</gray></hover>"
   help_random_template_node_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiDungeon random template node 命令帮助</gradient> <gray><st>        </st></gray>"
   help_random_template_node_entry_add: "- <hover:show_text:'<gray>add</gray> <dark_gray>·</dark_gray> <gray>在准星方块添加模块节点</gray>'><gray>add</gray></hover> <hover:show_text:'<gray>参数:模块 节点ID [锚点ID]</gray><newline><gray>在准星方块上添加指定模块的节点</gray><newline><newline><dark_gray>▸</dark_gray> <gray>模块取流程段名, 如 room_zones/gate_zones/tip_points</gray><newline><dark_gray>▸</dark_gray> <gray>spawn_point 不允许作为模块</gray><newline><dark_gray>▸</dark_gray> <gray>锚点ID 可省略, 指定后坐标按相对锚点记录</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 模块 ] [ 节点ID ] [ 锚点ID ]</gray></hover>"
@@ -148,25 +148,25 @@ command:
   help_value_desc_random_stop: "强制结束随机实例 %value%"
   help_value_desc_random_replay: "按记录 %value% 重新生成随机地牢"
   help_footer: "<gray><st>                                        </st></gray>"
-  unknown: "<red>未知子命令: <command>, 请使用 /edg help</red>"
+  unknown: "<red>未知子命令: <command>, 请使用 /edungeon help</red>"
   list:
     empty: "<yellow>暂无可用副本</yellow>"
     header: "<gray>可用副本:</gray>"
     entry: "<gray>- </gray><white><dungeon></white>"
   enter:
-    usage: "<red>用法: /edg enter <副本ID></red>"
+    usage: "<red>用法: /edungeon enter <副本ID></red>"
   leave:
     no_instance: "<red>你当前不在副本实例中</red>"
     confirm_hint: "<yellow>输入 确认 退出本次副本, 输入 取消 放弃</yellow>"
     aborted: "<gray>已取消退出</gray>"
   party:
-    usage: "<red>用法: /edg party <create|invite|accept|deny|kick|leave|disband|chat></red>"
+    usage: "<red>用法: /edungeon party <create|invite|accept|deny|kick|leave|disband|chat></red>"
   recruit:
-    usage: "<red>用法: /edg recruit open <副本ID> [难度] | /edg recruit <close|list> | /edg recruit join <编号></red>"
+    usage: "<red>用法: /edungeon recruit open <副本ID> [难度] | /edungeon recruit <close|list> | /edungeon recruit join <编号></red>"
   match:
-    usage: "<red>用法: /edg match join <副本ID> [难度] | /edg match leave</red>"
+    usage: "<red>用法: /edungeon match join <副本ID> [难度] | /edungeon match leave</red>"
   spectate:
-    usage: "<red>用法: /edg spectate <next|prev></red>"
+    usage: "<red>用法: /edungeon spectate <next|prev></red>"
     not_spectator: "<yellow>你当前不在观战模式</yellow>"
     no_target: "<yellow>暂无可切换的观战目标</yellow>"
     next: "<gray>已切换到观战目标: </gray><white><target></white>"
@@ -182,16 +182,16 @@ command:
     limit_windows: "<gray>可挑战窗口: </gray><white>月[<monthly>] 周[<weekly>] 日[<daily>]</white>"
     best: "<gray>  最佳成绩: </gray><white><score></white> <gray>| 用时 </gray><white><duration></white>"
   rank:
-    usage: "<red>用法: /edg rank <副本ID></red>"
+    usage: "<red>用法: /edungeon rank <副本ID></red>"
     empty: "<yellow>副本 <dungeon> 暂无排行记录</yellow>"
     header: "<gray>副本 <dungeon> 排行榜 (前 10):</gray>"
     entry: "<gold>#<place></gold> <white><score></white> <gray>分 | </gray><white><duration></white> <gray>| </gray><yellow><difficulty></yellow> <gray>| </gray><white><members></white>"
   globalchat:
-    usage: "<red>用法: /edg globalchat <on|off></red>"
+    usage: "<red>用法: /edungeon globalchat <on|off></red>"
   denied_escape: "<red>该命令在本副本受限 (逃逸黑名单): <command></red>"
   denied_mode: "<red>该命令在本副本受限 (命令管控): <command></red>"
   admin:
-    usage: "<red>用法: /edg admin <instances|inspect|stop|status|reload|validate|poolreset|clearslots></red>"
+    usage: "<red>用法: /edungeon admin <instances|inspect|stop|status|reload|validate|poolreset|clearslots></red>"
     instances_header: "<gray>实例列表 (共 <count> 个):</gray>"
     instance_line: "<gray>- </gray><white><instance></white> <gray>| </gray><dungeon> <gray>| </gray><state> <gray>| 队伍 </gray><party> <gray>| 写队列 </gray><queue>"
     stop_missing: "<red>实例不存在: <instance></red>"
@@ -209,7 +209,7 @@ command:
     pool_reset: "<green>池补位已强制重置: <dungeon></green>"
     pool_missing: "<red>副本不存在: <dungeon></red>"
     slots_cleared: "<green>占位已清理</green>"
-    inspect_usage: "<red>用法: /edg admin inspect <实例ID></red>"
+    inspect_usage: "<red>用法: /edungeon admin inspect <实例ID></red>"
     inspect_header: "<gray>===== 实例详情 </gray><white><instance></white> <gray>| </gray><dungeon> <gray>| </gray><state> <gray>=====</gray>"
     inspect_meta: "<gray>难度 </gray><difficulty> <gray>| 掉落 </gray><drop> <gray>| 类型 </gray><type> <gray>| 测试 </gray><test> <gray>| 队伍 </gray><party> <gray>| 已运行 </gray><elapsed><gray>s</gray>"
     inspect_no_flow: "<yellow>该实例暂无流程运行时</yellow>"
@@ -220,13 +220,13 @@ command:
 
 challenge:
   entered: "<green>已进入副本 <dungeon> (<instance>)</green>"
-  preparing: "<yellow>准备确认开始, 输入 /edg ready 或点击确认按钮 (<seconds> 秒内)</yellow>"
+  preparing: "<yellow>准备确认开始, 输入 /edungeon ready 或点击确认按钮 (<seconds> 秒内)</yellow>"
   preparing_expired: "<red>准备确认超时, 挑战作废</red>"
   member_ready: "<gray><player> 已准备 (<ready>/<total>)</gray>"
   cancelled: "<yellow>挑战已作废 (原因: <reason>)</yellow>"
   wait:
-    bossbar: "正在准备副本世界: <dungeon> (任一队员可 /edg cancel 取消)"
-    chat: "<yellow>正在准备副本世界: <dungeon>, 任一队员可 /edg cancel 取消, 等待超时自动作废</yellow>"
+    bossbar: "正在准备副本世界: <dungeon> (任一队员可 /edungeon cancel 取消)"
+    chat: "<yellow>正在准备副本世界: <dungeon>, 任一队员可 /edungeon cancel 取消, 等待超时自动作废</yellow>"
     sidebar: "进入等待: <dungeon>"
   enter:
     dungeon_missing: "<red>副本不存在或配置无效: <dungeon></red>"
@@ -280,8 +280,8 @@ gui:
 party:
   chat_format: "<gradient:#1E3A8A:#8B5CF6>[队伍]</gradient> <gold><player></gold>: <white><message></white>"
   invite_sent: "<yellow>已邀请 <player> 加入队伍</yellow>"
-  invite_received: "<yellow><player> 邀请你加入队伍, /edg party accept 接受, /edg party deny 拒绝</yellow>"
-  apply_received: "<yellow><player> 申请加入你的队伍, /edg party accept 批准, /edg party deny 拒绝</yellow>"
+  invite_received: "<yellow><player> 邀请你加入队伍, /edungeon party accept 接受, /edungeon party deny 拒绝</yellow>"
+  apply_received: "<yellow><player> 申请加入你的队伍, /edungeon party accept 批准, /edungeon party deny 拒绝</yellow>"
   apply_denied: "<yellow><player> 拒绝了你的入队申请</yellow>"
   kicked: "<red>你已被 <player> 移出队伍</red>"
   leader_transferred: "<yellow>队长已移交给 <player></yellow>"
@@ -318,7 +318,7 @@ match:
   queued: "<green>已加入匹配队列 | 副本=<dungeon> | 难度=<difficulty> | 目标人数=<target></green>"
   queue_left: "<yellow>已离开匹配队列</yellow>"
   queue_none: "<yellow>你当前不在匹配队列中</yellow>"
-  matched: "<green>匹配成功 | 副本=<dungeon> | 难度=<difficulty> | 队伍人数=<size>, 队长可用 /edg enter <dungeon> 发起挑战</green>"
+  matched: "<green>匹配成功 | 副本=<dungeon> | 难度=<difficulty> | 队伍人数=<size>, 队长可用 /edungeon enter <dungeon> 发起挑战</green>"
 
 recovery:
   reconnected: "<green>重连成功, 已回到副本实例 (<instance>)</green>"
@@ -339,7 +339,7 @@ globalchat:
   disabled: "<yellow>已关闭全局消息收听, 消息仅实例内闭环</yellow>"
 
 editor:
-  usage: "<red>用法: /edg editor <副本ID></red>"
+  usage: "<red>用法: /edungeon editor <副本ID></red>"
   usage_session: "<gray>会话子命令: exit | pos1 | pos2 | mark <类型> [id] | marks | fill <方块> | test</gray>"
   unknown_dungeon: "<red>副本不存在或配置无效: <dungeon></red>"
   locked: "<yellow>副本 <dungeon> 已有编辑会话, 同一模板同时只允许一个</yellow>"
@@ -362,9 +362,9 @@ editor:
   not_in_edit_world: "<red>请在该副本的编辑世界内执行此操作</red>"
   no_target: "<red>视线 16 格内没有可标记的方块</red>"
   pos_set: "<green>角点<which> 已记录: <coord></green>"
-  pos_missing: "<red>缺少角点<which>, 请用 /edg editor pos<which> 记录</red>"
-  pos_auto: "<gray>已自动记录角点1, 站到区域另一角用 /edg editor pos2 记录后重试</gray>"
-  mark_usage: "<red>用法: /edg editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|option|tip|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
+  pos_missing: "<red>缺少角点<which>, 请用 /edungeon editor pos<which> 记录</red>"
+  pos_auto: "<gray>已自动记录角点1, 站到区域另一角用 /edungeon editor pos2 记录后重试</gray>"
+  mark_usage: "<red>用法: /edungeon editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|option|tip|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
   mark_unknown_type: "<red>未知标记类型: <type></red>"
   mark_ok: "<green>已暂存标记 <type> -> <id> (<coord>), 保存后写入流程 YAML</green>"
   mark_dup: "<red>已存在同名模块: <id></red>"
@@ -379,20 +379,20 @@ editor:
   save_failed: "<red>保存失败 (改动仍在会话中): <error></red>"
   saved: "<green>已保存并回写模板 (<dungeon>), 世代 <generation>, 地形变更: <terrain></green>"
   discarded: "<green>已放弃编辑会话, 未保存的配置与地形改动全部丢弃</green>"
-  fill_usage: "<red>用法: /edg editor fill <方块> (需先用 pos1/pos2 圈定区域)</red>"
+  fill_usage: "<red>用法: /edungeon editor fill <方块> (需先用 pos1/pos2 圈定区域)</red>"
   fill_invalid: "<red>无效的方块或方块状态: <block></red>"
   fill_busy: "<yellow>方块写入队列繁忙, 请稍候重试</yellow>"
   fill_started: "<gray>已提交区域填充 <count> 格, 分帧写入中</gray>"
   fill_too_large: "<red>填充数量 <count> 超过上限 <limit></red>"
   help_mark: |
     <gray>===== 标记速查 (共 21 类) =====</gray>
-    <white>用法: /edg editor mark 类型 [id] (类型用 Tab 补全, 或看主面板"全部模块")</white>
+    <white>用法: /edungeon editor mark 类型 [id] (类型用 Tab 补全, 或看主面板"全部模块")</white>
     <white>单点(视线方块): entry/exit/spawn/block/chest/option/tip/item/fx/respawn</white>
     <white>区域(两点): room/gate/trigger/teleport/boundary/effect/mechanism/room_timer/checkpoint</white>
     <white>无坐标: kill_target/temp_item (在编辑世界任意处即可标记)</white>
-    <white>角点: /edg editor pos1 与 /edg editor pos2</white>
-    <white>区域填充: /edg editor fill 方块</white>
-    <white>列出暂存: /edg editor marks | 测试: /edg editor test</white>
+    <white>角点: /edungeon editor pos1 与 /edungeon editor pos2</white>
+    <white>区域填充: /edungeon editor fill 方块</white>
+    <white>列出暂存: /edungeon editor marks | 测试: /edungeon editor test</white>
     <gray>标记与面板改动在点"保存"后才写入模板</gray>
   marker:
     spawn: "刷怪点"
@@ -558,11 +558,11 @@ rewardbox:
     close: "<red>关闭</red>"
     filler: ""
     auto_enabled: "<green>已开启自动流入: 之后的奖励将直接进入背包 (背包满时仍留奖励箱)</green>"
-    auto_disabled: "<yellow>已关闭自动流入: 之后的奖励将存入奖励箱, /edg rewards 手动领取</yellow>"
+    auto_disabled: "<yellow>已关闭自动流入: 之后的奖励将存入奖励箱, /edungeon rewards 手动领取</yellow>"
 
 settle:
   partial: "<yellow>结算部分完成, 部分奖励可能未发放, 已记录审计</yellow>"
-  rewards_hint: "<yellow>副本奖励已存入奖励箱, 输入 </yellow><click:suggest_command:'/edg rewards'><underlined>/edg rewards</underlined></click><yellow> 打开领取</yellow>"
+  rewards_hint: "<yellow>副本奖励已存入奖励箱, 输入 </yellow><click:suggest_command:'/edungeon rewards'><underlined>/edungeon rewards</underlined></click><yellow> 打开领取</yellow>"
 
 flow:
   option:
@@ -609,7 +609,6 @@ console:
   instance_crashed: "实例循环异常终止 | 实例=%instance% | 错误=%error%"
   flow_file_failed: "流程 YAML 创建失败 | 副本=%dungeon% | 错误=%error%"
   flow_load_failed: "流程 YAML 加载失败, 使用空定义 | 实例=%instance% | 错误=%error%"
-  flow_deprecated_key: "流程配置键已弃用并归一 | <key> -> <replacement>"
   editor_worlds_swept: "启动清扫编辑世界残留 | 数量=%count%"
   editor_template_saved: "编辑模板已回写 | 副本=%dungeon% | 世代=%generation%"
   script_disabled: "GraalJS 脚本宿主已由配置关闭"
@@ -694,12 +693,12 @@ hud:
     - "通关次数: %emakidungeon_data_%dungeon%_clear_count%"
     - "最佳评分: %emakidungeon_data_%dungeon%_best_score%"
 random:
-  usage: "<red>用法: /edg random <template|create|enter|leave|list|records|stop|replay|reload></red>"
+  usage: "<red>用法: /edungeon random <template|create|enter|leave|list|records|stop|replay|reload></red>"
   no_permission: "<red>你没有权限执行该操作</red>"
   config_invalid: "<red>随机地牢配置非法, 保留上一份合法配置 | <errors></red>"
   reloaded: "<green>随机地牢配置与模板已重载</green>"
   create_busy: "<red>并发实例已达上限 (<active>), 请稍候再试</red>"
-  no_templates: "<red>尚无已注册结构模板, 请先用 /edg random template 采集</red>"
+  no_templates: "<red>尚无已注册结构模板, 请先用 /edungeon random template 采集</red>"
   layout_failed: "<red>布局失败: 房量 <room-count> 回溯 <attempts> 次仍冲突</red>"
   allocation_failed: "<red>模板分配失败: 重分配 <limit> 次未达成必选规则</red>"
   create_started: "<green>随机地牢生成开始 | 实例 <instance> 种子 <seed> 房量 <rooms></green>"
@@ -719,9 +718,9 @@ random:
   records_header: "<gray>实例记录:</gray>"
   records_entry: "<gray>- </gray><white><record></white>"
   template:
-    usage: "<red>用法: /edg random template <start|menu|pos1|pos2|meta|anchor|node|save|discard|status></red>"
+    usage: "<red>用法: /edungeon random template <start|menu|pos1|pos2|meta|anchor|node|save|discard|status></red>"
     already_open: "<red>你已有采集会话在进行</red>"
-    world_forbidden: "<red>只能在编辑世界内开启模板采集 (先 /edg editor <副本ID>)</red>"
+    world_forbidden: "<red>只能在编辑世界内开启模板采集 (先 /edungeon editor <副本ID>)</red>"
     started: "<green>模板采集会话已开启 | 世界 <world></green>"
     no_session: "<red>当前没有采集会话</red>"
     no_target: "<red>视线内没有目标方块</red>"
@@ -753,8 +752,8 @@ random:
     saved: "<green>模板 <id> 已落库 | 方块 <blocks> 锚点 <anchors></green>"
     discarded: "<gray>采集会话已丢弃</gray>"
     status: "<gray>采集状态 | 类型 <type> 标签 <tags> 锚点 <anchors> 节点 <nodes> 楼层 <floors></gray>"
-  create_usage: "<red>用法: /edg random create <副本ID> [人数] [种子]</red>"
-  create_no_dungeon: "<red>必须指定副本ID: /edg random create <副本ID></red>"
+  create_usage: "<red>用法: /edungeon random create <副本ID> [人数] [种子]</red>"
+  create_no_dungeon: "<red>必须指定副本ID: /edungeon random create <副本ID></red>"
   gui:
     title: "<dark_gray>随机模板采集</dark_gray>"
     pos1: "<white>角点 1</white>"

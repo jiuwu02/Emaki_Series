@@ -1,10 +1,10 @@
 # EmakiKits 礼包模块主配置
 #
 # 礼包定义全部放在 kits/ 目录下, 一个礼包一个 YAML 文件, id 取自文件内的 id 字段
-# 修改后使用 /emakikits reload 热重载
+# 修改后使用 /ekits reload 热重载
 # 文件位置: plugins/EmakiKits/config.yml
 
-version: "1.0.5"
+version: "1.0.6"
 language: "zh_CN"
 
 # 首次启动或 kits/ 目录为空时是否释放内置示例礼包

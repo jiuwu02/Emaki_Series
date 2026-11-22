@@ -97,13 +97,6 @@ public final class PdcService {
         holder.getPersistentDataContainer().remove(partition.key(field));
     }
 
-    public void removeMigrating(@Nullable PersistentDataHolder holder,
-            @Nullable PdcPartition partition,
-            @Nullable String legacyPartitionPath,
-            @Nullable String field) {
-        remove(holder, partition, field);
-    }
-
     public <T> boolean writeBlob(@Nullable PersistentDataHolder holder,
             @Nullable PdcPartition partition,
             @Nullable String field,
@@ -178,13 +171,6 @@ public final class PdcService {
         mutateItemStack(itemStack, "remove", key, "", container -> container.remove(key));
     }
 
-    public void removeMigrating(@Nullable ItemStack itemStack,
-            @Nullable PdcPartition partition,
-            @Nullable String legacyPartitionPath,
-            @Nullable String field) {
-        remove(itemStack, partition, field);
-    }
-
     public <T> boolean writeBlob(@Nullable ItemStack itemStack,
             @Nullable PdcPartition partition,
             @Nullable String field,
@@ -214,44 +200,6 @@ public final class PdcService {
         }
         String payload = container.get(partition.key(field), PersistentDataType.STRING);
         return codec.decode(payload);
-    }
-
-    @Nullable
-    public <P, C> C getMigrating(@Nullable ItemStack itemStack,
-            @Nullable PdcPartition partition,
-            @Nullable String legacyPartitionPath,
-            @Nullable String field,
-            @Nullable PersistentDataType<P, C> type) {
-        return get(itemStack, partition, field, type);
-    }
-
-    @Nullable
-    public <T> T readBlobMigrating(@Nullable ItemStack itemStack,
-            @Nullable PdcPartition partition,
-            @Nullable String legacyPartitionPath,
-            @Nullable String field,
-            @Nullable SnapshotCodec<T> codec) {
-        if (codec == null) {
-            return null;
-        }
-        String payload = getMigrating(itemStack, partition, legacyPartitionPath, field, PersistentDataType.STRING);
-        return codec.decode(payload);
-    }
-
-    @Nullable
-    public <P, C> C getMigrating(@Nullable PersistentDataHolder holder,
-            @Nullable PdcPartition partition,
-            @Nullable String legacyPartitionPath,
-            @Nullable String field,
-            @Nullable PersistentDataType<P, C> type) {
-        if (holder == null || partition == null || type == null || field == null) {
-            return null;
-        }
-        return get(holder, partition, field, type);
-    }
-
-    public void purgeLegacyKeys(@Nullable ItemStack itemStack) {
-        // 旧键兼容层已移除, 无需处理
     }
 
     public void batchMutate(@Nullable ItemStack itemStack, @Nullable Consumer<PersistentDataContainer> consumer) {

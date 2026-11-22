@@ -41,11 +41,7 @@ final class WokSettings {
     }
 
     ItemRequirement spatulaRequirement() {
-        return CookingMatchers.requirementWithLegacyFallback(
-                configuration.get().getSection("stations.wok"),
-                "spatula",
-                "spatula_item_sources",
-                "spatula_matcher");
+        return ItemRequirement.fromConfig(configuration.get().get("stations.wok.spatula"));
     }
 
     List<CookingSettingsService.HeatLevelRule> heatLevels() {
@@ -109,12 +105,7 @@ final class WokSettings {
     }
 
     String failureOutputSource() {
-
-        YamlSection configuration = this.configuration.get();
-        Object raw = configuration.contains("stations.wok.failure.item_source")
-                ? configuration.get("stations.wok.failure.item_source")
-                : configuration.get("stations.wok.failure.item_sources");
-        return firstSourceShorthand(raw);
+        return firstSourceShorthand(configuration.get().get("stations.wok.failure.item_source"));
     }
 
     String invalidResultSource() {

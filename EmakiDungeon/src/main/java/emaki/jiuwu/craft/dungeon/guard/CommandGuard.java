@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.dungeon.guard;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -19,9 +20,11 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.config.AppConfig;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
+import emaki.jiuwu.craft.dungeon.flow.EventIngressKeys;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
+import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import emaki.jiuwu.craft.corelib.log.LogTag;
 
@@ -165,11 +168,14 @@ public final class CommandGuard implements Listener {
                 "command", commandLine,
                 "source", source
         ));
-        instance.ingress().post(new IngressEvent("onCommandDenied", String.valueOf(player.getUniqueId()), Map.of(
-                "command", commandLine,
-                "verdict", verdict.name(),
-                "source", source
-        )));
+        Map<String, String> context = new LinkedHashMap<>();
+        context.put("player", String.valueOf(player.getUniqueId()));
+        context.put("command", commandLine);
+        context.put("verdict", verdict.name());
+        context.put("source", source);
+        instance.ingress().post(new IngressEvent(EventIngressKeys.SCRIPT_TRIGGER,
+                TriggerType.onCommandDenied.name(),
+                Map.of("trigger", TriggerType.onCommandDenied.name(), "ctx", context)));
     }
 
     private DungeonInstance instanceOf(Player player) {

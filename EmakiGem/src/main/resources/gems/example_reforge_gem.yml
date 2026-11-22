@@ -2,7 +2,7 @@
 # EmakiGem 宝石示例: 洗炼宝石
 # ============================================================
 # 演示功能: reroll 词缀重铸.配置词缀池 pools, 全量洗炼 full_cost
-#   与数值洗炼 value_cost, 玩家可用 /emakigem 的洗炼入口重掷词缀
+#   与数值洗炼 value_cost, 玩家可用 /egem 的洗炼入口重掷词缀
 # 镶嵌位置: universal 通用插槽
 # 依赖: EmakiCoreLib (必需); EmakiAttribute 提供属性; 洗炼只涉及宝石自身
 # 经济说明: 两档洗炼都只收材料, 未安装 Vault 也能使用

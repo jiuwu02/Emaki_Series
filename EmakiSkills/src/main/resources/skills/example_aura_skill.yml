@@ -30,8 +30,6 @@ passive_triggers:
 # timer 每隔 timer_interval_ticks 派发一次; 技能冷却决定光环实际刷新频率
 cooldown_ticks: 200
 
-lore_aliases:
-  - "守护者光环"
 tags:
   - "passive"
   - "aura"

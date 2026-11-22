@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "2.0.5"
+version: "2.0.6"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
@@ -156,7 +156,7 @@ command:
   help_entry_open_self: "- <hover:show_text:'<gray>%root%</gray> <dark_gray>·</dark_gray> <gray>不带参数执行: 打开自己的仓库界面</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistorage.use</white><newline><dark_gray>▸</dark_gray> <gray>管理员权限可替代</gray><newline><dark_gray>▸</dark_gray> <gray>只能由玩家执行</gray>'><gray>%root%</gray></hover> <click:run_command:'%root%'><green>[ ✦ 点击执行 ]</green></click>"
   help_entry_open: "- <hover:show_text:'<gray>open</gray> <dark_gray>·</dark_gray> <gray>打开指定玩家的仓库界面</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistorage.admin</white><newline><dark_gray>▸</dark_gray> <gray>参数 [玩家] 必填, 也可填已缓存的离线玩家名</gray><newline><dark_gray>▸</dark_gray> <gray>只能由玩家执行</gray>'><gray>open</gray></hover> <click:run_command:'%root% help open'><hover:show_text:'<gray>参数:玩家</gray><newline><gray>在线玩家名, 点击查看当前可选玩家</gray>'><gray>[ ✦ 玩家 ]</gray></hover></click>"
   help_entry_edit: "- <hover:show_text:'<gray>edit</gray> <dark_gray>·</dark_gray> <gray>打开扩容价格定义编辑器</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistorage.edit</white><newline><dark_gray>▸</dark_gray> <gray>参数 [定义ID] 可选, 留空打开浏览列表, 支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>只能由玩家执行</gray>'><gray>edit</gray></hover> <click:run_command:'%root% edit'><green>[ ✦ 点击执行 ]</green></click>"
-  help_entry_autopickup: "- <hover:show_text:'<gray>autopickup</gray> <dark_gray>·</dark_gray> <gray>开关自动拾取</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistorage.autopickup</white><newline><dark_gray>▸</dark_gray> <gray>参数 [开关] 可选: on / off, 留空或填其他值为切换</gray><newline><dark_gray>▸</dark_gray> <gray>需要配置启用自动拾取</gray><newline><dark_gray>▸</dark_gray> <gray>只能由玩家执行</gray>'><gray>autopickup</gray></hover> <click:run_command:'%root% autopickup'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_autopickup: "- <hover:show_text:'<gray>autopickup</gray> <dark_gray>·</dark_gray> <gray>开关自动拾取</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistorage.autopickup</white><newline><dark_gray>▸</dark_gray> <gray>参数 [开关] 可选: on / off, 留空为切换</gray><newline><dark_gray>▸</dark_gray> <gray>需要配置启用自动拾取</gray><newline><dark_gray>▸</dark_gray> <gray>只能由玩家执行</gray>'><gray>autopickup</gray></hover> <click:run_command:'%root% autopickup'><green>[ ✦ 点击执行 ]</green></click>"
   help_entry_slot: "- <hover:show_text:'<gray>slot</gray> <dark_gray>·</dark_gray> <gray>授予或回收玩家槽位</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistorage.admin</white><newline><dark_gray>▸</dark_gray> <gray>目标玩家离线时拒绝执行</gray>'><gray>slot</gray></hover> <click:run_command:'%root% help slot'><hover:show_text:'<gray>可选参数</gray><newline><gray>grant</gray> <dark_gray>·</dark_gray> <gray>授予或回收槽位 (可为负数)</gray>'><gray>[ ✦ 参数 ]</gray></hover></click>"
   help_entry_stacklimit: "- <hover:show_text:'<gray>stacklimit</gray> <dark_gray>·</dark_gray> <gray>设置单槽堆叠上限</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistorage.admin</white><newline><dark_gray>▸</dark_gray> <gray>目标玩家离线时拒绝执行</gray>'><gray>stacklimit</gray></hover> <click:run_command:'%root% help stacklimit'><hover:show_text:'<gray>可选参数</gray><newline><gray>player</gray> <dark_gray>·</dark_gray> <gray>设置玩家默认单槽上限</gray><newline><gray>slot</gray> <dark_gray>·</dark_gray> <gray>设置玩家指定槽位的上限</gray>'><gray>[ ✦ 参数 ]</gray></hover></click>"
   help_entry_info: "- <hover:show_text:'<gray>info</gray> <dark_gray>·</dark_gray> <gray>查看玩家仓库容量, 占用与来源明细</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakistorage.admin</white><newline><dark_gray>▸</dark_gray> <gray>参数 [玩家] 必填, 也可填已缓存的离线玩家名</gray>'><gray>info</gray></hover> <click:run_command:'%root% help info'><hover:show_text:'<gray>参数:玩家</gray><newline><gray>在线玩家名, 点击查看当前可选玩家</gray>'><gray>[ ✦ 玩家 ]</gray></hover></click>"
@@ -396,7 +396,6 @@ shutdown:
 config:
   storage_rows_below_min: "gui.storage_rows=%rows% 低于最小值 %min%; 已限制为 %min%"
   storage_rows_exceeds_max: "gui.storage_rows=%rows% 超过最大值 %max% (功能行始终占用最后一行); 已限制为 %max%"
-  legacy_key_renamed: "配置键 %legacy_key% 已更名为 %key%, 当前按旧键值 %value% 生效, 启动时会自动迁移到新键"
   issue_reported: "%message%"
 persistence:
   data_handling_failed: "玩家 %player% 数据处理失败 (%stage%): %error%"

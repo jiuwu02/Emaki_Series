@@ -2,13 +2,13 @@
 # 消息使用 MiniMessage; 占位符语法为 %key%
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.6"
+version: "1.0.7"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#14B8A6>EmakiDummy</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行此命令</red>"
   invalid_args: "<red>参数错误</red>"
-  unknown_command: "<red>未知子命令: %sub%, 请使用 /emdum help 查看帮助</red>"
+  unknown_command: "<red>未知子命令: %sub%, 请使用 /edummy help 查看帮助</red>"
 
 command:
   help_header: "<gray><st>        </st></gray> <gradient:#22D3EE:#14B8A6>EmakiDummy 命令帮助</gradient> <gray><st>        </st></gray>"
@@ -47,36 +47,36 @@ command:
     connecting: "<gray>假人 %name% 正在连接 %host%:%port% ...</gray>"
     failed: "<red>假人 %name% 连接失败: %reason%</red>"
   leave:
-    usage: "<red>用法: /emdum leave <名字></red>"
+    usage: "<red>用法: /edummy leave <名字></red>"
     not_found: "<yellow>假人 %name% 不存在</yellow>"
     done: "<green>假人 %name% 已断开</green>"
   say:
-    usage: "<red>用法: /emdum say <名字> <文本></red>"
+    usage: "<red>用法: /edummy say <名字> <文本></red>"
     not_found: "<yellow>假人 %name% 不存在或未进服</yellow>"
     sent: "<gray>假人 %name% 已发送聊天: %text%</gray>"
   cmd:
-    usage: "<red>用法: /emdum cmd <名字> <命令></red>"
+    usage: "<red>用法: /edummy cmd <名字> <命令></red>"
     not_found: "<yellow>假人 %name% 不存在或未进服</yellow>"
     sent: "<gray>假人 %name% 已执行: %command%</gray>"
   walk:
-    usage: "<red>用法: /emdum walk <名字> <x> <y> <z></red>"
+    usage: "<red>用法: /edummy walk <名字> <x> <y> <z></red>"
     not_found: "<yellow>假人 %name% 不存在或未进服</yellow>"
     started: "<gray>假人 %name% 开始走向 %x%, %y%, %z%</gray>"
   look:
-    usage: "<red>用法: /emdum look <名字> <yaw> <pitch></red>"
+    usage: "<red>用法: /edummy look <名字> <yaw> <pitch></red>"
     not_found: "<yellow>假人 %name% 不存在或未进服</yellow>"
     done: "<gray>假人 %name% 视角已调整为 yaw=%yaw% pitch=%pitch%</gray>"
   interact:
-    usage: "<red>用法: /emdum interact <名字> [x] [y] [z]</red>"
+    usage: "<red>用法: /edummy interact <名字> [x] [y] [z]</red>"
     not_found: "<yellow>假人 %name% 不存在或未进服</yellow>"
     done: "<gray>假人 %name% 已对 %block% 发起右键交互</gray>"
   attack:
-    usage: "<red>用法: /emdum attack <名字></red>"
+    usage: "<red>用法: /edummy attack <名字></red>"
     not_found: "<yellow>假人 %name% 不存在或未进服</yellow>"
     no_target: "<yellow>假人 %name% 附近没有可攻击实体</yellow>"
     done: "<gray>假人 %name% 已攻击实体 #%entity%</gray>"
   click:
-    usage: "<red>用法: /emdum click <名字> <槽位></red>"
+    usage: "<red>用法: /edummy click <名字> <槽位></red>"
     not_found: "<yellow>假人 %name% 不存在或未进服</yellow>"
     no_window: "<yellow>假人 %name% 当前没有打开的窗口</yellow>"
     done: "<gray>假人 %name% 已点击槽位 %slot%</gray>"
@@ -85,7 +85,7 @@ command:
     entry: "<gray>- </gray><white>%name%</white><gray> [</gray><yellow>%state%</yellow><gray>] </gray><gray>@ %position%</gray>"
     empty: "<yellow>当前没有假人</yellow>"
   scenario:
-    usage: "<red>用法: /emdum scenario <run|stop> <场景ID></red>"
+    usage: "<red>用法: /edummy scenario <run|stop> <场景ID></red>"
     not_found: "<yellow>场景 %id% 不存在 (见 plugins/EmakiDummy/scenarios/)</yellow>"
     busy: "<yellow>已有场景正在执行: %active%</yellow>"
     started: "<gray>场景 %id% 开始执行 (假人: %players%)</gray>"

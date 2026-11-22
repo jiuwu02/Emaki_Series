@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.dungeon.random.template;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,7 +9,6 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
-import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import emaki.jiuwu.craft.dungeon.random.model.TemplateMeta;
 import emaki.jiuwu.craft.dungeon.random.nbt.StructureNbt;
 
@@ -101,37 +99,5 @@ public final class TemplateStore {
         StructureNbt.write(nbtPath, data);
         Map<String, Object> map = new LinkedHashMap<>(meta.toMap());
         YamlFiles.save(new File(root, id + ".yml"), map);
-    }
-
-    public static void migrateLegacy(File dataFolder, List<String> dungeonIds) {
-        File legacy = new File(dataFolder, "random-dungeon" + File.separator + "templates");
-        File[] files = legacy.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".nbt"));
-        if (files == null || files.length == 0) {
-            return;
-        }
-        for (String dungeonId : dungeonIds) {
-            File target = new File(new File(new File(dataFolder, "world"), dungeonId), "structures");
-            for (File file : files) {
-                File dest = new File(target, file.getName());
-                if (dest.isFile()) {
-                    continue;
-                }
-                try {
-                    Files.createDirectories(target.toPath());
-                    Files.copy(file.toPath(), dest.toPath());
-                } catch (IOException exception) {
-                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "TemplateStore.java#1", exception);
-                }
-            }
-        }
-        File backup = new File(dataFolder, "random-dungeon" + File.separator + "templates-backup");
-        int suffix = 1;
-        while (backup.exists()) {
-            backup = new File(dataFolder, "random-dungeon" + File.separator + "templates-backup-" + (++suffix));
-        }
-        if (!legacy.renameTo(backup)) {
-            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "TemplateStore.java#2",
-                    new IOException("旧模板目录改名失败: " + legacy));
-        }
     }
 }

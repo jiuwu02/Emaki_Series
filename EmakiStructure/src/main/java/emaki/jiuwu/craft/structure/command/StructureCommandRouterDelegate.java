@@ -53,7 +53,7 @@ import emaki.jiuwu.craft.corelib.log.LogTag;
 
 final class StructureCommandRouterDelegate {
 
-    private static final String HELP_ROOT = "/ems";
+    private static final String HELP_ROOT = "/estructure";
 
     private final StructureCommandRouter ownerRef;
 
@@ -350,7 +350,7 @@ final class StructureCommandRouterDelegate {
     static String renderMultiblockYaml(String id, List<int[]> positions, List<String> specs) {
         StringBuilder builder = new StringBuilder();
         builder.append("# EmakiStructure 多方块结构定义.\n");
-        builder.append("# 由 /ems multiblock export 生成, 可手工补充 trigger 与 cooldown.\n");
+        builder.append("# 由 /estructure multiblock export 生成, 可手工补充 trigger 与 cooldown.\n");
         builder.append("version: 1\n");
         builder.append("id: ").append(id).append('\n');
         builder.append("shape:\n");

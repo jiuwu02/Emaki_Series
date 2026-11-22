@@ -4,7 +4,7 @@
 # 重载不会中断运行中实例, 仅对新创建的副本生效
 # 文件位置: plugins/EmakiDungeon/config.yml
 
-version: "1.0.32"
+version: "1.0.33"
 language: "zh_CN"
 
 # DEBUG 锚日志开关与审计保留天数 (按日切分)
@@ -47,7 +47,7 @@ matchmaking:
 recovery:
   reconnect-grace-seconds: 0
 
-# 全局收听默认值 (每玩家可用 /edg globalchat 覆盖)
+# 全局收听默认值 (每玩家可用 /edungeon globalchat 覆盖)
 isolation:
   global-chat-default: false
 
@@ -55,7 +55,7 @@ isolation:
 general:
   timezone: ""
 
-# 个人奖励箱: 启用后副本产出进入奖励箱 (/edg rewards), 关闭则副本产出直接进入玩家背包
+# 个人奖励箱: 启用后副本产出进入奖励箱 (/edungeon rewards), 关闭则副本产出直接进入玩家背包
 rewardbox:
   enabled: true
 

@@ -40,7 +40,6 @@ final class ItemCommandRouter implements TabExecutor {
     private final EmakiScheduling scheduling;
     private final ItemCommandExecutors executors;
     private final ItemComponentsCommand componentsCommand;
-    private final ItemMigrationCommand migrationCommand;
 
     ItemCommandRouter(EmakiItemPlugin plugin,
             EmakiScheduling scheduling) {
@@ -48,7 +47,6 @@ final class ItemCommandRouter implements TabExecutor {
         this.scheduling = scheduling;
         this.executors = new ItemCommandExecutors(plugin, scheduling);
         this.componentsCommand = new ItemComponentsCommand(plugin);
-        this.migrationCommand = new ItemMigrationCommand(plugin, executors);
     }
 
     @Override
@@ -67,12 +65,10 @@ final class ItemCommandRouter implements TabExecutor {
             case "edit" -> handleEdit(sender, args);
             case "give" -> handleGive(sender, args);
             case "inspect" -> handleInspect(sender, args);
-            case "components", "component" -> componentsCommand.handleComponents(sender, args);
+            case "components" -> componentsCommand.handleComponents(sender, args);
             case "repair" -> handleRepair(sender);
             case "state" -> handleState(sender, args);
             case "update" -> handleUpdate(sender, args);
-            case "alias" -> migrationCommand.handleAlias(sender, args);
-            case "migrate" -> migrationCommand.handleMigrate(sender, args);
             case "reload" -> handleReload(sender);
             case "debug" -> handleDebug(sender, args);
             default -> {
@@ -87,8 +83,8 @@ final class ItemCommandRouter implements TabExecutor {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
             return CommandTabHelper.completeSubcommands(
-                    List.of("help", "list", "browse", "edit", "give", "inspect", "components", "component",
-                            "repair", "state", "update", "alias", "migrate", "reload", "debug"), args[0]);
+                    List.of("help", "list", "browse", "edit", "give", "inspect", "components",
+                            "repair", "state", "update", "reload", "debug"), args[0]);
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
             List<String> debugSuggestions = new ArrayList<>(
@@ -98,22 +94,6 @@ final class ItemCommandRouter implements TabExecutor {
                 debugSuggestions.add("stats");
             }
             return debugSuggestions.stream().distinct().toList();
-        }
-        if (args.length == 2 && "alias".equalsIgnoreCase(args[0])) {
-            for (String sub : List.of("list", "add", "remove")) {
-                if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
-                    result.add(sub);
-                }
-            }
-            return result;
-        }
-        if (args.length == 2 && "migrate".equalsIgnoreCase(args[0])) {
-            for (String sub : List.of("id", "inventory")) {
-                if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
-                    result.add(sub);
-                }
-            }
-            return result;
         }
         if (args.length == 2 && "state".equalsIgnoreCase(args[0])) {
             for (String sub : List.of("query", "repair", "recompute")) {
@@ -133,7 +113,7 @@ final class ItemCommandRouter implements TabExecutor {
                         .filter(id -> id.startsWith(args[1].toLowerCase(Locale.ROOT)))
                         .forEach(result::add);
                 case "list", "browse" -> result.addAll(CommandTabHelper.completeIntRange(args[1], 1, 10));
-                case "components", "component" -> {
+                case "components" -> {
                     if ("yaml".startsWith(args[1].toLowerCase(Locale.ROOT))) {
                         result.add("yaml");
                     }
@@ -147,7 +127,7 @@ final class ItemCommandRouter implements TabExecutor {
             }
             return result;
         }
-        if (args.length == 3 && ("components".equalsIgnoreCase(args[0]) || "component".equalsIgnoreCase(args[0]))) {
+        if (args.length == 3 && "components".equalsIgnoreCase(args[0])) {
             if ("yaml".equalsIgnoreCase(args[1])) {
                 result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
                 if (sender instanceof Player player) {
@@ -162,45 +142,12 @@ final class ItemCommandRouter implements TabExecutor {
             return result;
         }
         if (args.length == 4
-                && ("components".equalsIgnoreCase(args[0]) || "component".equalsIgnoreCase(args[0]))
+                && "components".equalsIgnoreCase(args[0])
                 && "yaml".equalsIgnoreCase(args[1])) {
             Player target = Bukkit.getPlayerExact(args[2]);
             if (target != null) {
                 componentsCommand.completeComponentIds(result, target, args[3]);
             }
-            return result;
-        }
-        if (args.length == 3 && "alias".equalsIgnoreCase(args[0]) && "remove".equalsIgnoreCase(args[1])) {
-            plugin.aliasLoader().all().keySet().stream()
-                    .filter(id -> id.startsWith(args[2].toLowerCase(Locale.ROOT)))
-                    .forEach(result::add);
-            return result;
-        }
-        if (args.length == 4 && "alias".equalsIgnoreCase(args[0]) && "add".equalsIgnoreCase(args[1])) {
-            plugin.itemLoader().all().keySet().stream()
-                    .filter(id -> id.startsWith(args[3].toLowerCase(Locale.ROOT)))
-                    .forEach(result::add);
-            return result;
-        }
-        if (args.length == 4 && "migrate".equalsIgnoreCase(args[0]) && "id".equalsIgnoreCase(args[1])) {
-            plugin.itemLoader().all().keySet().stream()
-                    .filter(id -> id.startsWith(args[3].toLowerCase(Locale.ROOT)))
-                    .forEach(result::add);
-            return result;
-        }
-        if (args.length == 5 && "migrate".equalsIgnoreCase(args[0]) && "id".equalsIgnoreCase(args[1])) {
-            for (String mode : List.of("--dry-run", "--apply")) {
-                if (mode.startsWith(args[4].toLowerCase(Locale.ROOT))) {
-                    result.add(mode);
-                }
-            }
-            return result;
-        }
-        if (args.length == 3 && "migrate".equalsIgnoreCase(args[0]) && "inventory".equalsIgnoreCase(args[1])) {
-            if ("all".startsWith(args[2].toLowerCase(Locale.ROOT))) {
-                result.add("all");
-            }
-            result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
             return result;
         }
         if (args.length == 3 && "give".equalsIgnoreCase(args[0])) {
@@ -541,7 +488,7 @@ final class ItemCommandRouter implements TabExecutor {
     }
 
     private String helpRoot(String label) {
-        return "/" + (label == null || label.isBlank() ? "emakiitem" : label);
+        return "/" + (label == null || label.isBlank() ? "eitem" : label);
     }
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
@@ -550,7 +497,7 @@ final class ItemCommandRouter implements TabExecutor {
                     "command.help_entry_list", "command.help_entry_browse", "command.help_entry_edit",
                     "command.help_entry_give", "command.help_entry_inspect", "command.help_entry_components",
                     "command.help_entry_repair", "command.help_entry_state", "command.help_entry_update",
-                    "command.help_entry_alias", "command.help_entry_migrate", "command.help_entry_reload",
+                    "command.help_entry_reload",
                     "command.help_entry_debug", "command.help_entry_help");
             sendHelpFooter(sender);
             return;
@@ -558,8 +505,6 @@ final class ItemCommandRouter implements TabExecutor {
         switch (path.get(0).toLowerCase(Locale.ROOT)) {
             case "edit" -> sendEditItemHelp(sender, root);
             case "state" -> sendStateHelp(sender, root);
-            case "alias" -> sendAliasHelp(sender, root, path);
-            case "migrate" -> sendMigrateHelp(sender, root, path);
             case "debug" -> sendDebugHelp(sender, root, path);
             default -> sendHelpPage(sender, root, List.of());
         }
@@ -586,46 +531,6 @@ final class ItemCommandRouter implements TabExecutor {
         sendHelpLines(sender, root, "command.help_state_header",
                 "command.help_state_entry_query", "command.help_state_entry_repair",
                 "command.help_state_entry_recompute");
-        sendHelpFooter(sender);
-    }
-
-    private void sendAliasHelp(CommandSender sender, String root, List<String> path) {
-        if (path.size() >= 2 && "remove".equalsIgnoreCase(path.get(1))) {
-            sendHelpLine(sender, plugin.messageService().message("command.help_alias_remove_header", Map.of("root", root)));
-            List<String> aliasIds = new ArrayList<>(plugin.aliasLoader().all().keySet());
-            aliasIds.sort(String::compareTo);
-            if (aliasIds.isEmpty()) {
-                sendHelpLine(sender, plugin.messageService().message("command.help_value_empty"));
-                sendHelpFooter(sender);
-                return;
-            }
-            for (String aliasId : aliasIds) {
-                sendValueEntry(sender, aliasId,
-                        plugin.messageService().message("command.help_value_desc_alias_remove", Map.of("value", aliasId)),
-                        root + " alias remove " + aliasId);
-            }
-            sendHelpFooter(sender);
-            return;
-        }
-        sendHelpLines(sender, root, "command.help_alias_header",
-                "command.help_alias_entry_list", "command.help_alias_entry_add", "command.help_alias_entry_remove");
-        sendHelpFooter(sender);
-    }
-
-    private void sendMigrateHelp(CommandSender sender, String root, List<String> path) {
-        if (path.size() >= 2 && "inventory".equalsIgnoreCase(path.get(1))) {
-            if (path.size() >= 3 && "player".equalsIgnoreCase(path.get(2))) {
-                sendPlayerHelp(sender, root, "migrate inventory player",
-                        "command.help_migrate_inventory_player_header", "command.help_value_desc_migrate_inventory_player");
-                return;
-            }
-            sendHelpLines(sender, root, "command.help_migrate_inventory_header",
-                    "command.help_migrate_inventory_entry_all", "command.help_migrate_inventory_entry_player");
-            sendHelpFooter(sender);
-            return;
-        }
-        sendHelpLines(sender, root, "command.help_migrate_header",
-                "command.help_migrate_entry_id", "command.help_migrate_entry_inventory");
         sendHelpFooter(sender);
     }
 

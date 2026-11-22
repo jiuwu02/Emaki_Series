@@ -38,6 +38,7 @@ import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.log.LogTag;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 final class AccessoryLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiAccessoryPlugin, AccessoryRuntimeComponents> {
@@ -58,7 +59,7 @@ final class AccessoryLifecycleCoordinator
         EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
-                plugin, "config.yml", AppConfig::defaults, AppConfigParser::parse);
+                plugin, "config.yml", AppConfig::defaults, section -> parseAppConfig(plugin, section));
         appConfigLoader.load();
         AppConfig appConfig = appConfigLoader.current();
 
@@ -185,5 +186,9 @@ final class AccessoryLifecycleCoordinator
                 }
             }
         }
+    }
+
+    private AppConfig parseAppConfig(EmakiAccessoryPlugin plugin, YamlSection section) {
+        return AppConfigParser.parse(section);
     }
 }

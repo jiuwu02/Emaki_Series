@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "5.0.13"
+version: "5.0.14"
 
 # tags: log/message category head texts; defined centrally by CoreLib, composed by the tagged send interface
 tags:
@@ -206,8 +206,6 @@ action:
     duplicate_argument: "<red>Argument %argument% appears twice; each argument may only be given once per stage</red>"
     stage_name_is_argument: "<red>The stage name position holds a name=value form  (%token%); a stage name cannot contain =</red>"
     on_error_without_body: '<red>on_error cannot stand alone as a stage; it must follow a stage and wrap its handler in [ ], for example damage amount=3 on_error [ send_message "failed" ]</red>'
-    alias_empty: "<red>Alias %alias% expands to nothing</red>"
-    alias_cycle: "<red>Alias %alias% expands past %max% levels; aliases likely reference each other in a cycle</red>"
     union_empty: "<red>union must wrap at least one source stage</red>"
     union_only_sources: "<red>Only source stages may appear inside union [ ]</red>"
     parse_if_missing_condition: "<red>parse_if is missing a condition; write it as parse_if <static condition> [ ... ]</red>"
@@ -880,7 +878,7 @@ command:
   help_entry_help: "- <hover:show_text:'<gray>help</gray> <dark_gray>·</dark_gray> <gray>Show this help page</gray>'><gray>help</gray></hover> <click:run_command:'%root% help'><green>[ ✦ Run ]</green></click>"
   help_entry_reload: "- <hover:show_text:'<gray>reload</gray> <dark_gray>·</dark_gray> <gray>Reload CoreLib configuration and the action system</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakicorelib.reload</white><newline><dark_gray>▸</dark_gray> <gray>Reload is rejected when config prechecks fail, and the report is printed</gray>'><gray>reload</gray></hover> <click:run_command:'%root% reload'><green>[ ✦ Run ]</green></click>"
   help_entry_check: "- <hover:show_text:'<gray>check</gray> <dark_gray>·</dark_gray> <gray>Run config prechecks: check all or one module, show the latest report, or auto-fix fixable issues</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakicorelib.admin</white>'><gray>check</gray></hover> <click:run_command:'%root% help check'><hover:show_text:'<gray>Optional argument</gray> <dark_gray>(pick one)</dark_gray><newline><gray>module</gray> <dark_gray>·</dark_gray> <gray>a module ID, checks only that module (click for available IDs)</gray><newline><gray>report</gray> <dark_gray>·</dark_gray> <gray>show the latest precheck report</gray><newline><gray>--fix</gray> <dark_gray>·</dark_gray> <gray>auto-fix fixable config issues across modules</gray>'><gray>[ ✦ Args ]</gray></click>"
-  help_entry_action: "- <hover:show_text:'<gray>action</gray> <dark_gray>·</dark_gray> <gray>Action system: list registered source/gate/action stages, or run one action line directly</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Alias </gray><white>actions</white><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakicorelib.admin</white>'><gray>action</gray></hover> <click:run_command:'%root% help action'><hover:show_text:'<gray>Optional arguments</gray><newline><gray>list</gray> <dark_gray>·</dark_gray> <gray>list every registered stage ID and its owner</gray><newline><gray>run</gray> <dark_gray>·</dark_gray> <gray>followed by one action line to run</gray><newline><gray>[action line]</gray> <dark_gray>·</dark_gray> <gray>without run the arguments are taken as one action line</gray>'><gray>[ ✦ Args ]</gray></click>"
+  help_entry_action: "- <hover:show_text:'<gray>action</gray> <dark_gray>·</dark_gray> <gray>Action system: list registered source/gate/action stages, or run one action line directly</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakicorelib.admin</white>'><gray>action</gray></hover> <click:run_command:'%root% help action'><hover:show_text:'<gray>Optional arguments</gray><newline><gray>list</gray> <dark_gray>·</dark_gray> <gray>list every registered stage ID and its owner</gray><newline><gray>run</gray> <dark_gray>·</dark_gray> <gray>followed by one action line to run</gray><newline><gray>[action line]</gray> <dark_gray>·</dark_gray> <gray>without run the arguments are taken as one action line</gray>'><gray>[ ✦ Args ]</gray></click>"
   help_entry_debug: "- <hover:show_text:'<gray>debug</gray> <dark_gray>·</dark_gray> <gray>Debug tools: global Debug switch, long-running pipeline task inspection, action pipeline debugging</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakicorelib.admin</white>'><gray>debug</gray></hover> <click:run_command:'%root% help debug'><hover:show_text:'<gray>Optional arguments</gray><newline><gray>all</gray> <dark_gray>·</dark_gray> <gray>global Debug switch (on/off/status)</gray><newline><gray>loops</gray> <dark_gray>·</dark_gray> <gray>view or cancel long-running pipeline tasks</gray><newline><gray>action</gray> <dark_gray>·</dark_gray> <gray>action pipeline dry-run / static check / registry</gray>'><gray>[ ✦ Args ]</gray></click>"
   help_check_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiCoreLib check Command Help</gradient> <gray><st>        </st></gray>"
   help_check_entry_module: "- <hover:show_text:'<gray>module</gray> <dark_gray>·</dark_gray> <gray>Argument: module ID - run config prechecks for that module only</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Click to see the currently available module IDs</gray>'><gray>module</gray></hover> <click:run_command:'%root% help check module'><yellow>[ ✦ Show values ]</yellow></click>"
@@ -976,7 +974,6 @@ pipeline:
   sequence_line_rejected: "A line of sequence '%sequence%' was rejected: %reason% <- %line%"
   stage_reregistration_replayed: "Replayed pipeline stage registrations for %count% plugins"
   stage_reregistration_failed: "Stage re-registration failed, plugin %plugin%: %error%"
-  action_alias_ignored: "Action alias '%name%' collides with a registered stage id; the alias has been ignored to avoid silently shadowing the original stage"
   line_rejected: "Pipeline line rejected: %diagnostic%"
   line_skipped_engine_unavailable: "Pipeline line skipped: action engine not yet available"
 text:

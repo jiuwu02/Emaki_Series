@@ -461,7 +461,6 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         if (stageDispatcher == null) {
             stageDispatcher = new StageDispatcher(executionDispatcher, platformCapabilities);
         }
-        Map<String, String> aliases = validatedAliases(configModel.actionAliases());
         actionEngine = new ActionEngine(
                 new RegistryStageResolver(stageRegistry),
                 new RegistryStageInvoker(stageRegistry),
@@ -499,14 +498,11 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                         return live == null ? List.of() : live.names();
                     }
                 },
-                configModel.pipelineConfig().toLimits(),
-                aliases
+                configModel.pipelineConfig().toLimits()
         );
         animationPlaybackService.invalidateCompiledFrames();
         replayStageRegistrations();
     }
-
-    private Map<String, String> validatedAliases(Map<String, String> declared) { return new EmakiCoreLibPluginDelegate(this).validatedAliases(declared); }
 
     private void replayStageRegistrations() { new EmakiCoreLibPluginDelegate(this).replayStageRegistrations(); }
 

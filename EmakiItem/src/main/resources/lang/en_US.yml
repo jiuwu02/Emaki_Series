@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "3.0.10"
+version: "3.0.11"
 
 tags:
   effect: '[ effect ]'
@@ -65,8 +65,6 @@ console:
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
   mythic_drops_registered: "<gray>MythicMobs Drops registered</gray>"
   item_state_unknown_sound: "<yellow>Unresolvable item_state threshold sound: <white>%sound%</white></yellow>"
-  # Console: item ID aliases loaded count; placeholders: %count%
-  aliases_loaded: "<gray>Loaded <yellow>%count%</yellow> alias (es)</gray>"
   # Console: reload stage failure; placeholders: %stage%, %error%
   reload_stage_failed: "<red>Reload stage %stage% failed: %error%</red>"
   # Console: failed to open editor; placeholders: %item%, %error%
@@ -92,12 +90,10 @@ command:
   help_entry_edit: "- <hover:show_text:'<gray>edit</gray> <dark_gray>·</dark_gray> <gray>Argument: item ID - open the in-game editor for that item</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Only usable by players</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.edit</white><newline><dark_gray>▸</dark_gray> <gray>Click to see the currently available item IDs</gray>'><gray>edit</gray></hover> <click:run_command:'%root% help edit'><yellow>[ ✦ Show values ]</yellow></click>"
   help_entry_give: "- <hover:show_text:'<gray>give</gray> <dark_gray>·</dark_gray> <gray>Give an EmakiItem to a player</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.give</white>'><gray>give</gray></hover> <hover:show_text:'<gray>Arguments</gray><newline><gray>player</gray> <dark_gray>·</dark_gray> <gray>target player name</gray><newline><gray>item id</gray> <dark_gray>·</dark_gray> <gray>the item ID to give</gray><newline><gray>amount</gray> <dark_gray>·</dark_gray> <gray>optional, amount to give</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Tab completion suggests player names and item IDs</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ player ] [ item id ] [ amount ]</gray></hover>"
   help_entry_inspect: "- <hover:show_text:'<gray>inspect</gray> <dark_gray>·</dark_gray> <gray>Show internal data of the held item</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Optional argument </gray><white>[player]</white><gray>, defaults to yourself</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.inspect</white>'><gray>inspect</gray></hover> <click:run_command:'%root% inspect'><green>[ ✦ Run ]</green></click>"
-  help_entry_components: "- <hover:show_text:'<gray>components</gray> <dark_gray>·</dark_gray> <gray>Print data components of the held item</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Optional argument </gray><white>[yaml]</white><gray> prints YAML, JSON by default</gray><newline><dark_gray>▸</dark_gray> <gray>Optional arguments </gray><white>[player]</white><gray> </gray><white>[component ID]</white><gray> for one component</gray><newline><dark_gray>▸</dark_gray> <gray>Alias </gray><white>component</white><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.inspect</white>'><gray>components</gray></hover> <click:run_command:'%root% components'><green>[ ✦ Run ]</green></click>"
+  help_entry_components: "- <hover:show_text:'<gray>components</gray> <dark_gray>·</dark_gray> <gray>Print data components of the held item</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Optional argument </gray><white>[yaml]</white><gray> prints YAML, JSON by default</gray><newline><dark_gray>▸</dark_gray> <gray>Optional arguments </gray><white>[player]</white><gray> </gray><white>[component ID]</white><gray> for one component</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.inspect</white>'><gray>components</gray></hover> <click:run_command:'%root% components'><green>[ ✦ Run ]</green></click>"
   help_entry_repair: "- <hover:show_text:'<gray>repair</gray> <dark_gray>·</dark_gray> <gray>Open the item repair GUI</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Only usable by players</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.use</white>'><gray>repair</gray></hover> <click:run_command:'%root% repair'><green>[ ✦ Run ]</green></click>"
   help_entry_state: "- <hover:show_text:'<gray>state</gray> <dark_gray>·</dark_gray> <gray>Query or repair custom state of the held item</gray><newline><newline><dark_gray>▸</dark_gray> <gray>query needs permission </gray><white>emakiitem.inspect</white><gray>, repair and recompute need </gray><white>emakiitem.admin</white>'><gray>state</gray></hover> <click:run_command:'%root% help state'><hover:show_text:'<gray>Optional arguments</gray><newline><gray>query</gray> <dark_gray>·</dark_gray> <gray>list state fields</gray><newline><gray>repair</gray> <dark_gray>·</dark_gray> <gray>repair state metadata</gray><newline><gray>recompute</gray> <dark_gray>·</dark_gray> <gray>recompute derived state</gray>'><gray>[ ✦ Args ]</gray></hover></click>"
   help_entry_update: "- <hover:show_text:'<gray>update</gray> <dark_gray>·</dark_gray> <gray>Refresh item updates and set lore for a player</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Optional argument </gray><white>[player]</white><gray>, defaults to yourself</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.update</white>'><gray>update</gray></hover> <click:run_command:'%root% update'><green>[ ✦ Run ]</green></click>"
-  help_entry_alias: "- <hover:show_text:'<gray>alias</gray> <dark_gray>·</dark_gray> <gray>Manage aliases from old item IDs to current item IDs</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.admin</white>'><gray>alias</gray></hover> <click:run_command:'%root% help alias'><hover:show_text:'<gray>Optional arguments</gray><newline><gray>list</gray> <dark_gray>·</dark_gray> <gray>list all aliases</gray><newline><gray>add</gray> <dark_gray>·</dark_gray> <gray>add one alias</gray><newline><gray>remove</gray> <dark_gray>·</dark_gray> <gray>remove one alias</gray>'><gray>[ ✦ Args ]</gray></hover></click>"
-  help_entry_migrate: "- <hover:show_text:'<gray>migrate</gray> <dark_gray>·</dark_gray> <gray>Migrate item IDs in config files or player inventories</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.admin</white>'><gray>migrate</gray></hover> <click:run_command:'%root% help migrate'><hover:show_text:'<gray>Optional arguments</gray><newline><gray>id</gray> <dark_gray>·</dark_gray> <gray>replace item IDs inside config files</gray><newline><gray>inventory</gray> <dark_gray>·</dark_gray> <gray>migrate player inventories</gray>'><gray>[ ✦ Args ]</gray></hover></click>"
   help_entry_reload: "- <hover:show_text:'<gray>reload</gray> <dark_gray>·</dark_gray> <gray>Reload config and item definitions asynchronously</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.reload</white>'><gray>reload</gray></hover> <click:run_command:'%root% reload'><green>[ ✦ Run ]</green></click>"
   help_entry_debug: "- <hover:show_text:'<gray>debug</gray> <dark_gray>·</dark_gray> <gray>Debug tools: Debug switch, player tracking, module switch, refresh stats, action pipeline debugging</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Needs permission </gray><white>emakiitem.debug</white><gray> or </gray><white>emakiitem.admin</white>'><gray>debug</gray></hover> <click:run_command:'%root% help debug'><hover:show_text:'<gray>Optional arguments</gray><newline><gray>status</gray> <dark_gray>·</dark_gray> <gray>show Debug status</gray><newline><gray>on</gray> <dark_gray>·</dark_gray> <gray>turn global Debug on</gray><newline><gray>off</gray> <dark_gray>·</dark_gray> <gray>turn global Debug off</gray><newline><gray>stats</gray> <dark_gray>·</dark_gray> <gray>refresh statistics</gray><newline><gray>player</gray> <dark_gray>·</dark_gray> <gray>track one player</gray><newline><gray>module</gray> <dark_gray>·</dark_gray> <gray>toggle module Debug</gray><newline><gray>action</gray> <dark_gray>·</dark_gray> <gray>action pipeline debugging</gray>'><gray>[ ✦ Args ]</gray></hover></click>"
   help_entry_help: "- <hover:show_text:'<gray>help</gray> <dark_gray>·</dark_gray> <gray>Show this help page</gray>'><gray>help</gray></hover> <click:run_command:'%root% help'><green>[ ✦ Run ]</green></click>"
@@ -105,16 +101,6 @@ command:
   help_state_entry_query: "- <hover:show_text:'<gray>query</gray> <dark_gray>·</dark_gray> <gray>List custom state fields of the held item</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Optional argument </gray><white>[player]</white><gray>, defaults to yourself</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.inspect</white>'><gray>query</gray></hover> <click:run_command:'%root% state query'><green>[ ✦ Run ]</green></click>"
   help_state_entry_repair: "- <hover:show_text:'<gray>repair</gray> <dark_gray>·</dark_gray> <gray>Repair state metadata of the held item</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Optional argument </gray><white>[player]</white><gray>, defaults to yourself</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.admin</white>'><gray>repair</gray></hover> <click:run_command:'%root% state repair'><green>[ ✦ Run ]</green></click>"
   help_state_entry_recompute: "- <hover:show_text:'<gray>recompute</gray> <dark_gray>·</dark_gray> <gray>Recompute derived state of the held item and refresh it</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Optional argument </gray><white>[player]</white><gray>, defaults to yourself</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.admin</white>'><gray>recompute</gray></hover> <click:run_command:'%root% state recompute'><green>[ ✦ Run ]</green></click>"
-  help_alias_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem alias Command Help</gradient> <gray><st>        </st></gray>"
-  help_alias_entry_list: "- <hover:show_text:'<gray>list</gray> <dark_gray>·</dark_gray> <gray>List all alias mappings</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.admin</white>'><gray>list</gray></hover> <click:run_command:'%root% alias list'><green>[ ✦ Run ]</green></click>"
-  help_alias_entry_add: "- <hover:show_text:'<gray>add</gray> <dark_gray>·</dark_gray> <gray>Add one alias mapping</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.admin</white>'><gray>add</gray></hover> <hover:show_text:'<gray>Arguments</gray><newline><gray>old id</gray> <dark_gray>·</dark_gray> <gray>the old item ID to replace</gray><newline><gray>new id</gray> <dark_gray>·</dark_gray> <gray>a current item ID</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Tab completion suggests the new ID</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ old id ] [ new id ]</gray></hover>"
-  help_alias_entry_remove: "- <hover:show_text:'<gray>remove</gray> <dark_gray>·</dark_gray> <gray>Argument: old ID - delete that alias mapping</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Click to see the currently available aliases</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.admin</white>'><gray>remove</gray></hover> <click:run_command:'%root% help alias remove'><yellow>[ ✦ Show values ]</yellow></click>"
-  help_migrate_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem migrate Command Help</gradient> <gray><st>        </st></gray>"
-  help_migrate_entry_id: "- <hover:show_text:'<gray>id</gray> <dark_gray>·</dark_gray> <gray>Replace old item IDs with new IDs inside config files</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.admin</white>'><gray>id</gray></hover> <hover:show_text:'<gray>Arguments</gray><newline><gray>old id</gray> <dark_gray>·</dark_gray> <gray>the old item ID to replace</gray><newline><gray>new id</gray> <dark_gray>·</dark_gray> <gray>the replacement item ID</gray><newline><gray>mode</gray> <dark_gray>·</dark_gray> <white>--dry-run</white><gray> previews, </gray><white>--apply</white><gray> writes</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Tab completion suggests item IDs and modes</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ old id ] [ new id ] [ mode ]</gray></hover>"
-  help_migrate_entry_inventory: "- <hover:show_text:'<gray>inventory</gray> <dark_gray>·</dark_gray> <gray>Migrate old items inside player inventories</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiitem.admin</white>'><gray>inventory</gray></hover> <click:run_command:'%root% help migrate inventory'><hover:show_text:'<gray>Optional arguments</gray><newline><gray>all</gray> <dark_gray>·</dark_gray> <gray>every online player</gray><newline><gray>player</gray> <dark_gray>·</dark_gray> <gray>one chosen player</gray>'><gray>[ ✦ Args ]</gray></hover></click>"
-  help_migrate_inventory_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem migrate inventory Command Help</gradient> <gray><st>        </st></gray>"
-  help_migrate_inventory_entry_all: "- <hover:show_text:'<gray>all</gray> <dark_gray>·</dark_gray> <gray>Migrate inventories of every online player</gray>'><gray>all</gray></hover> <click:run_command:'%root% migrate inventory all'><green>[ ✦ Run ]</green></click>"
-  help_migrate_inventory_entry_player: "- <hover:show_text:'<gray>player</gray> <dark_gray>·</dark_gray> <gray>Migrate inventory of one chosen player</gray>'><gray>player</gray></hover> <click:run_command:'%root% help migrate inventory player'><hover:show_text:'<gray>Argument: player</gray><newline><gray>an online player name; click to see available players</gray>'><gray>[ ✦ Player ]</gray></hover></click>"
   help_debug_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem debug Command Help</gradient> <gray><st>        </st></gray>"
   help_debug_entry_status: "- <hover:show_text:'<gray>status</gray> <dark_gray>·</dark_gray> <gray>Show the Debug switch, tracked players and available modules</gray>'><gray>status</gray></hover> <click:run_command:'%root% debug status'><green>[ ✦ Run ]</green></click>"
   help_debug_entry_on: "- <hover:show_text:'<gray>on</gray> <dark_gray>·</dark_gray> <gray>Turn on global Debug output</gray>'><gray>on</gray></hover> <click:run_command:'%root% debug on'><green>[ ✦ Run ]</green></click>"
@@ -131,13 +117,9 @@ command:
   help_debug_action_run_entry_shadow: "- <hover:show_text:'<gray>shadow</gray> <dark_gray>·</dark_gray> <gray>Dry-run in shadow mode: prints stage traces, no real effects</gray>'><gray>shadow</gray></hover> <hover:show_text:'<gray>Argument: pipeline line</gray><newline><gray>one action pipeline text, must be typed by you</gray><newline><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ pipeline line ]</gray></hover>"
   help_debug_action_run_entry_execute: "- <hover:show_text:'<gray>execute</gray> <dark_gray>·</dark_gray> <gray>Really run the action pipeline and print stage traces and the summary</gray>'><gray>execute</gray></hover> <hover:show_text:'<gray>Argument: pipeline line</gray><newline><gray>one action pipeline text, must be typed by you</gray><newline><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ pipeline line ]</gray></hover>"
   help_edit_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem edit [item ID] values</gradient> <gray><st>        </st></gray>"
-  help_alias_remove_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem alias remove [old ID] values</gradient> <gray><st>        </st></gray>"
-  help_migrate_inventory_player_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem migrate inventory [player] values</gradient> <gray><st>        </st></gray>"
   help_debug_player_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem debug player [player] values</gradient> <gray><st>        </st></gray>"
   help_value_entry: "- <hover:show_text:'<gray>%value%</gray> <dark_gray>·</dark_gray> <gray>%desc%</gray>'><gray>%value%</gray></hover> <click:run_command:'%run%'><green>[ ✦ Run ]</green></click>"
   help_value_desc_edit: "Open the editor for %value%"
-  help_value_desc_alias_remove: "Delete alias %value%"
-  help_value_desc_migrate_inventory_player: "Migrate old items in the inventory of %value%"
   help_value_desc_debug_player: "Track Debug output of %value%"
   help_value_empty: "<dark_gray>( no values available )</dark_gray>"
   help_footer: "<gray><st>                                        </st></gray>"
@@ -160,34 +142,6 @@ command:
     line: "<gray>- <white>%key%</white> <dark_gray> (%type%)</dark_gray> = <aqua>%value%</aqua></gray>"
     repaired: "<green>Repaired held item state metadata for <aqua>%player%</aqua>  (schema=<white>%schema%</white>, valid=<white>%valid%</white>)</green>"
     recomputed: "<green>Recomputed state derivations for <aqua>%player%</aqua>, <white>%count%</white> items processed</green>"
-  alias:
-    # Command: alias list header; placeholders: %count%
-    header: "<gray>EmakiItem aliases: <white>%count%</white></gray>"
-    # Command: alias list line; placeholders: %old_id%, %target_id%
-    line: "<gray>- <aqua>%old_id%</aqua> -> <green>%target_id%</green></gray>"
-    # Command: alias added; placeholders: %old_id%, %new_id%
-    added: "<green>Alias added:</green> <aqua>%old_id%</aqua> -> <green>%new_id%</green>"
-    # Command: alias removed; placeholders: %old_id%
-    removed: "<green>Alias removed:</green> <aqua>%old_id%</aqua>"
-    # Command: alias not found; placeholders: %old_id%
-    missing: "<yellow>Alias not found:</yellow> <aqua>%old_id%</aqua>"
-    # Command: alias usage
-    usage: "<red>Usage:</red> <yellow>/ei alias list | add <old> <new> | remove <old></yellow>"
-  migrate:
-    # Command: migration preview; placeholders: %old_id%, %new_id%, %count%
-    preview: "<gray>Migration preview: <aqua>%old_id%</aqua> -> <green>%new_id%</green>, replacements <white>%count%</white></gray>"
-    # Command: migration preview file line; placeholders: %file%
-    preview_file: "<gray>- %file%</gray>"
-    # Command: migration complete; placeholders: %count%
-    applied: "<green>Migration complete:</green> <white>%count%</white> replacements, alias kept"
-    # Command: migration failed; placeholders: %error%
-    failed: "<red>Migration failed:</red> %error%"
-    # Command: online player inventory migration complete; placeholders: %count%
-    inventory_all_done: "<green>Online player inventory migration complete:</green> %count% item (s)"
-    # Command: inventory migration complete; placeholders: %player%, %count%
-    inventory_done: "<green>Inventory migration complete:</green> %player% / %count% item (s)"
-    # Command: migration usage
-    usage: "<red>Usage:</red> <yellow>/ei migrate id <old> <new> --dry-run|--apply</yellow> or <yellow>/ei migrate inventory <player|all></yellow>"
   debug:
     stats:
       # Command: refresh stats output; placeholders: %events%, %skipped%, %batches%, %rejected%, %coalesced%, %requested_local%, %requested_full%, %update_local%, %update_full%, %set_local%, %set_full%
@@ -543,7 +497,6 @@ editor:
     unknown_item: "<red>Item %id% not found</red>"
   read_set_references_failed: "Failed to read set references: %file%: %error%"
   read_set_definitions_failed: "Failed to read set definitions: %file%: %error%"
-  read_alias_references_failed: "Failed to read alias references: %file%: %error%"
 startup:
   pipeline_action_stage_registration_failed: "Failed to register pipeline action stage '%stage%': %reason%"
   readiness_publish_skipped: "Readiness publish skipped: %error%"
@@ -556,19 +509,15 @@ scheduler:
   repair_gui_close_reschedule_denied: "Could not reschedule closing the repair GUI (player %player%): entity task scheduling was denied"
   skip_repair_gui_close: "Skipped closing the repair GUI (player %player%): the calling thread does not own the player and no scheduler is available"
 loader:
-  save_id_aliases_failed: "Failed to save id_aliases.yml: %error%"
-  invalid_alias_skipped: "Invalid EmakiItem alias '%alias%' (at %path%); skipped"
   skip_directory_max_depth: "Skipped EmakiItem directory %path%: nesting exceeds data_directories.max_depth=%max_depth%"
   load_item_definition_failed: "Failed to load EmakiItem definition %path%: %error%"
   duplicate_item_id_kept_first: "Duplicate EmakiItem ID '%id%' (at %path%); keeping the first definition"
   create_items_directory_failed: "Failed to create the items directory: %path%"
   skip_set_directory_max_depth: "Skipped EmakiItem set directory %path%: nesting exceeds data_directories.max_depth=%max_depth%"
-  set_definition_deprecated_fields: "Set definition %path% threshold %threshold% declares deprecated fields %fields%; these fields are ignored, use 'effects' entries instead"
   skip_set_definition_invalid_id: "Skipped set definition %path%: invalid ID"
   duplicate_set_id_kept_first: "Duplicate EmakiItem set ID '%id%' (at %path%); keeping the first definition"
   create_sets_directory_failed: "Failed to create the sets directory: %path%"
   load_pack_metadata_failed: "Failed to load EmakiItem pack metadata %path%: %error%"
-  item_definition_retired_fields: "Item definition %source% declares retired fields %fields%; these fields are ignored. Declare the base item as 'item.source' + 'item.components', write effects as 'effects' entries, and pass the stack size to the give command"
   item_definition_unsupported_equip_slot: "Item definition %source% configures unsupported equip_slot '%slot%' for '%item%'; falling back to 'all'"
   item_definition_update_version_missing: "Item definition %source% enables update for '%item%' but lacks a valid update.version; item update has been disabled"
   item_definition_skipped_validation_failed: "Skipped item definition %source%: item source or component validation failed"

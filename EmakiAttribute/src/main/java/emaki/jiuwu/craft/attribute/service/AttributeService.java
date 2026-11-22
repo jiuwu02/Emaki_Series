@@ -122,7 +122,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         this.loreParser = new LoreParser(attributeRegistry, loreFormatRegistry);
         this.damageEngine = new DamageEngine();
         this.asyncDamageEngine = new AsyncDamageEngine(asyncTaskScheduler, damageEngine);
-        this.stateRepository = new AttributeStateRepository(pdcService);
+        this.stateRepository = new AttributeStateRepository(plugin, pdcService);
         this.vanillaSynchronizer = new VanillaAttributeSynchronizer(plugin);
         this.registryService = new AttributeRegistryService(
                 attributeRegistry,

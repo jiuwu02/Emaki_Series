@@ -1,20 +1,19 @@
 package emaki.jiuwu.craft.cooking.service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
-import emaki.jiuwu.craft.corelib.api.text.Texts;
-import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
-import java.util.LinkedHashMap;
 
 final class CookingMatchers {
 
@@ -51,53 +50,28 @@ final class CookingMatchers {
     static ItemRequirement requirement(YamlSection owner, String sourcesPath, String matcherPath) {
         return owner == null
                 ? new ItemRequirement(List.of(), null, "")
-                : ItemRequirement.fromConfig(owner, sourcesPath, matcherPath);
-    }
-
-    static ItemRequirement requirementWithLegacyFallback(YamlSection station,
-            String nestedKey,
-            String legacySourcesKey,
-            String legacyMatcherKey) {
-        if (station == null) {
-            return new ItemRequirement(List.of(), null, "");
-        }
-        if (station.contains(nestedKey)) {
-            return ItemRequirement.fromConfig(station.get(nestedKey),
-                    ItemRequirement.KEY_ITEM_SOURCES, ItemRequirement.KEY_MATCHER);
-        }
-        Object legacyMatcher = station.get(legacyMatcherKey);
-        Map<String, Object> legacyMatcherMap = matcherMap(legacyMatcher);
-        if (legacyMatcherMap != null) {
-            String type = Texts.lower(String.valueOf(legacyMatcherMap.getOrDefault("type", "")));
-            if (type.equals("item_source") || type.equals("item_sources") || type.equals("source") || type.equals("sources")) {
-                Map<String, Object> sourceOwner = new LinkedHashMap<>();
-                sourceOwner.put(ItemRequirement.KEY_ITEM_SOURCES, legacyMatcherMap.get("sources"));
-                return ItemRequirement.fromConfig(sourceOwner);
-            }
-        }
-        return ItemRequirement.fromConfig(station, legacySourcesKey, legacyMatcherKey);
-    }
-
-    private static Map<String, Object> matcherMap(Object value) {
-        if (value instanceof YamlSection section) {
-            Map<String, Object> result = new LinkedHashMap<>();
-            for (String key : List.of("type", "sources")) {
-                if (section.contains(key)) {
-                    result.put(key, section.get(key));
-                }
-            }
-            return result.isEmpty() ? null : result;
-        }
-        if (value instanceof Map<?, ?> map) {
-            return MapYamlSection.normalizeMap(map);
-        }
-        return null;
+                : fromRequirementPaths(owner, sourcesPath, matcherPath);
     }
 
     static ItemRequirement requirement(Map<String, Object> owner, String sourcesPath, String matcherPath) {
         return owner == null || owner.isEmpty()
                 ? new ItemRequirement(List.of(), null, "")
-                : ItemRequirement.fromConfig(owner, sourcesPath, matcherPath);
+                : fromRequirementPaths(owner, sourcesPath, matcherPath);
+    }
+
+    private static ItemRequirement fromRequirementPaths(Object owner, String sourcesPath, String matcherPath) {
+        Map<String, Object> node = new LinkedHashMap<>(ConfigNodes.entries(owner));
+        putResolved(node, ItemRequirement.KEY_ITEM_SOURCES, ConfigNodes.get(owner, sourcesPath));
+        putResolved(node, ItemRequirement.KEY_MATCHER, ConfigNodes.get(owner, matcherPath));
+        return ItemRequirement.fromConfig(node);
+    }
+
+    private static void putResolved(Map<String, Object> node, String key, Object value) {
+        if (value == null) {
+            node.remove(key);
+        } else {
+            node.put(key, value);
+        }
     }
 
     static boolean accepts(ItemRequirement requirement,

@@ -46,8 +46,6 @@ public final class ItemRequirementSchemaValidator {
         }
         Role resolvedRole = role == null ? Role.INPUT : role;
         List<String> sourceKeys = resolvedRole == Role.OUTPUT ? OUTPUT_SOURCE_KEYS : SOURCE_KEYS;
-        validateAliases(module, path, values, sourceKeys, "物品来源", issues);
-        validateAliases(module, path, values, MATCHER_KEYS, "匹配器", issues);
         validateIdentityFields(module, path, values, issues);
         validateAmount(module, path, values, resolvedRole, issues);
         validateSource(module, path, values, sourceKeys, resolvedRole, issues);
@@ -234,24 +232,6 @@ public final class ItemRequirementSchemaValidator {
         };
     }
 
-    private static void validateAliases(String module, String path, Map<String, Object> values,
-            List<String> aliases, String label, List<ConfigPrecheckIssue> issues) {
-        List<String> declared = declared(values, aliases);
-        for (String key : declared) {
-            if ("matchers".equals(key) && "matcher".equals(aliases.getFirst())) {
-                issues.add(issue(module, field(path, key), ConfigPrecheckSeverity.ERROR,
-                        "顶层 'matchers' 不是物品需求匹配器; 请使用 'matcher'"));
-            } else if (!key.equals(aliases.getFirst())) {
-                issues.add(issue(module, field(path, key), ConfigPrecheckSeverity.WARN,
-                        "旧版 " + label + " 字段 '" + key + "'; 请使用 '" + aliases.getFirst() + "'"));
-            }
-        }
-        if (declared.size() > 1) {
-            issues.add(issue(module, path, ConfigPrecheckSeverity.ERROR,
-                    "顶层 " + label + " 字段冲突: " + String.join(", ", declared)));
-        }
-    }
-
     private static void validateIdentityFields(String module, String path, Map<String, Object> values,
             List<ConfigPrecheckIssue> issues) {
         for (String key : IDENTITY_KEYS) {
@@ -318,7 +298,7 @@ public final class ItemRequirementSchemaValidator {
 
     private static void validateMatcher(String module, String path, Map<String, Object> values,
             Role role, List<ConfigPrecheckIssue> issues) {
-        List<String> keys = declared(values, MATCHER_KEYS);
+        List<String> keys = declared(values, List.of(MATCHER_KEYS.getFirst()));
         if (keys.isEmpty()) {
             return;
         }
@@ -338,7 +318,7 @@ public final class ItemRequirementSchemaValidator {
             issues.add(issue(module, path, ConfigPrecheckSeverity.ERROR, "匹配器必须是映射"));
             return;
         }
-        for (String sourceKey : SOURCE_KEYS) {
+        for (String sourceKey : List.of(SOURCE_KEYS.getFirst(), OUTPUT_SOURCE_KEYS.getFirst())) {
             if (values.containsKey(sourceKey)) {
                 issues.add(issue(module, field(path, sourceKey), ConfigPrecheckSeverity.ERROR,
                         "匹配器不能包含物品来源字段"));

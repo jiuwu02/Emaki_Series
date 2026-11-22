@@ -45,7 +45,7 @@ import emaki.jiuwu.craft.kits.log.KitsLogTag;
 
 public final class EmakiKitsPlugin extends JavaPlugin {
 
-    private static final String ROOT_COMMAND = "emakikits";
+    private static final String ROOT_COMMAND = "ekits";
     private static final String DEFAULT_PREFIX =
             "<gray>[ <gradient:#F59E0B:#F97316>EmakiKits</gradient> ]</gray> ";
     private static final int STARTUP_ASCII_START_COLOR = 0xF59E0B;
@@ -139,7 +139,7 @@ public final class EmakiKitsPlugin extends JavaPlugin {
                 choiceGui, inviteCodeService);
 
         registerCommand(ROOT_COMMAND, "EmakiKits 礼包命令",
-                List.of("emakikit", "ekits"), new KitCommandAdapter(router));
+                List.of("ek"), new KitCommandAdapter(router));
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(chatInput, this);
         joinListener = new JoinListener(service, inviteCodeService, messages, () -> config);

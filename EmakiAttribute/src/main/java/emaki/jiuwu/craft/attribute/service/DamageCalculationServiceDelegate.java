@@ -104,7 +104,7 @@ final class DamageCalculationServiceDelegate {
         if (definition != null) {
             return definition;
         }
-        return new DamageTypeDefinition(resolvedId, resolvedId, List.of(), Set.of(), false, List.of(), null);
+        return new DamageTypeDefinition(resolvedId, resolvedId, Set.of(), false, List.of(), null);
     }
 
     void setDamageTypeOverride(LivingEntity entity, String damageTypeId) {
@@ -496,7 +496,6 @@ final class DamageCalculationServiceDelegate {
         return new DamageTypeDefinition(
                 damageType.id(),
                 damageType.displayName(),
-                damageType.aliases(),
                 damageType.allowedEvents(),
                 damageType.hardLock(),
                 filteredStages,
@@ -509,12 +508,11 @@ final class DamageCalculationServiceDelegate {
 
     DamageTypeDefinition emptyDamageType(DamageTypeDefinition damageType) {
         if (damageType == null) {
-            return new DamageTypeDefinition("", "", List.of(), Set.of(), false, List.of(), null);
+            return new DamageTypeDefinition("", "", Set.of(), false, List.of(), null);
         }
         return new DamageTypeDefinition(
                 damageType.id(),
                 damageType.displayName(),
-                damageType.aliases(),
                 damageType.allowedEvents(),
                 damageType.hardLock(),
                 List.of(),

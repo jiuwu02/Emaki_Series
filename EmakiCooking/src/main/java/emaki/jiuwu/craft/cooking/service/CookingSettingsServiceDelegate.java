@@ -45,10 +45,6 @@ final class CookingSettingsServiceDelegate {
         this.ownerRef = ownerRef;
     }
 
-    static String deprecatedKeyHint(boolean nested, String nestedHint) {
-        return nested ? nestedHint : "旧键仅作兼容读取";
-    }
-
     List<ItemSourceRef> stationBlockSources(StationType stationType) {
         if (stationType == null) {
             return List.of();

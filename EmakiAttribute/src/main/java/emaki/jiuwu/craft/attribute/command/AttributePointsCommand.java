@@ -37,8 +37,8 @@ final class AttributePointsCommand {
         }
         String action = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "view";
         return switch (action) {
-            case "view", "info" -> handlePointsView(sender, args);
-            case "open", "gui" -> handlePointsOpen(sender, args);
+            case "view" -> handlePointsView(sender, args);
+            case "open" -> handlePointsOpen(sender, args);
             case "add" -> handlePointsAdd(sender, args);
             case "set" -> handlePointsSet(sender, args);
             case "reset" -> handlePointsReset(sender, args);

@@ -59,7 +59,7 @@ final class ItemEditorModuleDelegate {
     }
 
     String rootCommand() {
-        return "emakiitem";
+        return "eitem";
     }
 
     List<EditorBrowserRoot> roots() {

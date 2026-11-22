@@ -17,7 +17,6 @@ import emaki.jiuwu.craft.corelib.config.precheck.ItemRequirementSchemaValidator;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.log.LogTags;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import emaki.jiuwu.craft.corelib.log.LogTag;
 import java.util.logging.Level;
@@ -31,9 +30,6 @@ public record ItemRequirement(
     public static final String KEY_ITEM_SOURCES = "item_sources";
     public static final String KEY_MATCHER = "matcher";
 
-    private static final List<String> SOURCE_KEYS = List.of(KEY_ITEM_SOURCES, "item_source", "sources", "source");
-    private static final List<String> MATCHER_KEYS = List.of(
-            KEY_MATCHER, "matchers", "item_matcher", "input_matcher", "material_matcher", "tool_matcher", "container_matcher");
     private static final List<String> IDENTITY_KEYS = List.of("id", "material_id", "requirement_id", "count_key", "slot_id", "audit_id");
 
     public ItemRequirement {
@@ -49,29 +45,12 @@ public record ItemRequirement(
     }
 
     public static @NotNull ItemRequirement fromConfig(@Nullable Object node) {
-        return fromConfig(node, KEY_ITEM_SOURCES, KEY_MATCHER);
-    }
-
-    public static @NotNull ItemRequirement fromConfig(@Nullable Object node,
-            @NotNull String sourcesKey,
-            @NotNull String matcherKey) {
         if (node == null) {
             return new ItemRequirement(List.of(), null, "", "");
         }
         String declared = resolveDeclaredIdentity(node);
-        String resolvedSourcesKey = KEY_ITEM_SOURCES.equals(sourcesKey) ? firstDeclaredKey(node, SOURCE_KEYS) : sourcesKey;
-        String resolvedMatcherKey = KEY_MATCHER.equals(matcherKey) ? firstDeclaredKey(node, MATCHER_KEYS) : matcherKey;
-        Map<String, Object> validationNode = new LinkedHashMap<>(ConfigNodes.entries(node));
-        if (!KEY_ITEM_SOURCES.equals(resolvedSourcesKey) && ConfigNodes.contains(node, resolvedSourcesKey)) {
-            validationNode.remove(resolvedSourcesKey);
-            validationNode.put(KEY_ITEM_SOURCES, ConfigNodes.get(node, resolvedSourcesKey));
-        }
-        if (!KEY_MATCHER.equals(resolvedMatcherKey) && ConfigNodes.contains(node, resolvedMatcherKey)) {
-            validationNode.remove(resolvedMatcherKey);
-            validationNode.put(KEY_MATCHER, ConfigNodes.get(node, resolvedMatcherKey));
-        }
         List<ConfigPrecheckIssue> issues = ItemRequirementSchemaValidator.validate(
-                "corelib", "item_requirement", validationNode, ItemRequirementSchemaValidator.Role.INPUT);
+                "corelib", "item_requirement", node, ItemRequirementSchemaValidator.Role.INPUT);
         if (ItemRequirementSchemaValidator.blocking(issues)) {
             for (ConfigPrecheckIssue issue : issues) {
                 if (issue.severity().blocking()) {
@@ -80,8 +59,8 @@ public record ItemRequirement(
             }
             return new ItemRequirement(List.of(), null, declared, declared);
         }
-        List<ItemSourceRef> sources = parseSources(ConfigNodes.get(node, resolvedSourcesKey));
-        Object matcherNode = ConfigNodes.get(node, resolvedMatcherKey);
+        List<ItemSourceRef> sources = parseSources(ConfigNodes.get(node, KEY_ITEM_SOURCES));
+        Object matcherNode = ConfigNodes.get(node, KEY_MATCHER);
         Matcher matcher = matcherNode == null ? null : Matcher.fromConfig(matcherNode);
         String derived = sourceIdentity(sources);
         if (Texts.isBlank(derived)) {
@@ -89,15 +68,6 @@ public record ItemRequirement(
         }
         String identity = Texts.isNotBlank(declared) ? declared : derived;
         return new ItemRequirement(sources, matcher, identity, declared);
-    }
-
-    private static @NotNull String firstDeclaredKey(@NotNull Object node, @NotNull List<String> keys) {
-        for (String key : keys) {
-            if (ConfigNodes.contains(node, key)) {
-                return key;
-            }
-        }
-        return keys.getFirst();
     }
 
     public static @NotNull List<ItemSourceRef> parseSources(@Nullable Object node) {

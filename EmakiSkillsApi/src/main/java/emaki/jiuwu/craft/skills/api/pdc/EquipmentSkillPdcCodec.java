@@ -369,14 +369,14 @@ public final class EquipmentSkillPdcCodec {
             return "";
         }
         return switch (normalized) {
-            case "all", "any" -> SLOT_ALL;
+            case "all" -> SLOT_ALL;
             case "hand" -> SLOT_HAND;
-            case "mainhand", "main_hand", "main" -> SLOT_MAIN_HAND;
-            case "offhand", "off_hand", "off" -> SLOT_OFF_HAND;
-            case "helmet", "head" -> SLOT_HELMET;
-            case "chestplate", "chest", "body" -> SLOT_CHESTPLATE;
-            case "leggings", "legs" -> SLOT_LEGGINGS;
-            case "boots", "feet", "foot" -> SLOT_BOOTS;
+            case "main_hand" -> SLOT_MAIN_HAND;
+            case "off_hand" -> SLOT_OFF_HAND;
+            case "helmet" -> SLOT_HELMET;
+            case "chestplate" -> SLOT_CHESTPLATE;
+            case "leggings" -> SLOT_LEGGINGS;
+            case "boots" -> SLOT_BOOTS;
             default -> normalized;
         };
     }

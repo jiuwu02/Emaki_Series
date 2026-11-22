@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.13"
+version: "5.0.14"
 
 # tags: 日志/消息分类头文案; 由 CoreLib 统一定义, 各模块消息发送接口按枚举拼接
 tags:
@@ -198,8 +198,6 @@ action:
     duplicate_argument: "<red>参数 %argument% 重复出现, 同一段内每个参数只能写一次</red>"
     stage_name_is_argument: "<red>段名位置写成了 %token% 这样的 名称=值 形式, 段名不能带 =</red>"
     on_error_without_body: '<red>on_error 不能单独作为一段, 它必须跟在一个段之后并用 [ ] 包裹处理器, 例如 damage amount=3 on_error [ send_message "失败" ]</red>'
-    alias_empty: "<red>别名 %alias% 展开后为空</red>"
-    alias_cycle: "<red>别名 %alias% 展开超过 %max% 层, 疑似别名互相引用成环</red>"
     union_empty: "<red>union 至少要包裹一个源段</red>"
     union_only_sources: "<red>union [ ] 内只能放源段</red>"
     parse_if_missing_condition: "<red>parse_if 缺少条件表达式, 应写成 parse_if <静态条件> [ ... ]</red>"
@@ -827,7 +825,7 @@ command:
   help_entry_help: "- <hover:show_text:'<gray>help</gray> <dark_gray>·</dark_gray> <gray>显示本帮助页</gray>'><gray>help</gray></hover> <click:run_command:'%root% help'><green>[ ✦ 点击执行 ]</green></click>"
   help_entry_reload: "- <hover:show_text:'<gray>reload</gray> <dark_gray>·</dark_gray> <gray>重载 CoreLib 配置与动作系统</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakicorelib.reload</white><newline><dark_gray>▸</dark_gray> <gray>配置预检不通过时会拒绝重载并输出报告</gray>'><gray>reload</gray></hover> <click:run_command:'%root% reload'><green>[ ✦ 点击执行 ]</green></click>"
   help_entry_check: "- <hover:show_text:'<gray>check</gray> <dark_gray>·</dark_gray> <gray>执行配置预检: 检查全部或指定模块的配置, 查看最近一次报告, 或自动修复可修复项</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakicorelib.admin</white>'><gray>check</gray></hover> <click:run_command:'%root% help check'><hover:show_text:'<gray>可选参数</gray> <dark_gray>(任选其一)</dark_gray><newline><gray>module</gray> <dark_gray>·</dark_gray> <gray>填入模块ID, 只检查该模块 (点击查看可选模块ID)</gray><newline><gray>report</gray> <dark_gray>·</dark_gray> <gray>查看最近一次预检报告</gray><newline><gray>--fix</gray> <dark_gray>·</dark_gray> <gray>自动修复全部模块可修复的配置问题</gray>'><gray>[ ✦ 参数 ]</gray></click>"
-  help_entry_action: "- <hover:show_text:'<gray>action</gray> <dark_gray>·</dark_gray> <gray>动作系统: 查看已注册的来源/闸门/动作段, 或直接执行一条动作行</gray><newline><newline><dark_gray>▸</dark_gray> <gray>别名 </gray><white>actions</white><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakicorelib.admin</white>'><gray>action</gray></hover> <click:run_command:'%root% help action'><hover:show_text:'<gray>可选参数</gray><newline><gray>list</gray> <dark_gray>·</dark_gray> <gray>列出全部已注册的动作段 ID 与归属插件</gray><newline><gray>run</gray> <dark_gray>·</dark_gray> <gray>后接一条动作行并执行</gray><newline><gray>[动作行]</gray> <dark_gray>·</dark_gray> <gray>不带 run 时也会被整体当作动作行直接执行</gray>'><gray>[ ✦ 参数 ]</gray></click>"
+  help_entry_action: "- <hover:show_text:'<gray>action</gray> <dark_gray>·</dark_gray> <gray>动作系统: 查看已注册的来源/闸门/动作段, 或直接执行一条动作行</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakicorelib.admin</white>'><gray>action</gray></hover> <click:run_command:'%root% help action'><hover:show_text:'<gray>可选参数</gray><newline><gray>list</gray> <dark_gray>·</dark_gray> <gray>列出全部已注册的动作段 ID 与归属插件</gray><newline><gray>run</gray> <dark_gray>·</dark_gray> <gray>后接一条动作行并执行</gray><newline><gray>[动作行]</gray> <dark_gray>·</dark_gray> <gray>不带 run 时也会被整体当作动作行直接执行</gray>'><gray>[ ✦ 参数 ]</gray></click>"
   help_entry_debug: "- <hover:show_text:'<gray>debug</gray> <dark_gray>·</dark_gray> <gray>调试工具: 全局 Debug 开关, 长期管道任务排查, 动作管道调试</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakicorelib.admin</white>'><gray>debug</gray></hover> <click:run_command:'%root% help debug'><hover:show_text:'<gray>可选参数</gray><newline><gray>all</gray> <dark_gray>·</dark_gray> <gray>全局 Debug 开关 (on/off/status)</gray><newline><gray>loops</gray> <dark_gray>·</dark_gray> <gray>查看或取消长期管道任务</gray><newline><gray>action</gray> <dark_gray>·</dark_gray> <gray>动作管道干跑/体检/注册表检查</gray>'><gray>[ ✦ 参数 ]</gray></click>"
   help_check_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiCoreLib check 命令帮助</gradient> <gray><st>        </st></gray>"
   help_check_entry_module: "- <hover:show_text:'<gray>module</gray> <dark_gray>·</dark_gray> <gray>参数:模块ID - 填入要检查的模块ID, 只对该模块执行配置预检</gray><newline><newline><dark_gray>▸</dark_gray> <gray>点击查看当前可选的模块ID清单</gray>'><gray>module</gray></hover> <click:run_command:'%root% help check module'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
@@ -923,7 +921,6 @@ pipeline:
   sequence_line_rejected: "序列 '%sequence%' 的行被拒绝: %reason% <- %line%"
   stage_reregistration_replayed: "已重放管道段注册, 共 %count% 个插件"
   stage_reregistration_failed: "段重新注册失败, 插件 %plugin%: %error%"
-  action_alias_ignored: "动作别名 '%name%' 与已注册段 id 同名, 已忽略该别名以免静默遮蔽原段"
   line_rejected: "管道行被拒绝: %diagnostic%"
   line_skipped_engine_unavailable: "管道行已跳过: 动作引擎尚不可用"
 text:

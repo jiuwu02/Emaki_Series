@@ -8,7 +8,7 @@
 #   4. result.outputs 固定产物
 #   5. actions.pre / success / failure 阶段动作 (当前只解析, 不执行)
 # 如何触发:
-#   执行 /emakistation open example_altar, 在配方目录中选择本条配方
+#   执行 /estation open example_altar, 在配方目录中选择本条配方
 # 依赖:
 #   只用原版物品, 不依赖 EmakiItem / EmakiSkills / EmakiAttribute
 # ============================================================

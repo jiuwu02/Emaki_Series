@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "5.0.5"
+version: "5.0.6"
 
 tags:
   affix: '[ affix ]'
@@ -162,12 +162,6 @@ console:
       enhancement_recipe_pity_level_isolation: "Enhancement recipe %recipe% pity track '%track%' isolates by level under player scope, so the counter resets whenever the target level changes"
       # Console: enhancement recipe mode disagrees with target provider; placeholders: %recipe%, %mode%, %provider%
       enhancement_recipe_mode_provider_mismatch: "Enhancement recipe %recipe% declares mode '%mode%' but target provider '%provider%'; dispatch follows the provider and the mode only feeds the enhancement_mode placeholder, so the two disagreeing is usually a configuration mistake"
-      # Console: forge variable path not under forge prefix; placeholders: %path%
-      forge_variable_path_prefix: "forge variable path '%path%' must live under the forge prefix"
-      # Console: canonical forge variable has no alias path; placeholders: %variable%
-      forge_variable_canonical_missing: "canonical forge variable '%variable%' is not produced by any alias path"
-      # Console: legacy forge variable no longer produced; placeholders: %variable%
-      forge_variable_legacy_missing: "legacy forge variable '%variable%' is no longer produced, breaking existing recipes"
       # Console: forge PDC namespace mismatch; placeholders: %namespace%
       forge_pdc_namespace_mismatch: "forge pdc namespace expected 'emakiforge' but was '%namespace%'"
   bootstrap_start: "<gray>Checking default files...</gray>"
@@ -280,7 +274,7 @@ strengthen:
     condition_not_met: "<red>The conditions of this recipe are not currently met</red>"
     internal: "<red>An internal error occurred; the strengthen attempt was not completed</red>"
   branch:
-    selection_required: "<yellow>This item reached a fork. Run <white>/emakistrengthen branch</white> to choose a route first</yellow>"
+    selection_required: "<yellow>This item reached a fork. Run <white>/estrengthen branch</white> to choose a route first</yellow>"
     not_branching: "<red>This recipe has no branch routes</red>"
     not_pending: "<red>No branch choice is needed at the current star</red>"
     apply_failed: "<red>Failed to write the branch selection; the item was not modified</red>"

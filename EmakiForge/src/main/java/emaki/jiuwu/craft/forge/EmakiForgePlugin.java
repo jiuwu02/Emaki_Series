@@ -58,7 +58,7 @@ import java.util.logging.Level;
 
 public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
-    private static final String ROOT_COMMAND = "emakiforge";
+    private static final String ROOT_COMMAND = "eforge";
 
     private static final String STARTUP_ASCII = """
              ______  __    __  ______  __  __   __  ______  ______  ______  ______  ______
@@ -316,7 +316,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         registerCommand(
                 ROOT_COMMAND,
                 "EmakiForge 命令",
-                List.of("eforge", "ef"),
+                List.of("ef"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakiforge.use", commandRouter, commandRouter)
         );
     }

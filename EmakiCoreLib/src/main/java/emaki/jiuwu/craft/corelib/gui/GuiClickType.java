@@ -56,14 +56,6 @@ public enum GuiClickType {
         };
     }
 
-    public GuiClickType legacyFallback() {
-        return switch (this) {
-            case SHIFT_LEFTCLICK, DOUBLECLICK -> LEFTCLICK;
-            case SHIFT_RIGHTCLICK -> RIGHTCLICK;
-            default -> null;
-        };
-    }
-
     public boolean isLeftVariant() {
         return this == LEFTCLICK || this == SHIFT_LEFTCLICK;
     }

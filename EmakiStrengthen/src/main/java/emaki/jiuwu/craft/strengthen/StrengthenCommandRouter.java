@@ -664,7 +664,7 @@ final class StrengthenCommandRouter implements TabExecutor {
     }
 
     private String helpRoot(String label) {
-        return "/" + (label == null || label.isBlank() ? "emakistrengthen" : label);
+        return "/" + (label == null || label.isBlank() ? "estrengthen" : label);
     }
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {

@@ -449,7 +449,7 @@ public final class StationCommandRouter {
     }
 
     private String helpRoot(String label) {
-        return "/" + (label == null || label.isBlank() ? "emakistation" : label);
+        return "/" + (label == null || label.isBlank() ? "estation" : label);
     }
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {

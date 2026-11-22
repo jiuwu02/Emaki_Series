@@ -265,7 +265,7 @@ public final class GameplayControllers implements FlowControllers {
                 return;
             }
             String text = Texts.lower(Texts.trim(result.text()));
-            if ("确认".equals(text) || "confirm".equals(text) || "yes".equals(text) || "y".equals(text)) {
+            if ("确认".equals(text) || "confirm".equals(text)) {
                 finalizePick(runtime, option.optionId(), picked, playerId);
                 return;
             }

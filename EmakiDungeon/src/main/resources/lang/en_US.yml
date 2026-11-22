@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.32"
+version: "1.0.33"
 
 tags:
   challenge: '[ challenge ]'
@@ -14,7 +14,7 @@ general:
   no_permission: "<red>You do not have permission to run this command</red>"
   player_only: "<red>This command can only be executed by a player</red>"
   invalid_args: "<red>Invalid arguments</red>"
-  unknown_command: "<red>Unknown command, use /edg help for help</red>"
+  unknown_command: "<red>Unknown command, use /edungeon help for help</red>"
   reloading: "<gray>Reloading configuration...</gray>"
   reload_success: "<green>Configuration reloaded</green>"
 
@@ -108,7 +108,7 @@ command:
   help_random_template_meta_entry_seal_block: "- <hover:show_text:'<gray>seal-block</gray> <dark_gray>·</dark_gray> <gray>Seal block</gray>'><gray>seal-block</gray></hover> <hover:show_text:'<gray>Argument: value</gray><newline><gray>a block ID like </gray><white>iron_block</white><newline><newline><dark_gray>▸</dark_gray> <gray>Must be typed by you</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ value ]</gray></hover>"
   help_random_template_meta_entry_rotations: "- <hover:show_text:'<gray>rotations</gray> <dark_gray>·</dark_gray> <gray>Allowed rotation angles</gray>'><gray>rotations</gray></hover> <hover:show_text:'<gray>Argument: value</gray><newline><gray>comma separated 0/90/180/270</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Must be typed by you</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ value ]</gray></hover>"
   help_random_template_anchor_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiDungeon random template anchor Command Help</gradient> <gray><st>        </st></gray>"
-  help_random_template_anchor_entry_add: "- <hover:show_text:'<gray>add</gray> <dark_gray>·</dark_gray> <gray>Add a door anchor</gray>'><gray>add</gray></hover> <hover:show_text:'<gray>Arguments: anchor ID, facing, width, height</gray><newline><gray>Add a door anchor on the targeted block</gray><newline><newline><dark_gray>▸</dark_gray> <gray>facing is n/e/s/w or north/east/south/west</gray><newline><dark_gray>▸</dark_gray> <gray>width and height are 1-16 blocks</gray><newline><dark_gray>▸</dark_gray> <gray>Needs pos1 or pos2 first</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ anchor ID ] [ facing ] [ width ] [ height ]</gray></hover>"
+  help_random_template_anchor_entry_add: "- <hover:show_text:'<gray>add</gray> <dark_gray>·</dark_gray> <gray>Add a door anchor</gray>'><gray>add</gray></hover> <hover:show_text:'<gray>Arguments: anchor ID, facing, width, height</gray><newline><gray>Add a door anchor on the targeted block</gray><newline><newline><dark_gray>▸</dark_gray> <gray>facing is north/east/south/west</gray><newline><dark_gray>▸</dark_gray> <gray>width and height are 1-16 blocks</gray><newline><dark_gray>▸</dark_gray> <gray>Needs pos1 or pos2 first</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ anchor ID ] [ facing ] [ width ] [ height ]</gray></hover>"
   help_random_template_anchor_entry_remove: "- <hover:show_text:'<gray>remove</gray> <dark_gray>·</dark_gray> <gray>Remove a door anchor</gray>'><gray>remove</gray></hover> <hover:show_text:'<gray>Argument: anchor ID</gray><newline><gray>Remove an added door anchor by ID</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Must be typed by you</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ anchor ID ]</gray></hover>"
   help_random_template_node_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiDungeon random template node Command Help</gradient> <gray><st>        </st></gray>"
   help_random_template_node_entry_add: "- <hover:show_text:'<gray>add</gray> <dark_gray>·</dark_gray> <gray>Add a module node on the targeted block</gray>'><gray>add</gray></hover> <hover:show_text:'<gray>Arguments: module, node ID, [anchor ID]</gray><newline><gray>Add a node of the given module on the targeted block</gray><newline><newline><dark_gray>▸</dark_gray> <gray>module is a flow section name like room_zones/gate_zones/tip_points</gray><newline><dark_gray>▸</dark_gray> <gray>spawn_point is forbidden as a module</gray><newline><dark_gray>▸</dark_gray> <gray>anchor ID is optional and makes the coordinate relative to it</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ module ] [ node ID ] [ anchor ID ]</gray></hover>"
@@ -148,25 +148,25 @@ command:
   help_value_desc_random_stop: "Force stop random instance %value%"
   help_value_desc_random_replay: "Regenerate a random dungeon from record %value%"
   help_footer: "<gray><st>                                        </st></gray>"
-  unknown: "<red>Unknown subcommand: <command>, use /edg help</red>"
+  unknown: "<red>Unknown subcommand: <command>, use /edungeon help</red>"
   list:
     empty: "<yellow>No dungeons available</yellow>"
     header: "<gray>Available dungeons:</gray>"
     entry: "<gray>- </gray><white><dungeon></white>"
   enter:
-    usage: "<red>Usage: /edg enter <dungeonId></red>"
+    usage: "<red>Usage: /edungeon enter <dungeonId></red>"
   leave:
     no_instance: "<red>You are not inside a dungeon instance</red>"
     confirm_hint: "<yellow>Type confirm to leave this dungeon, or cancel to stay</yellow>"
     aborted: "<gray>Leave cancelled</gray>"
   party:
-    usage: "<red>Usage: /edg party <create|invite|accept|deny|kick|leave|disband|chat></red>"
+    usage: "<red>Usage: /edungeon party <create|invite|accept|deny|kick|leave|disband|chat></red>"
   recruit:
-    usage: "<red>Usage: /edg recruit open <dungeonId> [difficulty] | /edg recruit <close|list> | /edg recruit join <id></red>"
+    usage: "<red>Usage: /edungeon recruit open <dungeonId> [difficulty] | /edungeon recruit <close|list> | /edungeon recruit join <id></red>"
   match:
-    usage: "<red>Usage: /edg match join <dungeonId> [difficulty] | /edg match leave</red>"
+    usage: "<red>Usage: /edungeon match join <dungeonId> [difficulty] | /edungeon match leave</red>"
   spectate:
-    usage: "<red>Usage: /edg spectate <next|prev></red>"
+    usage: "<red>Usage: /edungeon spectate <next|prev></red>"
     not_spectator: "<yellow>You are not in spectator mode</yellow>"
     no_target: "<yellow>No spectator target available</yellow>"
     next: "<gray>Switched to spectator target: </gray><white><target></white>"
@@ -182,16 +182,16 @@ command:
     limit_windows: "<gray>Allowed windows: </gray><white>month[<monthly>] week[<weekly>] day[<daily>]</white>"
     best: "<gray>  Best: </gray><white><score></white> <gray>| time </gray><white><duration></white>"
   rank:
-    usage: "<red>Usage: /edg rank <dungeonId></red>"
+    usage: "<red>Usage: /edungeon rank <dungeonId></red>"
     empty: "<yellow>No leaderboard records yet for <dungeon></yellow>"
     header: "<gray>Leaderboard for <dungeon> (top 10):</gray>"
     entry: "<gold>#<place></gold> <white><score></white> <gray>pts | </gray><white><duration></white> <gray>| </gray><yellow><difficulty></yellow> <gray>| </gray><white><members></white>"
   globalchat:
-    usage: "<red>Usage: /edg globalchat <on|off></red>"
+    usage: "<red>Usage: /edungeon globalchat <on|off></red>"
   denied_escape: "<red>This command is restricted in this dungeon (escape blacklist): <command></red>"
   denied_mode: "<red>This command is restricted in this dungeon (command rules): <command></red>"
   admin:
-    usage: "<red>Usage: /edg admin <instances|inspect|stop|status|reload|validate|poolreset|clearslots></red>"
+    usage: "<red>Usage: /edungeon admin <instances|inspect|stop|status|reload|validate|poolreset|clearslots></red>"
     instances_header: "<gray>Instance list (<count> total):</gray>"
     instance_line: "<gray>- </gray><white><instance></white> <gray>| </gray><dungeon> <gray>| </gray><state> <gray>| party </gray><party> <gray>| queue </gray><queue>"
     stop_missing: "<red>Instance not found: <instance></red>"
@@ -209,7 +209,7 @@ command:
     pool_reset: "<green>Pool reserves force-reset: <dungeon></green>"
     pool_missing: "<red>Dungeon not found: <dungeon></red>"
     slots_cleared: "<green>Slot placeholders cleared</green>"
-    inspect_usage: "<red>Usage: /edg admin inspect <instanceId></red>"
+    inspect_usage: "<red>Usage: /edungeon admin inspect <instanceId></red>"
     inspect_header: "<gray>===== Instance detail </gray><white><instance></white> <gray>| </gray><dungeon> <gray>| </gray><state> <gray>=====</gray>"
     inspect_meta: "<gray>Difficulty </gray><difficulty> <gray>| drop </gray><drop> <gray>| type </gray><type> <gray>| test </gray><test> <gray>| party </gray><party> <gray>| elapsed </gray><elapsed><gray>s</gray>"
     inspect_no_flow: "<yellow>This instance has no flow runtime yet</yellow>"
@@ -220,13 +220,13 @@ command:
 
 challenge:
   entered: "<green>Entered dungeon <dungeon> (<instance>)</green>"
-  preparing: "<yellow>Prepare confirmation started, run /edg ready or click the confirm button (within <seconds>s)</yellow>"
+  preparing: "<yellow>Prepare confirmation started, run /edungeon ready or click the confirm button (within <seconds>s)</yellow>"
   preparing_expired: "<red>Prepare confirmation timed out, challenge cancelled</red>"
   member_ready: "<gray><player> is ready (<ready>/<total>)</gray>"
   cancelled: "<yellow>Challenge cancelled (reason: <reason>)</yellow>"
   wait:
-    bossbar: "Preparing dungeon world: <dungeon> (any member may cancel with /edg cancel)"
-    chat: "<yellow>Preparing dungeon world: <dungeon>, any member may cancel with /edg cancel, wait timeout auto-cancels</yellow>"
+    bossbar: "Preparing dungeon world: <dungeon> (any member may cancel with /edungeon cancel)"
+    chat: "<yellow>Preparing dungeon world: <dungeon>, any member may cancel with /edungeon cancel, wait timeout auto-cancels</yellow>"
     sidebar: "Entering wait: <dungeon>"
   enter:
     dungeon_missing: "<red>Dungeon does not exist or config is invalid: <dungeon></red>"
@@ -280,8 +280,8 @@ gui:
 party:
   chat_format: "<gradient:#1E3A8A:#8B5CF6>[Party]</gradient> <gold><player></gold>: <white><message></white>"
   invite_sent: "<yellow>Invited <player> to the party</yellow>"
-  invite_received: "<yellow><player> invited you to a party, /edg party accept to join, /edg party deny to refuse</yellow>"
-  apply_received: "<yellow><player> asked to join your party, /edg party accept to approve, /edg party deny to refuse</yellow>"
+  invite_received: "<yellow><player> invited you to a party, /edungeon party accept to join, /edungeon party deny to refuse</yellow>"
+  apply_received: "<yellow><player> asked to join your party, /edungeon party accept to approve, /edungeon party deny to refuse</yellow>"
   apply_denied: "<yellow><player> declined your join request</yellow>"
   kicked: "<red>You were removed from the party by <player></red>"
   leader_transferred: "<yellow>Leadership transferred to <player></yellow>"
@@ -318,7 +318,7 @@ match:
   queued: "<green>Joined match queue | dungeon=<dungeon> | difficulty=<difficulty> | target=<target></green>"
   queue_left: "<yellow>Left the match queue</yellow>"
   queue_none: "<yellow>You are not in the match queue</yellow>"
-  matched: "<green>Match found | dungeon=<dungeon> | difficulty=<difficulty> | party size=<size>, leader can start with /edg enter <dungeon></green>"
+  matched: "<green>Match found | dungeon=<dungeon> | difficulty=<difficulty> | party size=<size>, leader can start with /edungeon enter <dungeon></green>"
 
 recovery:
   reconnected: "<green>Reconnected, returned to dungeon instance (<instance>)</green>"
@@ -339,7 +339,7 @@ globalchat:
   disabled: "<yellow>Global chat listening disabled, messages stay inside the instance</yellow>"
 
 editor:
-  usage: "<red>Usage: /edg editor <dungeonId></red>"
+  usage: "<red>Usage: /edungeon editor <dungeonId></red>"
   usage_session: "<gray>Session subcommands: exit | pos1 | pos2 | mark <type> [id] | marks | fill <block> | test</gray>"
   unknown_dungeon: "<red>Dungeon does not exist or config is invalid: <dungeon></red>"
   locked: "<yellow>Dungeon <dungeon> already has an editor session, only one session per template at a time</yellow>"
@@ -362,9 +362,9 @@ editor:
   not_in_edit_world: "<red>Run this inside the edit world of that dungeon</red>"
   no_target: "<red>No block in sight within 16 blocks to mark</red>"
   pos_set: "<green>Corner <which> recorded: <coord></green>"
-  pos_missing: "<red>Corner <which> is missing, record it with /edg editor pos<which></red>"
-  pos_auto: "<gray>Corner 1 recorded automatically, stand at the other corner, record it with /edg editor pos2 and retry</gray>"
-  mark_usage: "<red>Usage: /edg editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|option|tip|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
+  pos_missing: "<red>Corner <which> is missing, record it with /edungeon editor pos<which></red>"
+  pos_auto: "<gray>Corner 1 recorded automatically, stand at the other corner, record it with /edungeon editor pos2 and retry</gray>"
+  mark_usage: "<red>Usage: /edungeon editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|option|tip|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
   mark_unknown_type: "<red>Unknown mark type: <type></red>"
   mark_ok: "<green>Staged mark <type> -> <id> (<coord>), written to the flow YAML on save</green>"
   mark_dup: "<red>A module with this id already exists: <id></red>"
@@ -379,20 +379,20 @@ editor:
   save_failed: "<red>Save failed (changes stay in the session): <error></red>"
   saved: "<green>Saved and written back to the template (<dungeon>), generation <generation>, terrain changed: <terrain></green>"
   discarded: "<green>Editor session discarded, all unsaved config and terrain changes dropped</green>"
-  fill_usage: "<red>Usage: /edg editor fill <block> (define the area with pos1/pos2 first)</red>"
+  fill_usage: "<red>Usage: /edungeon editor fill <block> (define the area with pos1/pos2 first)</red>"
   fill_invalid: "<red>Invalid block or block state: <block></red>"
   fill_busy: "<yellow>The block write queue is busy, retry shortly</yellow>"
   fill_started: "<gray>Region fill queued: <count> blocks, writing in frames</gray>"
   fill_too_large: "<red>Fill volume <count> exceeds the limit <limit></red>"
   help_mark: |
     <gray>===== Mark reference (21 types) =====</gray>
-    <white>Usage: /edg editor mark type [id] (Tab-complete the type, or use the "All modules" panel)</white>
+    <white>Usage: /edungeon editor mark type [id] (Tab-complete the type, or use the "All modules" panel)</white>
     <white>Single point (block in sight): entry/exit/spawn/block/chest/option/tip/item/fx/respawn</white>
     <white>Region (two corners): room/gate/trigger/teleport/boundary/effect/mechanism/room_timer/checkpoint</white>
     <white>No coordinates: kill_target/temp_item (mark from anywhere in the edit world)</white>
-    <white>Corners: /edg editor pos1 and /edg editor pos2</white>
-    <white>Region fill: /edg editor fill block</white>
-    <white>List staged: /edg editor marks | Test: /edg editor test</white>
+    <white>Corners: /edungeon editor pos1 and /edungeon editor pos2</white>
+    <white>Region fill: /edungeon editor fill block</white>
+    <white>List staged: /edungeon editor marks | Test: /edungeon editor test</white>
     <gray>Mark and panel changes are written to the template only when you press Save</gray>
   marker:
     spawn: "Spawn point"
@@ -558,11 +558,11 @@ rewardbox:
     close: "<red>Close</red>"
     filler: ""
     auto_enabled: "<green>Auto deposit enabled: future rewards go straight to your inventory (kept in box when full)</green>"
-    auto_disabled: "<yellow>Auto deposit disabled: future rewards go to the reward box, claim with /edg rewards</yellow>"
+    auto_disabled: "<yellow>Auto deposit disabled: future rewards go to the reward box, claim with /edungeon rewards</yellow>"
 
 settle:
   partial: "<yellow>Settlement partially completed, some rewards may be missing, audited</yellow>"
-  rewards_hint: "<yellow>Your rewards are in the reward box, run </yellow><click:suggest_command:'/edg rewards'><underlined>/edg rewards</underlined></click><yellow> to claim</yellow>"
+  rewards_hint: "<yellow>Your rewards are in the reward box, run </yellow><click:suggest_command:'/edungeon rewards'><underlined>/edungeon rewards</underlined></click><yellow> to claim</yellow>"
 
 flow:
   option:
@@ -609,7 +609,6 @@ console:
   instance_crashed: "Instance loop crashed | instance=%instance% | error=%error%"
   flow_file_failed: "Failed to create flow YAML | dungeon=%dungeon% | error=%error%"
   flow_load_failed: "Failed to load flow YAML, empty definition used | instance=%instance% | error=%error%"
-  flow_deprecated_key: "Deprecated flow config key normalized | <key> -> <replacement>"
   editor_worlds_swept: "Startup sweep removed leftover edit worlds | count=%count%"
   editor_template_saved: "Edit template written back | dungeon=%dungeon% | generation=%generation%"
   script_disabled: "GraalJS script host disabled by configuration"
@@ -694,12 +693,12 @@ hud:
     - "Clear count: %emakidungeon_data_%dungeon%_clear_count%"
     - "Best score: %emakidungeon_data_%dungeon%_best_score%"
 random:
-  usage: "<red>Usage: /edg random <template|create|enter|leave|list|records|stop|replay|reload></red>"
+  usage: "<red>Usage: /edungeon random <template|create|enter|leave|list|records|stop|replay|reload></red>"
   no_permission: "<red>You do not have permission for this action</red>"
   config_invalid: "<red>Random dungeon config invalid, keeping last valid config | <errors></red>"
   reloaded: "<green>Random dungeon config and templates reloaded</green>"
   create_busy: "<red>Concurrent instance cap reached (<active>), try again later</red>"
-  no_templates: "<red>No registered structure templates yet, capture one with /edg random template first</red>"
+  no_templates: "<red>No registered structure templates yet, capture one with /edungeon random template first</red>"
   layout_failed: "<red>Layout failed: room count <room-count> still conflicting after <attempts> backtracks</red>"
   allocation_failed: "<red>Template allocation failed: mandatory rules unmet after <limit> reallocations</red>"
   create_started: "<green>Random dungeon generation started | instance <instance> seed <seed> rooms <rooms></green>"
@@ -719,9 +718,9 @@ random:
   records_header: "<gray>Instance records:</gray>"
   records_entry: "<gray>- </gray><white><record></white>"
   template:
-    usage: "<red>Usage: /edg random template <start|menu|pos1|pos2|meta|anchor|node|save|discard|status></red>"
+    usage: "<red>Usage: /edungeon random template <start|menu|pos1|pos2|meta|anchor|node|save|discard|status></red>"
     already_open: "<red>You already have a capture session open</red>"
-    world_forbidden: "<red>Template capture only works inside the edit world (run /edg editor <dungeonId> first)</red>"
+    world_forbidden: "<red>Template capture only works inside the edit world (run /edungeon editor <dungeonId> first)</red>"
     started: "<green>Template capture session started | world <world></green>"
     no_session: "<red>No capture session active</red>"
     no_target: "<red>No target block in sight</red>"
@@ -753,8 +752,8 @@ random:
     saved: "<green>Template <id> saved | blocks <blocks> anchors <anchors></green>"
     discarded: "<gray>Capture session discarded</gray>"
     status: "<gray>Capture status | type <type> tags <tags> anchors <anchors> nodes <nodes> floors <floors></gray>"
-  create_usage: "<red>Usage: /edg random create <dungeonId> [players] [seed]</red>"
-  create_no_dungeon: "<red>A dungeonId is required: /edg random create <dungeonId></red>"
+  create_usage: "<red>Usage: /edungeon random create <dungeonId> [players] [seed]</red>"
+  create_no_dungeon: "<red>A dungeonId is required: /edungeon random create <dungeonId></red>"
   gui:
     title: "<dark_gray>Random Template Capture</dark_gray>"
     pos1: "<white>Corner 1</white>"

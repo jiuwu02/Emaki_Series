@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "5.0.5"
+version: "5.0.6"
 
 tags:
   completion: '[ completion ]'
@@ -170,8 +170,8 @@ console:
   completion_recovery_failed: "<yellow>Cooking completion recovery failed: %error%</yellow>"
   # Console: pipeline stage registration failed; placeholders: %stage%, %reason%
   stage_register_failed: "<yellow>Failed to register pipeline stage '%stage%': %reason%</yellow>"
-  # Console: legacy cooking reward execution failed; placeholders: %error%
-  reward_legacy_execute_failed: "<yellow>Failed to execute legacy cooking reward: %error%</yellow>"
+  # Console: cooking reward execution failed; placeholders: %error%
+  reward_execute_failed: "<yellow>Failed to execute cooking reward: %error%</yellow>"
   # Console: cooking reward output item invalid; placeholders: %output%, %recipe%
   reward_output_invalid: "<yellow>Output item is null or air. output_map=%output% recipe=%recipe%</yellow>"
   # Console: item source creation returned null; placeholders: %source%, %amount%
@@ -795,6 +795,3 @@ completion:
 journal:
   load_completion_journal_failed: "Failed to load cooking completion journal '%file%': %error%; quarantine move failed: %move_error%"
   quarantine_corrupt_completion_journal: "Quarantined corrupt cooking completion journal '%file%': %error%"
-config:
-  deprecated_matcher_keys: "Deprecated legacy cooking matcher keys at %path%.%legacy_sources%/%legacy_matcher%; use %path%.%nested%.item_sources and .matcher instead, %hint%"
-  deprecated_moisture_rule_matcher_keys: "Deprecated legacy cooking matcher keys at stations.steamer.moisture_rules[%index%]; use input.item_sources and input.matcher instead, %hint%"

@@ -146,18 +146,21 @@ public final class RandomDungeonService {
     }
 
     public void reloadTemplates() {
-        TemplateStore.migrateLegacy(dataFolder, dungeonIds());
         metasByDungeon.clear();
         templatesByDungeon.clear();
         for (String dungeonId : dungeonIds()) {
             TemplateStore store = storeOf(dungeonId);
             Map<String, TemplateMeta> dungeonMetas = new ConcurrentHashMap<>();
             Map<String, StructureNbt.StructureData> dungeonTemplates = new ConcurrentHashMap<>();
-            for (Map.Entry<String, TemplateMeta> entry : store.loadAll().entrySet()) {
-                dungeonMetas.put(entry.getKey(), entry.getValue());
-                StructureNbt.StructureData data = store.loadTemplate(entry.getKey());
+            for (String id : store.ids()) {
+                TemplateMeta meta = store.loadMeta(id);
+                if (meta == null) {
+                    continue;
+                }
+                dungeonMetas.put(id, meta);
+                StructureNbt.StructureData data = store.loadTemplate(id);
                 if (data != null) {
-                    dungeonTemplates.put(entry.getKey(), data);
+                    dungeonTemplates.put(id, data);
                 }
             }
             metasByDungeon.put(dungeonId, dungeonMetas);

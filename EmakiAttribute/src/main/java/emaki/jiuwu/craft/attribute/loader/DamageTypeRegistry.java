@@ -21,7 +21,6 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
             "example_elemental.yml"
     );
     private final AttributeRegistry attributeRegistry;
-    private final Map<String, DamageTypeDefinition> aliasIndex = new LinkedHashMap<>();
     private final Map<String, DamageTypeDefinition> runtimeDefinitions = new LinkedHashMap<>();
     private final Map<String, String> runtimeSources = new LinkedHashMap<>();
     private volatile String definitionSignature = "";
@@ -172,24 +171,12 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
     }
 
     public DamageTypeDefinition resolve(String id) {
-        synchronized (stateLock) {
-            if (Texts.isBlank(id)) {
-                return null;
-            }
-            return aliasIndex.get(normalizeId(id));
-        }
+        return get(id);
     }
 
     private void rebuildIndexes() {
-        aliasIndex.clear();
         Map<String, DamageTypeDefinition> merged = new LinkedHashMap<>(items);
         merged.putAll(runtimeDefinitions);
-        for (DamageTypeDefinition definition : merged.values()) {
-            aliasIndex.put(definition.id(), definition);
-            for (String alias : definition.aliases()) {
-                aliasIndex.putIfAbsent(normalizeId(alias), definition);
-            }
-        }
         definitionSignature = SignatureUtil.stableSignature(merged.values());
     }
 

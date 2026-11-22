@@ -7,27 +7,27 @@ steps:
   - action: join_all
   - action: cmd
     player: dummy_a
-    command: "/edg party disband"
+    command: "/edungeon party disband"
   - action: sleep
     seconds: 2
   - action: cmd
     player: dummy_a
-    command: "/edg party create"
+    command: "/edungeon party create"
   - action: sleep
     seconds: 1
   - action: cmd
     player: dummy_a
-    command: "/edg party invite dummy_b"
+    command: "/edungeon party invite dummy_b"
   - action: wait_event
     type: PlayerCommandPreprocessEvent
-    where: "/edg party invite"
+    where: "/edungeon party invite"
     timeout: 15
   - action: cmd
     player: dummy_b
-    command: "/edg party accept"
+    command: "/edungeon party accept"
   - action: wait_event
     type: PlayerCommandPreprocessEvent
-    where: "/edg party accept"
+    where: "/edungeon party accept"
     timeout: 15
   - action: sleep
     seconds: 2

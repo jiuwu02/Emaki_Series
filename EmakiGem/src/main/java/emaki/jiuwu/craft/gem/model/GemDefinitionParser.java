@@ -34,14 +34,10 @@ final class GemDefinitionParser {
         if (Texts.isBlank(id)) {
             return null;
         }
-        Object rawBaseItemSource = section.get("base_item_source");
-        if (!section.contains("base_item_source") && section.contains("item_sources")) {
-            List<ItemSourceRef> legacySources = ItemRequirement.parseSources(section.get("item_sources"));
-            if (legacySources.size() != 1) {
-                return null;
-            }
-            rawBaseItemSource = legacySources.getFirst();
+        if (section.contains("item_sources")) {
+            return null;
         }
+        Object rawBaseItemSource = section.get("base_item_source");
         if (rawBaseItemSource instanceof Iterable<?> && !(rawBaseItemSource instanceof String)) {
             return null;
         }

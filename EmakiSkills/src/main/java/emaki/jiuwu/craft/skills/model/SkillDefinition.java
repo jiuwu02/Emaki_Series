@@ -23,7 +23,6 @@ public record SkillDefinition(String id,
         long cooldownTicks,
         long globalCooldownTicks,
         List<SkillResourceCost> resourceCosts,
-        List<String> loreAliases,
         String pdcSkillId,
         List<String> tags,
         List<String> tabTags,
@@ -54,7 +53,6 @@ public record SkillDefinition(String id,
         cooldownTicks = Math.max(0L, cooldownTicks);
         globalCooldownTicks = Math.max(0L, globalCooldownTicks);
         resourceCosts = resourceCosts == null ? List.of() : List.copyOf(resourceCosts);
-        loreAliases = loreAliases == null ? List.of() : List.copyOf(loreAliases);
         tags = tags == null ? List.of() : List.copyOf(tags);
         tabTags = tabTags == null ? List.of() : List.copyOf(tabTags);
         requiredSkillIds = requiredSkillIds == null ? List.of() : List.copyOf(requiredSkillIds);

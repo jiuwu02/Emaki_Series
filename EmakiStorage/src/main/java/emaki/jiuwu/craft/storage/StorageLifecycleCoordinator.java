@@ -6,11 +6,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.bukkit.plugin.java.JavaPlugin;
-
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
@@ -60,9 +57,6 @@ final class StorageLifecycleCoordinator
             "gui/editor_page_gui.yml",
             "gui/editor_browser_gui.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data", "logs", "corrupt");
-    private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
-            new ConfigKeyMigration.Rename("persistence.autosave_interval", "persistence.autosave_interval_seconds"),
-            new ConfigKeyMigration.Rename("persistence.drain_timeout", "persistence.drain_timeout_seconds"));
 
     @Override
     public StorageRuntimeComponents initialize(EmakiStoragePlugin plugin) {
@@ -80,13 +74,7 @@ final class StorageLifecycleCoordinator
         BootstrapService bootstrapService = new BootstrapService(
                 plugin, messageService, VERSIONED_FILES, STATIC_FILES,
                 DEFAULT_DATA_FILES, EXTRA_DIRECTORIES,
-                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData),
-                        (relativePath, runtime, bundled) -> {
-                            if (!"config.yml".equals(relativePath)) {
-                                return;
-                            }
-                            ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
-                        }, null));
+                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData), null, null));
 
         AppConfig config = appConfigLoader.current();
         var executionDispatcher = coreLib.executionDispatcher();
@@ -345,9 +333,9 @@ final class StorageLifecycleCoordinator
             return defaults;
         }
         return new AppConfig.PersistenceConfig(
-                Math.max(0L, legacyAwareLong(section, "autosave_interval_seconds", "autosave_interval",
+                Math.max(0L, longValue(section, "autosave_interval_seconds",
                         defaults.autosaveIntervalSeconds())),
-                Math.max(1L, legacyAwareLong(section, "drain_timeout_seconds", "drain_timeout",
+                Math.max(1L, longValue(section, "drain_timeout_seconds",
                         defaults.drainTimeoutSeconds())));
     }
 
@@ -508,18 +496,6 @@ final class StorageLifecycleCoordinator
             } catch (NumberFormatException ignored) {
                 return fallback;
             }
-        }
-        return fallback;
-    }
-
-    private long legacyAwareLong(YamlSection section, String path, String legacyPath, long fallback) {
-        if (section.contains(path)) {
-            return longValue(section, path, fallback);
-        }
-        if (section.contains(legacyPath)) {
-            long legacyValue = longValue(section, legacyPath, fallback);
-            LogTags.send(JavaPlugin.getPlugin(EmakiStoragePlugin.class), LogTag.CONFIG, Level.WARNING, "config.legacy_key_renamed", Map.of("legacy_key", legacyPath, "key", path, "value", legacyValue));
-            return legacyValue;
         }
         return fallback;
     }

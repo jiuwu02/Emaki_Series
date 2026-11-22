@@ -323,14 +323,14 @@ public final class WorldPool {
     }
 
     private void writeInspectFail(String dungeonId, String worldName, boolean loaded,
-            boolean legacyDirectory, String reason) {
+            boolean dataDirectory, String reason) {
         if (audit != null) {
             audit.write("instance", Map.of(
                     "event", "reserve_inspect_fail",
                     "instance", worldName,
                     "dungeon", dungeonId,
                     "loaded", String.valueOf(loaded),
-                    "directory", String.valueOf(legacyDirectory),
+                    "directory", String.valueOf(dataDirectory),
                     "reason", reason));
         }
     }

@@ -26,9 +26,9 @@ public interface ItemCatalog {
     Set<String> definitionIds();
 
     /**
-     * Resolves a configured item definition by canonical id or alias.
+     * Resolves a configured item definition by canonical id.
      *
-     * @param id definition id or alias
+     * @param id canonical definition id
      * @return the definition, {@code NOT_FOUND} for an unknown id, or {@code UNAVAILABLE}
      */
     @NotNull
@@ -46,19 +46,19 @@ public interface ItemCatalog {
     /**
      * Resolves the effective rendered display name for a definition without firing a creation event.
      *
-     * @param id definition id or alias
+     * @param id canonical definition id
      * @return the effective name as MiniMessage text
      */
     @NotNull
     EmakiResult<String> displayName(@Nullable String id);
 
     /**
-     * Checks whether a canonical id or alias resolves to a loaded definition.
+     * Checks whether a canonical id resolves to a loaded definition.
      *
      * <p>When the bridge is unavailable this returns {@code false}; use {@link EmakiItemApi#status()} when
      * availability must be distinguished from a genuine miss.
      *
-     * @param id definition id or alias
+     * @param id canonical definition id
      * @return whether the definition exists
      */
     boolean exists(@Nullable String id);
@@ -70,7 +70,7 @@ public interface ItemCatalog {
      * denial message may run. It must be called on the player's entity-owner thread.
      *
      * @param player player used by conditions and placeholders
-     * @param itemId definition id or alias
+     * @param itemId canonical definition id
      * @param trigger trigger exposed to the condition context
      * @param itemStack optional concrete stack exposed to conditions
      * @return whether the conditions passed

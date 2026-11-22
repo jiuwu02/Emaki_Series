@@ -104,7 +104,6 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                 configuration.getInt("cooldown_ticks", 0),
                 configuration.getInt("global_cooldown_ticks", 0),
                 resourceCosts,
-                configuration.getStringList("lore_aliases"),
                 configuration.getString("pdc_skill_id", id),
                 parseIdList(configuration.get("tags"), null),
                 parseIdList(configuration.get("tab_tags"), configuration.get("tabTags")),

@@ -26,7 +26,6 @@ final class SkillScriptPayloadReader {
                 longOf(member(payload, "cooldownTicks")),
                 longOf(member(payload, "globalCooldownTicks")),
                 listOf(member(payload, "tags")),
-                listOf(member(payload, "loreAliases")),
                 stringOf(member(payload, "pdcSkillId")),
                 stringOf(member(payload, "uiCategory")),
                 (int) longOf(member(payload, "sortOrder")),

@@ -28,8 +28,6 @@ passive_triggers:
 # 触发间隔限制 (tick, 20 tick = 1 秒), 避免每次普攻都追加伤害
 cooldown_ticks: 80
 
-lore_aliases:
-  - "荆棘回响"
 tags:
   - "passive"
 tab_tags:

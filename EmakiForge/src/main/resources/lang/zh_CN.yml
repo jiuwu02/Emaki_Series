@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.5"
+version: "5.0.6"
 
 tags:
   delivery: '[ 发货 ]'
@@ -25,13 +25,13 @@ command:
   help_entry_reload: "- <hover:show_text:'<gray>reload</gray> <dark_gray>·</dark_gray> <gray>重载配方与 GUI 配置</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.reload</white> <gray>或 </gray><white>emakiforge.admin</white><newline><dark_gray>▸</dark_gray> <gray>异步重载, 完成后输出配方与 GUI 汇总</gray>'><gray>reload</gray></hover> <click:run_command:'%root% reload'><green>[ ✦ 点击执行 ]</green></click>"
   help_entry_list: "- <hover:show_text:'<gray>list</gray> <dark_gray>·</dark_gray> <gray>列出配置清单</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.admin</white>'><gray>list</gray></hover> <click:run_command:'%root% help list'><hover:show_text:'<gray>可选参数</gray><newline><gray>recipe</gray> <dark_gray>·</dark_gray> <gray>列出全部配方</gray>'><gray>[ ✦ 参数 ]</gray></click>"
   help_entry_edit: "- <hover:show_text:'<gray>edit</gray> <dark_gray>·</dark_gray> <gray>打开锻造资源编辑器</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:定义ID - 点击查看当前可选值</gray><newline><dark_gray>▸</dark_gray> <gray>省略 [定义ID] 时打开定义浏览器</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.edit</white><newline><dark_gray>▸</dark_gray> <gray>仅玩家</gray>'><gray>edit</gray></hover> <click:run_command:'%root% help edit id'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
-  help_entry_debug: "- <hover:show_text:'<gray>debug</gray> <dark_gray>·</dark_gray> <gray>调试工具: 运行统计, 调试开关, 跟踪玩家/模块, 动作管道调试</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.debug</white> <gray>或 </gray><white>emakiforge.admin</white><newline><dark_gray>▸</dark_gray> <gray>不带参数时显示调试状态</gray>'><gray>debug</gray></hover> <click:run_command:'%root% help debug'><hover:show_text:'<gray>可选参数</gray><newline><gray>stats</gray> <dark_gray>·</dark_gray> <gray>运行统计与配方加载报告 (别名 status)</gray><newline><gray>on</gray> <dark_gray>·</dark_gray> <gray>开启全局调试输出</gray><newline><gray>off</gray> <dark_gray>·</dark_gray> <gray>关闭全局调试输出</gray><newline><gray>player</gray> <dark_gray>·</dark_gray> <gray>切换对玩家的调试跟踪</gray><newline><gray>module</gray> <dark_gray>·</dark_gray> <gray>切换模块的调试输出</gray><newline><gray>action</gray> <dark_gray>·</dark_gray> <gray>动作管道调试</gray>'><gray>[ ✦ 参数 ]</gray></click>"
+  help_entry_debug: "- <hover:show_text:'<gray>debug</gray> <dark_gray>·</dark_gray> <gray>调试工具: 运行统计, 调试开关, 跟踪玩家/模块, 动作管道调试</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.debug</white> <gray>或 </gray><white>emakiforge.admin</white><newline><dark_gray>▸</dark_gray> <gray>不带参数时显示调试状态</gray>'><gray>debug</gray></hover> <click:run_command:'%root% help debug'><hover:show_text:'<gray>可选参数</gray><newline><gray>stats</gray> <dark_gray>·</dark_gray> <gray>运行统计与配方加载报告</gray><newline><gray>on</gray> <dark_gray>·</dark_gray> <gray>开启全局调试输出</gray><newline><gray>off</gray> <dark_gray>·</dark_gray> <gray>关闭全局调试输出</gray><newline><gray>player</gray> <dark_gray>·</dark_gray> <gray>切换对玩家的调试跟踪</gray><newline><gray>module</gray> <dark_gray>·</dark_gray> <gray>切换模块的调试输出</gray><newline><gray>action</gray> <dark_gray>·</dark_gray> <gray>动作管道调试</gray>'><gray>[ ✦ 参数 ]</gray></click>"
   help_entry_help: "- <hover:show_text:'<gray>help</gray> <dark_gray>·</dark_gray> <gray>显示本帮助页</gray>'><gray>help</gray></hover> <click:run_command:'%root% help'><green>[ ✦ 点击执行 ]</green></click>"
   help_list_header: "<gray><st>        </st></gray> <gradient:#F59E0B:#EF4444>EmakiForge list 命令帮助</gradient> <gray><st>        </st></gray>"
-  help_list_entry_recipe: "- <hover:show_text:'<gray>recipe</gray> <dark_gray>·</dark_gray> <gray>列出全部已加载配方的 ID 与显示名</gray><newline><newline><dark_gray>▸</dark_gray> <gray>别名 </gray><white>recipes</white><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.admin</white>'><gray>recipe</gray></hover> <click:run_command:'%root% list recipe'><green>[ ✦ 点击执行 ]</green></click>"
+  help_list_entry_recipe: "- <hover:show_text:'<gray>recipe</gray> <dark_gray>·</dark_gray> <gray>列出全部已加载配方的 ID 与显示名</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.admin</white>'><gray>recipe</gray></hover> <click:run_command:'%root% list recipe'><green>[ ✦ 点击执行 ]</green></click>"
   help_edit_id_header: "<gray><st>        </st></gray> <gradient:#F59E0B:#EF4444>EmakiForge edit [定义ID] 可选值</gradient> <gray><st>        </st></gray>"
   help_debug_header: "<gray><st>        </st></gray> <gradient:#F59E0B:#EF4444>EmakiForge debug 命令帮助</gradient> <gray><st>        </st></gray>"
-  help_debug_entry_stats: "- <hover:show_text:'<gray>stats</gray> <dark_gray>·</dark_gray> <gray>显示 EmakiForge 运行状态与配方加载报告</gray><newline><newline><dark_gray>▸</dark_gray> <gray>别名 </gray><white>status</white><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.debug</white> <gray>或 </gray><white>emakiforge.admin</white>'><gray>stats</gray></hover> <click:run_command:'%root% debug stats'><green>[ ✦ 点击执行 ]</green></click>"
+  help_debug_entry_stats: "- <hover:show_text:'<gray>stats</gray> <dark_gray>·</dark_gray> <gray>显示 EmakiForge 运行状态与配方加载报告</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiforge.debug</white> <gray>或 </gray><white>emakiforge.admin</white>'><gray>stats</gray></hover> <click:run_command:'%root% debug stats'><green>[ ✦ 点击执行 ]</green></click>"
   help_debug_entry_on: "- <hover:show_text:'<gray>on</gray> <dark_gray>·</dark_gray> <gray>开启全局调试输出</gray>'><gray>on</gray></hover> <click:run_command:'%root% debug on'><green>[ ✦ 点击执行 ]</green></click>"
   help_debug_entry_off: "- <hover:show_text:'<gray>off</gray> <dark_gray>·</dark_gray> <gray>关闭全局调试输出</gray>'><gray>off</gray></hover> <click:run_command:'%root% debug off'><green>[ ✦ 点击执行 ]</green></click>"
   help_debug_entry_player: "- <hover:show_text:'<gray>player</gray> <dark_gray>·</dark_gray> <gray>切换对指定玩家的调试跟踪</gray><newline><newline><dark_gray>▸</dark_gray> <gray>省略 [玩家] 时列出可调试模块</gray>'><gray>player</gray></hover> <click:run_command:'%root% help debug player'><hover:show_text:'<gray>参数:玩家</gray><newline><gray>在线玩家名, 点击查看当前可选玩家</gray>'><gray>[ ✦ 玩家 ]</gray></hover></click>"
@@ -585,8 +585,6 @@ shutdown:
   forge_gui_settlement_fallback_failed: "Forge GUI 结算回退失败, 玩家 %player%: %error%"
   forge_gui_sessions_unsettled: "%count% 个 Forge GUI 会话仍持有未结算物品; 未静默丢弃这些会话"
   message_dispatch_failed: "消息派发失败, 键 '%key%': %error%"
-config:
-  legacy_permission_op_bypass_key: "配置键 permission.op_bypass 已移到顶层 op_bypass, 当前按旧键值 %value% 生效, 启动时会自动迁移到新键"
 persistence:
   async_operation_failed_for_player: "异步 %operation% 失败, 玩家 %player%"
   load_player_data_failed: "加载玩家数据失败: %player%; 本次会话将保持只读以保护现有文件"

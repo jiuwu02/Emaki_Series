@@ -1,5 +1,5 @@
 // EmakiStrengthen (原 EmakiStrengthen/pom.xml)
-version = '5.0.5'
+version = '5.0.6'
 
 dependencies {
     // 原 shade artifactSet 白名单

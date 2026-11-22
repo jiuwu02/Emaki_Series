@@ -119,8 +119,7 @@ public final class InstanceExitService {
 
     private boolean accepts(String raw) {
         String input = Texts.lower(Texts.trim(raw));
-        return "确认".equals(input) || "confirm".equals(input)
-                || "yes".equals(input) || "y".equals(input);
+        return "确认".equals(input) || "confirm".equals(input);
     }
 
     private boolean noOnlineMemberInside(DungeonInstance instance) {

@@ -29,8 +29,6 @@ show_in_slots: true
 cooldown_ticks: 160
 global_cooldown_ticks: 20
 
-lore_aliases:
-  - "守护者冲刺"
 tags:
   - "mobility"
 tab_tags:

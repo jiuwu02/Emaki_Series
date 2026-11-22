@@ -1,5 +1,5 @@
 // EmakiCoreLibApi (原 EmakiCoreLibApi/pom.xml)
-version = '5.0.6'
+version = '5.0.7'
 
 dependencies {
     provided libs.paper.api

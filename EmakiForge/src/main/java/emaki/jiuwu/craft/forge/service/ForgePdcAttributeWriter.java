@@ -110,8 +110,6 @@ final class ForgePdcAttributeWriter {
             pdcService.set(itemStack, partition, ForgePdcKeys.QUALITY_MULTIPLIER,
                     PersistentDataType.STRING, Numbers.formatNumber(multiplier, "0.##"));
         }
-
-        pdcService.purgeLegacyKeys(itemStack);
     }
 
     private void writeMaterialAudit(List<ForgeMaterialContribution> materials, ItemStack itemStack) {

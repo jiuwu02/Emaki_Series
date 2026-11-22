@@ -6,8 +6,8 @@ import java.util.Map;
 /**
  * 已解码的装备技能 payload, 是 {@link EquipmentSkillPdcCodec} 的读写单位
  *
- * <p>构造器只做防御性拷贝与 null 归一, <strong>不做语义规范化</strong>: id 的小写化,
- * 去重排序与槽位别名折叠都在
+ * <p>构造器只做防御性拷贝与 null 归一, <strong>不做语义规范化</strong>: id 的小写化与
+ * 去重排序都在
  * {@link EquipmentSkillPdcCodec#normalize(Iterable, String, Map)} 中完成
  * 因此直接 {@code new} 出来的实例可能带有未规范化的值, 写入前仍会被再次规范化
  *

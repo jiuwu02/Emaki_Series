@@ -7,7 +7,6 @@ import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.api.ItemCatalog;
 import emaki.jiuwu.craft.item.api.ItemExtensions;
-import emaki.jiuwu.craft.item.api.ItemMigration;
 import emaki.jiuwu.craft.item.api.ItemOperations;
 import emaki.jiuwu.craft.item.api.ItemRepair;
 import emaki.jiuwu.craft.item.api.ItemState;
@@ -19,7 +18,6 @@ public final class DefaultEmakiItemApi implements EmakiItemApi.Bridge {
     private final ItemCatalog catalog;
     private final ItemOperations operations;
     private final ItemRepair repair;
-    private final ItemMigration migration;
     private final ItemExtensions extensions;
     private final ItemState state;
 
@@ -28,7 +26,6 @@ public final class DefaultEmakiItemApi implements EmakiItemApi.Bridge {
         this.catalog = new DefaultItemCatalog(plugin);
         this.operations = new DefaultItemOperations(plugin);
         this.repair = new DefaultItemRepair(plugin);
-        this.migration = new DefaultItemMigration(plugin);
         this.extensions = new DefaultItemExtensions(plugin);
         this.state = new EmakiItemStateService();
     }
@@ -58,11 +55,6 @@ public final class DefaultEmakiItemApi implements EmakiItemApi.Bridge {
     @Override
     public @NotNull ItemRepair repair() {
         return repair;
-    }
-
-    @Override
-    public @NotNull ItemMigration migration() {
-        return migration;
     }
 
     @Override

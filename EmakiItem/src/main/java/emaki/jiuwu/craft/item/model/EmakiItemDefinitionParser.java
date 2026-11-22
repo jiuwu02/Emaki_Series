@@ -43,25 +43,6 @@ public final class EmakiItemDefinitionParser {
             "name_action",
             "lore_action");
 
-    private static final List<String> RETIRED_TOP_LEVEL_KEYS = List.of(
-            "variables",
-            "ea_attributes",
-            "es_skills",
-            "es_skill_triggers",
-            "skill_triggers",
-            "accessory_slots",
-            "name_actions",
-            "lore_actions",
-            "source",
-            "amount",
-            "components",
-            "material",
-            "display_name",
-            "item_name",
-            "lore");
-
-    private static final List<String> RETIRED_REPAIR_MATERIAL_KEYS = List.of("item_source", "item");
-
     private final Logger logger;
     private final ConfiguredItemParser configuredItemParser;
 
@@ -87,10 +68,9 @@ public final class EmakiItemDefinitionParser {
             LogTags.send(logger, LogTag.LOADER, Level.WARNING, "loader.item_definition_skipped_invalid_id", Map.of("source", source));
             return null;
         }
-        warnRetiredFields(root, source);
         ConfiguredItemDefinition itemDefinition;
         try {
-            itemDefinition = parseConfiguredItem(root, id);
+            itemDefinition = parseConfiguredItem(root);
         } catch (IllegalArgumentException exception) {
             LogTags.send(logger, LogTag.LOADER, Level.WARNING, "loader.item_definition_skipped_parse_error", Map.of("source", source, "error", exception.getMessage()));
             return null;
@@ -137,7 +117,7 @@ public final class EmakiItemDefinitionParser {
         );
     }
 
-    private ConfiguredItemDefinition parseConfiguredItem(YamlSection root, String itemId) {
+    private ConfiguredItemDefinition parseConfiguredItem(YamlSection root) {
         Object nestedItem = root.get("item");
         boolean hasNestedItem = nestedItem instanceof Map<?, ?> || nestedItem instanceof YamlSection || nestedItem instanceof String;
         if (!hasNestedItem) {
@@ -145,7 +125,7 @@ public final class EmakiItemDefinitionParser {
         }
         ConfiguredItemDefinition shared = configuredItemParser.parse(nestedItem);
         Map<String, ItemComponentPatch> patches = new LinkedHashMap<>(shared.components());
-        patches.putAll(parseComponents(ConfigNodes.section(nestedItem, "components"), itemId).toComponentPatches());
+        patches.putAll(parseComponents(ConfigNodes.section(nestedItem, "components")).toComponentPatches());
         return new ConfiguredItemDefinition(shared.source(), DEFAULT_AMOUNT, patches);
     }
 
@@ -208,25 +188,9 @@ public final class EmakiItemDefinitionParser {
         return value;
     }
 
-    private ItemComponentsConfig parseComponents(YamlSection section, String itemId) {
+    private ItemComponentsConfig parseComponents(YamlSection section) {
         if (section == null) {
             return ItemComponentsConfig.empty();
-        }
-        List<VanillaAttributeModifierConfig> modifiers = new ArrayList<>();
-        for (Map<?, ?> entry : section.getMapList("attribute_modifiers")) {
-            Object amount = ConfigNodes.toPlainData(entry.get("amount"));
-            String attribute = Texts.normalizeId(Texts.toStringSafe(entry.get("attribute")));
-            if (Texts.isBlank(attribute) || amount == null) {
-                continue;
-            }
-            modifiers.add(new VanillaAttributeModifierConfig(
-                    attribute,
-                    amount,
-                    Texts.toStringSafe(entry.containsKey("operation") ? entry.get("operation") : "add_number"),
-                    Texts.toStringSafe(entry.containsKey("slot") ? entry.get("slot") : "any"),
-                    Texts.toStringSafe(entry.containsKey("name") ? entry.get("name") : "emakiitem:" + itemId + "/" + attribute),
-                    containsRandom(amount)
-            ));
         }
         return new ItemComponentsConfig(
                 section.get("custom_model_data"),
@@ -242,7 +206,7 @@ public final class EmakiItemDefinitionParser {
                 section.getInt("damage", null),
                 section.getInt("max_damage", null),
                 section.getInt("enchantable", null),
-                modifiers,
+                List.of(),
                 section.getString("raw", "")
         );
     }
@@ -614,46 +578,4 @@ public final class EmakiItemDefinitionParser {
         return false;
     }
 
-    private void warnRetiredFields(YamlSection root, String source) {
-        Set<String> present = new LinkedHashSet<>();
-        for (String key : RETIRED_TOP_LEVEL_KEYS) {
-            if (root.get(key) != null) {
-                present.add(key);
-            }
-        }
-        YamlSection item = root.getSection("item");
-        if (item != null && item.get("amount") != null) {
-            present.add("item.amount");
-        }
-        for (Map<?, ?> effect : root.getMapList("effects")) {
-            if (effect == null || !"es_skill".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
-                continue;
-            }
-            if (ConfigNodes.get(effect, "skill_triggers") != null) {
-                present.add("effects.skill_triggers");
-            }
-        }
-        YamlSection repair = root.getSection("repair");
-        if (repair != null) {
-            for (Map<?, ?> material : repair.getMapList("materials")) {
-                if (material == null) {
-                    continue;
-                }
-                for (String key : RETIRED_REPAIR_MATERIAL_KEYS) {
-                    if (ConfigNodes.get(material, key) != null) {
-                        present.add("repair.materials." + key);
-                    }
-                }
-            }
-        }
-        if (!present.isEmpty()) {
-            LogTags.send(logger, LogTag.LOADER, Level.WARNING, "loader.item_definition_retired_fields", Map.of("source", source, "fields", String.join(", ", present)));
-        }
-    }
-
-    private void warning(String message) {
-        if (logger != null) {
-            logger.warning(message);
-        }
-    }
 }

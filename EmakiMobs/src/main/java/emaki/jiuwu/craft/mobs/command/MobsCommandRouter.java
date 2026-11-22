@@ -35,7 +35,7 @@ public final class MobsCommandRouter {
     private static final String PERMISSION_DEBUG = "emakimobs.debug";
     private static final String PERMISSION_EDIT = "emakimobs.edit";
     private static final String PERMISSION_ADMIN = "emakimobs.admin";
-    private static final String HELP_ROOT = "/emakimobs";
+    private static final String HELP_ROOT = "/emobs";
     private static final int PAGE_SIZE = 10;
     private static final int FIND_LIST_LIMIT = 20;
     private static final List<String> SUBCOMMANDS =

@@ -185,10 +185,10 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             return;
         }
         plugin.registerCommand(
-                "emakiattribute",
+                "eattribute",
                 "EmakiAttribute 命令",
-                List.of("eattribute", "ea"),
-                new PaperCommandAdapter("emakiattribute", "emakiattribute.use", plugin.command(), plugin.command())
+                List.of("eat"),
+                new PaperCommandAdapter("eattribute", "emakiattribute.use", plugin.command(), plugin.command())
         );
     }
 

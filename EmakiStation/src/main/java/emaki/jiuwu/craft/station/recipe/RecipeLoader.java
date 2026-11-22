@@ -11,7 +11,6 @@ import java.util.Set;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
@@ -60,6 +59,9 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
             return null;
         }
         List<MaterialRequirement> requirements = parseRequirements(file, id, configuration);
+        if (requirements == null) {
+            return null;
+        }
         if (requirements.isEmpty()) {
             issue("station.recipe_no_materials", Map.of("file", fileName(file), "recipe", id));
             return null;
@@ -71,6 +73,9 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
         }
         YamlSection result = configuration.getSection("result");
         List<RecipeOutput> outputs = parseOutputs(file, id, result);
+        if (outputs == null) {
+            return null;
+        }
         if (outputs.isEmpty()) {
             issue("station.recipe_no_outputs", Map.of("file", fileName(file), "recipe", id));
             return null;
@@ -154,18 +159,6 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
             if (entry == null) {
                 continue;
             }
-            List<String> canonicalTokens = entry.getStringList("item_sources");
-            boolean canonicalDeclared = entry.get("item_sources") != null;
-            String legacyToken = entry.getString("item_source");
-            if (canonicalDeclared && legacyToken != null && !legacyToken.isBlank()) {
-                issue("station.recipe_source_field_conflict", Map.of("recipe", recipeId,
-                        "file", fileName(file)));
-                return List.of();
-            }
-            if (legacyToken != null && !legacyToken.isBlank()) {
-                issue("station.recipe_legacy_item_source", Map.of("recipe", recipeId,
-                        "file", fileName(file)));
-            }
             List<ItemSourceRef> sources = parseSources(file, recipeId, entry);
             YamlSection matcherSection = entry.getSection("matcher");
             Matcher matcher = matcherSection == null ? null : Matcher.fromConfig(matcherSection);
@@ -223,6 +216,9 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
                 return List.of();
             }
             List<ItemSourceRef> sources = parseOutputSources(file, recipeId, entry, index);
+            if (sources == null) {
+                return null;
+            }
             if (sources.isEmpty()) {
                 return List.of();
             }
@@ -239,16 +235,10 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
 
     private List<ItemSourceRef> parseOutputSources(File file, String recipeId, YamlSection entry, int index) {
         boolean canonical = entry.contains("item_source");
-        boolean legacy = entry.contains("item_sources");
         String path = "result.outputs[" + index + "]";
         if (entry.contains("matcher")) {
             issue("station.recipe_bad_source", Map.of("recipe", recipeId,
                     "source", path + " 上不允许使用 matcher", "file", fileName(file)));
-            return List.of();
-        }
-        if (canonical && legacy) {
-            issue("station.recipe_source_field_conflict", Map.of("recipe", recipeId,
-                    "file", fileName(file), "path", path));
             return List.of();
         }
         if (canonical) {
@@ -266,36 +256,14 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
             }
             return List.of(ref);
         }
-        if (!legacy) {
-            issue("station.recipe_bad_source", Map.of("recipe", recipeId,
-                    "source", path + " 必须提供 item_source", "file", fileName(file)));
-            return List.of();
-        }
-        List<Object> values = ConfigNodes.asObjectList(entry.get("item_sources"));
-        if (values.size() != 1) {
-            issue("station.recipe_bad_source", Map.of("recipe", recipeId,
-                    "source", path + " 的 item_sources 必须恰好包含一个值", "file", fileName(file)));
-            return List.of();
-        }
-        ItemSourceRef ref = ItemSourceUtil.parse(values.getFirst());
-        if (ref == null) {
-            issue("station.recipe_bad_source", Map.of("recipe", recipeId,
-                    "source", path + ".item_sources[0]", "file", fileName(file)));
-            return List.of();
-        }
-        issue("station.recipe_legacy_item_source", Map.of("recipe", recipeId,
-                "file", fileName(file), "path", path + ".item_sources"));
-        return List.of(ref);
+        issue("station.recipe_bad_source", Map.of("recipe", recipeId,
+                "source", path + " 必须提供 item_source", "file", fileName(file)));
+        return List.of();
     }
 
     private List<ItemSourceRef> parseSources(File file, String recipeId, YamlSection entry) {
-        List<String> tokens = new ArrayList<>(entry.getStringList("item_sources"));
-        String single = entry.getString("item_source");
-        if (single != null && !single.isBlank()) {
-            tokens.add(single);
-        }
         List<ItemSourceRef> refs = new ArrayList<>();
-        for (String token : tokens) {
+        for (String token : entry.getStringList("item_sources")) {
             if (token == null || token.isBlank()) {
                 continue;
             }

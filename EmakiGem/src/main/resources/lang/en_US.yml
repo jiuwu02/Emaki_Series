@@ -2,11 +2,11 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "3.0.4"
+version: "3.0.5"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
-  unknown_command: "<red>Unknown command, use <yellow>/emakigem help</yellow> to
+  unknown_command: "<red>Unknown command, use <yellow>/egem help</yellow> to
     view help.</red>"
   player_only: "<red>This command can only be executed by a player</red>"
   no_permission: "<red>You do not have permission to execute this command</red>"
@@ -76,7 +76,6 @@ loader:
   duplicate_id: "<red>%type% file %file% has duplicate ID: %id%</red>"
   load_failed: "<red>Failed to load %type% file %file%: %error%</red>"
   invalid_config: "<red>%type% file %file% has invalid config, skipped loading</red>"
-  gem_legacy_item_sources: "<yellow>Gem file %file% uses deprecated top-level item_sources as its construction base; use base_item_source instead: %id%</yellow>"
   gem_missing_item_source: "<red>Gem file %file% has missing or invalid
     item_sources; loading rejected: %id%, current value: %item_sources%</red>"
   gem_relationship_self_reference: "<red>Gem file %file% references itself in required_gems or conflicting_gems; loading rejected: %id%</red>"
@@ -106,10 +105,10 @@ gem:
     instance_changed: "<red>The main-hand gem changed, the candidate was voided and the cost refunded</red>"
     config_incompatible: "<red>The reroll configuration changed, the candidate was voided and the cost refunded</red>"
     write_failed: "<red>Failed to write the reroll result back, the cost was refunded</red>"
-    opened: "<green>Reroll candidate ready</green><gray>  (%operation_type%). Use <yellow>/emakigem reroll confirm</yellow> to accept</gray>"
+    opened: "<green>Reroll candidate ready</green><gray>  (%operation_type%). Use <yellow>/egem reroll confirm</yellow> to accept</gray>"
     cancelled: "<yellow>Reroll candidate abandoned</yellow>"
     status: "<gray>Reroll <yellow>%operation_type%</yellow>: affixes <yellow>%original_count%</yellow> → <green>%candidate_count%</green>, <gold>%expires_in%</gold>s remaining</gray>"
-    usage: "<gray>Usage: /emakigem reroll <full|value|confirm|cancel|status></gray>"
+    usage: "<gray>Usage: /egem reroll <full|value|confirm|cancel|status></gray>"
     unavailable: "<red>The reroll service is currently unavailable</red>"
   item:
     # Item: gem item affix lore header
@@ -227,7 +226,7 @@ gui:
       "<red>Please hold a socket opener on your cursor and click a locked
       slot.</red>"
     open_via_open_gui: "<yellow>This slot has not been opened yet, please use
-      <gold>/emakigem gui open</gold> to handle it.</yellow>"
+      <gold>/egem gui open</gold> to handle it.</yellow>"
     no_pending_action: "<red>No pending action to confirm</red>"
     upgrade_target_required: "<red>Place a gem with an enabled stages configuration first</red>"
     upgrade_invalid_target: "<red>This item is not an upgradeable gem or has no stages enabled</red>"
@@ -627,8 +626,6 @@ editor:
 startup:
   register_pipeline_stage_failed: "Failed to register pipeline stage '%stage%': %reason%"
   readiness_publish_skipped: "Readiness publish skipped: %error%"
-config:
-  legacy_permission_op_bypass_key: "Config key permission.op_bypass has moved to the top-level op_bypass; it currently takes effect with the legacy key value %value% and will be migrated to the new key automatically at startup"
 shutdown:
   close_gem_gui_sessions_failed: "Could not close gem GUI sessions during shutdown: %error%"
 scheduler:

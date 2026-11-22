@@ -50,8 +50,7 @@ public final class DismantleGuiRenderer {
             type = StationSlotType.normalize(slot.key());
         }
         return switch (type) {
-            case StationSlotType.DISMANTLE_INPUT, StationSlotType.DISMANTLE_ITEM_DISPLAY ->
-                    renderInput(state, recipe, slot);
+            case StationSlotType.DISMANTLE_INPUT -> renderInput(state, recipe, slot);
             case StationSlotType.DISMANTLE_ROLLS_DISPLAY -> renderRolls(state, recipe, slot);
             case StationSlotType.DISMANTLE_COST -> renderCost(state, recipe, slot);
             case StationSlotType.DISMANTLE_OUTPUT_LIST -> renderOutputEntry(state, recipe, slot, resolvedSlot);

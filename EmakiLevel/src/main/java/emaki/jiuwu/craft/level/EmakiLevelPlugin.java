@@ -393,10 +393,10 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
     private void registerCommand() {
         LevelCommand command = new LevelCommand(this);
         registerCommand(
-                "emakilevel",
+                "elevel",
                 "EmakiLevel 命令",
-                List.of("elv", "elevel"),
-                new PaperCommandAdapter("emakilevel", "emakilevel.use", command, command)
+                List.of("el"),
+                new PaperCommandAdapter("elevel", "emakilevel.use", command, command)
         );
     }
 

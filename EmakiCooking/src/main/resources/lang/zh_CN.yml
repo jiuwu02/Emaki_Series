@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.5"
+version: "5.0.6"
 
 tags:
   completion: '[ 完成 ]'
@@ -169,8 +169,8 @@ console:
   completion_recovery_failed: "<yellow>烹饪完成恢复失败: %error%</yellow>"
   # 控制台: 流水线阶段注册失败; 占位符: %stage%, %reason%
   stage_register_failed: "<yellow>注册流水线阶段 '%stage%' 失败: %reason%</yellow>"
-  # 控制台: 执行旧版烹饪奖励失败; 占位符: %error%
-  reward_legacy_execute_failed: "<yellow>执行旧版烹饪奖励失败: %error%</yellow>"
+  # 控制台: 执行烹饪奖励失败; 占位符: %error%
+  reward_execute_failed: "<yellow>执行烹饪奖励失败: %error%</yellow>"
   # 控制台: 烹饪奖励输出物品无效; 占位符: %output%, %recipe%
   reward_output_invalid: "<yellow>输出物品为空或空气, output_map=%output% recipe=%recipe%</yellow>"
   # 控制台: 创建来源物品返回 null; 占位符: %source%, %amount%
@@ -785,6 +785,3 @@ completion:
 journal:
   load_completion_journal_failed: "加载烹饪完成日志失败 '%file%': %error%; 隔离移动失败: %move_error%"
   quarantine_corrupt_completion_journal: "已隔离损坏的烹饪完成日志 '%file%': %error%"
-config:
-  deprecated_matcher_keys: "%path%.%legacy_sources%/%legacy_matcher% 处的旧版烹饪匹配键已弃用; 请使用 %path%.%nested%.item_sources 与 .matcher, %hint%"
-  deprecated_moisture_rule_matcher_keys: "stations.steamer.moisture_rules[%index%] 处的旧版烹饪匹配键已弃用; 请使用 input.item_sources 与 input.matcher, %hint%"

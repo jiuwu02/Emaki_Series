@@ -7,16 +7,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
-import emaki.jiuwu.craft.skills.config.AppConfig;
-
 import emaki.jiuwu.craft.corelib.trigger.TriggerDispatcher;
 import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
 import emaki.jiuwu.craft.corelib.trigger.TriggerSource;
 
 public final class HotbarTriggerSource implements TriggerSource {
-
-    private volatile boolean legacyDeprecationWarningLogged;
 
     @Override
     public String id() {
@@ -29,21 +24,6 @@ public final class HotbarTriggerSource implements TriggerSource {
 
             @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
             public void onHotbar(PlayerItemHeldEvent event) {
-                if (legacyDispatchCancelledEvents(plugin)) {
-                    return;
-                }
-                if (legacyDeprecationWarningLogged) {
-                    legacyDeprecationWarningLogged = false;
-                }
-                dispatch(event);
-            }
-
-            @EventHandler(priority = EventPriority.NORMAL)
-            public void onHotbarLegacy(PlayerItemHeldEvent event) {
-                if (!legacyDispatchCancelledEvents(plugin)) {
-                    return;
-                }
-                warnDeprecatedDispatchOnce(plugin);
                 dispatch(event);
             }
 
@@ -66,21 +46,5 @@ public final class HotbarTriggerSource implements TriggerSource {
                 }
             }
         }, plugin);
-    }
-
-    private boolean legacyDispatchCancelledEvents(JavaPlugin plugin) {
-        if (plugin instanceof AbstractConfigurableEmakiPlugin<?> configurable
-                && configurable.appConfig() instanceof AppConfig appConfig) {
-            return appConfig.triggerSettings().legacyDispatchCancelledEvents();
-        }
-        return false;
-    }
-
-    private void warnDeprecatedDispatchOnce(JavaPlugin plugin) {
-        if (legacyDeprecationWarningLogged) {
-            return;
-        }
-        legacyDeprecationWarningLogged = true;
-        TriggerLegacyWarnings.warn(plugin, id());
     }
 }

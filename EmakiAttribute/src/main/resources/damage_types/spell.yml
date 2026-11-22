@@ -4,11 +4,6 @@ id: spell
 
 display_name: "法术伤害"
 
-aliases:
-  - magic_damage
-  - magic
-  - spell_damage
-
 allowed_events:
   - MAGIC
 

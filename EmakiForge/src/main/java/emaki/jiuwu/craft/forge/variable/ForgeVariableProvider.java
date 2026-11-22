@@ -35,17 +35,17 @@ public final class ForgeVariableProvider {
         builder.withPdcString(partition.key(ForgePdcKeys.QUALITY_MULTIPLIER));
         builder.withPdcString(partition.key(ForgePdcKeys.FORGE_RECIPE_ID));
 
-        String qualityId = readMigrating(item, partition, ForgePdcKeys.QUALITY_ID);
+        String qualityId = readField(item, partition, ForgePdcKeys.QUALITY_ID);
         if (Texts.isNotBlank(qualityId)) {
             builder.with("forge_quality_id", qualityId);
         }
 
-        String qualityDisplay = readMigrating(item, partition, ForgePdcKeys.QUALITY_DISPLAY);
+        String qualityDisplay = readField(item, partition, ForgePdcKeys.QUALITY_DISPLAY);
         if (Texts.isNotBlank(qualityDisplay)) {
             builder.with("forge_quality_display", qualityDisplay);
         }
 
-        String multiplierStr = readMigrating(item, partition, ForgePdcKeys.QUALITY_MULTIPLIER);
+        String multiplierStr = readField(item, partition, ForgePdcKeys.QUALITY_MULTIPLIER);
         if (Texts.isNotBlank(multiplierStr)) {
             try {
                 double multiplier = Double.parseDouble(multiplierStr);
@@ -55,7 +55,7 @@ public final class ForgeVariableProvider {
             }
         }
 
-        String recipeId = readMigrating(item, partition, ForgePdcKeys.FORGE_RECIPE_ID);
+        String recipeId = readField(item, partition, ForgePdcKeys.FORGE_RECIPE_ID);
         if (Texts.isNotBlank(recipeId)) {
             builder.with("forge_recipe_id", recipeId);
         }
@@ -68,7 +68,7 @@ public final class ForgeVariableProvider {
             return 1.0;
         }
         PdcPartition partition = PDC_SERVICE.partition(ForgePdcKeys.FORGE_PARTITION);
-        String multiplierStr = readMigrating(item, partition, ForgePdcKeys.QUALITY_MULTIPLIER);
+        String multiplierStr = readField(item, partition, ForgePdcKeys.QUALITY_MULTIPLIER);
         if (Texts.isBlank(multiplierStr)) {
             return 1.0;
         }
@@ -84,7 +84,7 @@ public final class ForgeVariableProvider {
             return null;
         }
         PdcPartition partition = PDC_SERVICE.partition(ForgePdcKeys.FORGE_PARTITION);
-        return readMigrating(item, partition, ForgePdcKeys.QUALITY_ID);
+        return readField(item, partition, ForgePdcKeys.QUALITY_ID);
     }
 
     public static @Nullable String getRecipeId(@Nullable ItemStack item) {
@@ -92,14 +92,13 @@ public final class ForgeVariableProvider {
             return null;
         }
         PdcPartition partition = PDC_SERVICE.partition(ForgePdcKeys.FORGE_PARTITION);
-        return readMigrating(item, partition, ForgePdcKeys.FORGE_RECIPE_ID);
+        return readField(item, partition, ForgePdcKeys.FORGE_RECIPE_ID);
     }
 
-    private static @Nullable String readMigrating(@NotNull ItemStack item,
+    private static @Nullable String readField(@NotNull ItemStack item,
             @NotNull PdcPartition partition,
             @NotNull String field) {
-        return PDC_SERVICE.getMigrating(
-                item, partition, ForgePdcKeys.FORGE_PARTITION, field, PersistentDataType.STRING);
+        return PDC_SERVICE.get(item, partition, field, PersistentDataType.STRING);
     }
 
     private ForgeVariableProvider() {

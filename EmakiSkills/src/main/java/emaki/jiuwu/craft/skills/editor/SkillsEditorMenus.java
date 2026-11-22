@@ -97,8 +97,6 @@ public final class SkillsEditorMenus {
                 "cooldown_ticks"));
         specs.add(EditorFieldSpec.number("skill_global_cooldown_ticks",
                 "editor.field.global_cooldown_ticks", "global_cooldown_ticks"));
-        specs.add(EditorFieldSpec.list("skill_lore_aliases", "editor.field.lore_aliases",
-                LIST_ENTRIES, "lore_aliases"));
         specs.add(EditorFieldSpec.list("skill_tags", "editor.field.tags", LIST_ENTRIES, "tags"));
         specs.add(EditorFieldSpec.list("skill_tab_tags", "editor.field.tab_tags",
                 LIST_ENTRIES, "tab_tags"));

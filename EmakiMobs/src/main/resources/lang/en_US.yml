@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "2.0.5"
+version: "2.0.6"
 
 tags:
   loot: '[ loot ]'
@@ -13,7 +13,7 @@ general:
   player_only: "<red>This command can only be used by a player</red>"
   player_not_found: "<red>Player not found</red>"
   invalid_args: "<red>Invalid arguments</red>"
-  unknown_command: "<red>Unknown command. Use /emakimobs help for help</red>"
+  unknown_command: "<red>Unknown command. Use /emobs help for help</red>"
   reloading: "<gray>Reloading configuration...</gray>"
   reload_success: "<green>Configuration reloaded</green>"
 
@@ -92,7 +92,6 @@ loader:
   load_failed: "Failed to read %type% file: %file%  (%error%)"
   invalid_config: "Invalid %type% configuration: %file%"
   unknown_entity_type: "Unknown entity type %type%: %file%"
-  deprecated_key: "%file% still uses the legacy key %old_key%; rename it to %new_key%  (the legacy key will be removed in the next major version)"
   target_selectors_load_failed: "Failed to read target selector file %file%: %error%"
   target_selectors_section_missing: "Target selector file %file% is missing the selectors section"
   target_selector_invalid_slot: "Equipment weight table %table% contains invalid slot %slot%; skipped"
@@ -109,7 +108,6 @@ loader:
     mob: "mob"
     loot_table: "loot table"
     spawn_rule: "spawn rule"
-  mob_file_legacy_key_in_use: "Mob file '%file%' still uses the legacy key '%old_key%'; please switch to '%new_key%'. The legacy key will be removed in the next major version"
   biome_unknown: "Biome '%name%' is unknown (file '%file%'); skipped (the rule will not be limited by it)"
   structure_unknown: "Structure '%key%' is unknown (file '%file%'); skipped"
   spawn_trigger_unknown: "Trigger '%trigger%' is unknown (mob '%mob%', file '%file%'); skipped"
@@ -121,22 +119,22 @@ command:
   spawn_success: "<green>Spawned <white>%mob_id%</white> at target location</green>"
   spawn_blocked: "<red>Monster-type mob <white>%mob_id%</white> cannot be spawned in Peaceful difficulty</red>"
   spawn_no_target: "<red>Could not determine a spawn location. Please specify an online player</red>"
-  spawn_usage: "<gray>Usage: /emakimobs spawn <mob_id> [player]</gray>"
+  spawn_usage: "<gray>Usage: /emobs spawn <mob_id> [player]</gray>"
   reload_success: "<green>Reloaded with <white>%count%</white> mob definition (s)</green>"
   list_header: "<gray>Mob definitions page <white>%page%</white>/<white>%pages%</white>, <white>%count%</white> total:</gray>"
   list_entry: "<dark_gray>-</dark_gray> <white>%mob_id%</white> <gray> (%entity_type%)</gray>"
   list_empty: "<yellow>No mob definitions are currently loaded</yellow>"
   list_page_out_of_range: "<red>Page %page% is out of range; there are %pages% page (s)</red>"
   invalid_page: "<red>Invalid page: <white>%page%</white>. Pages start at 1</red>"
-  info_usage: "<gray>Usage: /emakimobs info <mob_id></gray>"
+  info_usage: "<gray>Usage: /emobs info <mob_id></gray>"
   info_result: "<gray><white>%mob_id%</white>: type=%entity_type%, components=%components%, EA attributes=%attributes%, skill triggers=%triggers%, loot table=%loot_table%</gray>"
   value_yes: "yes"
   value_no: "no"
   count_success: "<green>Managed mob <white>%mob_id%</white> count: <white>%count%</white></green>"
-  kill_usage: "<gray>Usage: /emakimobs kill &lt;mob_id|all&gt; [radius] - 'all' removes every managed mob</gray>"
+  kill_usage: "<gray>Usage: /emobs kill &lt;mob_id|all&gt; [radius] - 'all' removes every managed mob</gray>"
   kill_success: "<green>Removed <white>%count%</white> managed <white>%mob_id%</white> mob (s)</green>"
   kill_all_success: "<green>Removed all managed mobs, <white>%count%</white> in total</green>"
-  find_usage: "<gray>Usage: /emakimobs find &lt;mob_id&gt; [radius] - list managed mobs in range  (click an entry to teleport)</gray>"
+  find_usage: "<gray>Usage: /emobs find &lt;mob_id&gt; [radius] - list managed mobs in range  (click an entry to teleport)</gray>"
   unable_to_schedule: "Unable to schedule %description%"
   # placeholders: %mob_id%, %count%, %radius%
   find_header: "<gray>Managed mobs in range for <white>%mob_id%</white>: <white>%count%</white>  (radius %radius%):</gray>"
@@ -144,10 +142,10 @@ command:
   # placeholders: %mob_id%, %uuid%, %health%, %max_health%
   find_entry_hover: "<white>%mob_id%</white> <gray>UUID %uuid%</gray><newline><gray>Health %health%/%max_health%</gray><newline><gray>Click to teleport to this mob</gray>"
   # placeholders: %hover%, %uuid%, %mob_id%, %distance%, %world%, %x%, %y%, %z%
-  find_entry: "<dark_gray>-</dark_gray> <hover:show_text:'%hover%'><click:run_command:'/emakimobs tp %uuid%'><green>Click to teleport</green></click></hover> <white>%mob_id%</white> <gray>%world% %x%, %y%, %z%  (%distance% blocks)</gray>"
+  find_entry: "<dark_gray>-</dark_gray> <hover:show_text:'%hover%'><click:run_command:'/emobs tp %uuid%'><green>Click to teleport</green></click></hover> <white>%mob_id%</white> <gray>%world% %x%, %y%, %z%  (%distance% blocks)</gray>"
   # placeholders: %count%
   find_truncated: "<dark_gray>... %count% more not shown</dark_gray>"
-  tp_usage: "<gray>Usage: /emakimobs tp &lt;uuid&gt; - teleport to a managed mob  (triggered from the find list)</gray>"
+  tp_usage: "<gray>Usage: /emobs tp &lt;uuid&gt; - teleport to a managed mob  (triggered from the find list)</gray>"
   # placeholders: %value%
   tp_success: "<green>Teleported to managed mob <white>%value%</white></green>"
   tp_failed: "<red>Teleport failed: the target is no longer reachable</red>"
@@ -160,7 +158,7 @@ command:
   unknown_mob: "<red>Unknown mob ID: <white>%mob_id%</white></red>"
   debug_unavailable: "<red>The debug controller is currently unavailable</red>"
   operation_failed: "<red>Command operation %operation% failed. Check the server log</red>"
-  usage: "<gray>Usage: /emakimobs &lt;help|spawn|reload|list|info|kill|count|find|debug|edit&gt; ...  (run /emakimobs help for details)</gray>"
+  usage: "<gray>Usage: /emobs &lt;help|spawn|reload|list|info|kill|count|find|debug|edit&gt; ...  (run /emobs help for details)</gray>"
   no_permission: "<red>You do not have permission to run this command</red>"
   help_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiMobs Command Help</gradient> <gray><st>        </st></gray>"
   help_entry_help: "- <hover:show_text:'<gray>help</gray> <dark_gray>·</dark_gray> <gray>Show this help page</gray>'><gray>help</gray></hover> <click:run_command:'%root% help'><green>[ ✦ Run ]</green></click>"

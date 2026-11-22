@@ -113,8 +113,6 @@ public final class AttributeEditorMenus {
     private static List<EditorFieldSpec> damageTypeHome() {
         List<EditorFieldSpec> specs = new ArrayList<>();
         specs.add(EditorFieldSpec.text("damage_display_name", "editor.field.display_name", "display_name"));
-        specs.add(EditorFieldSpec.list("damage_aliases", "editor.field.aliases",
-                LIST_ENTRIES, "aliases"));
         specs.add(EditorFieldSpec.list("damage_allowed_events", "editor.field.allowed_events",
                 LIST_ENTRIES, "allowed_events"));
         specs.add(EditorFieldSpec.toggle("damage_hard_lock", "editor.field.hard_lock", "hard_lock"));

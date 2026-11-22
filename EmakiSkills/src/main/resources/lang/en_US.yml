@@ -2,12 +2,11 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "3.0.7"
+version: "3.0.8"
 
 tags:
   actionbar: "[ actionbar ]"
   cast: "[ cast ]"
-  collector: "[ collector ]"
   upgrade: "[ upgrade ]"
 
 general:
@@ -94,7 +93,6 @@ console:
   mythic_bridge_init_failed: "Failed to initialize MythicMobs skill bridge: %error%"
   mythic_bridge_skill_lookup_failed: "Failed to look up Mythic skill: %skill%  (%error%)"
   mythic_bridge_cast_failed: "Failed to cast Mythic skill: %skill%  (%error%)"
-  trigger_legacy_cancelled_dispatch_deprecated: "<yellow>[Deprecated]</yellow> <gray>Trigger source <yellow>%source%</yellow> is running with the compatibility switch <white>trigger_settings.legacy_dispatch_cancelled_events</white>, so events already cancelled by another plugin  (WorldGuard, land-claim protection, ...) still trigger skills. This switch is kept for one minor cycle only and will be removed in the next major release; please turn it off and adopt the default behaviour</gray>"
   skills_loaded: "<gray>Loaded <yellow>%skills%</yellow> skill (s), <yellow>%triggers%</yellow> trigger (s)</gray>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
   scripts:
@@ -459,8 +457,6 @@ editor:
     cooldown_ticks_desc: "<dark_gray>Skill cooldown in ticks, 20 ticks = 1 second</dark_gray>"
     global_cooldown_ticks: "Global Cooldown"
     global_cooldown_ticks_desc: "<dark_gray>Shared cooldown across all skills after casting, in ticks</dark_gray>"
-    lore_aliases: "Lore Aliases"
-    lore_aliases_desc: "<dark_gray>Aliases used to identify this skill from item lore</dark_gray>"
     tags: "Tags"
     tags_desc: "<dark_gray>Skill tags used for lookup and conditions</dark_gray>"
     tab_tags: "Tab Tags"
@@ -617,8 +613,6 @@ persistence:
   save_player_profile_failed: "Failed to save the player profile: %player%"
   read_player_profile_failed: "Failed to read %player%; this session remains read-only to protect existing files"
   create_data_directory_failed: "Could not create the data directory: %path%"
-collector:
-  lore_read_failed: "Failed to read lore: player=%player%, slot=%slot%, material=%material%, exception=%error%"
 registry:
   provider_collect_failed: "Provider '%id%' (owned by '%owner%') failed: %error%"
 shutdown:

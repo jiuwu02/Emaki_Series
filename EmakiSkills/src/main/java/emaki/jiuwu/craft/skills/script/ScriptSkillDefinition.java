@@ -25,7 +25,6 @@ public final class ScriptSkillDefinition implements ExternalSkillDefinition {
     private final Map<String, List<String>> scriptLines;
     private final Map<String, List<String>> scriptConditions;
     private final List<String> tags;
-    private final List<String> loreAliases;
     private final String pdcSkillId;
     private final String uiCategory;
     private final int sortOrder;
@@ -44,7 +43,6 @@ public final class ScriptSkillDefinition implements ExternalSkillDefinition {
             Map<String, List<String>> scriptLines,
             Map<String, List<String>> scriptConditions,
             List<String> tags,
-            List<String> loreAliases,
             String pdcSkillId,
             String uiCategory,
             int sortOrder,
@@ -62,7 +60,6 @@ public final class ScriptSkillDefinition implements ExternalSkillDefinition {
         this.scriptLines = scriptLines;
         this.scriptConditions = scriptConditions;
         this.tags = tags;
-        this.loreAliases = loreAliases;
         this.pdcSkillId = pdcSkillId;
         this.uiCategory = uiCategory;
         this.sortOrder = sortOrder;
@@ -92,7 +89,6 @@ public final class ScriptSkillDefinition implements ExternalSkillDefinition {
         Map<String, List<String>> scriptLines = phaseLines(payload.scriptLines());
         Map<String, List<String>> scriptConditions = phaseLines(payload.scriptConditions());
         List<String> tags = normalizedIds(payload.tags());
-        List<String> loreAliases = cleanedStrings(payload.loreAliases());
         String pdcSkillId = payload.pdcSkillId().trim();
         String uiCategory = Texts.isBlank(payload.uiCategory()) ? "default" : payload.uiCategory().trim();
         int sortOrder = payload.sortOrder();
@@ -111,7 +107,6 @@ public final class ScriptSkillDefinition implements ExternalSkillDefinition {
                 scriptLines,
                 scriptConditions,
                 tags,
-                loreAliases,
                 pdcSkillId,
                 uiCategory,
                 sortOrder,
@@ -173,11 +168,6 @@ public final class ScriptSkillDefinition implements ExternalSkillDefinition {
     @Override
     public @NotNull List<String> tags() {
         return tags;
-    }
-
-    @Override
-    public @NotNull List<String> loreAliases() {
-        return loreAliases;
     }
 
     @Override

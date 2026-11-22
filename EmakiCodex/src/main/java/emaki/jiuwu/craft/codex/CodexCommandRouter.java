@@ -35,7 +35,7 @@ final class CodexCommandRouter implements TabExecutor {
     private static final String PERMISSION_USE = PERMISSION_ROOT + ".use";
 
     private static final List<String> SUBCOMMANDS =
-            List.of("help", "codex", "open", "reload", "edit", "grant", "revoke", "admin", "debug");
+            List.of("help", "codex", "reload", "edit", "grant", "revoke", "admin", "debug");
     private static final List<String> ADMIN_ACTIONS = List.of("unlock", "reset");
 
     private final EmakiCodexPlugin plugin;
@@ -55,7 +55,7 @@ final class CodexCommandRouter implements TabExecutor {
                 sendHelpPage(sender, helpRoot(label), Arrays.asList(args).subList(1, args.length));
                 yield true;
             }
-            case "codex", "open" -> openCodexGui(sender);
+            case "codex" -> openCodexGui(sender);
             case "reload" -> handleReload(sender);
             case "edit" -> handleEdit(sender, args);
             case "grant" -> handleAdvancement(sender, args, true);
@@ -351,7 +351,7 @@ final class CodexCommandRouter implements TabExecutor {
     }
 
     private String helpRoot(String label) {
-        return "/" + (label == null || label.isBlank() ? "codex" : label);
+        return "/" + (label == null || label.isBlank() ? "ecodex" : label);
     }
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {

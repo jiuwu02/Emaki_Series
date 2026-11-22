@@ -11,7 +11,6 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public record DamageTypeDefinition(String id,
         String displayName,
-        List<String> aliases,
         Set<String> allowedEvents,
         boolean hardLock,
         List<DamageStageDefinition> stages,
@@ -23,7 +22,6 @@ public record DamageTypeDefinition(String id,
     public DamageTypeDefinition          {
         id = Texts.normalizeId(id);
         displayName = Texts.isBlank(displayName) ? id : Texts.toStringSafe(displayName).trim();
-        aliases = aliases == null ? List.of() : List.copyOf(aliases);
         Set<String> normalizedEvents = new LinkedHashSet<>();
         if (allowedEvents != null) {
             for (String event : allowedEvents) {
@@ -43,23 +41,21 @@ public record DamageTypeDefinition(String id,
 
     public DamageTypeDefinition(String id,
             String displayName,
-            List<String> aliases,
             Set<String> allowedEvents,
             boolean hardLock,
             List<DamageStageDefinition> stages,
             RecoveryDefinition recovery,
             String description) {
-        this(id, displayName, aliases, allowedEvents, hardLock, stages, recovery, description, null, null);
+        this(id, displayName, allowedEvents, hardLock, stages, recovery, description, null, null);
     }
 
     public DamageTypeDefinition(String id,
             String displayName,
-            List<String> aliases,
             Set<String> allowedEvents,
             boolean hardLock,
             List<DamageStageDefinition> stages,
             String description) {
-        this(id, displayName, aliases, allowedEvents, hardLock, stages, null, description, null, null);
+        this(id, displayName, allowedEvents, hardLock, stages, null, description, null, null);
     }
 
     public static DamageTypeDefinition fromMap(Object raw) {
@@ -91,7 +87,6 @@ public record DamageTypeDefinition(String id,
         return new DamageTypeDefinition(
                 ConfigNodes.string(raw, "id", null),
                 ConfigNodes.string(raw, "display_name", null),
-                Texts.asStringList(ConfigNodes.get(raw, "aliases")),
                 allowedEvents,
                 ConfigNodes.bool(raw, "hard_lock", false),
                 stages,
@@ -100,22 +95,6 @@ public record DamageTypeDefinition(String id,
                 attackerMessage,
                 targetMessage
         );
-    }
-
-    public boolean matches(String candidate) {
-        if (Texts.isBlank(candidate)) {
-            return false;
-        }
-        String normalized = Texts.normalizeId(candidate);
-        if (id.equals(normalized)) {
-            return true;
-        }
-        for (String alias : aliases) {
-            if (Texts.normalizeId(alias).equals(normalized)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public boolean allowsCause(String cause) {

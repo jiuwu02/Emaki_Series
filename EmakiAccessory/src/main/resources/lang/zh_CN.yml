@@ -1,7 +1,7 @@
 # EmakiAccessory 简体中文语言资源
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
-version: "2.0.5"
+version: "2.0.6"
 
 console:
   plugin_starting: "<gray>正在启动 EmakiAccessory...</gray>"
@@ -79,10 +79,10 @@ durability:
 command:
   admin_usage: |
     <gold>管理指令</gold>
-    <yellow>/eacc admin view <玩家></yellow> <gray>- 查看饰品 (只读)</gray>
-    <yellow>/eacc admin edit <玩家></yellow> <gray>- 编辑饰品 (仅在线玩家)</gray>
-    <yellow>/eacc admin clear <玩家></yellow> <gray>- 清空饰品 (不可撤销, 会记入日志)</gray>
-    <yellow>/eacc admin save</yellow> <gray>- 立刻保存所有饰品数据</gray>
+    <yellow>/eaccessory admin view <玩家></yellow> <gray>- 查看饰品 (只读)</gray>
+    <yellow>/eaccessory admin edit <玩家></yellow> <gray>- 编辑饰品 (仅在线玩家)</gray>
+    <yellow>/eaccessory admin clear <玩家></yellow> <gray>- 清空饰品 (不可撤销, 会记入日志)</gray>
+    <yellow>/eaccessory admin save</yellow> <gray>- 立刻保存所有饰品数据</gray>
   open_failed: "<red>无法打开饰品栏, 请检查界面布局配置</red>"
   list_header: "<gold>饰品槽</gold> <gray>页 <white>%page%</white>, 已用 <yellow>%used%</yellow> / <yellow>%max%</yellow></gray>"
   list_entry_filled: "<gray>- <white>%slot%</white> <green>已装备</green></gray>"
@@ -92,8 +92,8 @@ command:
   pages_entry_enabled: "<gray>- <white>%page%</white> %name% <green>生效中</green> <gray> (<yellow>%count%</yellow> 件)</gray></gray>"
   pages_entry_locked: "<gray>- <white>%page%</white> %name% <red>无权限</red> <gray> (<yellow>%count%</yellow> 件, 可用 retrieve 取回)</gray></gray>"
   page_unknown: "<red>找不到饰品页 <white>%page%</white></red>"
-  page_no_permission: "<red>你没有权限打开饰品页 <white>%page%</white>, 可用 <white>/eacc retrieve %page%</white> 取回其中饰品</red>"
-  retrieve_usage: "<yellow>用法: /eacc retrieve <页></yellow> <gray>取回该页全部饰品, 主要用于没有权限的页</gray>"
+  page_no_permission: "<red>你没有权限打开饰品页 <white>%page%</white>, 可用 <white>/eaccessory retrieve %page%</white> 取回其中饰品</red>"
+  retrieve_usage: "<yellow>用法: /eaccessory retrieve <页></yellow> <gray>取回该页全部饰品, 主要用于没有权限的页</gray>"
   retrieve_done: "<green>已取回饰品页 <white>%page%</white></green> <gray>共 <yellow>%count%</yellow> 件, 背包放不下的已掉在脚下</gray>"
   retrieve_empty: "<yellow>饰品页 <white>%page%</white> 里没有饰品</yellow>"
   retrieve_unknown_page: "<red>找不到饰品页 <white>%page%</white></red>"

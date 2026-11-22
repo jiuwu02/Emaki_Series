@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.bukkit.Bukkit;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.codex.advancement.AdvancementJsonBuilder;
 import emaki.jiuwu.craft.codex.advancement.AdvancementPlatform;
@@ -26,7 +25,6 @@ import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.codex.editor.CodexEditorModule;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -59,11 +57,6 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data", "codex");
     private static final long SHUTDOWN_FLUSH_SECONDS = 10L;
-    private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
-            new ConfigKeyMigration.Rename("advancement.announce-default", "advancement.announce_default"),
-            new ConfigKeyMigration.Rename("advancement.remove-on-disable", "advancement.remove_on_disable"),
-            new ConfigKeyMigration.Rename("advancement.packet-coordinates", "advancement.packet_coordinates"),
-            new ConfigKeyMigration.Rename("advancement.triggers-enabled", "advancement.triggers_enabled"));
 
     @Override
     public CodexRuntimeComponents initialize(EmakiCodexPlugin plugin) {
@@ -79,13 +72,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
         BootstrapService bootstrapService = new BootstrapService(
                 plugin, messageService, VERSIONED_FILES, STATIC_FILES, DEFAULT_DATA_FILES, EXTRA_DIRECTORIES,
-                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData),
-                        (relativePath, runtime, bundled) -> {
-                            if (!"config.yml".equals(relativePath)) {
-                                return;
-                            }
-                            ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
-                        }, null));
+                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData), null, null));
 
         AdvancementPageLoader advancementPageLoader = new AdvancementPageLoader(plugin);
 
@@ -234,10 +221,10 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 configuration.getString("version", AppConfig.CURRENT_VERSION),
                 bool(configuration, "release_default_data", true),
                 advancement == null || bool(advancement, "enabled", true),
-                advancement != null && legacyAwareBool(advancement, "announce_default", "announce-default", false),
-                advancement == null || legacyAwareBool(advancement, "remove_on_disable", "remove-on-disable", true),
-                advancement == null || legacyAwareBool(advancement, "packet_coordinates", "packet-coordinates", true),
-                advancement == null || legacyAwareBool(advancement, "triggers_enabled", "triggers-enabled", true),
+                advancement != null && bool(advancement, "announce_default", false),
+                advancement == null || bool(advancement, "remove_on_disable", true),
+                advancement == null || bool(advancement, "packet_coordinates", true),
+                advancement == null || bool(advancement, "triggers_enabled", true),
                 bool(configuration, "op_bypass", false),
                 new ScriptHostSettings(
                         scripts == null || bool(scripts, "enabled", true),
@@ -252,18 +239,6 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private boolean bool(YamlSection section, String path, boolean fallback) {
         Boolean value = section.getBoolean(path, fallback);
         return value == null ? fallback : value;
-    }
-
-    private boolean legacyAwareBool(YamlSection section, String path, String legacyPath, boolean fallback) {
-        if (section.contains(path)) {
-            return bool(section, path, fallback);
-        }
-        if (section.contains(legacyPath)) {
-            boolean legacyValue = bool(section, legacyPath, fallback);
-            LogTags.send(JavaPlugin.getPlugin(EmakiCodexPlugin.class), LogTag.CONFIG, Level.WARNING, "config.advancement_legacy_key_renamed", Map.of("legacy_key", legacyPath, "key", path, "value", legacyValue));
-            return legacyValue;
-        }
-        return fallback;
     }
 
 }

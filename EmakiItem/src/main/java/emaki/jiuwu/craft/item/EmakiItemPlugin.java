@@ -53,7 +53,6 @@ import emaki.jiuwu.craft.item.listener.ItemStateBoundaryListener;
 import emaki.jiuwu.craft.item.listener.ItemStateDerivationListener;
 import emaki.jiuwu.craft.item.listener.ItemTriggerListener;
 import emaki.jiuwu.craft.item.listener.ItemUpdateListener;
-import emaki.jiuwu.craft.item.loader.EmakiItemAliasLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
 import emaki.jiuwu.craft.item.loader.ItemPackLoader;
@@ -66,7 +65,6 @@ import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 import emaki.jiuwu.craft.item.service.EmakiItemIdResolver;
 import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewService;
-import emaki.jiuwu.craft.item.service.EmakiItemMigrationService;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
 import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemStateService;
@@ -91,7 +89,7 @@ import java.util.logging.Level;
 
 public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
-    private static final String ROOT_COMMAND = "emakiitem";
+    private static final String ROOT_COMMAND = "eitem";
     private static final Set<String> DEBUG_MODULES =
             Set.of("create", "update", "identify", "set", "item_operation", "pdc", "item_state", "proficiency");
     private static final String STARTUP_ASCII = """
@@ -134,10 +132,8 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
     private GuiService guiService;
     private EmakiItemLoader itemLoader;
     private EmakiItemSetLoader setLoader;
-    private EmakiItemAliasLoader aliasLoader;
     private ItemPackLoader packLoader;
     private EmakiItemIdResolver idResolver;
-    private EmakiItemMigrationService migrationService;
     private EmakiItemLayerPreviewRegistry layerPreviewRegistry;
     private EmakiItemEffectRegistry effectRegistry;
     private EmakiItemIdentifier identifier;
@@ -425,10 +421,8 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         guiService = components.guiService();
         itemLoader = components.itemLoader();
         setLoader = components.setLoader();
-        aliasLoader = components.aliasLoader();
         packLoader = components.packLoader();
         idResolver = components.idResolver();
-        migrationService = components.migrationService();
         layerPreviewRegistry = components.layerPreviewRegistry();
         effectRegistry = components.effectRegistry();
         identifier = components.identifier();
@@ -546,20 +540,12 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         return setLoader;
     }
 
-    public EmakiItemAliasLoader aliasLoader() {
-        return aliasLoader;
-    }
-
     public ItemPackLoader packLoader() {
         return packLoader;
     }
 
     public EmakiItemIdResolver idResolver() {
         return idResolver;
-    }
-
-    public EmakiItemMigrationService migrationService() {
-        return migrationService;
     }
 
     public EmakiItemLayerPreviewRegistry layerPreviewRegistry() {

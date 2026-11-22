@@ -455,11 +455,6 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             String path = "result.success.outputs[" + index + "]";
             boolean canonical = ConfigNodes.contains(output, "item_source");
             boolean legacy = ConfigNodes.contains(output, "item_sources");
-            if (canonical && legacy) {
-                recordIssue(file, recipeId, path, IssueSeverity.ERROR, "OUTPUT_SOURCE_FIELD_CONFLICT",
-                        "输出不能同时声明 item_source 和 item_sources", true, null, null);
-                return false;
-            }
             if (ConfigNodes.contains(output, "matcher")) {
                 recordIssue(file, recipeId, path + ".matcher", IssueSeverity.ERROR, "OUTPUT_MATCHER_FORBIDDEN",
                         "输出节点不能声明 matcher", true, null, null);
@@ -484,14 +479,6 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                         "输出必须声明 item_source", true, null, null);
                 return false;
             }
-            List<Object> values = ConfigNodes.asObjectList(ConfigNodes.get(output, "item_sources"));
-            if (values.size() != 1 || ItemSourceUtil.parse(values.getFirst()) == null) {
-                recordIssue(file, recipeId, path + ".item_sources", IssueSeverity.ERROR, "OUTPUT_LEGACY_SOURCE_INVALID",
-                        "旧 item_sources 必须恰好包含一个有效来源", true, null, null);
-                return false;
-            }
-            recordIssue(file, recipeId, path + ".item_sources", IssueSeverity.WARNING, "OUTPUT_LEGACY_SOURCE",
-                    "接受旧 item_sources; 请迁移到 item_source", false, null, null);
         }
         return true;
     }
@@ -631,7 +618,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             validateAlternativeGroup(file, recipe.id(), sourcePath,
                     singular
                             ? List.of(ConfigNodes.get(output, "item_source"))
-                            : ConfigNodes.get(output, "item_sources"),
+                            : null,
                     true, outputSourceTypes);
         }
     }
@@ -645,7 +632,6 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         copy.set("materials", prioritizeContainers(copy.get("materials")));
         Map<String, Object> result = new LinkedHashMap<>(ConfigNodes.entries(copy.get("result")));
         Map<String, Object> success = new LinkedHashMap<>(ConfigNodes.entries(result.get("success")));
-        success.put("outputs", prioritizeContainers(success.get("outputs")));
         result.put("success", success);
         copy.set("result", result);
         return copy;

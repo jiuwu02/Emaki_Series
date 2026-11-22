@@ -285,7 +285,6 @@ public final class SkillsEditorModule implements EditorModule {
         skeleton.put("trigger_type", "active");
         skeleton.put("cooldown_ticks", 0);
         skeleton.put("global_cooldown_ticks", 0);
-        skeleton.put("lore_aliases", List.of());
         skeleton.put("tags", List.of());
         skeleton.put("tab_tags", List.of());
         skeleton.put("conflicting_skills", List.of());

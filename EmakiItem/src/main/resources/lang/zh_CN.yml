@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "3.0.10"
+version: "3.0.11"
 
 tags:
   effect: '[ 效果 ]'
@@ -65,8 +65,6 @@ console:
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
   mythic_drops_registered: "<gray>MythicMobs Drops 已注册</gray>"
   item_state_unknown_sound: "<yellow>item_state 阈值音效无法解析: <white>%sound%</white></yellow>"
-  # 控制台: 物品 ID alias 加载数量; 占位符: %count%
-  aliases_loaded: "<gray>已加载 <yellow>%count%</yellow> 个 alias</gray>"
   # 控制台: 重载阶段失败; 占位符: %stage%, %error%
   reload_stage_failed: "<red>重载阶段 %stage% 失败: %error%</red>"
   # 控制台: 打开编辑界面失败; 占位符: %item%, %error%
@@ -92,12 +90,10 @@ command:
   help_entry_edit: "- <hover:show_text:'<gray>edit</gray> <dark_gray>·</dark_gray> <gray>参数:物品ID - 打开该物品的游戏内编辑界面</gray><newline><newline><dark_gray>▸</dark_gray> <gray>仅限玩家使用</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.edit</white><newline><dark_gray>▸</dark_gray> <gray>点击查看当前可选的物品ID清单</gray>'><gray>edit</gray></hover> <click:run_command:'%root% help edit'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
   help_entry_give: "- <hover:show_text:'<gray>give</gray> <dark_gray>·</dark_gray> <gray>给予玩家指定的 EmakiItem 物品</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.give</white>'><gray>give</gray></hover> <hover:show_text:'<gray>参数</gray><newline><gray>玩家</gray> <dark_gray>·</dark_gray> <gray>目标玩家名</gray><newline><gray>物品ID</gray> <dark_gray>·</dark_gray> <gray>要给予的物品 ID</gray><newline><gray>数量</gray> <dark_gray>·</dark_gray> <gray>可选, 给予数量</gray><newline><newline><dark_gray>▸</dark_gray> <gray>玩家名与物品 ID 支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 玩家 ] [ 物品ID ] [ 数量 ]</gray></hover>"
   help_entry_inspect: "- <hover:show_text:'<gray>inspect</gray> <dark_gray>·</dark_gray> <gray>查看目标玩家主手物品的内部信息</gray><newline><newline><dark_gray>▸</dark_gray> <gray>可选参数 </gray><white>[玩家]</white><gray>, 默认检查自己</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.inspect</white>'><gray>inspect</gray></hover> <click:run_command:'%root% inspect'><green>[ ✦ 点击执行 ]</green></click>"
-  help_entry_components: "- <hover:show_text:'<gray>components</gray> <dark_gray>·</dark_gray> <gray>输出主手物品的数据组件</gray><newline><newline><dark_gray>▸</dark_gray> <gray>可选参数 </gray><white>[yaml]</white><gray> 以 YAML 输出, 默认 JSON</gray><newline><dark_gray>▸</dark_gray> <gray>可选参数 </gray><white>[玩家]</white><gray> </gray><white>[组件ID]</white><gray> 只看指定组件</gray><newline><dark_gray>▸</dark_gray> <gray>别名 </gray><white>component</white><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.inspect</white>'><gray>components</gray></hover> <click:run_command:'%root% components'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_components: "- <hover:show_text:'<gray>components</gray> <dark_gray>·</dark_gray> <gray>输出主手物品的数据组件</gray><newline><newline><dark_gray>▸</dark_gray> <gray>可选参数 </gray><white>[yaml]</white><gray> 以 YAML 输出, 默认 JSON</gray><newline><dark_gray>▸</dark_gray> <gray>可选参数 </gray><white>[玩家]</white><gray> </gray><white>[组件ID]</white><gray> 只看指定组件</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.inspect</white>'><gray>components</gray></hover> <click:run_command:'%root% components'><green>[ ✦ 点击执行 ]</green></click>"
   help_entry_repair: "- <hover:show_text:'<gray>repair</gray> <dark_gray>·</dark_gray> <gray>打开物品修复界面</gray><newline><newline><dark_gray>▸</dark_gray> <gray>仅限玩家使用</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.use</white>'><gray>repair</gray></hover> <click:run_command:'%root% repair'><green>[ ✦ 点击执行 ]</green></click>"
   help_entry_state: "- <hover:show_text:'<gray>state</gray> <dark_gray>·</dark_gray> <gray>查询或修复主手物品的自定义状态</gray><newline><newline><dark_gray>▸</dark_gray> <gray>query 需要权限 </gray><white>emakiitem.inspect</white><gray>, repair 与 recompute 需要 </gray><white>emakiitem.admin</white>'><gray>state</gray></hover> <click:run_command:'%root% help state'><hover:show_text:'<gray>可选参数</gray><newline><gray>query</gray> <dark_gray>·</dark_gray> <gray>查看状态字段</gray><newline><gray>repair</gray> <dark_gray>·</dark_gray> <gray>修复状态元数据</gray><newline><gray>recompute</gray> <dark_gray>·</dark_gray> <gray>重算状态派生</gray>'><gray>[ ✦ 参数 ]</gray></hover></click>"
   help_entry_update: "- <hover:show_text:'<gray>update</gray> <dark_gray>·</dark_gray> <gray>刷新目标玩家背包中的物品更新与套装 Lore</gray><newline><newline><dark_gray>▸</dark_gray> <gray>可选参数 </gray><white>[玩家]</white><gray>, 默认刷新自己</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.update</white>'><gray>update</gray></hover> <click:run_command:'%root% update'><green>[ ✦ 点击执行 ]</green></click>"
-  help_entry_alias: "- <hover:show_text:'<gray>alias</gray> <dark_gray>·</dark_gray> <gray>管理旧物品 ID 到现有物品 ID 的别名</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.admin</white>'><gray>alias</gray></hover> <click:run_command:'%root% help alias'><hover:show_text:'<gray>可选参数</gray><newline><gray>list</gray> <dark_gray>·</dark_gray> <gray>列出全部别名</gray><newline><gray>add</gray> <dark_gray>·</dark_gray> <gray>新增别名</gray><newline><gray>remove</gray> <dark_gray>·</dark_gray> <gray>删除别名</gray>'><gray>[ ✦ 参数 ]</gray></hover></click>"
-  help_entry_migrate: "- <hover:show_text:'<gray>migrate</gray> <dark_gray>·</dark_gray> <gray>批量迁移配置文件或玩家背包中的物品 ID</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.admin</white>'><gray>migrate</gray></hover> <click:run_command:'%root% help migrate'><hover:show_text:'<gray>可选参数</gray><newline><gray>id</gray> <dark_gray>·</dark_gray> <gray>配置文件内 ID 批量替换</gray><newline><gray>inventory</gray> <dark_gray>·</dark_gray> <gray>迁移玩家背包</gray>'><gray>[ ✦ 参数 ]</gray></hover></click>"
   help_entry_reload: "- <hover:show_text:'<gray>reload</gray> <dark_gray>·</dark_gray> <gray>异步重载配置与物品定义</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.reload</white>'><gray>reload</gray></hover> <click:run_command:'%root% reload'><green>[ ✦ 点击执行 ]</green></click>"
   help_entry_debug: "- <hover:show_text:'<gray>debug</gray> <dark_gray>·</dark_gray> <gray>调试工具: Debug 开关、玩家跟踪、模块开关、刷新统计、动作管道调试</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.debug</white><gray> 或 </gray><white>emakiitem.admin</white>'><gray>debug</gray></hover> <click:run_command:'%root% help debug'><hover:show_text:'<gray>可选参数</gray><newline><gray>status</gray> <dark_gray>·</dark_gray> <gray>查看 Debug 状态</gray><newline><gray>on</gray> <dark_gray>·</dark_gray> <gray>开启全局 Debug</gray><newline><gray>off</gray> <dark_gray>·</dark_gray> <gray>关闭全局 Debug</gray><newline><gray>stats</gray> <dark_gray>·</dark_gray> <gray>刷新统计</gray><newline><gray>player</gray> <dark_gray>·</dark_gray> <gray>跟踪指定玩家</gray><newline><gray>module</gray> <dark_gray>·</dark_gray> <gray>开关模块 Debug</gray><newline><gray>action</gray> <dark_gray>·</dark_gray> <gray>动作管道调试</gray>'><gray>[ ✦ 参数 ]</gray></hover></click>"
   help_entry_help: "- <hover:show_text:'<gray>help</gray> <dark_gray>·</dark_gray> <gray>显示本帮助页</gray>'><gray>help</gray></hover> <click:run_command:'%root% help'><green>[ ✦ 点击执行 ]</green></click>"
@@ -105,16 +101,6 @@ command:
   help_state_entry_query: "- <hover:show_text:'<gray>query</gray> <dark_gray>·</dark_gray> <gray>查看主手物品的自定义状态字段</gray><newline><newline><dark_gray>▸</dark_gray> <gray>可选参数 </gray><white>[玩家]</white><gray>, 默认检查自己</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.inspect</white>'><gray>query</gray></hover> <click:run_command:'%root% state query'><green>[ ✦ 点击执行 ]</green></click>"
   help_state_entry_repair: "- <hover:show_text:'<gray>repair</gray> <dark_gray>·</dark_gray> <gray>修复主手物品的状态元数据</gray><newline><newline><dark_gray>▸</dark_gray> <gray>可选参数 </gray><white>[玩家]</white><gray>, 默认修复自己</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.admin</white>'><gray>repair</gray></hover> <click:run_command:'%root% state repair'><green>[ ✦ 点击执行 ]</green></click>"
   help_state_entry_recompute: "- <hover:show_text:'<gray>recompute</gray> <dark_gray>·</dark_gray> <gray>重算主手物品的状态派生并刷新显示</gray><newline><newline><dark_gray>▸</dark_gray> <gray>可选参数 </gray><white>[玩家]</white><gray>, 默认重算自己</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.admin</white>'><gray>recompute</gray></hover> <click:run_command:'%root% state recompute'><green>[ ✦ 点击执行 ]</green></click>"
-  help_alias_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem alias 命令帮助</gradient> <gray><st>        </st></gray>"
-  help_alias_entry_list: "- <hover:show_text:'<gray>list</gray> <dark_gray>·</dark_gray> <gray>列出全部别名映射</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.admin</white>'><gray>list</gray></hover> <click:run_command:'%root% alias list'><green>[ ✦ 点击执行 ]</green></click>"
-  help_alias_entry_add: "- <hover:show_text:'<gray>add</gray> <dark_gray>·</dark_gray> <gray>新增一条别名映射</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.admin</white>'><gray>add</gray></hover> <hover:show_text:'<gray>参数</gray><newline><gray>旧ID</gray> <dark_gray>·</dark_gray> <gray>要被替换的旧物品 ID</gray><newline><gray>新ID</gray> <dark_gray>·</dark_gray> <gray>现有物品 ID</gray><newline><newline><dark_gray>▸</dark_gray> <gray>新 ID 支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 旧ID ] [ 新ID ]</gray></hover>"
-  help_alias_entry_remove: "- <hover:show_text:'<gray>remove</gray> <dark_gray>·</dark_gray> <gray>参数:旧ID - 删除该别名映射</gray><newline><newline><dark_gray>▸</dark_gray> <gray>点击查看当前可选的别名清单</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.admin</white>'><gray>remove</gray></hover> <click:run_command:'%root% help alias remove'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
-  help_migrate_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem migrate 命令帮助</gradient> <gray><st>        </st></gray>"
-  help_migrate_entry_id: "- <hover:show_text:'<gray>id</gray> <dark_gray>·</dark_gray> <gray>把配置文件里的旧物品 ID 批量替换为新 ID</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.admin</white>'><gray>id</gray></hover> <hover:show_text:'<gray>参数</gray><newline><gray>旧ID</gray> <dark_gray>·</dark_gray> <gray>要被替换的旧物品 ID</gray><newline><gray>新ID</gray> <dark_gray>·</dark_gray> <gray>替换后的物品 ID</gray><newline><gray>模式</gray> <dark_gray>·</dark_gray> <white>--dry-run</white><gray> 只预览, </gray><white>--apply</white><gray> 正式写入</gray><newline><newline><dark_gray>▸</dark_gray> <gray>物品 ID 与模式支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 旧ID ] [ 新ID ] [ 模式 ]</gray></hover>"
-  help_migrate_entry_inventory: "- <hover:show_text:'<gray>inventory</gray> <dark_gray>·</dark_gray> <gray>迁移玩家背包中的旧物品</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakiitem.admin</white>'><gray>inventory</gray></hover> <click:run_command:'%root% help migrate inventory'><hover:show_text:'<gray>可选参数</gray><newline><gray>all</gray> <dark_gray>·</dark_gray> <gray>所有在线玩家</gray><newline><gray>player</gray> <dark_gray>·</dark_gray> <gray>指定玩家</gray>'><gray>[ ✦ 参数 ]</gray></hover></click>"
-  help_migrate_inventory_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem migrate inventory 命令帮助</gradient> <gray><st>        </st></gray>"
-  help_migrate_inventory_entry_all: "- <hover:show_text:'<gray>all</gray> <dark_gray>·</dark_gray> <gray>迁移所有在线玩家的背包</gray>'><gray>all</gray></hover> <click:run_command:'%root% migrate inventory all'><green>[ ✦ 点击执行 ]</green></click>"
-  help_migrate_inventory_entry_player: "- <hover:show_text:'<gray>player</gray> <dark_gray>·</dark_gray> <gray>迁移指定玩家的背包</gray>'><gray>player</gray></hover> <click:run_command:'%root% help migrate inventory player'><hover:show_text:'<gray>参数:玩家</gray><newline><gray>在线玩家名, 点击查看当前可选玩家</gray>'><gray>[ ✦ 玩家 ]</gray></hover></click>"
   help_debug_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem debug 命令帮助</gradient> <gray><st>        </st></gray>"
   help_debug_entry_status: "- <hover:show_text:'<gray>status</gray> <dark_gray>·</dark_gray> <gray>查看当前 Debug 开关、跟踪玩家与可用模块</gray>'><gray>status</gray></hover> <click:run_command:'%root% debug status'><green>[ ✦ 点击执行 ]</green></click>"
   help_debug_entry_on: "- <hover:show_text:'<gray>on</gray> <dark_gray>·</dark_gray> <gray>开启全局 Debug 输出</gray>'><gray>on</gray></hover> <click:run_command:'%root% debug on'><green>[ ✦ 点击执行 ]</green></click>"
@@ -131,13 +117,9 @@ command:
   help_debug_action_run_entry_shadow: "- <hover:show_text:'<gray>shadow</gray> <dark_gray>·</dark_gray> <gray>按 shadow 模式干跑预演: 只输出每段回显</gray>'><gray>shadow</gray></hover> <hover:show_text:'<gray>参数:管道行</gray><newline><gray>一条动作管道文本, 需要自己填写</gray><newline><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 管道行 ]</gray></hover>"
   help_debug_action_run_entry_execute: "- <hover:show_text:'<gray>execute</gray> <dark_gray>·</dark_gray> <gray>真实执行动作管道并输出每段回显与结果汇总</gray>'><gray>execute</gray></hover> <hover:show_text:'<gray>参数:管道行</gray><newline><gray>一条动作管道文本, 需要自己填写</gray><newline><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 管道行 ]</gray></hover>"
   help_edit_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem edit [物品ID] 可选值</gradient> <gray><st>        </st></gray>"
-  help_alias_remove_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem alias remove [旧ID] 可选值</gradient> <gray><st>        </st></gray>"
-  help_migrate_inventory_player_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem migrate inventory [玩家] 可选值</gradient> <gray><st>        </st></gray>"
   help_debug_player_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiItem debug player [玩家] 可选值</gradient> <gray><st>        </st></gray>"
   help_value_entry: "- <hover:show_text:'<gray>%value%</gray> <dark_gray>·</dark_gray> <gray>%desc%</gray>'><gray>%value%</gray></hover> <click:run_command:'%run%'><green>[ ✦ 点击执行 ]</green></click>"
   help_value_desc_edit: "打开 %value% 的编辑界面"
-  help_value_desc_alias_remove: "删除别名 %value%"
-  help_value_desc_migrate_inventory_player: "迁移 %value% 背包中的旧物品"
   help_value_desc_debug_player: "跟踪 %value% 的 Debug 输出"
   help_value_empty: "<dark_gray>( 当前没有可选值 )</dark_gray>"
   help_footer: "<gray><st>                                        </st></gray>"
@@ -160,34 +142,6 @@ command:
     line: "<gray>- <white>%key%</white> <dark_gray> (%type%)</dark_gray> = <aqua>%value%</aqua></gray>"
     repaired: "<green>已修复 <aqua>%player%</aqua> 主手物品状态元数据 (schema=<white>%schema%</white>, valid=<white>%valid%</white>)</green>"
     recomputed: "<green>已重算 <aqua>%player%</aqua> 的状态派生, 共处理 <white>%count%</white> 件</green>"
-  alias:
-    # 命令: alias 列表标题; 占位符: %count%
-    header: "<gray>EmakiItem alias 列表: <white>%count%</white></gray>"
-    # 命令: alias 列表行; 占位符: %old_id%, %target_id%
-    line: "<gray>- <aqua>%old_id%</aqua> -> <green>%target_id%</green></gray>"
-    # 命令: 添加 alias 成功; 占位符: %old_id%, %new_id%
-    added: "<green>Alias 已添加:</green> <aqua>%old_id%</aqua> -> <green>%new_id%</green>"
-    # 命令: 删除 alias 成功; 占位符: %old_id%
-    removed: "<green>Alias 已删除:</green> <aqua>%old_id%</aqua>"
-    # 命令: alias 不存在; 占位符: %old_id%
-    missing: "<yellow>Alias 不存在:</yellow> <aqua>%old_id%</aqua>"
-    # 命令: alias 用法
-    usage: "<red>用法:</red> <yellow>/ei alias list | add <old> <new> | remove <old></yellow>"
-  migrate:
-    # 命令: 迁移预览; 占位符: %old_id%, %new_id%, %count%
-    preview: "<gray>迁移预览:<aqua>%old_id%</aqua> -> <green>%new_id%</green>, 替换数 <white>%count%</white></gray>"
-    # 命令: 迁移预览文件行; 占位符: %file%
-    preview_file: "<gray>- %file%</gray>"
-    # 命令: 迁移完成; 占位符: %count%
-    applied: "<green>迁移完成:</green> 替换数 <white>%count%</white>, 并保留 alias"
-    # 命令: 迁移失败; 占位符: %error%
-    failed: "<red>迁移失败:</red> %error%"
-    # 命令: 在线玩家背包迁移完成; 占位符: %count%
-    inventory_all_done: "<green>在线玩家背包迁移完成:</green> %count% 件物品"
-    # 命令: 背包迁移完成; 占位符: %player%, %count%
-    inventory_done: "<green>背包迁移完成:</green> %player% / %count% 件物品"
-    # 命令: 迁移用法
-    usage: "<red>用法:</red> <yellow>/ei migrate id <old> <new> --dry-run|--apply</yellow> 或 <yellow>/ei migrate inventory <player|all></yellow>"
   debug:
     stats:
       # 命令: 刷新统计输出; 占位符: %events%, %skipped%, %batches%, %rejected%, %coalesced%, %requested_local%, %requested_full%, %update_local%, %update_full%, %set_local%, %set_full%
@@ -543,7 +497,6 @@ editor:
     unknown_item: "<red>找不到物品 %id%</red>"
   read_set_references_failed: "读取套装引用失败: %file%: %error%"
   read_set_definitions_failed: "读取套装定义失败: %file%: %error%"
-  read_alias_references_failed: "读取 alias 引用失败: %file%: %error%"
 startup:
   pipeline_action_stage_registration_failed: "注册管线动作段 '%stage%' 失败: %reason%"
   readiness_publish_skipped: "就绪状态发布已跳过: %error%"
@@ -556,19 +509,15 @@ scheduler:
   repair_gui_close_reschedule_denied: "无法重新调度修复界面关闭 (玩家 %player%): 实体任务调度被拒绝"
   skip_repair_gui_close: "跳过修复界面关闭 (玩家 %player%): 调用线程不拥有该玩家且没有可用的调度"
 loader:
-  save_id_aliases_failed: "保存 id_aliases.yml 失败: %error%"
-  invalid_alias_skipped: "无效的 EmakiItem alias '%alias%' (位于 %path%), 已跳过"
   skip_directory_max_depth: "跳过 EmakiItem 目录 %path%: 嵌套层级超过 data_directories.max_depth=%max_depth%"
   load_item_definition_failed: "无法加载 EmakiItem 定义 %path%: %error%"
   duplicate_item_id_kept_first: "重复的 EmakiItem ID '%id%' (位于 %path%), 保留首个定义"
   create_items_directory_failed: "无法创建 items 目录: %path%"
   skip_set_directory_max_depth: "跳过 EmakiItem 套装目录 %path%: 嵌套层级超过 data_directories.max_depth=%max_depth%"
-  set_definition_deprecated_fields: "套装定义 %path% 阈值 %threshold% 声明了已停用的字段 %fields%; 这些字段会被忽略, 请改用 'effects' 条目表达"
   skip_set_definition_invalid_id: "跳过套装定义 %path%: ID 无效"
   duplicate_set_id_kept_first: "重复的 EmakiItem 套装 ID '%id%' (位于 %path%), 保留首个定义"
   create_sets_directory_failed: "无法创建 sets 目录: %path%"
   load_pack_metadata_failed: "无法加载 EmakiItem 分包元数据 %path%: %error%"
-  item_definition_retired_fields: "物品定义 %source%声明了已停用的字段 %fields%; 这些字段会被忽略, 请将基础物品声明为 'item.source' + 'item.components', 将效果写成 'effects' 条目, 并把堆叠数量传给 give 命令"
   item_definition_unsupported_equip_slot: "物品定义 %source%为 '%item%' 配置了不支持的 equip_slot '%slot%'; 回退为 'all'"
   item_definition_update_version_missing: "物品定义 %source%为 '%item%' 启用了更新, 但缺少有效的 update.version; 物品更新已禁用"
   item_definition_skipped_validation_failed: "跳过物品定义 %source%: 物品来源或组件校验失败"

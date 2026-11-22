@@ -7,8 +7,8 @@
 #   3. 队列取消退还比例由工作站 queue.cancel_refund_rate 决定
 #   4. 配方货币成本与队列数据的关系 (默认注释, 保证无经济环境可用)
 # 如何触发:
-#   执行 /emakistation open example_altar, 选择本条配方提交;
-#   再用 /emakistation queue 查看进度, /emakistation cancel example_altar <序号> 取消
+#   执行 /estation open example_altar, 选择本条配方提交;
+#   再用 /estation queue 查看进度, /estation cancel example_altar <序号> 取消
 # 依赖:
 #   只用原版物品, 不依赖其它 Emaki 模块
 # ============================================================

@@ -38,33 +38,4 @@ public final class ItemStateSchema {
         String name = key.key();
         return name.startsWith(METADATA_PREFIX) || name.startsWith(LEGACY_METADATA_PREFIX);
     }
-
-    /**
-     * {@return 该键对应的历史带点 PDC 键路径}, 用于迁移回落读取
-     *
-     * <p>三个内置元字段的<b>键名本身</b>变了 ({@code meta.revision} → {@code meta_revision}),
-     * 所以不能简单地把分区连接符换回点号 -- 那样只会得到
-     * {@code item_state.meta_revision}, 而真实老键是 {@code item_state.meta.revision}
-     * 这里对内置字段用显式映射, 不做前缀猜测: 服主完全可以定义一个字面名为
-     * {@code meta_foo} 的字段, 它的老键就是 {@code item_state.meta_foo}, 不该被改写
-     *
-     * <p>服主自定义字段名原样保留 (含其中的点), 只把分区连接符写成点号
-     */
-    public static String legacyPath(ItemStateKey<?> key) {
-        if (key == null) {
-            return "";
-        }
-        String legacyKeyName = switch (key.key()) {
-            case "meta_schema_version" -> "meta.schema_version";
-            case "meta_revision" -> "meta.revision";
-            case "meta_instance_id" -> "meta.instance_id";
-            default -> key.key();
-        };
-        return key.partition() + "." + legacyKeyName;
-    }
-
-    /** {@return 该键对应的历史带命名空间键}, 形如 {@code emaki:item_state.meta.revision}. */
-    public static String legacyNamespacedPath(ItemStateKey<?> key) {
-        return key == null ? "" : key.namespace() + ":" + legacyPath(key);
-    }
 }

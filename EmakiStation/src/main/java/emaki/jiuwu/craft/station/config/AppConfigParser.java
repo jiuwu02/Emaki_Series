@@ -1,14 +1,7 @@
 package emaki.jiuwu.craft.station.config;
 
-import org.bukkit.plugin.java.JavaPlugin;
-
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
-import emaki.jiuwu.craft.station.EmakiStationPlugin;
 import emaki.jiuwu.craft.station.api.model.ProgressMode;
-import emaki.jiuwu.craft.corelib.log.LogTags;
-import emaki.jiuwu.craft.corelib.log.LogTag;
-import java.util.Map;
-import java.util.logging.Level;
 
 public final class AppConfigParser {
 
@@ -87,8 +80,7 @@ public final class AppConfigParser {
             return defaults;
         }
         return new PersistenceSettings(
-                legacyAwareInt(section, "autosave_interval_seconds", "autosave_interval",
-                        defaults.autosaveIntervalSeconds()),
+                section.getInt("autosave_interval_seconds", defaults.autosaveIntervalSeconds()),
                 section.getBoolean("save_on_submit", defaults.saveOnSubmit()));
     }
 
@@ -98,19 +90,7 @@ public final class AppConfigParser {
         }
         return new GuiSettings(
                 section.getInt("click_throttle_ms", defaults.clickThrottleMs()),
-                legacyAwareInt(section, "refresh_interval_ticks", "refresh_interval",
-                        (int) defaults.refreshTicks()));
+                section.getInt("refresh_interval_ticks", (int) defaults.refreshTicks()));
     }
 
-    private static int legacyAwareInt(YamlSection section, String path, String legacyPath, int fallback) {
-        if (section.contains(path)) {
-            return section.getInt(path, fallback);
-        }
-        if (section.contains(legacyPath)) {
-            int legacyValue = section.getInt(legacyPath, fallback);
-            LogTags.send(JavaPlugin.getPlugin(EmakiStationPlugin.class), LogTag.CONFIG, Level.WARNING, "config.legacy_key_renamed", Map.of("legacy_key", legacyPath, "key", path, "value", legacyValue));
-            return legacyValue;
-        }
-        return fallback;
-    }
 }

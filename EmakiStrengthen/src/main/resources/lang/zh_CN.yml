@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.5"
+version: "5.0.6"
 
 tags:
   affix: '[ 词缀 ]'
@@ -160,12 +160,6 @@ console:
       enhancement_recipe_pity_level_isolation: "强化配方 %recipe% 的保底轨道 '%track%' 在 player 作用域下按等级隔离, 目标等级变化时计数器会重置"
       # 控制台: 强化配方 mode 与目标 provider 不一致; 占位符: %recipe%, %mode%, %provider%
       enhancement_recipe_mode_provider_mismatch: "强化配方 %recipe% 声明了 mode '%mode%', 但目标 provider 为 '%provider%'; 分发以 provider 为准, mode 只用于填充 enhancement_mode 占位符, 两者不一致通常是配置错误"
-      # 控制台: forge 变量路径不在 forge 前缀下; 占位符: %path%
-      forge_variable_path_prefix: "forge 变量路径 '%path%' 必须位于 forge 前缀之下"
-      # 控制台: 规范 forge 变量缺少别名来源; 占位符: %variable%
-      forge_variable_canonical_missing: "规范 forge 变量 '%variable%' 未由任何别名路径产出"
-      # 控制台: 旧版 forge 变量不再产出; 占位符: %variable%
-      forge_variable_legacy_missing: "旧版 forge 变量 '%variable%' 已不再产出, 会破坏既有配方"
       # 控制台: forge PDC 命名空间不匹配; 占位符: %namespace%
       forge_pdc_namespace_mismatch: "forge PDC 命名空间期望为 'emakiforge', 实际为 '%namespace%'"
   bootstrap_start: "<gray>开始检查默认文件...</gray>"
@@ -273,7 +267,7 @@ strengthen:
     condition_not_met: "<red>当前不满足该配方的强化条件</red>"
     internal: "<red>强化过程中发生内部错误, 未完成本次强化</red>"
   branch:
-    selection_required: "<yellow>该物品已到达分叉点, 请先用 <white>/emakistrengthen branch</white> 选择一条强化路线</yellow>"
+    selection_required: "<yellow>该物品已到达分叉点, 请先用 <white>/estrengthen branch</white> 选择一条强化路线</yellow>"
     not_branching: "<red>当前配方没有分支路线</red>"
     not_pending: "<red>当前星级不需要选择分支</red>"
     apply_failed: "<red>写入分支选择失败, 未改动该物品</red>"

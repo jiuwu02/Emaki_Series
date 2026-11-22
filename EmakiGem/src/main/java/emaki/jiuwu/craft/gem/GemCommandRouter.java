@@ -331,7 +331,7 @@ final class GemCommandRouter implements TabExecutor {
     }
 
     private String helpRoot(String label) {
-        return "/" + (label == null || label.isBlank() ? "emakigem" : label);
+        return "/" + (label == null || label.isBlank() ? "egem" : label);
     }
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {

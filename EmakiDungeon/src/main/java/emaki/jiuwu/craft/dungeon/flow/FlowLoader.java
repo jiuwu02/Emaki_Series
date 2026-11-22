@@ -42,38 +42,9 @@ public final class FlowLoader {
 
     private static final double COORD_LIMIT = 30_000_000.0D;
 
-    private static final Map<String, String> LEGACY_SECTIONS = buildLegacySections();
-
-    public static Map<String, String> legacySections() {
-        return LEGACY_SECTIONS;
-    }
-
-    public static String legacyBossSection() {
-        return LEGACY_BOSS_SECTION;
-    }
-
-    private static Map<String, String> buildLegacySections() {
-        Map<String, String> map = new LinkedHashMap<>();
-        map.put("checkpoints", "check_points");
-        map.put("hints", "tip_points");
-        map.put("rewards", "reward_points");
-        map.put("options", "option_points");
-        map.put("block_interactions", "block_points");
-        map.put("item_interactions", "item_points");
-        map.put("gates", "gate_zones");
-        map.put("mechanisms", "mechanism_zones");
-        map.put("room_timers", "room_timer_zones");
-        map.put("rooms", "room_zones");
-        return map;
-    }
-
-    private static final String LEGACY_BOSS_SECTION = "boss_points";
-
-    private final List<String> deprecations = new ArrayList<>();
     private final List<String> warnings = new ArrayList<>();
 
     public FlowDefinition load(File flowFile) {
-        deprecations.clear();
         warnings.clear();
         YamlSection root = YamlFiles.load(flowFile);
         if (root == null || root.isEmpty()) {
@@ -86,7 +57,6 @@ public final class FlowLoader {
         parseExitPoints(root, definition);
         parseGates(root, definition);
         parseSpawnPoints(root, definition);
-        parseLegacyBossPoints(root, definition);
         parseTriggerZones(root, definition);
         parseBlockInteractions(root, definition);
         parseRewards(root, definition);
@@ -106,10 +76,6 @@ public final class FlowLoader {
             throw new IllegalArgumentException("duplicate module id in flow definition");
         }
         return definition;
-    }
-
-    public List<String> deprecations() {
-        return List.copyOf(deprecations);
     }
 
     public List<String> warnings() {
@@ -205,53 +171,6 @@ public final class FlowLoader {
         }
     }
 
-    private void parseLegacyBossPoints(YamlSection root, FlowDefinition definition) {
-        Map<String, YamlSection> legacy = sections(root, LEGACY_BOSS_SECTION);
-        if (legacy.isEmpty()) {
-            return;
-        }
-        deprecations.add(LEGACY_BOSS_SECTION + "→spawn_points");
-        for (Map.Entry<String, YamlSection> entry : legacy.entrySet()) {
-            YamlSection section = entry.getValue();
-            String bossId = section.getString("boss_id", "");
-            if (bossId.isBlank()) {
-                warnings.add(LEGACY_BOSS_SECTION + "." + entry.getKey() + " 缺少 boss_id, 已跳过");
-                continue;
-            }
-            String source = legacyBossSource(section.getString("source", "vanilla"));
-            MobSpawnRef mob = new MobSpawnRef(bossId, 1, 1, source, true);
-            WaveDef wave = new WaveDef(1, true, List.of(mob));
-            SpawnPointModuleDef normalized = new SpawnPointModuleDef(
-                    head(section),
-                    entry.getKey(),
-                    point(section.getSection("location")),
-                    List.of(wave),
-                    conditions(section.getList("conditions")),
-                    TriggerSpec.defaults());
-            if (definition.spawnPoints().putIfAbsent(entry.getKey(), normalized) != null) {
-                throw new IllegalArgumentException("duplicate module id in flow definition: " + entry.getKey());
-            }
-        }
-    }
-
-    public static String canonicalBossSource(String raw) {
-        String value = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
-        return switch (value) {
-            case "vanilla" -> "vanilla";
-            case "mythic" -> "mythic";
-            case "emakimobs", "emaki-mobs" -> "emaki-mobs";
-            default -> "auto";
-        };
-    }
-
-    private String legacyBossSource(String raw) {
-        String mapped = canonicalBossSource(raw);
-        if ("auto".equals(mapped)) {
-            deprecations.add(LEGACY_BOSS_SECTION + ".source=" + raw + "→auto");
-        }
-        return mapped;
-    }
-
     private WaveDef parseWave(Map<?, ?> waveMap) {
         Object intervalRaw = waveMap.get("interval");
         int intervalTicks = parseTicks(String.valueOf(intervalRaw == null ? "2s" : intervalRaw));
@@ -290,11 +209,7 @@ public final class FlowLoader {
         String value = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
         return switch (value) {
             case "auto", "vanilla", "mythic", "emaki-mobs" -> value;
-            case "emakimobs" -> "emaki-mobs";
-            default -> {
-                deprecations.add("source=" + raw + "→auto");
-                yield "auto";
-            }
+            default -> "auto";
         };
     }
 
@@ -397,25 +312,11 @@ public final class FlowLoader {
     }
 
     private String tipType(YamlSection section) {
-        boolean hasType = section.contains("type");
-        boolean hasChannel = section.contains("channel");
-        if (hasChannel) {
-            deprecations.add("channel→type");
-        }
-        String raw = hasType
-                ? section.getString("type", "message")
-                : hasChannel ? section.getString("channel", "chat") : "message";
+        String raw = section.getString("type", "message");
         String value = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
         return switch (value) {
             case "message", "bossbar", "actionbar", "title" -> value;
-            case "chat" -> {
-                deprecations.add("chat→message");
-                yield "message";
-            }
-            default -> {
-                deprecations.add("type=" + raw + "→message");
-                yield "message";
-            }
+            default -> "message";
         };
     }
 
@@ -611,10 +512,7 @@ public final class FlowLoader {
         String value = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
         return switch (value) {
             case "player", "team", "entity" -> value;
-            default -> {
-                deprecations.add("trigger.actor=" + raw + "→player");
-                yield "player";
-            }
+            default -> "player";
         };
     }
 
@@ -719,34 +617,7 @@ public final class FlowLoader {
     }
 
     private Map<String, YamlSection> moduleSections(YamlSection root, String section) {
-        Map<String, YamlSection> merged = new LinkedHashMap<>();
-        for (Map.Entry<String, YamlSection> entry : sections(root, section).entrySet()) {
-            merged.put(entry.getKey(), entry.getValue());
-        }
-        String legacy = legacyNameOf(section);
-        if (legacy == null) {
-            return merged;
-        }
-        Map<String, YamlSection> old = sections(root, legacy);
-        if (old.isEmpty()) {
-            return merged;
-        }
-        deprecations.add(legacy + "→" + section);
-        for (Map.Entry<String, YamlSection> entry : old.entrySet()) {
-            if (merged.putIfAbsent(entry.getKey(), entry.getValue()) != null) {
-                warnings.add(legacy + "." + entry.getKey() + " 与 " + section + "." + entry.getKey() + " 重名, 已保留新键");
-            }
-        }
-        return merged;
-    }
-
-    private String legacyNameOf(String section) {
-        for (Map.Entry<String, String> entry : LEGACY_SECTIONS.entrySet()) {
-            if (entry.getValue().equals(section)) {
-                return entry.getKey();
-            }
-        }
-        return null;
+        return sections(root, section);
     }
 
     private Map<String, YamlSection> sections(YamlSection parent, String path) {

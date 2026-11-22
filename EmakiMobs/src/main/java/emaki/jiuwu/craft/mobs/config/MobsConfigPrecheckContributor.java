@@ -42,7 +42,6 @@ public final class MobsConfigPrecheckContributor extends AbstractModuleConfigPre
                 ? null : plugin.lootTableLoader().issues(), issues);
         addLoaderIssues("spawn_rules", plugin.spawnRuleLoader() == null
                 ? null : plugin.spawnRuleLoader().issues(), issues);
-        addDeprecations(issues);
         addStackingHints(issues);
         addModelApiIssue(issues);
         if (issues.isEmpty()) {
@@ -68,15 +67,6 @@ public final class MobsConfigPrecheckContributor extends AbstractModuleConfigPre
         var severity = plugin.targetSelectorLoader().hasBlockingIssues() ? ERROR : WARN;
         for (String issue : plugin.targetSelectorLoader().issues()) {
             addIssue("target_selectors", severity, issue, issues);
-        }
-    }
-
-    private void addDeprecations(List<ConfigPrecheckIssue> issues) {
-        if (plugin.mobDefinitionLoader() == null) {
-            return;
-        }
-        for (String deprecation : plugin.mobDefinitionLoader().deprecations()) {
-            addIssue("mobs", WARN, deprecation, issues);
         }
     }
 

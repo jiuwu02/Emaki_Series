@@ -1,7 +1,7 @@
 # EmakiStorage 主配置
 # 控制仓库界面, 容量, 存取行为, 自动拾取, 搜索, 持久化与流水日志
 
-version: "2.0.5"
+version: "2.0.6"
 
 # 语言文件名, 对应 lang/<language>.yml
 language: "zh_CN"
@@ -153,7 +153,7 @@ behavior:
 # ============================================================
 # 自动拾取
 # ============================================================
-# 需要 emakistorage.autopickup 权限, 并由玩家使用 /storage autopickup 管理个人开关
+# 需要 emakistorage.autopickup 权限, 并由玩家使用 /estorage autopickup 管理个人开关
 auto_pickup:
   enabled: true
   # 拾取模式: on_pickup (响应原版拾取事件) 或 radius (周期扫描附近掉落物)

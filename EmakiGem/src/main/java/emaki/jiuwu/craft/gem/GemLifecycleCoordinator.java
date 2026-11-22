@@ -10,7 +10,6 @@ import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
@@ -18,7 +17,6 @@ import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
@@ -68,8 +66,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "gem";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
-    private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
-            new ConfigKeyMigration.Rename("permission.op_bypass", "op_bypass"));
 
     @Override
     public GemRuntimeComponents initialize(EmakiGemPlugin plugin) {
@@ -98,13 +94,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 defaultDataFiles(plugin),
                 EXTRA_DIRECTORIES,
                 bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData),
-                        (relativePath, runtime, bundled) -> {
-                            if (!"config.yml".equals(relativePath)) {
-                                return;
-                            }
-                            ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
-                            ConfigKeyMigration.pruneEmptySection(runtime, "permission");
-                        },
+                        null,
                         null)
         );
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
@@ -387,15 +377,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     }
 
     private boolean resolveOpBypass(YamlSection configuration, YamlSection permission, boolean fallback) {
-        if (configuration.contains("op_bypass")) {
-            return configuration.getBoolean("op_bypass", fallback);
-        }
-        if (permission != null && permission.contains("op_bypass")) {
-            boolean legacyValue = permission.getBoolean("op_bypass", fallback);
-            LogTags.send(JavaPlugin.getPlugin(EmakiGemPlugin.class), LogTag.CONFIG, Level.WARNING, "config.legacy_permission_op_bypass_key", Map.of("value", legacyValue));
-            return legacyValue;
-        }
-        return fallback;
+        return configuration.getBoolean("op_bypass", fallback);
     }
 
     private AppConfig.RerollSettings parseRerollSettings(YamlSection section, AppConfig.RerollSettings defaults) {

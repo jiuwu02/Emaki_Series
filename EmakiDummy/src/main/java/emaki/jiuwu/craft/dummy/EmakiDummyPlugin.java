@@ -39,7 +39,7 @@ import emaki.jiuwu.craft.corelib.log.LogTag;
 
 public class EmakiDummyPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> {
 
-    private static final String ROOT_COMMAND = "emdum";
+    private static final String ROOT_COMMAND = "edummy";
     private static final int RECONCILE_PERIOD_TICKS = 100;
 
     private final AtomicBoolean shutdownStarted = new AtomicBoolean(false);
@@ -190,7 +190,7 @@ public class EmakiDummyPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     private void registerCommandHandler() {
-        registerCommand(ROOT_COMMAND, "EmakiDummy 命令", List.of("dummy", "emdummy"),
+        registerCommand(ROOT_COMMAND, "EmakiDummy 命令", List.of("edm"),
                 new DummyCommandAdapter(router, "emakidummy.use"));
     }
 

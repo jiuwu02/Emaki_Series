@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "5.0.9"
+version: "5.0.10"
 
 tags:
   combat: '[ combat ]'
@@ -363,14 +363,14 @@ command:
   resync:
     no_permission: "<red>You do not have permission to run this command</red>"
     self_success: "<green>Attributes re-synced for you</green>"
-    console_usage: "<yellow>Console usage: /emakiattribute resync <player|all></yellow>"
+    console_usage: "<yellow>Console usage: /eattribute resync <player|all></yellow>"
     player_not_found: "<red>Player %player% not found</red>"
     player_success: "<green>Attributes re-synced for %player%</green>"
     all_success: "<green>Attributes re-synced for all online players</green>"
 
   preview:
     no_permission: "<red>You do not have permission to run this command</red>"
-    console_usage: "<yellow>Console usage: /emakiattribute preview <player> <slot></yellow>"
+    console_usage: "<yellow>Console usage: /eattribute preview <player> <slot></yellow>"
     player_not_found: "<red>Player %player% not found</red>"
     invalid_slot: "<red>Invalid slot %slot%, valid values:
       main_hand/off_hand/helmet/chestplate/leggings/boots.</red>"
@@ -384,7 +384,7 @@ command:
   dump:
     no_permission: "<red>You do not have permission to run this command</red>"
     player_not_found: "<red>Player %player% not found</red>"
-    console_usage: "<yellow>Console usage: /emakiattribute dump <player></yellow>"
+    console_usage: "<yellow>Console usage: /eattribute dump <player></yellow>"
     player: "<green>Viewing attribute snapshot for %player%</green>"
     # Player side: one compact line, expanded on hover
     signature: "<gray>Signature <dark_gray> (hover to view)</dark_gray></gray>"
@@ -405,21 +405,21 @@ command:
   debug:
     no_permission: "<red>You do not have permission to run this command</red>"
     player_not_found: "<red>Player %player% not found</red>"
-    console_usage: "<yellow>Console usage: /emakiattribute debug <player>
+    console_usage: "<yellow>Console usage: /eattribute debug <player>
       [on|off|toggle]</yellow>"
     enabled: "<green>Combat debug logging enabled for %player%, output goes to
       console.</green>"
     disabled: "<yellow>Combat debug logging disabled for %player%</yellow>"
-    player_usage: "<red>Usage: /ea debug <player> [on|off|toggle]</red>"
+    player_usage: "<red>Usage: /eattribute debug <player> [on|off|toggle]</red>"
     combat_trace_toggled: "<gray>[EA]</gray> <aqua>%player%</aqua> combat trace %state%"
     combat_trace_on: "<green>enabled</green>"
     combat_trace_off: "<red>disabled</red>"
 
   points:
     no_permission: "<red>You do not have permission to use attribute points</red>"
-    console_usage: "<yellow>Console usage: /emakiattribute points <view|open|add|reset|grant|set|setreset> <player> ...</yellow>"
-    usage: "<yellow>Usage: /emakiattribute points [view|open|add|reset]; admins may use grant/set/setreset</yellow>"
-    admin_usage: "<yellow>Admin usage: /emakiattribute points <grant|set|setreset> <player> <amount> or /ea points add <player> <parent attribute> [amount]</yellow>"
+    console_usage: "<yellow>Console usage: /eattribute points <view|open|add|reset|grant|set|setreset> <player> ...</yellow>"
+    usage: "<yellow>Usage: /eattribute points [view|open|add|reset]; admins may use grant/set/setreset</yellow>"
+    admin_usage: "<yellow>Admin usage: /eattribute points <grant|set|setreset> <player> <amount> or /eattribute points add <player> <parent attribute> [amount]</yellow>"
     player_not_found: "<red>Online player %player% not found</red>"
     unknown_attribute: "<red>Unknown parent attribute: %attribute%</red>"
     gui_failed: "<red>Attribute points GUI is not loaded. Check gui/attribute_points.yml</red>"
@@ -474,8 +474,8 @@ command:
   help_trace_entry_export: "- <hover:show_text:'<gray>export</gray> <dark_gray>·</dark_gray> <gray>Export the latest Trace of that player in full detail</gray>'><gray>export</gray></hover> <hover:show_text:'<gray>Argument: player</gray><newline><gray>target online player name</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Tab completion suggests values</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ player ]</gray></hover>"
   help_trace_entry_clear: "- <hover:show_text:'<gray>clear</gray> <dark_gray>·</dark_gray> <gray>Clear the damage Traces of that player</gray>'><gray>clear</gray></hover> <hover:show_text:'<gray>Argument: player</gray><newline><gray>target online player name</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Tab completion suggests values</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ player ]</gray></hover>"
   help_points_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiAttribute points Command Help</gradient> <gray><st>        </st></gray>"
-  help_points_entry_view: "- <hover:show_text:'<gray>view</gray> <dark_gray>·</dark_gray> <gray>View attribute points and allocation</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Alias </gray><white>info</white><newline><dark_gray>▸</dark_gray> <gray>Optional argument: player - admins can inspect others</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiattribute.points</white>'><gray>view</gray></hover> <click:run_command:'%root% points view'><green>[ ✦ Run ]</green></click>"
-  help_points_entry_open: "- <hover:show_text:'<gray>open</gray> <dark_gray>·</dark_gray> <gray>Open the attribute point allocation GUI</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Alias </gray><white>gui</white><newline><dark_gray>▸</dark_gray> <gray>Optional argument: player - admins can open it for others</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiattribute.points</white>'><gray>open</gray></hover> <click:run_command:'%root% points open'><green>[ ✦ Run ]</green></click>"
+  help_points_entry_view: "- <hover:show_text:'<gray>view</gray> <dark_gray>·</dark_gray> <gray>View attribute points and allocation</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Optional argument: player - admins can inspect others</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiattribute.points</white>'><gray>view</gray></hover> <click:run_command:'%root% points view'><green>[ ✦ Run ]</green></click>"
+  help_points_entry_open: "- <hover:show_text:'<gray>open</gray> <dark_gray>·</dark_gray> <gray>Open the attribute point allocation GUI</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Optional argument: player - admins can open it for others</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiattribute.points</white>'><gray>open</gray></hover> <click:run_command:'%root% points open'><green>[ ✦ Run ]</green></click>"
   help_points_entry_add: "- <hover:show_text:'<gray>add</gray> <dark_gray>·</dark_gray> <gray>Allocate attribute points into a parent attribute</gray><newline><newline><dark_gray>▸</dark_gray> <gray>For yourself: </gray><white>%root% points add [attribute ID] [value]</white><newline><dark_gray>▸</dark_gray> <gray>For admins: </gray><white>%root% points add [player] [attribute ID] [value]</white><newline><dark_gray>▸</dark_gray> <gray>Value is optional and defaults to 1</gray><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiattribute.points</white>'><gray>add</gray></hover> <hover:show_text:'<gray>Argument: attribute ID</gray><newline><gray>parent attribute ID to allocate into</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Tab completion suggests values</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ attribute ID ]</gray></hover> <hover:show_text:'<gray>Argument: value</gray><newline><gray>points to allocate</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Tab completion suggests values</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ value ]</gray></hover>"
   help_points_entry_set: "- <hover:show_text:'<gray>set</gray> <dark_gray>·</dark_gray> <gray>Set the available attribute points of a player</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiattribute.points.admin</white> <gray>or </gray><white>emakiattribute.admin</white>'><gray>set</gray></hover> <hover:show_text:'<gray>Argument: player</gray><newline><gray>target online player name</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Tab completion suggests values</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ player ]</gray></hover> <hover:show_text:'<gray>Argument: value</gray><newline><gray>available points to set</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Tab completion suggests values</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ value ]</gray></hover>"
   help_points_entry_grant: "- <hover:show_text:'<gray>grant</gray> <dark_gray>·</dark_gray> <gray>Add available attribute points to a player</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakiattribute.points.admin</white> <gray>or </gray><white>emakiattribute.admin</white>'><gray>grant</gray></hover> <hover:show_text:'<gray>Argument: player</gray><newline><gray>target online player name</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Tab completion suggests values</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ player ]</gray></hover> <hover:show_text:'<gray>Argument: value</gray><newline><gray>available points to add</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Tab completion suggests values</gray><newline><dark_gray>▸</dark_gray> <gray>No click-to-run button</gray>'><gray>[ value ]</gray></hover>"
@@ -490,7 +490,7 @@ command:
   help_footer: "<gray><st>                                        </st></gray>"
 
   source:
-    usage: "<red>Usage: /ea source <player> <attribute></red>"
+    usage: "<red>Usage: /eattribute source <player> <attribute></red>"
     header: "<gray>[EA]</gray> <aqua>%player%</aqua> attribute sources"
     header_filtered: "<gray>[EA]</gray> <aqua>%player%</aqua> attribute sources <yellow>%attribute%</yellow>"
     empty: "<gray>No matching attribute sources</gray>"
@@ -498,10 +498,10 @@ command:
     condition_failed: " <red>inactive</red>"
 
   trace:
-    usage: "<red>Usage: /ea trace <last|list|export|clear> <player></red>"
+    usage: "<red>Usage: /eattribute trace <last|list|export|clear> <player></red>"
     unknown_action: "<red>Unknown trace subcommand: %action%</red>"
     list_header: "<gray>[EA]</gray> <aqua>%player%</aqua> recent damage traces: <yellow>%count%</yellow>"
-    empty: "<gray>No damage trace. Run /ea debug <player> on to start recording</gray>"
+    empty: "<gray>No damage trace. Run /eattribute debug <player> on to start recording</gray>"
     none: "<gray>No trace</gray>"
     cleared: "<green>Damage traces cleared</green>"
     clear_empty: "<gray>No damage trace to clear</gray>"
@@ -592,8 +592,6 @@ editor:
     cond_entry_pattern_desc: "<dark_gray>Regex used by lore_regex</dark_gray>"
     cond_entry_require_match: "Missing Key Matches"
     cond_entry_require_match_desc: "<dark_gray>false skips the entry when the key is absent</dark_gray>"
-    aliases: "Aliases"
-    aliases_desc: "<dark_gray>Alias list of this damage type</dark_gray>"
     allowed_events: "Allowed Events"
     allowed_events_desc: "<dark_gray>Bukkit damage causes that may trigger this damage type</dark_gray>"
     hard_lock: "Hard Lock"

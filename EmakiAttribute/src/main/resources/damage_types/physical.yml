@@ -5,10 +5,6 @@ id: physical
 
 display_name: "物理伤害"
 
-aliases:
-  - physical_damage
-  - phys
-
 # 允许触发此伤害类型的事件
 allowed_events:
   - ENTITY_ATTACK

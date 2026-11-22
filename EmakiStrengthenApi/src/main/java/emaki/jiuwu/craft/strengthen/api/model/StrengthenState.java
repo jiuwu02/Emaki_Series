@@ -97,11 +97,6 @@ public record StrengthenState(boolean eligible,
         return new StrengthenState(false, eligibleReason, false, baseSource, baseSourceSignature, "", 0, 0, Set.of(), 0, 0, 0L, "", 0);
     }
 
-    /** {@return the matched recipe id (alias of {@link #recipeId()})} */
-    public String profileId() {
-        return recipeId;
-    }
-
     /** {@return the milestone stars already reached (alias of {@link #milestoneFlags()})} */
     public Set<Integer> firstReachFlags() {
         return milestoneFlags;

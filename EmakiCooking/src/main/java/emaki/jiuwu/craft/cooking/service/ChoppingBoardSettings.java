@@ -26,11 +26,7 @@ final class ChoppingBoardSettings {
     }
 
     ItemRequirement toolRequirement() {
-        return CookingMatchers.requirementWithLegacyFallback(
-                configuration.get().getSection("stations.chopping_board"),
-                "tool",
-                "tool_item_sources",
-                "tool_matcher");
+        return ItemRequirement.fromConfig(configuration.get().get("stations.chopping_board.tool"));
     }
 
     boolean cutDamageEnabled() {

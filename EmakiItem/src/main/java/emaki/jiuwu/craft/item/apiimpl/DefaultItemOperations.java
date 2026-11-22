@@ -74,8 +74,7 @@ public final class DefaultItemOperations implements ItemOperations {
             return prepared.retypeFailure();
         }
         PreparedRefresh refresh = prepared.orElse(null);
-        if (!refresh.aliasMigration()
-                && !refresh.definition().updatePolicy().resolve().triggerEnabled(STACK_REFRESH_TRIGGER)) {
+        if (!refresh.definition().updatePolicy().resolve().triggerEnabled(STACK_REFRESH_TRIGGER)) {
             return EmakiResult.rejected("item.refresh.trigger_disabled");
         }
         try {
@@ -181,15 +180,14 @@ public final class DefaultItemOperations implements ItemOperations {
         if (Texts.isBlank(id)) {
             return EmakiResult.rejected("item.refresh.not_managed");
         }
-        boolean aliasMigration = plugin.idResolver().aliasFor(id) != null;
         EmakiItemDefinition definition = plugin.idResolver().resolveDefinition(id);
         if (definition == null) {
             return EmakiResult.notFound("item.definition.not_found");
         }
-        if (force && !aliasMigration && !definition.updatePolicy().resolve().enabled()) {
+        if (force && !definition.updatePolicy().resolve().enabled()) {
             return EmakiResult.rejected("item.refresh.disabled");
         }
-        return EmakiResult.success(new PreparedRefresh(definition, aliasMigration));
+        return EmakiResult.success(new PreparedRefresh(definition));
     }
 
     private EmakiResult<Unit> checkPlayer(Player player, String trigger) {
@@ -208,7 +206,7 @@ public final class DefaultItemOperations implements ItemOperations {
         return plugin.scheduling().ownsEntity(player) ? EmakiResult.ok() : EmakiResult.wrongThread();
     }
 
-    private record PreparedRefresh(EmakiItemDefinition definition, boolean aliasMigration) {
+    private record PreparedRefresh(EmakiItemDefinition definition) {
     }
 
     private EmakiResult<ItemRefreshSummary> mapBatch(ItemRefreshResult result, String partialReason) {

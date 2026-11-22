@@ -4,11 +4,6 @@ id: projectile
 
 display_name: "投射物伤害"
 
-aliases:
-  - ranged
-  - projectile_damage
-  - arrow
-
 allowed_events:
   - PROJECTILE
 

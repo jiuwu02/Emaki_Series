@@ -119,7 +119,7 @@ Project/
 
 - `EmakiCoreLib`: 共享配置位于 `EmakiCoreLib/src/main/resources/config.yml`; 各业务插件的共享 GUI 位于自己的 `gui/` 目录, 物品定义统一使用 canonical `item.source` / `item.amount` / `item.components` 结构
 - `EmakiAttribute`: 属性, 伤害类型, 条件与 Lore 格式配置位于 `attributes/*.yml`, `damage_types/*.yml`, `conditions/*.yml`, `lore_formats/*.yml`, 默认档案位于 `config.yml > default_profile`
-- `EmakiItem`: 物品与套装定义位于 `items/`, `sets/`, ID 别名位于 `id_aliases.yml`; 物品定义使用 `item.source` / `item.amount` / `item.components`
+- `EmakiItem`: 物品与套装定义位于 `items/`, `sets/`; 物品定义使用 `item.source` / `item.amount` / `item.components`
 - `EmakiForge`: 锻造配方, GUI 与语言资源位于 `recipes/`, `gui/`, `lang/` 等目录, 当前重点围绕材料批次, 容量与结果装配链路
 - `EmakiStrengthen`: 默认强化配方位于 `recipes/*.yml` (内置 `example_recipe.yml`, `example_branch_recipe.yml` 与 `example_armor_recipe.yml`), 强化定义目录为 `enhancement_recipes/`, 广播与全局成功率位于 `config.yml`
 - `EmakiGem`: 宝石, 装备模板, 开孔器与 GUI 资源位于 `gems/`, `items/`, `gui/gem/`, `gui/open/` 与 `config.yml` (升级界面复用 `gui/gem/` 模板)
@@ -129,15 +129,9 @@ Project/
 - `EmakiCodex`: 图鉴, 分类, 进度规则与奖励资源位于模块配置目录及对应 definitions 文件中
 - `EmakiMobs`: 生物定义, 掉落表与刷新规则分别位于 `mobs/`, `loot_tables/`, `spawn_rules/`, 技能行为与目标选择器配置位于模块资源目录中
 
-## 物品配置格式与 ID 迁移
+## 物品配置格式
 
 当前 `EmakiItem` 物品定义使用 canonical `item.source`, `item.amount`, `item.components` 结构: 来源写在 `item.source`, 数量写在 `item.amount`, 名称, Lore, 模型数据与组件写在 `item.components`
-
-物品 ID 改名与玩家背包迁移是独立能力:
-
-- `id_aliases.yml` 保存旧 ID 到新 ID 的映射
-- `/ei migrate id <old> <new> --dry-run|--apply` 迁移配置引用
-- `/ei migrate inventory <player|all>` 刷新在线玩家背包中的旧 ID
 
 ## EmakiItem 套装状态
 

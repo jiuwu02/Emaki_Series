@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "2.0.5"
+version: "2.0.6"
 
 tags:
   loot: '[ 掉落 ]'
@@ -13,7 +13,7 @@ general:
   player_only: "<red>此命令只能由玩家执行</red>"
   player_not_found: "<red>未找到目标玩家</red>"
   invalid_args: "<red>参数错误</red>"
-  unknown_command: "<red>未知命令, 请使用 /emakimobs help 查看帮助</red>"
+  unknown_command: "<red>未知命令, 请使用 /emobs help 查看帮助</red>"
   reloading: "<gray>正在重载配置...</gray>"
   reload_success: "<green>配置已重载</green>"
 
@@ -92,7 +92,6 @@ loader:
   load_failed: "读取 %type% 文件失败: %file%  (%error%)"
   invalid_config: "%type% 配置无效: %file%"
   unknown_entity_type: "未知的实体类型 %type%: %file%"
-  deprecated_key: "%file% 仍在使用旧键 %old_key%, 请改为 %new_key%  (旧键将在下一个大版本移除)"
   target_selectors_load_failed: "读取目标选择器文件 %file% 失败: %error%"
   target_selectors_section_missing: "目标选择器文件 %file% 缺少 selectors 节"
   target_selector_invalid_slot: "装备权重表 %table% 包含无效槽位 %slot%, 已跳过"
@@ -109,7 +108,6 @@ loader:
     mob: "生物"
     loot_table: "战利品表"
     spawn_rule: "生成规则"
-  mob_file_legacy_key_in_use: "生物文件 '%file%' 仍在使用旧键 '%old_key%', 请改为 '%new_key%', 旧键将在下一个大版本移除"
   biome_unknown: "生物群系 '%name%' 未知 (文件 '%file%'), 已跳过 (该规则将不受其限制)"
   structure_unknown: "结构 '%key%' 未知 (文件 '%file%'), 已跳过"
   spawn_trigger_unknown: "触发器 '%trigger%' 未知 (生物 '%mob%', 文件 '%file%'), 已跳过"
@@ -121,22 +119,22 @@ command:
   spawn_success: "<green>已在目标位置生成 <white>%mob_id%</white></green>"
   spawn_blocked: "<red>和平难度下无法生成怪物型生物:<white>%mob_id%</white></red>"
   spawn_no_target: "<red>无法确定生成位置, 请指定在线玩家</red>"
-  spawn_usage: "<gray>用法: /emakimobs spawn <mob_id> [玩家]</gray>"
+  spawn_usage: "<gray>用法: /emobs spawn <mob_id> [玩家]</gray>"
   reload_success: "<green>重载完成, 共 <white>%count%</white> 个生物定义</green>"
   list_header: "<gray>生物定义 <white>%page%</white>/<white>%pages%</white> 页, 共 <white>%count%</white> 个:</gray>"
   list_entry: "<dark_gray>-</dark_gray> <white>%mob_id%</white> <gray> (%entity_type%)</gray>"
   list_empty: "<yellow>当前没有已加载的生物定义</yellow>"
   list_page_out_of_range: "<red>页码 %page% 超出范围, 当前共 %pages% 页</red>"
   invalid_page: "<red>无效页码:<white>%page%</white>. 页码必须从 1 开始</red>"
-  info_usage: "<gray>用法: /emakimobs info <mob_id></gray>"
+  info_usage: "<gray>用法: /emobs info <mob_id></gray>"
   info_result: "<gray><white>%mob_id%</white>: 类型=%entity_type%, 组件=%components%, EA 属性=%attributes%, 技能触发器=%triggers%, 掉落表=%loot_table%</gray>"
   value_yes: "是"
   value_no: "否"
   count_success: "<green>受管生物 <white>%mob_id%</white> 当前数量:<white>%count%</white></green>"
-  kill_usage: "<gray>用法: /emakimobs kill <mob_id|all> [半径]  -- all 清理全部受管生物</gray>"
+  kill_usage: "<gray>用法: /emobs kill <mob_id|all> [半径]  -- all 清理全部受管生物</gray>"
   kill_success: "<green>已移除 <white>%count%</white> 个 <white>%mob_id%</white> 受管生物</green>"
   kill_all_success: "<green>已移除全部受管生物, 共 <white>%count%</white> 只</green>"
-  find_usage: "<gray>用法: /emakimobs find <mob_id> [半径]  -- 查找范围内指定受管生物并列出 (点击条目可传送)</gray>"
+  find_usage: "<gray>用法: /emobs find <mob_id> [半径]  -- 查找范围内指定受管生物并列出 (点击条目可传送)</gray>"
   unable_to_schedule: "无法调度%description%"
   # 占位符: %mob_id%, %count%, %radius%
   find_header: "<gray>范围内受管生物 <white>%mob_id%</white>:<white>%count%</white> 只 (半径 %radius%):</gray>"
@@ -144,10 +142,10 @@ command:
   # 占位符: %mob_id%, %uuid%, %health%, %max_health%
   find_entry_hover: "<white>%mob_id%</white> <gray>UUID %uuid%</gray><newline><gray>生命 %health%/%max_health%</gray><newline><gray>点击传送至该生物</gray>"
   # 占位符: %hover%, %uuid%, %mob_id%, %distance%, %world%, %x%, %y%, %z%
-  find_entry: "<dark_gray>-</dark_gray> <hover:show_text:'%hover%'><click:run_command:'/emakimobs tp %uuid%'><green>点击传送</green></click></hover> <white>%mob_id%</white> <gray>%world% %x%, %y%, %z% (%distance% 格)</gray>"
+  find_entry: "<dark_gray>-</dark_gray> <hover:show_text:'%hover%'><click:run_command:'/emobs tp %uuid%'><green>点击传送</green></click></hover> <white>%mob_id%</white> <gray>%world% %x%, %y%, %z% (%distance% 格)</gray>"
   # 占位符: %count%
   find_truncated: "<dark_gray>... 其余 %count% 只未显示</dark_gray>"
-  tp_usage: "<gray>用法: /emakimobs tp <uuid>  -- 传送至对应受管生物 (由 find 列表点击触发)</gray>"
+  tp_usage: "<gray>用法: /emobs tp <uuid>  -- 传送至对应受管生物 (由 find 列表点击触发)</gray>"
   # 占位符: %value%
   tp_success: "<green>已传送到受管生物 <white>%value%</white> 的位置</green>"
   tp_failed: "<red>传送失败: 目标已不可达</red>"
@@ -160,7 +158,7 @@ command:
   unknown_mob: "<red>未知生物 ID:<white>%mob_id%</white></red>"
   debug_unavailable: "<red>DEBUG 控制器当前不可用</red>"
   operation_failed: "<red>命令操作 %operation% 执行失败, 请查看服务器日志</red>"
-  usage: "<gray>用法: /emakimobs <help|spawn|reload|list|info|kill|count|find|debug|edit> ... (输入 /emakimobs help 查看帮助)</gray>"
+  usage: "<gray>用法: /emobs <help|spawn|reload|list|info|kill|count|find|debug|edit> ... (输入 /emobs help 查看帮助)</gray>"
   no_permission: "<red>你没有权限执行此命令</red>"
   help_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiMobs 命令帮助</gradient> <gray><st>        </st></gray>"
   help_entry_help: "- <hover:show_text:'<gray>help</gray> <dark_gray>·</dark_gray> <gray>显示本帮助页</gray>'><gray>help</gray></hover> <click:run_command:'%root% help'><green>[ ✦ 点击执行 ]</green></click>"

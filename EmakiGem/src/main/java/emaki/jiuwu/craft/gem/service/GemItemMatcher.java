@@ -33,9 +33,6 @@ public final class GemItemMatcher {
     private static final PdcPartition GEM_ITEM_PARTITION = PDC.partition("gem_item");
     private static final PdcPartition OPENER_PARTITION = PDC.partition("gem_opener");
 
-    private static final String LEGACY_GEM_ITEM_PATH = "gem.item";
-    private static final String LEGACY_GEM_OPENER_PATH = "gem.opener";
-
     private final EmakiGemPlugin plugin;
     private final ItemSourceService itemSourceService;
 
@@ -72,26 +69,26 @@ public final class GemItemMatcher {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
         }
-        GemItemInstance snapshot = PDC.readBlobMigrating(
-                itemStack, GEM_ITEM_PARTITION, LEGACY_GEM_ITEM_PATH, "instance_data", GemItemInstance.CODEC);
+        GemItemInstance snapshot = PDC.readBlob(
+                itemStack, GEM_ITEM_PARTITION, "instance_data", GemItemInstance.CODEC);
         if (snapshot != null && Texts.isNotBlank(snapshot.gemId())) {
             return snapshot;
         }
-        String gemId = PDC.getMigrating(
-                itemStack, GEM_ITEM_PARTITION, LEGACY_GEM_ITEM_PATH, "id", PersistentDataType.STRING);
+        String gemId = PDC.get(
+                itemStack, GEM_ITEM_PARTITION, "id", PersistentDataType.STRING);
         if (Texts.isBlank(gemId)) {
             return null;
         }
-        Integer level = PDC.getMigrating(
-                itemStack, GEM_ITEM_PARTITION, LEGACY_GEM_ITEM_PATH, "level", PersistentDataType.INTEGER);
-        Long updatedAt = PDC.getMigrating(
-                itemStack, GEM_ITEM_PARTITION, LEGACY_GEM_ITEM_PATH, "updated_at", PersistentDataType.LONG);
-        String instanceId = PDC.getMigrating(
-                itemStack, GEM_ITEM_PARTITION, LEGACY_GEM_ITEM_PATH, "instance_id", PersistentDataType.STRING);
-        Integer stage = PDC.getMigrating(
-                itemStack, GEM_ITEM_PARTITION, LEGACY_GEM_ITEM_PATH, "stage", PersistentDataType.INTEGER);
-        Integer dataVersion = PDC.getMigrating(
-                itemStack, GEM_ITEM_PARTITION, LEGACY_GEM_ITEM_PATH, "data_version", PersistentDataType.INTEGER);
+        Integer level = PDC.get(
+                itemStack, GEM_ITEM_PARTITION, "level", PersistentDataType.INTEGER);
+        Long updatedAt = PDC.get(
+                itemStack, GEM_ITEM_PARTITION, "updated_at", PersistentDataType.LONG);
+        String instanceId = PDC.get(
+                itemStack, GEM_ITEM_PARTITION, "instance_id", PersistentDataType.STRING);
+        Integer stage = PDC.get(
+                itemStack, GEM_ITEM_PARTITION, "stage", PersistentDataType.INTEGER);
+        Integer dataVersion = PDC.get(
+                itemStack, GEM_ITEM_PARTITION, "data_version", PersistentDataType.INTEGER);
         return new GemItemInstance(
                 gemId,
                 level == null ? 1 : level,
@@ -106,8 +103,8 @@ public final class GemItemMatcher {
     }
 
     public String readOpenerId(ItemStack itemStack) {
-        return Texts.lower(PDC.getMigrating(
-                itemStack, OPENER_PARTITION, LEGACY_GEM_OPENER_PATH, "id", PersistentDataType.STRING));
+        return Texts.lower(PDC.get(
+                itemStack, OPENER_PARTITION, "id", PersistentDataType.STRING));
     }
 
     public SocketOpenerConfig matchOpenerItem(ItemStack itemStack) {

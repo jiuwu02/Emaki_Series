@@ -27,8 +27,6 @@ show_in_slots: true
 cooldown_ticks: 90
 global_cooldown_ticks: 12
 
-lore_aliases:
-  - "冰霜箭"
 tags:
   - "attack"
 tab_tags:

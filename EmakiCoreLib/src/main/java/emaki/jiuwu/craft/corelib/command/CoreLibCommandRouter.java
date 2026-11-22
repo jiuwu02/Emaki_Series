@@ -36,7 +36,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_RELOAD = "emakicorelib.reload";
     private static final String PERMISSION_ADMIN = "emakicorelib.admin";
-    private static final List<String> SUB_COMMANDS = List.of("help", "reload", "check", "debug", "action", "actions");
+    private static final List<String> SUB_COMMANDS = List.of("help", "reload", "check", "debug", "action");
     private static final List<String> ACTION_MODES = List.of("list", "run");
     private static final List<String> CHECK_MODES = List.of("report", "--fix");
     private static final List<String> DEBUG_MODES = List.of("loops", "all", "action");
@@ -67,7 +67,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             case "reload" -> handleReload(sender);
             case "check" -> handleCheck(sender, args);
             case "debug" -> handleDebug(sender, label, args);
-            case "action", "actions" -> handleAction(sender, args);
+            case "action" -> handleAction(sender, args);
             default -> {
                 sendHelp(sender, label);
                 yield true;
@@ -309,7 +309,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
     }
 
     private boolean isActionCommand(String value) {
-        return "action".equalsIgnoreCase(value) || "actions".equalsIgnoreCase(value);
+        return "action".equalsIgnoreCase(value);
     }
 
     private String emptyAsDash(String value) {
@@ -447,7 +447,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
     }
 
     private String helpRoot(String label) {
-        return "/" + (label == null || label.isBlank() ? "emakicorelib" : label);
+        return "/" + (label == null || label.isBlank() ? "ecorelib" : label);
     }
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {

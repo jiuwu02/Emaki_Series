@@ -12,7 +12,7 @@ public record VanillaAttributeModifierConfig(String attribute,
     public VanillaAttributeModifierConfig {
         attribute = attribute == null ? "" : attribute;
         amount = ConfigNodes.toPlainData(amount);
-        operation = operation == null || operation.isBlank() ? "add_number" : operation;
+        operation = operation == null || operation.isBlank() ? "add_value" : operation;
         slot = slot == null || slot.isBlank() ? "any" : slot;
         name = name == null ? "" : name;
     }

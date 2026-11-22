@@ -46,7 +46,7 @@ import emaki.jiuwu.craft.mobs.log.MobsLogTag;
 public class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> {
 
     private static final String MODULE = "mobs";
-    private static final String ROOT_COMMAND = "emakimobs";
+    private static final String ROOT_COMMAND = "emobs";
     private static final Set<String> DEBUG_MODULES = Set.of(MODULE);
 
     private static final String STARTUP_ASCII = """
@@ -228,7 +228,7 @@ public class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
     private void registerCommandHandler() {
         var commandRouter = new MobsCommandRouter(this);
         registerCommand(ROOT_COMMAND, "EmakiMobs 命令",
-                List.of("emobs"),
+                List.of("em"),
                 new MobsCommandAdapter(commandRouter, "emakimobs.use"));
     }
 

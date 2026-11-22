@@ -27,7 +27,6 @@ public final class ItemConfigPrecheckContributor extends AbstractModuleConfigPre
     public ConfigPrecheckResult check(CoreLibConfig config, ConfigPrecheckContext context) {
         List<ConfigPrecheckIssue> issues = new ArrayList<>();
         checkFile(new File(plugin.getDataFolder(), "config.yml"), "config.yml", issues);
-        checkFile(new File(plugin.getDataFolder(), "id_aliases.yml"), "id_aliases.yml", issues);
         checkDirectory(new File(plugin.getDataFolder(), "items"), "items", issues);
         checkDirectory(new File(plugin.getDataFolder(), "sets"), "sets", issues);
         checkDirectory(new File(plugin.getDataFolder(), "gui"), "gui", issues);

@@ -6,7 +6,7 @@
 #   2. layout 指向随包释放的 station_dismantle 界面
 #   3. output.default 控制产物去向
 # 如何触发:
-#   执行 /emakistation dismantle example_weapon_dismantle_station
+#   执行 /estation dismantle example_weapon_dismantle_station
 #   (需要 emakistation.dismantle 与 emakistation.dismantle.access.example_weapon_dismantle_station)
 # 配套配方:
 #   recipes_dismantle/example_weapon_dismantle_recipe.yml

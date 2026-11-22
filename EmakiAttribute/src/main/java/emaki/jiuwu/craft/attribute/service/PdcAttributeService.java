@@ -61,10 +61,6 @@ public final class PdcAttributeService implements PdcAttributeAccess {
 
     private static final String SOURCE_INDEX_FIELD = "source_index";
 
-    private static final String LEGACY_ITEM_PARTITION_PATH = "item.attributes";
-    private static final String LEGACY_SOURCE_PARTITION_PATH =
-            LEGACY_ITEM_PARTITION_PATH + "." + SOURCE_SEGMENT;
-
     private final EmakiAttributePlugin plugin;
     private final PdcReadRuleLoader ruleLoader;
     private final ItemContributionGateRegistry gateRegistry;
@@ -160,10 +156,9 @@ public final class PdcAttributeService implements PdcAttributeAccess {
             return null;
         }
         String normalized = Texts.normalizeId(sourceId);
-        return pdcService.readBlobMigrating(
+        return pdcService.readBlob(
                 itemStack,
                 sourcePartition.child(normalized),
-                LEGACY_SOURCE_PARTITION_PATH + "." + normalized,
                 "payload",
                 PAYLOAD_CODEC
         );
@@ -228,8 +223,7 @@ public final class PdcAttributeService implements PdcAttributeAccess {
             return EmakiResult.notFound("attribute.pdc.payload_not_found");
         }
         try {
-            pdcService.removeMigrating(itemStack, sourcePartition.child(normalized),
-                    LEGACY_SOURCE_PARTITION_PATH + "." + normalized, "payload");
+            pdcService.remove(itemStack, sourcePartition.child(normalized), "payload");
             writeIndex(itemStack, removeSource(readIndex(itemStack), normalized));
             return EmakiResult.ok();
         } catch (RuntimeException exception) {
@@ -244,10 +238,9 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         }
         try {
             for (String sourceId : readIndex(itemStack)) {
-                pdcService.removeMigrating(itemStack, sourcePartition.child(sourceId),
-                        LEGACY_SOURCE_PARTITION_PATH + "." + sourceId, "payload");
+                pdcService.remove(itemStack, sourcePartition.child(sourceId), "payload");
             }
-            pdcService.removeMigrating(itemStack, itemPartition, LEGACY_ITEM_PARTITION_PATH, SOURCE_INDEX_FIELD);
+            pdcService.remove(itemStack, itemPartition, SOURCE_INDEX_FIELD);
             return EmakiResult.ok();
         } catch (RuntimeException exception) {
             return EmakiResult.internalError("attribute.pdc.clear_all_failed");
@@ -683,10 +676,9 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         if (itemStack == null) {
             return List.of();
         }
-        String raw = pdcService.getMigrating(
+        String raw = pdcService.get(
                 itemStack,
                 itemPartition,
-                LEGACY_ITEM_PARTITION_PATH,
                 SOURCE_INDEX_FIELD,
                 PersistentDataType.STRING
         );

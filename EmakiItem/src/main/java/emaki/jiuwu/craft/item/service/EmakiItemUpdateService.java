@@ -35,7 +35,6 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.item.ItemPdcKeys;
 import emaki.jiuwu.craft.item.api.ItemStateSnapshot;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
-import emaki.jiuwu.craft.item.model.EmakiItemAlias;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
 import emaki.jiuwu.craft.item.model.RefreshFullReason;
@@ -151,11 +150,6 @@ public final class EmakiItemUpdateService {
             String effectiveTrigger = triggers.isEmpty() ? "" : triggers.getFirst();
             return UpdateOutcome.invalid(original, effectiveTrigger);
         }
-        EmakiItemAlias alias = idResolver == null ? null : idResolver.aliasFor(id);
-        if (alias != null) {
-            String effectiveTrigger = triggers.isEmpty() ? "" : triggers.getFirst();
-            return new UpdateOutcome(migrateAlias(original, id, alias, definitions, readResult, context), effectiveTrigger, true, true);
-        }
         EmakiItemDefinition definition = definitions.get(id);
         if (definition == null && idResolver != null) {
             definition = idResolver.resolveDefinition(id);
@@ -196,10 +190,6 @@ public final class EmakiItemUpdateService {
                 : suppliedReadResult;
         if (readResult.corrupt()) {
             return original;
-        }
-        EmakiItemAlias alias = idResolver == null ? null : idResolver.aliasFor(id);
-        if (alias != null) {
-            return migrateAlias(original, id, alias, itemLoader.snapshot(), readResult, null);
         }
         EmakiItemDefinition definition = idResolver == null ? itemLoader.get(id) : idResolver.resolveDefinition(id);
         if (definition == null) {
@@ -333,34 +323,6 @@ public final class EmakiItemUpdateService {
             return second == null || second.getType().isAir();
         }
         return first.equals(second);
-    }
-
-    private ItemStack migrateAlias(ItemStack original,
-            String currentId,
-            EmakiItemAlias alias,
-            EmakiItemLoader.Snapshot definitions,
-            ItemOperationLedger.ReadResult readResult,
-            ActionContext context) {
-        if (alias == null) {
-            return original;
-        }
-        EmakiItemDefinition definition = definitions == null ? itemLoader.get(alias.targetId()) : definitions.get(alias.targetId());
-        if (definition == null) {
-            return original;
-        }
-        boolean migratePdc = alias.migratePdc();
-        boolean rewriteDisplay = alias.rewriteDisplay();
-        if (!migratePdc && !rewriteDisplay) {
-            return original;
-        }
-        ItemUpdateConfig updateConfig = definition.updatePolicy().resolve();
-        String identityId = migratePdc ? definition.id() : currentId;
-        if (rewriteDisplay) {
-            return rebuild(original, definition, updateConfig, identityId, readResult, context);
-        }
-        ItemStack migrated = original.clone();
-        writeIdentity(migrated, definition, identityId);
-        return migrated;
     }
 
     private ItemStack rebuild(ItemStack original,

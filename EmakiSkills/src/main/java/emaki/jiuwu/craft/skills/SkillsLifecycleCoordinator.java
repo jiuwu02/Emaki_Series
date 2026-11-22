@@ -83,7 +83,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 plugin,
                 "config.yml",
                 AppConfig::defaults,
-                this::parseAppConfig
+                configuration -> parseAppConfig(plugin, configuration)
         );
         appConfigLoader.load();
         LanguageLoader languageLoader = moduleLanguageLoader(plugin);
@@ -119,7 +119,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         );
         EquipmentSkillCollector equipmentSkillCollector = new EquipmentSkillCollector(
                 plugin,
-                skillRegistryService::allDefinitions,
                 plugin::appConfig,
                 plugin::eaBridge
         );
@@ -405,7 +404,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         }
     }
 
-    private AppConfig parseAppConfig(YamlSection configuration) {
+    private AppConfig parseAppConfig(EmakiSkillsPlugin plugin, YamlSection configuration) {
         if (configuration == null || configuration.getKeys(false).isEmpty()) {
             return AppConfig.defaults();
         }
@@ -473,14 +472,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                                 (int) defaults.passiveTriggerSettings().comboTimeoutTicks())
                 );
 
-        YamlSection triggerSettingsSection = configuration.getSection("trigger_settings");
-        AppConfig.TriggerSettings triggerSettings = triggerSettingsSection == null
-                ? defaults.triggerSettings()
-                : new AppConfig.TriggerSettings(
-                        boolValue(triggerSettingsSection.getBoolean("legacy_dispatch_cancelled_events"),
-                                defaults.triggerSettings().legacyDispatchCancelledEvents())
-                );
-
         AppConfig.ScriptEngineSettings scriptEngine = parseScriptEngineSettings(
                 configuration.getSection("script_engine"), defaults.scriptEngine());
 
@@ -507,7 +498,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 passiveTriggers,
                 passiveTriggerSettings,
                 scriptEngine,
-                triggerSettings,
                 scripts
         );
     }

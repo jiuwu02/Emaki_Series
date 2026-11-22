@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 public final class CoreLibBasicCommand implements BasicCommand {
 
-    private static final String ROOT_LABEL = "emakicorelib";
+    private static final String ROOT_LABEL = "ecorelib";
 
     private final CoreLibCommandRouter router;
 

@@ -6,10 +6,10 @@ steps:
   - action: join_all
   - action: cmd
     player: dummy_a
-    command: "/edg editor exit"
+    command: "/edungeon editor exit"
   - action: cmd
     player: dummy_a
-    command: "/edg leave"
+    command: "/edungeon leave"
   - action: sleep
     seconds: 1
   - action: say
@@ -19,15 +19,15 @@ steps:
     seconds: 2
   - action: cmd
     player: dummy_a
-    command: "/edg cancel"
+    command: "/edungeon cancel"
   - action: cmd
     player: dummy_a
-    command: "/edg party disband"
+    command: "/edungeon party disband"
   - action: sleep
     seconds: 1
   - action: cmd
     player: dummy_a
-    command: "/edg enter test_dungeon"
+    command: "/edungeon enter test_dungeon"
   - action: sleep
     seconds: 2
   - action: click
@@ -43,7 +43,7 @@ steps:
     timeout: 60
   - action: cmd
     player: dummy_a
-    command: "/edg ready"
+    command: "/edungeon ready"
   - action: wait_event
     type: DungeonEnterEvent
     timeout: 120

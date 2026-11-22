@@ -24,7 +24,7 @@ public interface ItemOperations {
     /**
      * Builds a fresh item and fires {@code EmakiItemCreateEvent} before returning it.
      *
-     * @param id definition id or alias
+     * @param id canonical definition id
      * @param amount requested amount; must be positive
      * @return the created stack, {@code CANCELLED} when a listener vetoes it, or another classified failure
      */

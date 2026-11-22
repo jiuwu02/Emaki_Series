@@ -6,15 +6,16 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+
 public final class TemplateModel {
 
     public static final String TYPE_ROOM = "room";
     public static final String TYPE_CORRIDOR = "corridor";
 
-    public static final String FACING_N = "n";
-    public static final String FACING_E = "e";
-    public static final String FACING_S = "s";
-    public static final String FACING_W = "w";
+    public static final String FACING_N = "north";
+    public static final String FACING_E = "east";
+    public static final String FACING_S = "south";
+    public static final String FACING_W = "west";
 
     public static final String POLICY_SEAL = "seal";
     public static final String POLICY_KEEP = "keep";
@@ -51,9 +52,10 @@ public final class TemplateModel {
         }
         String value = raw.trim().toLowerCase(Locale.ROOT);
         return switch (value) {
-            case "e", "east" -> FACING_E;
-            case "s", "south" -> FACING_S;
-            case "w", "west" -> FACING_W;
+            case "north" -> FACING_N;
+            case "east" -> FACING_E;
+            case "south" -> FACING_S;
+            case "west" -> FACING_W;
             default -> FACING_N;
         };
     }

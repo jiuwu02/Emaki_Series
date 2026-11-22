@@ -2,12 +2,11 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "3.0.7"
+version: "3.0.8"
 
 tags:
   actionbar: "[ 动作栏 ]"
   cast: "[ 施法 ]"
-  collector: "[ 收集 ]"
   upgrade: "[ 升级 ]"
 
 general:
@@ -92,7 +91,6 @@ console:
   mythic_bridge_init_failed: "初始化 MythicMobs 技能桥接失败: %error%"
   mythic_bridge_skill_lookup_failed: "查询 Mythic 技能失败: %skill%  (%error%)"
   mythic_bridge_cast_failed: "释放 Mythic 技能失败: %skill%  (%error%)"
-  trigger_legacy_cancelled_dispatch_deprecated: "<yellow>[弃用]</yellow> <gray>触发器 <yellow>%source%</yellow> 正在使用兼容开关 <white>trigger_settings.legacy_dispatch_cancelled_events</white>, 已被其他插件  (如 WorldGuard, 领地保护) 取消的事件仍会触发技能, 该开关仅保留一个次版本周期, 下一个主版本将移除, 请尽快关闭并改用默认行为</gray>"
   skills_loaded: "<gray>已加载 <yellow>%skills%</yellow> 个技能, <yellow>%triggers%</yellow> 个触发器</gray>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
   scripts:
@@ -452,8 +450,6 @@ editor:
     cooldown_ticks_desc: "<dark_gray>技能冷却 (tick, 20 tick = 1 秒)</dark_gray>"
     global_cooldown_ticks: "全局冷却"
     global_cooldown_ticks_desc: "<dark_gray>释放后所有技能共享的冷却 (tick)</dark_gray>"
-    lore_aliases: "Lore 别名"
-    lore_aliases_desc: "<dark_gray>物品 Lore 中用于识别该技能的别名列表</dark_gray>"
     tags: "标签"
     tags_desc: "<dark_gray>技能标签, 用于检索与条件判定</dark_gray>"
     tab_tags: "页签标签"
@@ -610,8 +606,6 @@ persistence:
   save_player_profile_failed: "保存玩家档案失败: %player%"
   read_player_profile_failed: "读取 %player% 失败; 本会话保持只读以保护现有文件"
   create_data_directory_failed: "无法创建数据目录: %path%"
-collector:
-  lore_read_failed: "读取 Lore 失败: player=%player%, slot=%slot%, material=%material%, exception=%error%"
 registry:
   provider_collect_failed: "提供者 '%id%'(归属 '%owner%')失败: %error%"
 shutdown:

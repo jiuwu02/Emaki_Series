@@ -56,7 +56,6 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     private static final int OFF_HAND_SLOT = 40;
     private static final String[] ARMOR_SLOT_TARGETS = {"feet", "legs", "chest", "head"};
     private static final String ASSEMBLY_SIGNATURE_FIELD = "assembly_signature";
-    private static final String LEGACY_ITEM_PARTITION = "item";
 
     private final EmakiForgePlugin plugin;
     private final EmakiItemAssemblyService itemAssemblyService;
@@ -396,8 +395,8 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     }
 
     private String assemblySignature(ItemStack itemStack) {
-        String signature = pdcService.getMigrating(itemStack, itemPartition,
-                LEGACY_ITEM_PARTITION, ASSEMBLY_SIGNATURE_FIELD, PersistentDataType.STRING);
+        String signature = pdcService.get(itemStack, itemPartition,
+                ASSEMBLY_SIGNATURE_FIELD, PersistentDataType.STRING);
         return Texts.isBlank(signature) ? null : signature;
     }
 

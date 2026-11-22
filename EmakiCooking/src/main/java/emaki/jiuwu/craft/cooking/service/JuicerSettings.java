@@ -25,11 +25,7 @@ final class JuicerSettings {
     }
 
     ItemRequirement containerRequirement() {
-        return CookingMatchers.requirementWithLegacyFallback(
-                configuration.get().getSection("stations.juicer"),
-                "container",
-                "container_item_sources",
-                "container_matcher");
+        return ItemRequirement.fromConfig(configuration.get().get("stations.juicer.container"));
     }
 
     int maxFluidMl() {

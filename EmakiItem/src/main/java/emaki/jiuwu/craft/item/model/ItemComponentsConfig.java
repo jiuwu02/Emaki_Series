@@ -50,11 +50,11 @@ public record ItemComponentsConfig(Object customModelData,
         Map<String, Integer> enchantments = integerMap(componentValue(enchantmentValue, "levels"));
         List<String> hiddenComponents = Texts.asStringList(tooltip.get("hidden_components"));
         return new ItemComponentsConfig(
-                legacyCustomModelData(value(patches, "minecraft:custom_model_data")),
+                value(patches, "minecraft:custom_model_data"),
                 stringValue(patches, "minecraft:item_model"),
                 stringValue(patches, "minecraft:tooltip_style"),
                 enchantments,
-                hiddenComponents.stream().map(ItemComponentsConfig::legacyFlag).toList(),
+                hiddenComponents.stream().toList(),
                 Boolean.TRUE.equals(tooltip.get("hide_tooltip")),
                 isSet(patches, "minecraft:unbreakable"),
                 booleanValue(patches, "minecraft:enchantment_glint_override"),
@@ -74,7 +74,7 @@ public record ItemComponentsConfig(Object customModelData,
 
     Map<String, ItemComponentPatch> toComponentPatches(String itemId) {
         Map<String, ItemComponentPatch> patches = new LinkedHashMap<>();
-        put(patches, "minecraft:custom_model_data", normalizeCustomModelData(customModelData));
+        put(patches, "minecraft:custom_model_data", customModelData);
         putText(patches, "minecraft:item_model", itemModel);
         putText(patches, "minecraft:tooltip_style", tooltipStyle);
         if (!enchantments.isEmpty()) {
@@ -82,7 +82,7 @@ public record ItemComponentsConfig(Object customModelData,
         }
         Map<String, Object> tooltip = new LinkedHashMap<>();
         List<String> hiddenComponents = itemFlags.stream()
-                .map(ItemComponentsConfig::componentForFlag)
+                .map(ItemComponentsConfig::namespaced)
                 .filter(Texts::isNotBlank)
                 .distinct()
                 .toList();
@@ -113,9 +113,9 @@ public record ItemComponentsConfig(Object customModelData,
                     continue;
                 }
                 Map<String, Object> value = new LinkedHashMap<>();
-                value.put("type", componentAttributeType(modifier.attribute()));
+                value.put("type", namespaced(modifier.attribute()));
                 value.put("amount", ConfigNodes.toPlainData(modifier.amount()));
-                value.put("operation", componentOperation(modifier.operation()));
+                value.put("operation", Texts.toStringSafe(modifier.operation()));
                 value.put("slot", componentSlot(modifier.slot()));
                 String modifierId = Texts.isNotBlank(modifier.name())
                         ? modifier.name()
@@ -131,67 +131,14 @@ public record ItemComponentsConfig(Object customModelData,
         return patches.isEmpty() ? Map.of() : Map.copyOf(patches);
     }
 
-    private static Object legacyCustomModelData(Object raw) {
-        Map<String, Object> value = new LinkedHashMap<>();
-        ConfigNodes.entries(raw).forEach((key, entry) -> value.put(key, ConfigNodes.toPlainData(entry)));
-        if (value.isEmpty() || value.keySet().stream().anyMatch(key -> !"floats".equals(key))) {
-            return raw;
-        }
-        List<Object> floats = ConfigNodes.asObjectList(value.get("floats"));
-        if (floats.size() != 1) {
-            return raw;
-        }
-        Object first = floats.getFirst();
-        if (first instanceof Number number) {
-            double numeric = number.doubleValue();
-            return numeric == Math.rint(numeric) && numeric >= Integer.MIN_VALUE && numeric <= Integer.MAX_VALUE
-                    ? (int) numeric
-                    : numeric;
-        }
-        return ConfigNodes.toPlainData(first);
-    }
-
-    private static Object normalizeCustomModelData(Object raw) {
-        Object value = ConfigNodes.toPlainData(raw);
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Map<?, ?> map
-                && (map.containsKey("floats") || map.containsKey("flags")
-                || map.containsKey("strings") || map.containsKey("colors"))) {
-            return value;
-        }
-        Double numeric = Numbers.tryParseDouble(value, null);
-        Object floatValue = numeric == null ? value : numeric.floatValue();
-        return Map.of("floats", List.of(floatValue));
-    }
-
-    private static String componentOperation(String raw) {
-        return switch (Texts.normalizeId(raw)) {
-            case "add_scalar" -> "add_multiplied_base";
-            case "multiply_scalar_1" -> "add_multiplied_total";
-            case "add_number" -> "add_value";
-            default -> Texts.toStringSafe(raw);
-        };
-    }
-
-    private static String legacyOperation(String raw) {
-        return switch (Texts.normalizeId(raw)) {
-            case "add_multiplied_base" -> "add_scalar";
-            case "add_multiplied_total" -> "multiply_scalar_1";
-            case "add_value" -> "add_number";
-            default -> Texts.toStringSafe(raw);
-        };
-    }
-
     private static String componentSlot(String raw) {
         return switch (Texts.normalizeId(raw)) {
-            case "hand", "mainhand", "main_hand" -> "hand";
-            case "offhand", "off_hand" -> "offhand";
-            case "head", "helmet" -> "head";
-            case "chest", "chestplate" -> "chest";
-            case "legs", "leggings" -> "legs";
-            case "feet", "boots" -> "feet";
+            case "mainhand" -> "hand";
+            case "offhand" -> "offhand";
+            case "head" -> "head";
+            case "chest" -> "chest";
+            case "legs" -> "legs";
+            case "feet" -> "feet";
             default -> "any";
         };
     }
@@ -269,21 +216,13 @@ public record ItemComponentsConfig(Object customModelData,
             result.add(new VanillaAttributeModifierConfig(
                     attribute,
                     amount,
-                    legacyOperation(ConfigNodes.string(entry, "operation", "add_value")),
+                    ConfigNodes.string(entry, "operation", "add_value"),
                     ConfigNodes.string(entry, "slot", "any"),
-                    ConfigNodes.string(entry, "id", ConfigNodes.string(entry, "name", "")),
+                    ConfigNodes.string(entry, "id", ""),
                     amount instanceof Map<?, ?>
             ));
         }
         return result.isEmpty() ? List.of() : List.copyOf(result);
-    }
-
-    private static String componentAttributeType(String value) {
-        String normalized = namespaced(value);
-        String legacyPrefix = "minecraft:generic.";
-        return normalized.startsWith(legacyPrefix)
-                ? "minecraft:" + normalized.substring(legacyPrefix.length())
-                : normalized;
     }
 
     private static String namespaced(String value) {
@@ -296,31 +235,4 @@ public record ItemComponentsConfig(Object customModelData,
         return normalized.startsWith("minecraft:") ? normalized.substring("minecraft:".length()) : normalized;
     }
 
-    private static String componentForFlag(String raw) {
-        return switch (Texts.toStringSafe(raw).trim().toUpperCase(Locale.ROOT)) {
-            case "HIDE_ENCHANTS" -> "minecraft:enchantments";
-            case "HIDE_ATTRIBUTES" -> "minecraft:attribute_modifiers";
-            case "HIDE_UNBREAKABLE" -> "minecraft:unbreakable";
-            case "HIDE_DESTROYS" -> "minecraft:can_break";
-            case "HIDE_PLACED_ON" -> "minecraft:can_place_on";
-            case "HIDE_ADDITIONAL_TOOLTIP", "HIDE_POTION_EFFECTS" -> "minecraft:potion_contents";
-            case "HIDE_DYE" -> "minecraft:dyed_color";
-            case "HIDE_ARMOR_TRIM" -> "minecraft:trim";
-            default -> namespaced(raw);
-        };
-    }
-
-    private static String legacyFlag(String raw) {
-        return switch (Texts.toStringSafe(raw).toLowerCase(Locale.ROOT)) {
-            case "minecraft:enchantments" -> "HIDE_ENCHANTS";
-            case "minecraft:attribute_modifiers" -> "HIDE_ATTRIBUTES";
-            case "minecraft:unbreakable" -> "HIDE_UNBREAKABLE";
-            case "minecraft:can_break" -> "HIDE_DESTROYS";
-            case "minecraft:can_place_on" -> "HIDE_PLACED_ON";
-            case "minecraft:potion_contents" -> "HIDE_ADDITIONAL_TOOLTIP";
-            case "minecraft:dyed_color" -> "HIDE_DYE";
-            case "minecraft:trim" -> "HIDE_ARMOR_TRIM";
-            default -> raw;
-        };
-    }
 }

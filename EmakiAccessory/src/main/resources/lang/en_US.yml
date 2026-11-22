@@ -1,7 +1,7 @@
 # EmakiAccessory English language resource
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
-version: "2.0.5"
+version: "2.0.6"
 
 console:
   plugin_starting: "<gray>Starting EmakiAccessory...</gray>"
@@ -79,10 +79,10 @@ durability:
 command:
   admin_usage: |
     <gold>Admin commands</gold>
-    <yellow>/eacc admin view <player></yellow> <gray>- View accessories  (read-only)</gray>
-    <yellow>/eacc admin edit <player></yellow> <gray>- Edit accessories  (online players only)</gray>
-    <yellow>/eacc admin clear <player></yellow> <gray>- Clear accessories  (irreversible, logged)</gray>
-    <yellow>/eacc admin save</yellow> <gray>- Save all accessory data now</gray>
+    <yellow>/eaccessory admin view <player></yellow> <gray>- View accessories  (read-only)</gray>
+    <yellow>/eaccessory admin edit <player></yellow> <gray>- Edit accessories  (online players only)</gray>
+    <yellow>/eaccessory admin clear <player></yellow> <gray>- Clear accessories  (irreversible, logged)</gray>
+    <yellow>/eaccessory admin save</yellow> <gray>- Save all accessory data now</gray>
   open_failed: "<red>Could not open the accessory window; check the GUI layout</red>"
   list_header: "<gold>Accessory slots</gold> <gray>page <white>%page%</white>, used <yellow>%used%</yellow> / <yellow>%max%</yellow></gray>"
   list_entry_filled: "<gray>- <white>%slot%</white> <green>equipped</green></gray>"
@@ -92,8 +92,8 @@ command:
   pages_entry_enabled: "<gray>- <white>%page%</white> %name% <green>active</green> <gray> (<yellow>%count%</yellow> item (s))</gray></gray>"
   pages_entry_locked: "<gray>- <white>%page%</white> %name% <red>no permission</red> <gray> (<yellow>%count%</yellow> item (s), use retrieve)</gray></gray>"
   page_unknown: "<red>No such accessory page: <white>%page%</white></red>"
-  page_no_permission: "<red>You cannot open accessory page <white>%page%</white>; use <white>/eacc retrieve %page%</white> to take its accessories back</red>"
-  retrieve_usage: "<yellow>Usage: /eacc retrieve <page></yellow> <gray>takes back every accessory on that page, mainly for pages you cannot open</gray>"
+  page_no_permission: "<red>You cannot open accessory page <white>%page%</white>; use <white>/eaccessory retrieve %page%</white> to take its accessories back</red>"
+  retrieve_usage: "<yellow>Usage: /eaccessory retrieve <page></yellow> <gray>takes back every accessory on that page, mainly for pages you cannot open</gray>"
   retrieve_done: "<green>Retrieved accessory page <white>%page%</white></green> <gray><yellow>%count%</yellow> item (s); anything that did not fit was dropped at your feet</gray>"
   retrieve_empty: "<yellow>Accessory page <white>%page%</white> holds no accessories</yellow>"
   retrieve_unknown_page: "<red>No such accessory page: <white>%page%</white></red>"

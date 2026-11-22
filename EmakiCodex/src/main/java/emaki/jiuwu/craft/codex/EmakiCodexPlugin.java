@@ -58,7 +58,7 @@ import java.util.logging.Level;
 public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider {
 
-    private static final String ROOT_COMMAND = "codex";
+    private static final String ROOT_COMMAND = "ecodex";
     private static final Set<String> DEBUG_MODULES = Set.of("advancement");
     private static final int BSTATS_PLUGIN_ID = 32376;
 
@@ -248,7 +248,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         registerCommand(
                 ROOT_COMMAND,
                 "EmakiCodex 命令",
-                List.of("ecodex"),
+                List.of("ecx"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakicodex.use", commandRouter, commandRouter)
         );
     }

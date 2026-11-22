@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
  * Read-only view of a skill definition.
  *
  * <p>Many fields from EmakiSkills's internal {@code SkillDefinition} are not exposed: mythic skill
- * identifiers, script definitions, upgrade cost tables, condition DSL, and YAML lore aliases are all
+ * identifiers, script definitions, upgrade cost tables, and condition DSL are all
  * configuration internals that server owners restructure freely. This view carries only what is stable
  * and useful to third parties.
  *

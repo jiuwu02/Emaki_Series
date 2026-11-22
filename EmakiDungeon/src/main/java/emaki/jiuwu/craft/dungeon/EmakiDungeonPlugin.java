@@ -114,7 +114,7 @@ import emaki.jiuwu.craft.dungeon.log.DungeonLogTag;
 public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> {
 
     private static final String MODULE = "dungeon";
-    private static final String ROOT_COMMAND = "edg";
+    private static final String ROOT_COMMAND = "edungeon";
     private static final long SHUTDOWN_DRAIN_SECONDS = 5L;
     private static final Set<String> DEBUG_MODULES = Set.of(MODULE);
     private static final String API_VERSION = "1.0.0";
@@ -385,7 +385,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     public boolean runtimeInitialized() { return new EmakiDungeonPluginDelegate(this).runtimeInitialized(); }
 
     private void registerCommandHandler() {
-        registerCommand(ROOT_COMMAND, "EmakiDungeon 命令", List.of("dungeon", "edungeon"),
+        registerCommand(ROOT_COMMAND, "EmakiDungeon 命令", List.of("ed"),
                 new DungeonCommandAdapter(router, "emakidungeon.play"));
     }
 
@@ -766,14 +766,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 .resolve("flow.yml").toFile();
         File templateFlow = new File(new File(getDataFolder(), "world"),
                 instance.dungeonId() + File.separator + "flow.yml");
+        File loadedFlow = flowFile.isFile() ? flowFile : templateFlow;
         try {
-            definition = flowLoader.load(flowFile.isFile() ? flowFile : templateFlow);
-            for (String deprecated : flowLoader.deprecations()) {
-                int arrow = deprecated.indexOf('→');
-                messageService.warning(null, "console.flow_deprecated_key", Map.of(
-                        "key", arrow < 0 ? deprecated : deprecated.substring(0, arrow),
-                        "replacement", arrow < 0 ? "" : deprecated.substring(arrow + 1)));
-            }
+            definition = flowLoader.load(loadedFlow);
             for (String flowWarning : flowLoader.warnings()) {
                 debugLogger().logRaw("dungeon", (java.util.UUID) null, "flow warning | " + flowWarning);
             }

@@ -489,7 +489,7 @@ public final class DungeonCommandRouter {
                 return;
             }
             String text = Texts.lower(MiniMessages.plainText(result.text()));
-            if (!"确认".equals(text) && !"confirm".equals(text) && !"yes".equals(text) && !"y".equals(text)) {
+            if (!"确认".equals(text) && !"confirm".equals(text)) {
                 messages.send(player, "command.leave.aborted");
                 return;
             }
@@ -891,7 +891,7 @@ public final class DungeonCommandRouter {
     }
 
     private String helpRoot() {
-        return "/edg";
+        return "/edungeon";
     }
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {

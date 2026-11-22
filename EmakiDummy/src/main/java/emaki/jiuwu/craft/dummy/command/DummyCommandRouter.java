@@ -326,7 +326,7 @@ public final class DummyCommandRouter {
 
 
     private String helpRoot() {
-        return "/emdum";
+        return "/edummy";
     }
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {

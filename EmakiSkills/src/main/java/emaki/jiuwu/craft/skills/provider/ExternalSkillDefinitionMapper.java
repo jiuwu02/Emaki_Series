@@ -47,7 +47,6 @@ final class ExternalSkillDefinitionMapper {
                 Math.max(0L, definition.cooldownTicks()),
                 Math.max(0L, definition.globalCooldownTicks()),
                 List.of(),
-                definition.loreAliases(),
                 pdcSkillId,
                 normalizeIds(definition.tags()),
                 List.of(),

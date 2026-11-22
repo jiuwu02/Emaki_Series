@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.attribute.service;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshotCodecs;
@@ -22,17 +22,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class AttributeStateRepository {
 
-    private static final List<String> RESOURCE_FIELDS = List.of(
-            "schema_version",
-            "default_max",
-            "bonus_max",
-            "current_max",
-            "current_value",
-            "source_signature"
-    );
-
-    private static final String LEGACY_RESOURCE_PREFIX = "combat.resource.";
-
+    private final Plugin plugin;
     private final PdcService pdcService;
     private final PdcPartition itemPartition;
     private final PdcPartition combatPartition;
@@ -42,7 +32,8 @@ final class AttributeStateRepository {
     private final Map<UUID, Boolean> syntheticDamageCache = new ConcurrentHashMap<>();
     private final Map<UUID, String> damageTypeOverrideCache = new ConcurrentHashMap<>();
 
-    AttributeStateRepository(PdcService pdcService) {
+    AttributeStateRepository(Plugin plugin, PdcService pdcService) {
+        this.plugin = plugin;
         this.pdcService = pdcService;
         this.itemPartition = pdcService.partition("item");
         this.combatPartition = pdcService.partition("combat");
@@ -181,13 +172,12 @@ final class AttributeStateRepository {
         }
         PdcPartition resourcePartition = resourcePartition(resourceId);
 
-        String legacyPath = legacyResourcePartitionPath(resourceId);
-        Double defaultMax = pdcService.getMigrating(player, resourcePartition, legacyPath, "default_max", PersistentDataType.DOUBLE);
-        Double bonusMax = pdcService.getMigrating(player, resourcePartition, legacyPath, "bonus_max", PersistentDataType.DOUBLE);
-        Double currentMax = pdcService.getMigrating(player, resourcePartition, legacyPath, "current_max", PersistentDataType.DOUBLE);
-        Double currentValue = pdcService.getMigrating(player, resourcePartition, legacyPath, "current_value", PersistentDataType.DOUBLE);
-        String sourceSignature = pdcService.getMigrating(player, resourcePartition, legacyPath, "source_signature", PersistentDataType.STRING);
-        Integer schemaVersion = pdcService.getMigrating(player, resourcePartition, legacyPath, "schema_version", PersistentDataType.INTEGER);
+        Double defaultMax = pdcService.get(player, resourcePartition, "default_max", PersistentDataType.DOUBLE);
+        Double bonusMax = pdcService.get(player, resourcePartition, "bonus_max", PersistentDataType.DOUBLE);
+        Double currentMax = pdcService.get(player, resourcePartition, "current_max", PersistentDataType.DOUBLE);
+        Double currentValue = pdcService.get(player, resourcePartition, "current_value", PersistentDataType.DOUBLE);
+        String sourceSignature = pdcService.get(player, resourcePartition, "source_signature", PersistentDataType.STRING);
+        Integer schemaVersion = pdcService.get(player, resourcePartition, "schema_version", PersistentDataType.INTEGER);
         if (defaultMax == null && bonusMax == null && currentMax == null && currentValue == null
                 && (sourceSignature == null || sourceSignature.isBlank()) && schemaVersion == null) {
             return null;
@@ -215,10 +205,6 @@ final class AttributeStateRepository {
         pdcService.set(player, resourcePartition, "current_value", PersistentDataType.DOUBLE, state.currentValue());
         pdcService.set(player, resourcePartition, "source_signature", PersistentDataType.STRING, state.sourceSignature());
 
-    }
-
-    private String legacyResourcePartitionPath(String resourceId) {
-        return new PdcPartition(pdcService.namespace(), LEGACY_RESOURCE_PREFIX + resourceId).path();
     }
 
     ProjectileDamageSnapshot readProjectileSnapshot(Projectile projectile) {

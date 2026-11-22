@@ -21,11 +21,6 @@ import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 
 public final class TargetConditionEvaluator {
 
-    private static final Map<String, ConditionCombineMode> LOGIC_ALIASES = Map.of(
-            "and", ConditionCombineMode.ALL_OF,
-            "or", ConditionCombineMode.ANY_OF,
-            "not", ConditionCombineMode.NONE_OF);
-
     private static final int REPORTED_TYPES_LIMIT = 512;
 
     private final TargetConditionRegistry conditions;
@@ -154,7 +149,7 @@ public final class TargetConditionEvaluator {
     }
 
     private static boolean combine(List<Boolean> results, String conditionType, int requiredCount) {
-        ConditionCombineMode mode = modeOf(conditionType);
+        ConditionCombineMode mode = ConditionCombineMode.fromString(conditionType);
         return switch (mode) {
             case ANY_OF -> results.stream().anyMatch(Boolean::booleanValue);
             case NONE_OF -> results.stream().noneMatch(Boolean::booleanValue);
@@ -166,11 +161,5 @@ public final class TargetConditionEvaluator {
 
     private static long countMatches(List<Boolean> results) {
         return results.stream().filter(Boolean::booleanValue).count();
-    }
-
-    private static ConditionCombineMode modeOf(String conditionType) {
-        String key = Texts.lower(Texts.toStringSafe(conditionType));
-        ConditionCombineMode alias = LOGIC_ALIASES.get(key);
-        return alias == null ? ConditionCombineMode.fromString(key) : alias;
     }
 }

@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -129,9 +128,9 @@ import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.log.LogTags;
 import emaki.jiuwu.craft.corelib.log.LogTag;
-import java.util.LinkedHashMap;
 import org.bukkit.Bukkit;
 import java.util.logging.Level;
 
@@ -199,23 +198,6 @@ final class EmakiCoreLibPluginDelegate {
 
     LanguageLoader languageLoader() {
         return ownerRef.languageLoader;
-    }
-
-    Map<String, String> validatedAliases(Map<String, String> declared) {
-        if (declared == null || declared.isEmpty()) {
-            return Map.of();
-        }
-        Map<String, String> accepted = new LinkedHashMap<>();
-        for (Map.Entry<String, String> entry : declared.entrySet()) {
-            String name = entry.getKey();
-            CoreStageKind kind = ownerRef.stageRegistry == null ? null : ownerRef.stageRegistry.kindOf(name);
-            if (kind != null) {
-                LogTags.send(ownerRef, LogTag.PIPELINE, Level.WARNING, "pipeline.action_alias_ignored", Map.of("name", name));
-                continue;
-            }
-            accepted.put(name, entry.getValue());
-        }
-        return accepted.isEmpty() ? Map.of() : Map.copyOf(accepted);
     }
 
     void replayStageRegistrations() {
@@ -318,9 +300,9 @@ final class EmakiCoreLibPluginDelegate {
         ownerRef.commandRouter = new CoreLibCommandRouter(ownerRef, ownerRef.executionDispatcher);
 
         ownerRef.registerCommand(
-                "emakicorelib",
+                "ecorelib",
                 "EmakiCoreLib 命令",
-                List.of("corelib", "emakicore"),
+                List.of("ecl"),
                 new CoreLibBasicCommand(ownerRef.commandRouter)
         );
     }
@@ -373,7 +355,8 @@ final class EmakiCoreLibPluginDelegate {
                 );
             }
             ownerRef.logVersionUpdate("config.yml", versionedFile);
-            return CoreLibConfig.fromConfig(versionedFile == null ? YamlFiles.load(file) : versionedFile.root());
+            YamlSection root = versionedFile == null ? YamlFiles.load(file) : versionedFile.root();
+            return CoreLibConfig.fromConfig(root);
         } catch (Exception exception) {
             if (ownerRef.messageService != null) {
                 ownerRef.messageService.warning(LogTag.CONFIG, "console.action_config_load_failed", Map.of(

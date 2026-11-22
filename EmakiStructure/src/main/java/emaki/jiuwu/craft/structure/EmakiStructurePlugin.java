@@ -41,7 +41,7 @@ import emaki.jiuwu.craft.structure.log.StructureLogTag;
 public class EmakiStructurePlugin extends AbstractConfigurableEmakiPlugin<AppConfig> {
 
     private static final String MODULE = "structure";
-    private static final String ROOT_COMMAND = "emakistructure";
+    private static final String ROOT_COMMAND = "estructure";
     private static final Set<String> DEBUG_MODULES = Set.of(MODULE);
 
     private static final String STARTUP_ASCII = """
@@ -193,7 +193,7 @@ public class EmakiStructurePlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private void registerCommandHandler() {
         registerCommand(ROOT_COMMAND, "EmakiStructure 命令",
-                List.of("ems", "estruct"),
+                List.of("estru"),
                 new StructureCommandAdapter(components.commandRouter(), "emakistructure.use"));
     }
 

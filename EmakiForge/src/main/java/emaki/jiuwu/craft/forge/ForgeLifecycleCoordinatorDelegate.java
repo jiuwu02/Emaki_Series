@@ -17,13 +17,11 @@ import java.util.function.Supplier;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
@@ -344,15 +342,7 @@ final class ForgeLifecycleCoordinatorDelegate {
     }
 
     boolean resolveOpBypass(YamlSection configuration, YamlSection permission) {
-        if (configuration.contains("op_bypass")) {
-            return configuration.getBoolean("op_bypass", false);
-        }
-        if (permission != null && permission.contains("op_bypass")) {
-            boolean legacyValue = permission.getBoolean("op_bypass", false);
-            LogTags.send(JavaPlugin.getPlugin(EmakiForgePlugin.class), LogTag.CONFIG, Level.WARNING, "config.legacy_permission_op_bypass_key", Map.of("value", legacyValue));
-            return legacyValue;
-        }
-        return false;
+        return configuration.getBoolean("op_bypass", false);
     }
 
     void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {

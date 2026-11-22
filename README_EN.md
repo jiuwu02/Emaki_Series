@@ -117,7 +117,7 @@ The private modules are gated by the `.key` marker rather than a Maven profile: 
 
 - `EmakiCoreLib`: shared configuration lives in `EmakiCoreLib/src/main/resources/config.yml`; each business plugin's shared GUIs live in its own `gui/` directory. Item definitions uniformly use the canonical `item.source` / `item.amount` / `item.components` structure
 - `EmakiAttribute`: attribute, damage type, condition, and Lore format configs live in `attributes/*.yml`, `damage_types/*.yml`, `conditions/*.yml`, `lore_formats/*.yml`; the default profile lives in `config.yml > default_profile`
-- `EmakiItem`: item and set definitions live in `items/`, `sets/`; ID aliases live in `id_aliases.yml`; item definitions use `item.source` / `item.amount` / `item.components`
+- `EmakiItem`: item and set definitions live in `items/`, `sets/`; item definitions use `item.source` / `item.amount` / `item.components`
 - `EmakiForge`: forging recipes, GUI, and language resources live in `recipes/`, `gui/`, `lang/` and similar directories, currently focused on material batches, capacity, and result assembly
 - `EmakiStrengthen`: default strengthening recipes live in `recipes/*.yml` (three built-in examples: `example_recipe.yml`, `example_branch_recipe.yml`, `example_armor_recipe.yml`); enhancement definitions live in `enhancement_recipes/`; broadcasts and global success rates live in `config.yml`
 - `EmakiGem`: gems, equipment templates, socket openers, and GUI resources live in `gems/`, `items/`, `gui/gem/`, `gui/open/`, and `config.yml` (the upgrade view reuses the `gui/gem/` template)
@@ -127,15 +127,9 @@ The private modules are gated by the `.key` marker rather than a Maven profile: 
 - `EmakiCodex`: codex entries, categories, progress rules, and reward resources live in the module configuration directory and its definitions files
 - `EmakiMobs`: mob definitions, loot tables, and spawn rules live in `mobs/`, `loot_tables/`, `spawn_rules/`; skill behavior and target selector configs live in the module resource directory
 
-## Item configuration and ID migration
+## Item configuration
 
 Current `EmakiItem` definitions use the canonical `item.source`, `item.amount`, and `item.components` structure: the source goes in `item.source`, the count in `item.amount`, and names, lore, model data, and components in `item.components`.
-
-Item-ID renaming and online-inventory migration are separate capabilities:
-
-- `id_aliases.yml` stores mappings from old item IDs to new IDs.
-- `/ei migrate id <old> <new> --dry-run|--apply` migrates configuration references.
-- `/ei migrate inventory <player|all>` refreshes old IDs in online player inventories.
 
 ## EmakiItem set state
 

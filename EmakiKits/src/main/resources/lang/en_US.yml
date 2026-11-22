@@ -2,7 +2,7 @@
 # Messages use MiniMessage, placeholders are noted beside each group
 # version is maintained by the resource sync flow
 
-version: "1.0.5"
+version: "1.0.6"
 
 tags:
   kits: "[ kits ]"
@@ -10,18 +10,18 @@ tags:
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#F97316>EmakiKits</gradient> ]</gray> "
-  usage: "<yellow>Usage: /emakikits help</yellow>"
-  usage_claim: "<yellow>Usage: /emakikits claim <kit></yellow>"
-  usage_choose: "<yellow>Usage: /emakikits choose <kit> [option...]</yellow>"
-  usage_buy: "<yellow>Usage: /emakikits buy <kit></yellow>"
-  usage_redeem: "<yellow>Usage: /emakikits redeem <kit> <code></yellow>"
-  usage_invite: "<yellow>Usage: /emakikits invite <player></yellow>"
-  usage_open: "<yellow>Usage: /emakikits open <kit></yellow>"
-  usage_preview: "<yellow>Usage: /emakikits preview <kit></yellow>"
-  usage_inspect: "<yellow>Usage: /emakikits inspect <player></yellow>"
-  usage_grant: "<yellow>Usage: /emakikits grant <player> <kit></yellow>"
-  usage_cdk: "<yellow>Usage: /emakikits cdk list|disable <code></yellow>"
-  unknown_command: "<red>Unknown command, use /emakikits help</red>"
+  usage: "<yellow>Usage: /ekits help</yellow>"
+  usage_claim: "<yellow>Usage: /ekits claim <kit></yellow>"
+  usage_choose: "<yellow>Usage: /ekits choose <kit> [option...]</yellow>"
+  usage_buy: "<yellow>Usage: /ekits buy <kit></yellow>"
+  usage_redeem: "<yellow>Usage: /ekits redeem <kit> <code></yellow>"
+  usage_invite: "<yellow>Usage: /ekits invite <player></yellow>"
+  usage_open: "<yellow>Usage: /ekits open <kit></yellow>"
+  usage_preview: "<yellow>Usage: /ekits preview <kit></yellow>"
+  usage_inspect: "<yellow>Usage: /ekits inspect <player></yellow>"
+  usage_grant: "<yellow>Usage: /ekits grant <player> <kit></yellow>"
+  usage_cdk: "<yellow>Usage: /ekits cdk list|disable <code></yellow>"
+  unknown_command: "<red>Unknown command, use /ekits help</red>"
   player_only: "<red>This command is player-only</red>"
   help_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiKits Command Help</gradient> <gray><st>        </st></gray>"
   help_entry_list: "- <hover:show_text:'<gray>list</gray> <dark_gray>·</dark_gray> <gray>List all loaded kits</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakikits.use</white>'><gray>list</gray></hover> <click:run_command:'%root% list'><green>[ ✦ Run ]</green></click>"
@@ -341,7 +341,7 @@ error:
     not_purchased: "<red>Kit %kit% is not purchased or has no available claims</red>"
     purchase_disabled: "<red>Kit %kit% has purchase disabled</red>"
     purchase_limit: "<red>Kit %kit% reached its purchase limit</red>"
-    cdk_use_redeem: "<red>Use /emakikits redeem for CDK kits</red>"
+    cdk_use_redeem: "<red>Use /ekits redeem for CDK kits</red>"
     invite_use_bind: "<red>Use the join invite-code flow for invite kits</red>"
     makeup_disabled: "<red>Kit %kit% does not allow make-up claims or is not a cycle kit</red>"
     outside_time_window: "<red>Kit %kit% is outside its time window</red>"

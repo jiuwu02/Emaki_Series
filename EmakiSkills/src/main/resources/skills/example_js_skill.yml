@@ -16,8 +16,6 @@ trigger_type: "active"
 cooldown_ticks: 120
 global_cooldown_ticks: 20
 
-lore_aliases:
-  - "智能法术"
 tags:
   - "attack"
   - "advanced"

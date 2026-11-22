@@ -82,7 +82,7 @@ final class ForgeCommandRouter implements TabExecutor {
             return debugSuggestions.stream().distinct().toList();
         }
         if (args.length == 2 && "list".equalsIgnoreCase(args[0])) {
-            for (String sub : List.of("recipe", "recipes")) {
+            for (String sub : List.of("recipe")) {
                 if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -200,7 +200,7 @@ final class ForgeCommandRouter implements TabExecutor {
             return true;
         }
         switch (args[1].toLowerCase(Locale.ROOT)) {
-            case "recipe", "recipes" -> {
+            case "recipe" -> {
                 plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.recipes_header", Map.of("count", plugin.recipeLoader().all().size())));
                 plugin.recipeLoader().all().forEach((id, recipe)
                         -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.recipe_line", Map.of("id", id, "name", recipe.displayName()))));
@@ -215,7 +215,7 @@ final class ForgeCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
-        if (args.length >= 2 && ("stats".equalsIgnoreCase(args[1]) || "status".equalsIgnoreCase(args[1]))) {
+        if (args.length >= 2 && "stats".equalsIgnoreCase(args[1])) {
             var runtime = plugin.runtimeMetrics().snapshot();
             var recipeReport = plugin.recipeLoader().report();
             plugin.messageService().sendRaw(sender, plugin.messageService().message(
@@ -250,7 +250,7 @@ final class ForgeCommandRouter implements TabExecutor {
     }
 
     private String helpRoot(String label) {
-        return "/" + (label == null || label.isBlank() ? "emakiforge" : label);
+        return "/" + (label == null || label.isBlank() ? "eforge" : label);
     }
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {

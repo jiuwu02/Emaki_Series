@@ -95,7 +95,7 @@ public final class CookingRewardService {
             chain = chain.thenCompose(ignored -> executeFrozen(unit.kind(), unit.payload()));
         }
         chain.exceptionally(error -> {
-            messageService.warning(CookingLogTag.REWARD, "console.reward_legacy_execute_failed", Map.of("error", String.valueOf(error.getMessage())));
+            messageService.warning(CookingLogTag.REWARD, "console.reward_execute_failed", Map.of("error", String.valueOf(error.getMessage())));
             return false;
         });
     }

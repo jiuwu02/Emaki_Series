@@ -65,7 +65,7 @@ import java.util.logging.Level;
 
 public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
-    private static final String ROOT_COMMAND = "emakigem";
+    private static final String ROOT_COMMAND = "egem";
 
     private static final Set<String> DEBUG_MODULES = Set.of("inlay", "socket", "state", "gui", "pdc");
 
@@ -271,7 +271,7 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
         registerCommand(
                 ROOT_COMMAND,
                 "EmakiGem 命令",
-                List.of("egem", "eg"),
+                List.of("eg"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakigem.use", commandRouter, commandRouter)
         );
     }

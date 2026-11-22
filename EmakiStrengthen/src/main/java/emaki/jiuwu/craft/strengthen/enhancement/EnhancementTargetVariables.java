@@ -36,39 +36,12 @@ public final class EnhancementTargetVariables {
     public static final String FORGE_PATH_QUALITY_MULTIPLIER = "forge_quality_multiplier";
     public static final String FORGE_PATH_RECIPE_ID = "forge_forge_recipe_id";
 
-    public static final String LEGACY_FORGE_PATH_QUALITY_ID = "forge.quality_id";
-    public static final String LEGACY_FORGE_PATH_QUALITY_DISPLAY = "forge.quality_display";
-    public static final String LEGACY_FORGE_PATH_QUALITY_MULTIPLIER = "forge.quality_multiplier";
-    public static final String LEGACY_FORGE_PATH_RECIPE_ID = "forge.forge_recipe_id";
-
     public static final String VARIABLE_MULTIPLIER_VALID = "forge_quality_multiplier_valid";
     public static final String VARIABLE_PDC_READ_ERRORS = "target_pdc_read_error_count";
 
     public static final double DEFAULT_QUALITY_MULTIPLIER = 1D;
 
-    private static final Map<String, List<String>> FORGE_ALIASES = Map.of(
-            FORGE_PATH_QUALITY_ID, List.of("forge_quality_id", "forge.quality_id", "quality_id"),
-            LEGACY_FORGE_PATH_QUALITY_ID, List.of("forge_quality_id", "forge.quality_id", "quality_id"),
-            FORGE_PATH_QUALITY_DISPLAY,
-            List.of("forge_quality_display", "forge.quality_display", "quality_display"),
-            LEGACY_FORGE_PATH_QUALITY_DISPLAY,
-            List.of("forge_quality_display", "forge.quality_display", "quality_display"),
-            FORGE_PATH_QUALITY_MULTIPLIER,
-            List.of("forge_quality_multiplier", "forge.quality_multiplier", "quality_multiplier"),
-            LEGACY_FORGE_PATH_QUALITY_MULTIPLIER,
-            List.of("forge_quality_multiplier", "forge.quality_multiplier", "quality_multiplier"),
-            FORGE_PATH_RECIPE_ID, List.of("forge_recipe_id", "forge.forge_recipe_id"),
-            LEGACY_FORGE_PATH_RECIPE_ID, List.of("forge_recipe_id", "forge.forge_recipe_id"));
-
     private EnhancementTargetVariables() {
-    }
-
-    public static @NotNull Map<String, List<String>> forgeAliasContract() {
-        return FORGE_ALIASES;
-    }
-
-    public static @NotNull List<String> forgeAliases(@Nullable String path) {
-        return FORGE_ALIASES.getOrDefault(Texts.toStringSafe(path).toLowerCase(Locale.ROOT), List.of());
     }
 
     public static @NotNull String forgeNamespace() {
@@ -174,17 +147,10 @@ public final class EnhancementTargetVariables {
         variables.put("forge_quality_display", "");
         variables.put("forge_quality_multiplier", 1D);
         variables.put("forge_recipe_id", "");
-        variables.put("forge.quality_id", "");
-        variables.put("forge.quality_display", "");
-        variables.put("forge.quality_multiplier", 1D);
-        variables.put("forge.forge_recipe_id", "");
-        variables.put("quality_id", "");
-        variables.put("quality_display", "");
-        variables.put("quality_multiplier", 1D);
         variables.put("forge_quality_multiplier_valid", 1);
         variables.put("target_pdc_read_error_count", unreadable);
         pdc.forEach((key, value) -> variables.put("item_pdc_" + key.replace(':', '_'), value));
-        addForgeAliases(variables, pdc);
+        addForgeVariables(variables, pdc);
         effects.forEach((key, value) -> variables.put("target_effect_" + normalizeVariableKey(key), value));
         layers.forEach((key, value) -> variables.put("target_layer_" + normalizeVariableKey(key), value));
         audit.forEach((key, value) -> variables.put("target_audit_" + normalizeVariableKey(key), value));
@@ -222,6 +188,9 @@ public final class EnhancementTargetVariables {
         }
         PersistentDataContainer container = itemMeta.getPersistentDataContainer();
         for (NamespacedKey key : container.getKeys()) {
+            if (FORGE_NAMESPACE.equalsIgnoreCase(key.getNamespace()) && key.getKey().startsWith("forge.")) {
+                continue;
+            }
             Object value = read(container, key);
             if (value == null) {
                 unreadableKeys.add(key.getNamespace() + ":" + key.getKey());
@@ -403,33 +372,27 @@ public final class EnhancementTargetVariables {
         return null;
     }
 
-    private static void addForgeAliases(Map<String, Object> variables, Map<String, Object> pdc) {
+    private static void addForgeVariables(Map<String, Object> variables, Map<String, Object> pdc) {
         pdc.forEach((canonical, value) -> {
             int separator = canonical.indexOf(':');
             if (separator <= 0 || !FORGE_NAMESPACE.equalsIgnoreCase(canonical.substring(0, separator))) {
                 return;
             }
             String path = canonical.substring(separator + 1).toLowerCase(Locale.ROOT);
-            List<String> names = FORGE_ALIASES.get(path);
-            if (names == null) {
-                return;
-            }
-
-            if (FORGE_PATH_QUALITY_MULTIPLIER.equals(path)
-                    || LEGACY_FORGE_PATH_QUALITY_MULTIPLIER.equals(path)) {
+            if (FORGE_PATH_QUALITY_MULTIPLIER.equals(path)) {
                 NumberResult result = finiteDouble(value, DEFAULT_QUALITY_MULTIPLIER);
-                aliases(variables, result.value(), names);
+                variables.put(FORGE_PATH_QUALITY_MULTIPLIER, result.value());
                 variables.put(VARIABLE_MULTIPLIER_VALID, result.valid() ? 1 : 0);
                 return;
             }
-            aliases(variables, value, names);
+            if (FORGE_PATH_QUALITY_ID.equals(path)) {
+                variables.put(FORGE_PATH_QUALITY_ID, value);
+            } else if (FORGE_PATH_QUALITY_DISPLAY.equals(path)) {
+                variables.put(FORGE_PATH_QUALITY_DISPLAY, value);
+            } else if (FORGE_PATH_RECIPE_ID.equals(path)) {
+                variables.put("forge_recipe_id", value);
+            }
         });
-    }
-
-    private static void aliases(Map<String, Object> variables, Object value, List<String> names) {
-        for (String name : names) {
-            variables.put(name, value);
-        }
     }
 
     private static String findIdentityValue(Map<String, Object> values, String... suffixes) {

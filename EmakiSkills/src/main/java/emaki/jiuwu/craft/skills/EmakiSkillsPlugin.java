@@ -76,7 +76,7 @@ import java.util.logging.Level;
 
 public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
-    private static final String ROOT_COMMAND = "emakiskills";
+    private static final String ROOT_COMMAND = "eskills";
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  __  __   __  __      __      ______
@@ -303,7 +303,7 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
         registerCommand(
                 ROOT_COMMAND,
                 "EmakiSkills 命令",
-                List.of("eskills"),
+                List.of("esk"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakiskills.use", commandRouter, commandRouter)
         );
     }

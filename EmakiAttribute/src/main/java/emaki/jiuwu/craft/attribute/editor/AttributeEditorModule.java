@@ -487,7 +487,6 @@ public final class AttributeEditorModule implements EditorModule {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("id", id);
         root.put("display_name", "<white>" + id + "</white>");
-        root.put("aliases", new ArrayList<>());
         root.put("allowed_events", new ArrayList<>());
         root.put("hard_lock", false);
         root.put("stages", new ArrayList<>());

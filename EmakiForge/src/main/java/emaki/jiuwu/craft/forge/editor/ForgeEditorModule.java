@@ -239,10 +239,6 @@ public final class ForgeEditorModule implements EditorModule {
             Object outputs = session.draft().value("result", "success", "outputs");
             if (outputs instanceof List<?> list && !list.isEmpty() && list.get(0) instanceof Map<?, ?> output) {
                 Object raw = output.get("item_source");
-                if (!(raw instanceof String) && output.get("item_sources") instanceof List<?> alternatives
-                        && !alternatives.isEmpty()) {
-                    raw = alternatives.get(0);
-                }
                 if (raw instanceof String text) {
                     source = text;
                 }

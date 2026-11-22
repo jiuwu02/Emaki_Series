@@ -320,7 +320,7 @@ public final class AttributeCommand implements TabExecutor {
     }
 
     private String helpRoot(String label) {
-        return "/" + (label == null || label.isBlank() ? "emakiattribute" : label);
+        return "/" + (label == null || label.isBlank() ? "eattribute" : label);
     }
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
@@ -445,7 +445,7 @@ public final class AttributeCommand implements TabExecutor {
         List<String> result = new ArrayList<>();
         boolean admin = sender.hasPermission(AttributePermissions.POINTS_ADMIN) || sender.hasPermission(AttributePermissions.ADMIN);
         if (args.length == 2) {
-            for (String sub : List.of("view", "info", "open", "gui", "add", "reset", "grant", "set", "setreset")) {
+            for (String sub : List.of("view", "open", "add", "reset", "grant", "set", "setreset")) {
                 if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -453,11 +453,6 @@ public final class AttributeCommand implements TabExecutor {
             return result;
         }
         String sub = args[1].toLowerCase(Locale.ROOT);
-        sub = switch (sub) {
-            case "info" -> "view";
-            case "gui" -> "open";
-            default -> sub;
-        };
         if (args.length == 3) {
             if (admin && List.of("view", "open", "reset", "grant", "set", "setreset").contains(sub)) {
                 result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
@@ -581,11 +576,11 @@ public final class AttributeCommand implements TabExecutor {
     private String normalizePreviewSlot(String raw) {
         String normalized = Texts.toStringSafe(raw).trim().toLowerCase(Locale.ROOT).replace('-', '_');
         return switch (normalized) {
-            case "main_hand", "mainhand", "hand" -> "main_hand";
-            case "off_hand", "offhand" -> "off_hand";
+            case "main_hand" -> "main_hand";
+            case "off_hand" -> "off_hand";
             case "helmet" -> "helmet";
-            case "chestplate", "chest" -> "chestplate";
-            case "leggings", "legs" -> "leggings";
+            case "chestplate" -> "chestplate";
+            case "leggings" -> "leggings";
             case "boots" -> "boots";
             default -> null;
         };

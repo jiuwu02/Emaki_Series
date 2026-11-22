@@ -48,8 +48,6 @@ public final class EmakiItemAssemblyService {
 
     static final PdcPartition ITEM_SET_PARTITION = new PdcPartition("emaki", "emakiitem");
 
-    static final String LEGACY_ITEM_SET_PARTITION = "emakiitem";
-
     private final ItemSourceService itemSourceService;
     final AssemblyDataManager dataManager;
     private final EmakiNamespaceRegistry namespaceRegistry;

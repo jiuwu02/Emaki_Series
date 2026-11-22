@@ -139,7 +139,7 @@ timer:
 # 命令链结算步骤, 可引用 EmakiItem/EmakiLevel
 settlement:
   commands:
-  #  - "emakiitem give %player% reward_key 1"
+  #  - "eitem give %player% reward_key 1"
 
 # 榜单条数上限与超限淘汰
 leaderboard:

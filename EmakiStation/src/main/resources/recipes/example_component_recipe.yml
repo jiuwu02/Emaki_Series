@@ -44,9 +44,9 @@ cost:
 #     path: sharpness          等价于 minecraft:sharpness
 # ⚠ matcher 内禁止写物品源条件, 物品源一律写在同级 item_sources
 # matcher 组合五态 (type 取值):
-#   all_of (别名 all / and)        全部子条件满足
-#   any_of (别名 any / or)         任一子条件满足
-#   none_of (别名 none / not)      全部子条件都不满足
+#   all_of                        全部子条件满足
+#   any_of                        任一子条件满足
+#   none_of                       全部子条件都不满足
 #   at_least + required_count       至少 N 条满足
 #   exactly  + required_count       恰好 N 条满足
 # matcher 内 component 的 operator 全集:

@@ -72,7 +72,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
     }
 
     private String helpRoot(String label) {
-        return "/" + (label == null || label.isBlank() ? "elv" : label);
+        return "/" + (label == null || label.isBlank() ? "elevel" : label);
     }
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {

@@ -26,11 +26,11 @@ dependencies:
       required: false
       join-classpath: true
 commands:
-  edg:
+  edungeon:
     description: EmakiDungeon 命令
-    usage: /edg help
+    usage: /edungeon help
     permission: emakidungeon.play
-    aliases: [dungeon, edungeon]
+    aliases: [ed]
 permissions:
   emakidungeon.play:
     description: 进入, 组队, 查询, 全局收听等玩家侧能力

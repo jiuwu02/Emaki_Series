@@ -7,7 +7,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -29,14 +28,6 @@ import emaki.jiuwu.craft.corelib.log.LogTag;
 import java.util.logging.Level;
 
 public final class EmakiItemSetLoader {
-
-    private static final List<String> RETIRED_THRESHOLD_KEYS = List.of(
-            "ea_attributes",
-            "es_skills",
-            "name_actions",
-            "lore_actions",
-            "name_action",
-            "lore_action");
 
     private final JavaPlugin plugin;
     private final Supplier<AppConfig> configSupplier;
@@ -171,7 +162,6 @@ public final class EmakiItemSetLoader {
             if (required <= 0 || threshold == null) {
                 continue;
             }
-            warnRetiredThresholdFields(threshold, source, required);
             List<Map<?, ?>> effects = threshold.getMapList("effects");
             result.add(new ItemSetThreshold(
                     required,
@@ -184,30 +174,6 @@ public final class EmakiItemSetLoader {
             ));
         }
         return result;
-    }
-
-    private void warnRetiredThresholdFields(YamlSection threshold, String source, int required) {
-        Set<String> present = new LinkedHashSet<>();
-        for (String key : RETIRED_THRESHOLD_KEYS) {
-            if (threshold.get(key) != null) {
-                present.add(key);
-            }
-        }
-        for (Map<?, ?> effect : threshold.getMapList("effects")) {
-            if (effect == null) {
-                continue;
-            }
-            String type = Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type")));
-            if ("ea_attribute".equals(type) && ConfigNodes.get(effect, "attributes") != null) {
-                present.add("effects.attributes");
-            }
-            if ("es_skill".equals(type) && ConfigNodes.get(effect, "es_skill") != null) {
-                present.add("effects.es_skill");
-            }
-        }
-        if (!present.isEmpty()) {
-            LogTags.send(plugin, LogTag.LOADER, Level.WARNING, "loader.set_definition_deprecated_fields", Map.of("path", source, "threshold", required, "fields", String.join(", ", present)));
-        }
     }
 
     private Map<String, Double> thresholdAttributes(List<Map<?, ?>> effects) {

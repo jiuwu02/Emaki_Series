@@ -92,7 +92,7 @@ public final class AccessorySlotDeclarations {
             List<String> listed = container.get(key, PersistentDataType.LIST.strings());
             if (listed != null) {
                 for (String value : listed) {
-                    addAliased(value, config, declared);
+                    addNormalized(value, declared);
                 }
                 return;
             }
@@ -105,7 +105,7 @@ public final class AccessorySlotDeclarations {
             return;
         }
         for (String value : joined.split(Pattern.quote(config.separator()))) {
-            addAliased(value, config, declared);
+            addNormalized(value, declared);
         }
     }
 
@@ -135,16 +135,9 @@ public final class AccessorySlotDeclarations {
                     continue;
                 }
                 for (String value : captured.split(Pattern.quote(config.separator()))) {
-                    addAliased(value, config, declared);
+                    addNormalized(value, declared);
                 }
             }
-        }
-    }
-
-    private static void addAliased(String raw, AccessorySlotSourceConfig config, Set<String> declared) {
-        String resolved = config.resolveAlias(raw);
-        if (Texts.isNotBlank(resolved)) {
-            declared.add(resolved);
         }
     }
 

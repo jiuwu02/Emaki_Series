@@ -43,7 +43,7 @@ public final class KitCommandRouter {
             "check", "preview", "edit", "top");
     private static final List<String> KIT_ARG_SUBS = List.of(
             "claim", "choose", "buy", "redeem", "open", "preview", "edit");
-    private static final String HELP_ROOT = "/emakikits";
+    private static final String HELP_ROOT = "/ekits";
 
     private final EmakiKitsPlugin plugin;
     private final KitService service;

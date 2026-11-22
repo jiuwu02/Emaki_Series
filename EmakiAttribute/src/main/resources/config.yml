@@ -1,6 +1,6 @@
 # EmakiAttribute 主配置
 
-version: "5.0.9"
+version: "5.0.10"
 
 # 对应 lang/<language>.yml
 language: "zh_CN"

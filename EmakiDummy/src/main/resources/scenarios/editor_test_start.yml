@@ -6,7 +6,7 @@ steps:
   - action: join_all
   - action: cmd
     player: dummy_a
-    command: "/edg leave"
+    command: "/edungeon leave"
   - action: sleep
     seconds: 1
   - action: say
@@ -16,17 +16,17 @@ steps:
     seconds: 2
   - action: cmd
     player: dummy_a
-    command: "/edg cancel"
+    command: "/edungeon cancel"
   - action: sleep
     seconds: 1
   - action: cmd
     player: dummy_a
-    command: "/edg editor test_dungeon"
+    command: "/edungeon editor test_dungeon"
   - action: sleep
     seconds: 2
   - action: cmd
     player: dummy_a
-    command: "/edg editor test"
+    command: "/edungeon editor test"
   - action: sleep
     seconds: 2
   - action: click

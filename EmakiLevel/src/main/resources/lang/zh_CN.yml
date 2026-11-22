@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "2.0.5"
+version: "2.0.6"
 
 tags:
   leaderboard: '[ 排行榜 ]'
@@ -75,7 +75,7 @@ command:
   type_not_found: "%prefix%<red>经验类型不存在: <white>%type%</white></red>"
   invalid_number: "%prefix%<red>数字无效: <white>%value%</white></red>"
   reload_success: "%prefix%<green>配置已重载</green>"
-  usage: "%prefix%<gray>用法: /elv help 查看帮助 | /elv gui [type] | /elv info [type] | /elv levelup <type> | /elv topgui [type] | /elv edit [id]</gray>"
+  usage: "%prefix%<gray>用法: /elevel help 查看帮助 | /elevel gui [type] | /elevel info [type] | /elevel levelup <type> | /elevel topgui [type] | /elevel edit [id]</gray>"
   help_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiLevel 命令帮助</gradient> <gray><st>        </st></gray>"
   help_entry_help: "- <hover:show_text:'<gray>help</gray> <dark_gray>·</dark_gray> <gray>显示本帮助页</gray><newline><newline><dark_gray>▸</dark_gray> <gray>所有子命令都需要权限 </gray><white>emakilevel.use</white>'><gray>help</gray></hover> <click:run_command:'%root% help'><green>[ ✦ 点击执行 ]</green></click>"
   help_entry_info: "- <hover:show_text:'<gray>info</gray> <dark_gray>·</dark_gray> <gray>查看自己的等级与经验</gray><newline><newline><dark_gray>▸</dark_gray> <gray>不带子命令时等同于 info</gray><newline><dark_gray>▸</dark_gray> <gray>可选参数:等级类型 - 不填显示全部类型, 如 </gray><white>%root% info [类型]</white><newline><dark_gray>▸</dark_gray> <gray>支持 Tab 补全类型</gray><newline><dark_gray>▸</dark_gray> <gray>只能由玩家执行</gray>'><gray>info</gray></hover> <click:run_command:'%root% info'><green>[ ✦ 点击执行 ]</green></click>"
@@ -121,11 +121,11 @@ command:
   # 命令: 排行榜条目; 占位符: %rank%, %player%, %level%, %total_exp%
   top_entry: "<yellow>#%rank%</yellow> <white>%player%</white> <gray>%level% 级 / %total_exp% 总计</gray>"
   # 命令: 经验操作用法提示; 占位符: %mode%
-  usage_exp: "<red>/elv %mode%exp <player> <type> <amount></red>"
+  usage_exp: "<red>/elevel %mode%exp <player> <type> <amount></red>"
   # 命令: 等级操作用法提示; 占位符: %mode%
-  usage_level: "<red>/elv %mode%level <player> <type> <amount></red>"
+  usage_level: "<red>/elevel %mode%level <player> <type> <amount></red>"
   # 命令: 重置用法提示
-  usage_reset: "<red>/elv reset <player> <type></red>"
+  usage_reset: "<red>/elevel reset <player> <type></red>"
   # 命令: 重载耗时; 占位符: %elapsed%
   reload_time: "<gray>重载耗时: <white>%elapsed%ms</white></gray>"
   # 命令: 升级经验需求调试输出; 占位符: %type%, %level%, %required%, %source%

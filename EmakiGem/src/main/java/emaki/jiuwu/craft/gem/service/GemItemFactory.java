@@ -78,8 +78,6 @@ public final class GemItemFactory {
         PDC.set(itemStack, GEM_ITEM_PARTITION, "stage", PersistentDataType.INTEGER, instance.stage());
         PDC.set(itemStack, GEM_ITEM_PARTITION, "data_version", PersistentDataType.INTEGER, instance.dataVersion());
         PDC.writeBlob(itemStack, GEM_ITEM_PARTITION, "instance_data", GemItemInstance.CODEC, instance);
-
-        PDC.purgeLegacyKeys(itemStack);
     }
 
     public ItemStack recreateGemItem(GemItemInstance instance, int amount) {

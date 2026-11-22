@@ -70,7 +70,7 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         implements LogMessagesProvider, AccessoryGuiHandler.Callbacks {
 
     private static final String MODULE = "accessory";
-    private static final String ROOT_COMMAND = "emakiaccessory";
+    private static final String ROOT_COMMAND = "eaccessory";
     private static final Set<String> DEBUG_MODULES = Set.of(MODULE);
 
     private static final String STARTUP_ASCII = """
@@ -531,7 +531,7 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private void registerCommandHandler() {
         commandRouter = new AccessoryCommandRouter(this);
-        registerCommand(ROOT_COMMAND, "EmakiAccessory 指令", List.of("eaccessory", "eacc"),
+        registerCommand(ROOT_COMMAND, "EmakiAccessory 指令", List.of("eac"),
                 new AccessoryCommandAdapter(ROOT_COMMAND, "emakiaccessory.use", commandRouter));
     }
 

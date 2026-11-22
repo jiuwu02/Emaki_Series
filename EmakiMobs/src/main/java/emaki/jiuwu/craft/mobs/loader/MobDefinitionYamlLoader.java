@@ -5,7 +5,6 @@ import emaki.jiuwu.craft.corelib.api.animation.AnimationKeyframe;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.mobs.config.ModelSettings;
 import emaki.jiuwu.craft.mobs.selector.TargetLockConfig;
-import emaki.jiuwu.craft.corelib.log.LogTags;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.EntityType;
@@ -18,45 +17,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import emaki.jiuwu.craft.corelib.log.LogTag;
-import java.util.logging.Level;
 
 public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> {
 
     private static final String KEY_EA_ATTRIBUTES = "ea_attributes";
     private static final String KEY_ACTIONS = "actions";
-    private static final String LEGACY_KEY_ATTRIBUTES = "attributes";
-    private static final String LEGACY_KEY_SKILLS = "skills";
 
     public MobDefinitionYamlLoader(JavaPlugin plugin) {
         super(plugin);
-    }
-
-    public List<String> deprecations() {
-        List<String> result = new ArrayList<>();
-        for (LoadedYamlEntry<MobSpec> entry : entries().values()) {
-            YamlSection config = entry.configuration();
-            if (config == null) {
-                continue;
-            }
-            appendDeprecation(result, config, entry.file(), KEY_EA_ATTRIBUTES, LEGACY_KEY_ATTRIBUTES);
-            appendDeprecation(result, config, entry.file(), KEY_ACTIONS, LEGACY_KEY_SKILLS);
-        }
-        return List.copyOf(result);
-    }
-
-    private void appendDeprecation(List<String> sink,
-                                   YamlSection config,
-                                   File file,
-                                   String currentKey,
-                                   String legacyKey) {
-        if (config.getSection(currentKey) != null || config.getSection(legacyKey) == null) {
-            return;
-        }
-        sink.add(localized("loader.deprecated_key", Map.of(
-                "file", file == null ? "?" : file.getName(),
-                "old_key", legacyKey,
-                "new_key", currentKey)));
     }
 
     @Override
@@ -88,10 +56,8 @@ public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> 
         String displayName = config.getString("display_name");
         int experience = config.getInt("experience", 0);
         Map<String, Object> components = extractSection(config, "components");
-        Map<String, Double> eaAttributes = extractDoubleSection(
-                config, resolveKey(config, file, KEY_EA_ATTRIBUTES, LEGACY_KEY_ATTRIBUTES));
-        Map<String, List<String>> actions = extractListSection(
-                config, resolveKey(config, file, KEY_ACTIONS, LEGACY_KEY_SKILLS));
+        Map<String, Double> eaAttributes = extractDoubleSection(config, KEY_EA_ATTRIBUTES);
+        Map<String, List<String>> actions = extractListSection(config, KEY_ACTIONS);
         boolean typeOverride = isEntityTypeName(id);
         ThreatConfig threatConfig = parseThreatConfig(config);
         BossBarConfig bossBarConfig = parseBossBarConfig(config);
@@ -100,14 +66,6 @@ public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> 
         TargetLockConfig targetLockConfig = parseTargetLockConfig(config);
         return new MobSpec(id, entityType, displayName, components, eaAttributes, actions, experience,
                 typeOverride, threatConfig, bossBarConfig, modelConfig, targetSelector, targetLockConfig);
-    }
-
-    private String resolveKey(YamlSection config, File file, String currentKey, String legacyKey) {
-        if (config.getSection(currentKey) != null || config.getSection(legacyKey) == null) {
-            return currentKey;
-        }
-        LogTags.send(plugin, LogTag.LOADER, Level.WARNING, "loader.mob_file_legacy_key_in_use", Map.of("file", file.getName(), "old_key", legacyKey, "new_key", currentKey));
-        return legacyKey;
     }
 
     @Override

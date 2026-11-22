@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage, 占位符见各分组旁注释
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.5"
+version: "1.0.6"
 
 tags:
   kits: "[ 礼包 ]"
@@ -10,18 +10,18 @@ tags:
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#F97316>EmakiKits</gradient> ]</gray> "
-  usage: "<yellow>用法: /emakikits help</yellow>"
-  usage_claim: "<yellow>用法: /emakikits claim <kit></yellow>"
-  usage_choose: "<yellow>用法: /emakikits choose <kit> [option...]</yellow>"
-  usage_buy: "<yellow>用法: /emakikits buy <kit></yellow>"
-  usage_redeem: "<yellow>用法: /emakikits redeem <kit> <code></yellow>"
-  usage_invite: "<yellow>用法: /emakikits invite <player></yellow>"
-  usage_open: "<yellow>用法: /emakikits open <kit></yellow>"
-  usage_preview: "<yellow>用法: /emakikits preview <kit></yellow>"
-  usage_inspect: "<yellow>用法: /emakikits inspect <player></yellow>"
-  usage_grant: "<yellow>用法: /emakikits grant <player> <kit></yellow>"
-  usage_cdk: "<yellow>用法: /emakikits cdk list|disable <code></yellow>"
-  unknown_command: "<red>未知命令, 请使用 /emakikits help</red>"
+  usage: "<yellow>用法: /ekits help</yellow>"
+  usage_claim: "<yellow>用法: /ekits claim <kit></yellow>"
+  usage_choose: "<yellow>用法: /ekits choose <kit> [option...]</yellow>"
+  usage_buy: "<yellow>用法: /ekits buy <kit></yellow>"
+  usage_redeem: "<yellow>用法: /ekits redeem <kit> <code></yellow>"
+  usage_invite: "<yellow>用法: /ekits invite <player></yellow>"
+  usage_open: "<yellow>用法: /ekits open <kit></yellow>"
+  usage_preview: "<yellow>用法: /ekits preview <kit></yellow>"
+  usage_inspect: "<yellow>用法: /ekits inspect <player></yellow>"
+  usage_grant: "<yellow>用法: /ekits grant <player> <kit></yellow>"
+  usage_cdk: "<yellow>用法: /ekits cdk list|disable <code></yellow>"
+  unknown_command: "<red>未知命令, 请使用 /ekits help</red>"
   player_only: "<red>此命令只能由玩家执行</red>"
   help_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiKits 命令帮助</gradient> <gray><st>        </st></gray>"
   help_entry_list: "- <hover:show_text:'<gray>list</gray> <dark_gray>·</dark_gray> <gray>列出全部已加载的礼包</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakikits.use</white>'><gray>list</gray></hover> <click:run_command:'%root% list'><green>[ ✦ 点击执行 ]</green></click>"
@@ -326,7 +326,7 @@ error:
     not_purchased: "<red>礼包 %kit% 尚未购买或可领取次数已耗尽</red>"
     purchase_disabled: "<red>礼包 %kit% 未开启购买</red>"
     purchase_limit: "<red>礼包 %kit% 购买次数已达上限</red>"
-    cdk_use_redeem: "<red>CDK 礼包请使用 /emakikits redeem</red>"
+    cdk_use_redeem: "<red>CDK 礼包请使用 /ekits redeem</red>"
     invite_use_bind: "<red>邀新礼包请使用入服邀请码流程</red>"
     makeup_disabled: "<red>礼包 %kit% 未开启补领或不是周期礼包</red>"
     outside_time_window: "<red>礼包 %kit% 当前不在限时窗口内</red>"

@@ -25,7 +25,6 @@ import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
@@ -78,8 +77,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             "recipes/example_failure_recipe.yml",
             "recipes/example_optional_materials_recipe.yml");
     static final List<String> EXTRA_DIRECTORIES = List.of("data");
-    static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
-            new ConfigKeyMigration.Rename("permission.op_bypass", "op_bypass"));
     static final long SHUTDOWN_SETTLEMENT_DELAY_TICKS = 100L;
     private static final long SHUTDOWN_RETIREMENT_TIMEOUT_SECONDS = 10L;
 
@@ -432,13 +429,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 DEFAULT_DATA_FILES,
                 EXTRA_DIRECTORIES,
                 bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData),
-                        (relativePath, runtime, bundled) -> {
-                            if (!"config.yml".equals(relativePath)) {
-                                return;
-                            }
-                            ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
-                            ConfigKeyMigration.pruneEmptySection(runtime, "permission");
-                        },
+                        null,
                         null)
         );
     }

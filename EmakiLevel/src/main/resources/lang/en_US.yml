@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "2.0.5"
+version: "2.0.6"
 
 tags:
   leaderboard: '[ leaderboard ]'
@@ -75,7 +75,7 @@ command:
   type_not_found: "%prefix%<red>Level type not found: <white>%type%</white></red>"
   invalid_number: "%prefix%<red>Invalid number: <white>%value%</white></red>"
   reload_success: "%prefix%<green>Configuration reloaded</green>"
-  usage: "%prefix%<gray>Usage: /elv help for the list | /elv gui [type] | /elv info [type] | /elv levelup <type> | /elv topgui [type] | /elv edit [id]</gray>"
+  usage: "%prefix%<gray>Usage: /elevel help for the list | /elevel gui [type] | /elevel info [type] | /elevel levelup <type> | /elevel topgui [type] | /elevel edit [id]</gray>"
   help_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiLevel Command Help</gradient> <gray><st>        </st></gray>"
   help_entry_help: "- <hover:show_text:'<gray>help</gray> <dark_gray>·</dark_gray> <gray>Show this help page</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Every subcommand requires permission </gray><white>emakilevel.use</white>'><gray>help</gray></hover> <click:run_command:'%root% help'><green>[ ✦ Run ]</green></click>"
   help_entry_info: "- <hover:show_text:'<gray>info</gray> <dark_gray>·</dark_gray> <gray>Show your own level and experience</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Running the root command without a subcommand does the same</gray><newline><dark_gray>▸</dark_gray> <gray>Optional argument: level type - omit to show all types, e.g. </gray><white>%root% info [type]</white><newline><dark_gray>▸</dark_gray> <gray>Tab completion suggests types</gray><newline><dark_gray>▸</dark_gray> <gray>Player only</gray>'><gray>info</gray></hover> <click:run_command:'%root% info'><green>[ ✦ Run ]</green></click>"
@@ -121,11 +121,11 @@ command:
   # Command: leaderboard entry; placeholders: %rank%, %player%, %level%, %total_exp%
   top_entry: "<yellow>#%rank%</yellow> <white>%player%</white> <gray>Lv.%level% / %total_exp% total</gray>"
   # Command: experience operation usage hint; placeholder: %mode%
-  usage_exp: "<red>/elv %mode%exp <player> <type> <amount></red>"
+  usage_exp: "<red>/elevel %mode%exp <player> <type> <amount></red>"
   # Command: level operation usage hint; placeholder: %mode%
-  usage_level: "<red>/elv %mode%level <player> <type> <amount></red>"
+  usage_level: "<red>/elevel %mode%level <player> <type> <amount></red>"
   # Command: reset usage hint
-  usage_reset: "<red>/elv reset <player> <type></red>"
+  usage_reset: "<red>/elevel reset <player> <type></red>"
   # Command: reload duration; placeholder: %elapsed%
   reload_time: "<gray>Reload took: <white>%elapsed%ms</white></gray>"
   # Command: level up exp requirement debug output; placeholders: %type%, %level%, %required%, %source%

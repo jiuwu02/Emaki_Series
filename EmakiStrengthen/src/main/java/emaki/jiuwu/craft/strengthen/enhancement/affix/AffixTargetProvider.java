@@ -103,9 +103,9 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
 
         return Map.of(
                 TargetSnapshotCategory.LAYER,
-                Set.of(AffixLayerCodec.partitionPath(), AffixLayerCodec.legacyPartitionPath()),
+                Set.of(AffixLayerCodec.partitionPath()),
                 TargetSnapshotCategory.AUDIT,
-                Set.of(MasteryLayerCodec.partitionPath(), MasteryLayerCodec.legacyPartitionPath()));
+                Set.of(MasteryLayerCodec.partitionPath()));
     }
 
     @Override

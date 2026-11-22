@@ -116,26 +116,10 @@ public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRe
 
     private ItemRequirement parseInputRequirement(File file, String recipeId, YamlSection configuration) {
         boolean canonicalDeclared = configuration.contains(ItemRequirement.KEY_ITEM_SOURCES);
-        boolean legacyDeclared = configuration.contains("input_source");
-        if (canonicalDeclared && legacyDeclared) {
-            issue("station.recipe_source_field_conflict", Map.of("recipe", recipeId, "file", fileName(file)));
-            return null;
-        }
 
         Map<String, Object> node = new LinkedHashMap<>();
         if (canonicalDeclared) {
             node.put(ItemRequirement.KEY_ITEM_SOURCES, configuration.get(ItemRequirement.KEY_ITEM_SOURCES));
-        } else if (legacyDeclared) {
-            String inputToken = configuration.getString("input_source");
-            if (inputToken != null && !inputToken.isBlank()) {
-                if (ItemSourceUtil.parse(inputToken) == null) {
-                    issue("station.dismantle_recipe_bad_input", Map.of("recipe", recipeId,
-                            "source", inputToken, "file", fileName(file)));
-                    return null;
-                }
-                issue("station.dismantle_recipe_legacy_input_source", Map.of("recipe", recipeId, "file", fileName(file)));
-                node.put(ItemRequirement.KEY_ITEM_SOURCES, List.of(inputToken));
-            }
         }
         if (configuration.contains(ItemRequirement.KEY_MATCHER)) {
             node.put(ItemRequirement.KEY_MATCHER, configuration.get(ItemRequirement.KEY_MATCHER));

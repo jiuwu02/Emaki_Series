@@ -1,10 +1,10 @@
 # EmakiStructure 主配置
 #
 # 控制结构模板导入上限, 生成限额, 框选会话与结构内生物生成
-# 修改后使用 /ems reload 热重载
+# 修改后使用 /estructure reload 热重载
 # 文件位置: plugins/EmakiStructure/config.yml
 
-version: "1.0.12"
+version: "1.0.13"
 
 # 语言文件名, 对应 lang/<language>.yml
 language: "zh_CN"

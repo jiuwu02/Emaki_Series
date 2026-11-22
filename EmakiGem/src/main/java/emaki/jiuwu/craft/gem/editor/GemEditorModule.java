@@ -64,12 +64,6 @@ public final class GemEditorModule implements EditorModule {
         Object base = session.draft().value("base_item_source");
         if (base instanceof String baseSource && !baseSource.isBlank()) {
             source = baseSource;
-        } else {
-            Object sources = session.draft().value("item_sources");
-            if (sources instanceof List<?> sourceList && !sourceList.isEmpty()
-                    && sourceList.get(0) instanceof String firstSource && !firstSource.isBlank()) {
-                source = firstSource;
-            }
         }
         String name = Texts.toStringSafe(session.draft().value("display_name"));
         if (name.isBlank()) {
@@ -275,7 +269,6 @@ public final class GemEditorModule implements EditorModule {
         skeleton.put("gem_type", "universal");
         skeleton.put("level", 1);
         skeleton.put("base_item_source", "minecraft-stone");
-        skeleton.put("item_sources", List.of("minecraft-stone"));
         skeleton.put("socket_compatibility", List.of("attack", "defense", "utility", "universal"));
         skeleton.put("effects", List.of());
         Map<String, Object> stages = new LinkedHashMap<>();

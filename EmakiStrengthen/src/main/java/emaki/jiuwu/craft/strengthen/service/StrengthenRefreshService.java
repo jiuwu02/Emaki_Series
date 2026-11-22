@@ -28,7 +28,6 @@ public final class StrengthenRefreshService implements PlayerItemRefreshService 
     private static final int REFRESH_GATE_SIZE = 1024;
     private static final long REFRESH_GATE_TTL_MILLIS = 300_000L;
     private static final String ASSEMBLY_SIGNATURE_FIELD = "assembly_signature";
-    private static final String LEGACY_ITEM_PARTITION = "item";
 
     private final EmakiStrengthenPlugin plugin;
     private final StrengthenAttemptService attemptService;
@@ -200,8 +199,8 @@ public final class StrengthenRefreshService implements PlayerItemRefreshService 
     }
 
     private String assemblySignature(ItemStack itemStack) {
-        String signature = pdcService.getMigrating(itemStack, itemPartition,
-                LEGACY_ITEM_PARTITION, ASSEMBLY_SIGNATURE_FIELD, PersistentDataType.STRING);
+        String signature = pdcService.get(itemStack, itemPartition,
+                ASSEMBLY_SIGNATURE_FIELD, PersistentDataType.STRING);
         return signature == null || signature.isBlank() ? null : signature;
     }
 

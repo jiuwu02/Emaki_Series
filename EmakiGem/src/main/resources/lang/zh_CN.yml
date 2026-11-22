@@ -2,11 +2,11 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "3.0.4"
+version: "3.0.5"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
-  unknown_command: "<red>未知命令, 请使用 <yellow>/emakigem help</yellow> 查看帮助</red>"
+  unknown_command: "<red>未知命令, 请使用 <yellow>/egem help</yellow> 查看帮助</red>"
   player_only: "<red>这个命令只能由玩家执行</red>"
   no_permission: "<red>你没有权限执行这个命令</red>"
   invalid_args: "<red>参数错误, 请检查命令格式</red>"
@@ -70,7 +70,6 @@ loader:
   duplicate_id: "<red>%type% 文件 %file% 出现重复 ID: %id%</red>"
   load_failed: "<red>加载 %type% 文件 %file% 失败: %error%</red>"
   invalid_config: "<red>%type% 文件 %file% 配置无效, 已跳过加载</red>"
-  gem_legacy_item_sources: "<yellow>宝石文件 %file% 使用已废弃的顶层 item_sources 作为构造底材, 将来请改为 base_item_source: %id%</yellow>"
   gem_missing_item_source: "<red>宝石文件 %file% 的 item_sources 缺失或无效, 已拒绝加载: %id%, 当前值: %item_sources%</red>"
   gem_relationship_self_reference: "<red>宝石文件 %file% 在 required_gems 或 conflicting_gems 中引用自身, 已拒绝加载: %id%</red>"
   gem_relationship_conflict: "<red>宝石文件 %file% 同时将 %related_gem% 声明为依赖与冲突, 已拒绝加载: %id%</red>"
@@ -99,10 +98,10 @@ gem:
     instance_changed: "<red>主手宝石已发生变化, 洗炼候选已作废并退还费用</red>"
     config_incompatible: "<red>洗炼配置已变更, 候选已作废并退还费用</red>"
     write_failed: "<red>洗炼结果写回失败, 已退还费用</red>"
-    opened: "<green>洗炼候选已生成</green><gray> (%operation_type%), 使用 <yellow>/emakigem reroll confirm</yellow> 接受</gray>"
+    opened: "<green>洗炼候选已生成</green><gray> (%operation_type%), 使用 <yellow>/egem reroll confirm</yellow> 接受</gray>"
     cancelled: "<yellow>已放弃当前洗炼候选</yellow>"
     status: "<gray>洗炼 <yellow>%operation_type%</yellow>: 词条 <yellow>%original_count%</yellow> → <green>%candidate_count%</green>, 剩余 <gold>%expires_in%</gold> 秒</gray>"
-    usage: "<gray>用法: /emakigem reroll <full|value|confirm|cancel|status></gray>"
+    usage: "<gray>用法: /egem reroll <full|value|confirm|cancel|status></gray>"
     unavailable: "<red>洗炼服务当前不可用</red>"
   item:
     # 物品: 宝石物品词条 lore 标题
@@ -202,7 +201,7 @@ gui:
     invalid_target: "<red>放入的物品不是可镶嵌宝石的装备</red>"
     hold_gem: "<red>请将宝石物品拿到光标后点击空槽</red>"
     hold_opener: "<red>请将开孔器拿到光标后点击锁定槽位</red>"
-    open_via_open_gui: "<yellow>该插槽尚未开孔, 请使用 <gold>/emakigem gui open</gold> 处理</yellow>"
+    open_via_open_gui: "<yellow>该插槽尚未开孔, 请使用 <gold>/egem gui open</gold> 处理</yellow>"
     no_pending_action: "<red>当前没有待确认的操作</red>"
     upgrade_target_required: "<red>请先放入一颗启用 stages 配置的宝石</red>"
     upgrade_invalid_target: "<red>该物品不是可升级宝石, 或没有启用 stages</red>"
@@ -600,8 +599,6 @@ editor:
 startup:
   register_pipeline_stage_failed: "注册流水线阶段 '%stage%' 失败: %reason%"
   readiness_publish_skipped: "就绪状态发布已跳过: %error%"
-config:
-  legacy_permission_op_bypass_key: "配置键 permission.op_bypass 已移到顶层 op_bypass, 当前按旧键值 %value% 生效, 启动时会自动迁移到新键"
 shutdown:
   close_gem_gui_sessions_failed: "关闭阶段无法关闭宝石 GUI 会话: %error%"
 scheduler:

@@ -14,11 +14,11 @@ dependencies:
       required: false
       join-classpath: true
 commands:
-  emdum:
+  edummy:
     description: EmakiDummy 命令
-    usage: /emdum help
+    usage: /edummy help
     permission: emakidummy.use
-    aliases: [dummy, emdummy]
+    aliases: [edm]
 permissions:
   emakidummy.use:
     description: 假人基础操作 (进服/退出/动作/列表)

@@ -13,8 +13,6 @@ import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.item.api.effect.ItemEffectRegistration;
 import emaki.jiuwu.craft.item.api.effect.ItemEffectType;
 import emaki.jiuwu.craft.item.api.model.ItemRefreshSummary;
-import emaki.jiuwu.craft.item.api.model.MigrationOutcome;
-import emaki.jiuwu.craft.item.api.model.MigrationPreview;
 import emaki.jiuwu.craft.item.api.model.RepairOutcome;
 import emaki.jiuwu.craft.item.api.model.RepairQuoteView;
 import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
@@ -22,14 +20,13 @@ import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRegistration;
 import java.util.Optional;
 
 /** Shared no-op layers used while no EmakiItem runtime bridge is installed. */
-final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, ItemMigration, ItemExtensions, ItemState {
+final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, ItemExtensions, ItemState {
 
     private static final UnavailableItem INSTANCE = new UnavailableItem();
 
     static final ItemCatalog CATALOG = INSTANCE;
     static final ItemOperations OPERATIONS = INSTANCE;
     static final ItemRepair REPAIR = INSTANCE;
-    static final ItemMigration MIGRATION = INSTANCE;
     static final ItemExtensions EXTENSIONS = INSTANCE;
     static final ItemState STATE = INSTANCE;
 
@@ -123,27 +120,6 @@ final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, 
 
     @Override
     public EmakiResult<RepairOutcome> repair(Player player, ItemStack itemStack) {
-        return EmakiResult.unavailable();
-    }
-
-    @Override
-    public EmakiResult<MigrationPreview> preview(String oldId, String newId) {
-        return EmakiResult.unavailable();
-    }
-
-    @Override
-    public EmakiResult<MigrationOutcome> apply(String oldId, String newId,
-            boolean replaceReferences, boolean keepAlias) {
-        return EmakiResult.unavailable();
-    }
-
-    @Override
-    public EmakiResult<Integer> migrateInventory(Player player) {
-        return EmakiResult.unavailable();
-    }
-
-    @Override
-    public EmakiResult<Integer> migrateAllOnline() {
         return EmakiResult.unavailable();
     }
 

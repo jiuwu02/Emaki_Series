@@ -8,16 +8,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
-import emaki.jiuwu.craft.skills.config.AppConfig;
-
 import emaki.jiuwu.craft.corelib.trigger.TriggerDispatcher;
 import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
 import emaki.jiuwu.craft.corelib.trigger.TriggerSource;
 
 public final class InteractTriggerSource implements TriggerSource {
-
-    private volatile boolean legacyDeprecationWarningLogged;
 
     @Override
     public String id() {
@@ -30,14 +25,6 @@ public final class InteractTriggerSource implements TriggerSource {
 
             @EventHandler(priority = EventPriority.NORMAL)
             public void onInteract(PlayerInteractEvent event) {
-                if (legacyDispatchCancelledEvents(plugin)) {
-                    warnDeprecatedDispatchOnce(plugin);
-                    dispatch(event);
-                    return;
-                }
-                if (legacyDeprecationWarningLogged) {
-                    legacyDeprecationWarningLogged = false;
-                }
                 if (externallySuppressed(event)) {
                     return;
                 }
@@ -79,21 +66,5 @@ public final class InteractTriggerSource implements TriggerSource {
 
     private boolean externallySuppressed(PlayerInteractEvent event) {
         return event.useItemInHand() == Event.Result.DENY;
-    }
-
-    private boolean legacyDispatchCancelledEvents(JavaPlugin plugin) {
-        if (plugin instanceof AbstractConfigurableEmakiPlugin<?> configurable
-                && configurable.appConfig() instanceof AppConfig appConfig) {
-            return appConfig.triggerSettings().legacyDispatchCancelledEvents();
-        }
-        return false;
-    }
-
-    private void warnDeprecatedDispatchOnce(JavaPlugin plugin) {
-        if (legacyDeprecationWarningLogged) {
-            return;
-        }
-        legacyDeprecationWarningLogged = true;
-        TriggerLegacyWarnings.warn(plugin, id());
     }
 }

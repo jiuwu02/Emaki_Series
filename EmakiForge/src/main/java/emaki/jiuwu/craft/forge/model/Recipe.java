@@ -247,26 +247,17 @@ public final class Recipe {
     }
 
     private static ItemSourceRef parseOutputSource(Object output) {
-        if (output == null) {
+        if (output == null || ConfigNodes.contains(output, "matcher")) {
             return null;
         }
-        boolean canonical = ConfigNodes.contains(output, "item_source");
-        boolean legacy = ConfigNodes.contains(output, "item_sources");
-        if (canonical && legacy || ConfigNodes.contains(output, "matcher")) {
+        if (!ConfigNodes.contains(output, "item_source")) {
             return null;
         }
-        if (canonical) {
-            Object raw = ConfigNodes.get(output, "item_source");
-            if (raw instanceof Iterable<?> && !(raw instanceof String)) {
-                return null;
-            }
-            return ItemSourceUtil.parse(raw);
-        }
-        if (!legacy) {
+        Object raw = ConfigNodes.get(output, "item_source");
+        if (raw instanceof Iterable<?> && !(raw instanceof String)) {
             return null;
         }
-        List<Object> values = ConfigNodes.asObjectList(ConfigNodes.get(output, "item_sources"));
-        return values.size() == 1 ? ItemSourceUtil.parse(values.getFirst()) : null;
+        return ItemSourceUtil.parse(raw);
     }
 
     private static ActionPhases parseAction(Object raw) {

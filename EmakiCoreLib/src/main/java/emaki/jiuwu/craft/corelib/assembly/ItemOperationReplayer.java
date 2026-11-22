@@ -1,10 +1,8 @@
 package emaki.jiuwu.craft.corelib.assembly;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -51,7 +49,7 @@ final class ItemOperationReplayer {
         List<ItemOperationEntry> safeEntries = entries == null ? List.of() : entries;
         List<String> baseLore = firstRecordedLoreBaseline(safeEntries);
         if (baseLore == null) {
-            baseLore = deriveLegacyBaseLore(currentLore(itemStack), safeEntries);
+            baseLore = currentLore(itemStack);
         }
         String baseCustomName = firstRecordedNameBaseline(safeEntries);
         if (baseCustomName == null) {
@@ -198,52 +196,6 @@ final class ItemOperationReplayer {
         return null;
     }
 
-    private List<String> deriveLegacyBaseLore(List<String> currentLore, List<ItemOperationEntry> entries) {
-        List<String> lore = new ArrayList<>(currentLore == null ? List.of() : currentLore);
-        for (int entryIndex = entries.size() - 1; entryIndex >= 0; entryIndex--) {
-            ItemOperationEntry entry = entries.get(entryIndex);
-            if (entry == null || entry.loreRecords() == null) {
-                continue;
-            }
-            List<ItemOperationEntry.LoreOperationRecord> records = entry.loreRecords();
-            for (int recordIndex = records.size() - 1; recordIndex >= 0; recordIndex--) {
-                ItemOperationEntry.LoreOperationRecord record = records.get(recordIndex);
-                if (record != null) {
-                    revertLegacyLoreOperation(lore, record);
-                }
-            }
-        }
-        return List.copyOf(lore);
-    }
-
-    private void revertLegacyLoreOperation(List<String> lore, ItemOperationEntry.LoreOperationRecord record) {
-        String action = record.action();
-        List<String> renderedLines = record.renderedLines();
-        List<String> originalLines = record.originalLines();
-        switch (action) {
-            case "append" -> removeExactBlock(lore, lore.size() - renderedLines.size(), renderedLines);
-            case "prepend" -> removeLegacyPrependBlock(lore, renderedLines);
-            case "insert_below", "search_insert_below", "search_insert" -> removeLegacyInsertBlock(
-                    lore, renderedLines, record.anchor(), true);
-            case "insert_above", "search_insert_above" -> removeLegacyInsertBlock(
-                    lore, renderedLines, record.anchor(), false);
-            case "replace_line" -> {
-                if (!renderedLines.isEmpty() && !originalLines.isEmpty()) {
-                    String replacement = renderedLines.get(0);
-                    for (int index = 0; index < lore.size(); index++) {
-                        if (loreLineMatches(lore.get(index), replacement)) {
-                            lore.set(index, originalLines.get(0));
-                            break;
-                        }
-                    }
-                }
-            }
-            case "delete_line" -> lore.addAll(originalLines);
-            default -> {
-            }
-        }
-    }
-
     private void replayLoreOperation(List<String> lore, ItemOperationEntry.LoreOperationRecord record) {
         String action = record.action();
         List<String> renderedLines = record.renderedLines();
@@ -361,76 +313,6 @@ final class ItemOperationReplayer {
                 lore.remove(index);
             }
         }
-    }
-
-    private void removeLegacyPrependBlock(List<String> lore, List<String> renderedLines) {
-        List<String> legacyOrder = reversed(renderedLines);
-        if (!removeExactBlock(lore, 0, legacyOrder)) {
-            removeExactBlock(lore, 0, renderedLines);
-        }
-    }
-
-    private void removeLegacyInsertBlock(List<String> lore,
-            List<String> renderedLines,
-            String anchor,
-            boolean below) {
-        int anchorIndex = findAnchorIndex(lore, anchor);
-        if (anchorIndex < 0) {
-            removeExactBlock(lore, lore.size() - renderedLines.size(), renderedLines);
-            return;
-        }
-        if (below) {
-            removeExactBlock(lore, anchorIndex + 1, reversed(renderedLines));
-            return;
-        }
-        removeExactBlock(lore, anchorIndex - renderedLines.size(), renderedLines);
-    }
-
-    private int findAnchorIndex(List<String> lore, String anchor) {
-        if (lore == null || Texts.isBlank(anchor)) {
-            return -1;
-        }
-        for (int index = 0; index < lore.size(); index++) {
-            if (Texts.toStringSafe(lore.get(index)).contains(anchor)) {
-                return index;
-            }
-        }
-        return -1;
-    }
-
-    private List<String> reversed(List<String> lines) {
-        if (lines == null || lines.isEmpty()) {
-            return List.of();
-        }
-        List<String> reversed = new ArrayList<>(lines);
-        Collections.reverse(reversed);
-        return reversed;
-    }
-
-    private boolean removeExactBlock(List<String> lore, int startIndex, List<String> expected) {
-        if (lore == null || expected == null || expected.isEmpty()
-                || startIndex < 0 || startIndex + expected.size() > lore.size()) {
-            return false;
-        }
-        for (int offset = 0; offset < expected.size(); offset++) {
-            if (!Objects.equals(lore.get(startIndex + offset), expected.get(offset))) {
-                return false;
-            }
-        }
-        lore.subList(startIndex, startIndex + expected.size()).clear();
-        return true;
-    }
-
-    private boolean loreLineMatches(String loreLine, String target) {
-        if (loreLine == null || target == null) {
-            return false;
-        }
-        if (loreLine.equals(target)) {
-            return true;
-        }
-        String strippedLore = Texts.stripMiniTags(loreLine).trim();
-        String strippedTarget = Texts.stripMiniTags(target).trim();
-        return !strippedLore.isEmpty() && strippedLore.equals(strippedTarget);
     }
 
     private List<String> currentLore(ItemStack itemStack) {

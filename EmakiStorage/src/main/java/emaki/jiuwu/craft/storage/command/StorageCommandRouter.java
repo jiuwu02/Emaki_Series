@@ -96,6 +96,10 @@ public final class StorageCommandRouter implements TabExecutor {
             return true;
         }
         String mode = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "toggle";
+        if (args.length >= 2 && !mode.equals("on") && !mode.equals("off")) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
         plugin.runOwnerWriteAsync(player, () -> {
             var storage = plugin.dataStore().cached(player.getUniqueId());
             if (storage == null) {
@@ -103,8 +107,8 @@ public final class StorageCommandRouter implements TabExecutor {
                 return null;
             }
             boolean target = switch (mode) {
-                case "on", "true", "enable" -> true;
-                case "off", "false", "disable" -> false;
+                case "on" -> true;
+                case "off" -> false;
                 default -> !storage.autoPickupEnabled();
             };
             storage.autoPickupEnabled(target);
@@ -486,7 +490,7 @@ public final class StorageCommandRouter implements TabExecutor {
     }
 
     private String helpRoot(String label) {
-        return "/" + (label == null || label.isBlank() ? "emakistorage" : label);
+        return "/" + (label == null || label.isBlank() ? "estorage" : label);
     }
 
     private void sendHelpPage(CommandSender sender, String root, List<String> path) {
@@ -650,7 +654,7 @@ public final class StorageCommandRouter implements TabExecutor {
                     ? CommandTabHelper.completeLiterals(args[1], editRootIds().toArray(new String[0]))
                     : List.of();
             case "autopickup" -> args.length == 2
-                    ? CommandTabHelper.completeLiterals(args[1], "on", "off", "toggle", "true", "false", "enable", "disable")
+                    ? CommandTabHelper.completeLiterals(args[1], "on", "off")
                     : List.of();
             case "slot" -> switch (args.length) {
                 case 2 -> CommandTabHelper.completeLiterals(args[1], "grant");

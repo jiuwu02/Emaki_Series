@@ -62,7 +62,7 @@ public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         implements LogMessagesProvider {
 
     private static final String MODULE = "station";
-    private static final String ROOT_COMMAND = "emakistation";
+    private static final String ROOT_COMMAND = "estation";
     private static final Set<String> DEBUG_MODULES = Set.of(MODULE);
 
     private static final String STARTUP_ASCII = """
@@ -367,7 +367,7 @@ public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     private void registerCommandHandler() {
         commandRouter = new StationCommandRouter(this);
-        registerCommand(ROOT_COMMAND, "EmakiStation 命令", List.of("estation", "est"),
+        registerCommand(ROOT_COMMAND, "EmakiStation 命令", List.of("esta"),
                 new StationCommandAdapter(ROOT_COMMAND, "emakistation.use", commandRouter));
     }
 

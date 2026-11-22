@@ -78,7 +78,7 @@ import emaki.jiuwu.craft.corelib.log.LogTag;
 public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider {
 
-    private static final String ROOT_COMMAND = "emakistorage";
+    private static final String ROOT_COMMAND = "estorage";
     private static final Set<String> DEBUG_MODULES = Set.of("storage", "chat_input");
     private static final long TICKS_PER_SECOND = 20L;
 
@@ -335,7 +335,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     }
 
     private void registerCommandHandler() {
-        registerCommand(ROOT_COMMAND, "emakistorage command", List.of("estorage"),
+        registerCommand(ROOT_COMMAND, "estorage command", List.of("esto"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakistorage.use", commandRouter, commandRouter));
     }
 

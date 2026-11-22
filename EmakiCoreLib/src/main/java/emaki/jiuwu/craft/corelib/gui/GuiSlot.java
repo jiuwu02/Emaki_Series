@@ -70,10 +70,6 @@ public final class GuiSlot {
         if (clickType != GuiClickType.CLICK && sounds.containsKey(clickType)) {
             return sounds.get(clickType);
         }
-        GuiClickType legacy = clickType.legacyFallback();
-        if (legacy != null && sounds.containsKey(legacy)) {
-            return sounds.get(legacy);
-        }
         return sounds.get(GuiClickType.CLICK);
     }
 

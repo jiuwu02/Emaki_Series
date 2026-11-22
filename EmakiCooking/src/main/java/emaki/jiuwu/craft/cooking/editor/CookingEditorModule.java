@@ -421,11 +421,6 @@ public final class CookingEditorModule implements EditorModule {
         if (source instanceof String token && !token.isBlank()) {
             return token;
         }
-        Object legacy = entry.get("item_sources");
-        if (legacy instanceof List<?> sources && !sources.isEmpty()
-                && sources.get(0) instanceof String token && !token.isBlank()) {
-            return token;
-        }
         return null;
     }
 

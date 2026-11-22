@@ -15,10 +15,6 @@ id: example_elemental
 
 display_name: "元素伤害"
 
-aliases:
-  - elemental_damage
-  - elem
-
 allowed_events:
   - ENTITY_ATTACK
 

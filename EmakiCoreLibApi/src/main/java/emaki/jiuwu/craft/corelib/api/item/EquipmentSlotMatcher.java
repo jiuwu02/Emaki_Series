@@ -8,10 +8,10 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
  * Normalization and matching for equipment-slot declarations carried by items, such as the
  * {@code equip_slot} item definition key or the {@code active_slot} meta payload entry.
  *
- * <p>Slot names are normalized through {@link Texts#normalizeId} plus an alias table, so config
- * spellings like {@code mainhand}, {@code main_hand} and {@code main} collapse onto one canonical
- * value; unknown names pass through unchanged instead of failing. Every method is null-tolerant:
- * a blank requirement means any slot, and a blank actual slot matches nothing.
+ * <p>Slot names are normalized through {@link Texts#normalizeId} onto the canonical ids
+ * {@code main_hand}, {@code off_hand}, {@code helmet}, {@code chestplate}, {@code leggings} and
+ * {@code boots}; other spellings pass through unchanged instead of failing. Every method is
+ * null-tolerant: a blank requirement means any slot, and a blank actual slot matches nothing.
  */
 public final class EquipmentSlotMatcher {
 
@@ -24,17 +24,17 @@ public final class EquipmentSlotMatcher {
     public static final String SLOT_ALL = "all";
     /** Requirement matching either hand slot. */
     public static final String SLOT_HAND = "hand";
-    /** Canonical id of the main-hand slot; aliases: {@code mainhand}, {@code main}. */
+    /** Canonical id {@code main_hand} of the main-hand slot. */
     public static final String SLOT_MAIN_HAND = "main_hand";
-    /** Canonical id of the off-hand slot; aliases: {@code offhand}, {@code off}. */
+    /** Canonical id {@code off_hand} of the off-hand slot. */
     public static final String SLOT_OFF_HAND = "off_hand";
-    /** Canonical id of the head slot; alias: {@code head}. */
+    /** Canonical id {@code helmet} of the head slot. */
     public static final String SLOT_HELMET = "helmet";
-    /** Canonical id of the chest slot; aliases: {@code chest}, {@code body}. */
+    /** Canonical id {@code chestplate} of the chest slot. */
     public static final String SLOT_CHESTPLATE = "chestplate";
-    /** Canonical id of the legs slot; alias: {@code legs}. */
+    /** Canonical id {@code leggings} of the legs slot. */
     public static final String SLOT_LEGGINGS = "leggings";
-    /** Canonical id of the feet slot; aliases: {@code feet}, {@code foot}. */
+    /** Canonical id {@code boots} of the feet slot. */
     public static final String SLOT_BOOTS = "boots";
 
     private EquipmentSlotMatcher() {
@@ -94,14 +94,14 @@ public final class EquipmentSlotMatcher {
             return "";
         }
         return switch (normalized.toLowerCase(Locale.ROOT)) {
-            case "all", "any" -> SLOT_ALL;
+            case "all" -> SLOT_ALL;
             case "hand" -> SLOT_HAND;
-            case "mainhand", "main_hand", "main" -> SLOT_MAIN_HAND;
-            case "offhand", "off_hand", "off" -> SLOT_OFF_HAND;
-            case "helmet", "head" -> SLOT_HELMET;
-            case "chestplate", "chest", "body" -> SLOT_CHESTPLATE;
-            case "leggings", "legs" -> SLOT_LEGGINGS;
-            case "boots", "feet", "foot" -> SLOT_BOOTS;
+            case "main_hand" -> SLOT_MAIN_HAND;
+            case "off_hand" -> SLOT_OFF_HAND;
+            case "helmet" -> SLOT_HELMET;
+            case "chestplate" -> SLOT_CHESTPLATE;
+            case "leggings" -> SLOT_LEGGINGS;
+            case "boots" -> SLOT_BOOTS;
             default -> normalized;
         };
     }

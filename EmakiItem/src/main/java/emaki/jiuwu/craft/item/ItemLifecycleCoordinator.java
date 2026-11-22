@@ -41,7 +41,6 @@ import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
 import emaki.jiuwu.craft.item.model.ProficiencyGuardConfig;
 import emaki.jiuwu.craft.item.model.SetBonusConfig;
 import emaki.jiuwu.craft.item.script.ItemScriptBridge;
-import emaki.jiuwu.craft.item.loader.EmakiItemAliasLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
 import emaki.jiuwu.craft.item.loader.ItemPackLoader;
@@ -54,7 +53,6 @@ import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 import emaki.jiuwu.craft.item.service.EmakiItemIdResolver;
 import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewService;
-import emaki.jiuwu.craft.item.service.EmakiItemMigrationService;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
 import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemStateService;
@@ -93,7 +91,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
             "gui/item_browser_gui.yml",
             "gui/item_editor_gui.yml",
             "gui/item_editor_page_gui.yml",
-            "id_aliases.yml",
             "scripts/items/example_effect.js");
     private static final List<String> EXTRA_DIRECTORIES = List.of("items", "sets", "gui");
 
@@ -134,12 +131,10 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         );
         EmakiItemLoader itemLoader = new EmakiItemLoader(plugin, appConfigLoader::current);
         EmakiItemSetLoader setLoader = new EmakiItemSetLoader(plugin, appConfigLoader::current);
-        EmakiItemAliasLoader aliasLoader = new EmakiItemAliasLoader(plugin);
         ItemPackLoader packLoader = new ItemPackLoader(plugin, appConfigLoader::current);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
-        EmakiItemIdResolver idResolver = new EmakiItemIdResolver(itemLoader, aliasLoader);
-        EmakiItemMigrationService migrationService = new EmakiItemMigrationService(plugin);
+        EmakiItemIdResolver idResolver = new EmakiItemIdResolver(itemLoader);
         EmakiItemLayerPreviewRegistry layerPreviewRegistry = new EmakiItemLayerPreviewRegistry();
         EmakiItemLayerPreviewService layerPreviewService = new EmakiItemLayerPreviewService(plugin, layerPreviewRegistry);
         EmakiItemEffectRegistry effectRegistry = new EmakiItemEffectRegistry(() -> {
@@ -180,7 +175,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         );
         EmakiItemStateService stateService = new EmakiItemStateService(
                 () -> plugin.appConfig().itemState(),
-                plugin::debugLogger
+                plugin::debugLogger,
+                plugin::messageService
         );
         ItemStatePreservationService statePreservation = new ItemStatePreservationService(
                 stateService,
@@ -235,10 +231,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 guiService,
                 itemLoader,
                 setLoader,
-                aliasLoader,
                 packLoader,
                 idResolver,
-                migrationService,
                 layerPreviewRegistry,
                 layerPreviewService,
                 effectRegistry,
@@ -316,10 +310,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (!reloadAllowed(allowed)) {
             return;
         }
-        int loadedAliases = plugin.aliasLoader().load(allowed);
-        if (!reloadAllowed(allowed)) {
-            return;
-        }
         plugin.guiTemplateLoader().load();
         if (!reloadAllowed(allowed)) {
             return;
@@ -330,7 +320,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (plugin.messageService() != null && reloadAllowed(allowed)) {
             plugin.messageService().info(LogTag.LOADER, "console.items_loaded", Map.of("count", loadedItems));
             plugin.messageService().info(LogTag.LOADER, "console.sets_loaded", Map.of("count", loadedSets));
-            plugin.messageService().info(LogTag.LOADER, "console.aliases_loaded", Map.of("count", loadedAliases));
         }
     }
 
@@ -389,10 +378,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                         return;
                     }
                     plugin.setLoader().load(allowed);
-                    if (!reloadAllowed(allowed)) {
-                        return;
-                    }
-                    plugin.aliasLoader().load(allowed);
                     if (!reloadAllowed(allowed)) {
                         return;
                     }

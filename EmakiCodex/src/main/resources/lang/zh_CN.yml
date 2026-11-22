@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "2.0.4"
+version: "2.0.5"
 
 tags:
   advancement: '[ 成就 ]'
@@ -14,8 +14,8 @@ general:
   no_permission: "<red>你没有权限执行此操作</red>"
   player_only: "<red>此命令只能由玩家执行</red>"
   player_not_found: "<red>找不到玩家 %player%</red>"
-  unknown_command: "<red>未知命令, 输入 /codex help 查看帮助</red>"
-  invalid_args: "<red>参数错误, 输入 /codex help 查看用法</red>"
+  unknown_command: "<red>未知命令, 输入 /ecodex help 查看帮助</red>"
+  invalid_args: "<red>参数错误, 输入 /ecodex help 查看用法</red>"
   reloading: "<gray>正在重载配置...</gray>"
   reload_success: "<green>配置已重载</green>"
   reload_summary: "<gray>已注册成就 %advancements% 个</gray>"
@@ -24,7 +24,7 @@ general:
 
 command:
   help_header: "<gray><st>        </st></gray> <gradient:#D946EF:#F59E0B>EmakiCodex 命令帮助</gradient> <gray><st>        </st></gray>"
-  help_entry_codex: "- <hover:show_text:'<gray>codex</gray> <dark_gray>·</dark_gray> <gray>打开图鉴界面</gray><newline><newline><dark_gray>▸</dark_gray> <gray>别名 </gray><white>open</white><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakicodex.use</white> <gray>或 </gray><white>emakicodex.admin</white><newline><dark_gray>▸</dark_gray> <gray>仅玩家</gray>'><gray>codex</gray></hover> <click:run_command:'%root% codex'><green>[ ✦ 点击执行 ]</green></click>"
+  help_entry_codex: "- <hover:show_text:'<gray>codex</gray> <dark_gray>·</dark_gray> <gray>打开图鉴界面</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakicodex.use</white> <gray>或 </gray><white>emakicodex.admin</white><newline><dark_gray>▸</dark_gray> <gray>仅玩家</gray>'><gray>codex</gray></hover> <click:run_command:'%root% codex'><green>[ ✦ 点击执行 ]</green></click>"
   help_entry_reload: "- <hover:show_text:'<gray>reload</gray> <dark_gray>·</dark_gray> <gray>重载配置并重新注册成就</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakicodex.reload</white> <gray>或 </gray><white>emakicodex.admin</white><newline><dark_gray>▸</dark_gray> <gray>重载后给全员重发成就并输出汇总</gray>'><gray>reload</gray></hover> <click:run_command:'%root% reload'><green>[ ✦ 点击执行 ]</green></click>"
   help_entry_edit: "- <hover:show_text:'<gray>edit</gray> <dark_gray>·</dark_gray> <gray>打开定义的游戏内编辑界面</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:定义ID - 点击查看当前可选值</gray><newline><dark_gray>▸</dark_gray> <gray>省略 [定义ID] 时打开定义浏览器</gray><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakicodex.edit</white><newline><dark_gray>▸</dark_gray> <gray>仅玩家</gray>'><gray>edit</gray></hover> <click:run_command:'%root% help edit id'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
   help_entry_grant: "- <hover:show_text:'<gray>grant</gray> <dark_gray>·</dark_gray> <gray>授予玩家成就</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakicodex.admin</white><newline><dark_gray>▸</dark_gray> <gray>用法 </gray><white>%root% grant [玩家] [成就ID]</white><newline><dark_gray>▸</dark_gray> <gray>[成就ID] 形如 </gray><white>emakicodex:页面/节点</white>'><gray>grant</gray></hover> <hover:show_text:'<gray>参数:玩家</gray><newline><gray>目标在线玩家</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 玩家 ]</gray></hover> <hover:show_text:'<gray>参数:成就ID</gray><newline><gray>要授予的成就 ID</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要自己填写</gray><newline><dark_gray>▸</dark_gray> <gray>支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 成就ID ]</gray></hover>"
@@ -77,7 +77,7 @@ codex:
   advancement:
     disabled: "成就子系统已在 config.yml 中关闭 (advancement.enabled=false)"
     id_required: "未指定成就 id"
-    not_found: "成就 id 未注册. 请确认 advancements/ 下的页面已加载, 且 id 形如 emakicodex:<页面id>/<节点id>; 可用 /codex reload 查看已注册数量"
+    not_found: "成就 id 未注册. 请确认 advancements/ 下的页面已加载, 且 id 形如 emakicodex:<页面id>/<节点id>; 可用 /ecodex reload 查看已注册数量"
     missing_on_server: "成就已在插件内注册, 但服务端上找不到对应的原版成就. 通常是注册后被 reloadData 清除, 或数据包目录未落盘所致; 请检查启动日志中的注册数量与告警"
   grant:
     already_completed: "玩家已完成该成就"
@@ -324,8 +324,6 @@ trigger:
   provider_execution_failed: "成就触发器提供者 '%provider%' 执行失败: %error%"
 provider:
   attribute_bonus_calc_failed: "属性加成计算失败: 玩家 %player%, 原因: %error%"
-config:
-  advancement_legacy_key_renamed: "配置键 advancement.%legacy_key% 已更名为 advancement.%key%, 当前按旧键值 %value% 生效, 启动时会自动迁移到新键"
 shutdown:
   progress_flush_dirty: "进度刷新结束时仍有未落盘数据: saved=%saved% failed=%failed% remaining=%remaining%"
 script:

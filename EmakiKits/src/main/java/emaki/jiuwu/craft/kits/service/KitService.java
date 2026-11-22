@@ -355,11 +355,6 @@ public final class KitService {
             return;
         }
         String pairKey = StoreKeys.claim(inviteKit.id(), rewardPlayer, "invite:" + inviterId + ":" + inviteeId);
-        String legacyKey = StoreKeys.claim(inviteKit.id(), rewardPlayer, "invite:" + inviteeId);
-        boolean legacyCovered = store.read(s -> s.idempotencyKeys().contains(legacyKey));
-        if (legacyCovered) {
-            return;
-        }
         String transactionId = store.read(s -> "T" + s.nextSequence());
         boolean rewardReserved = store.claimOnce(pairKey, () -> {});
         if (!rewardReserved) {

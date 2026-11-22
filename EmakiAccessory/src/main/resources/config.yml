@@ -1,6 +1,6 @@
 # EmakiAccessory 主配置
 
-version: "2.0.5"
+version: "2.0.6"
 
 # 对应 lang/<language>.yml
 language: "zh_CN"
@@ -38,13 +38,6 @@ slot_sources:
 
     # 同时用于 PDC 单字符串回退
     separator: ","
-
-    # 将 Lore 名称映射到 parts.yml 部位 ID; 未列值规范化后原样使用
-    aliases:
-      "戒指": "ring"
-      "项链": "necklace"
-      "腰带": "belt"
-      "护符": "charm"
 
 # ============================================================
 # 饰品耐久度

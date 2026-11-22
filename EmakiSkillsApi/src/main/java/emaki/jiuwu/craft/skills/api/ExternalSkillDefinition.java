@@ -109,11 +109,6 @@ public interface ExternalSkillDefinition {
         return List.of();
     }
 
-    /** {@return the lore aliases that unlock this skill from item lore; empty when unset} */
-    default @NotNull List<String> loreAliases() {
-        return List.of();
-    }
-
     /** {@return the persistent-data skill id used for equipment matching; empty to use {@link #id()}} */
     default @NotNull String pdcSkillId() {
         return "";

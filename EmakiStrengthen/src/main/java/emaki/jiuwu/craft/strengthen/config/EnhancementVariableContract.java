@@ -8,53 +8,14 @@ import emaki.jiuwu.craft.strengthen.enhancement.EnhancementTargetVariables;
 
 public final class EnhancementVariableContract {
 
-    private static final List<String> QUALITY_ID_ALIASES =
-            List.of("forge_quality_id", "forge.quality_id", "quality_id");
-    private static final List<String> QUALITY_DISPLAY_ALIASES =
-            List.of("forge_quality_display", "forge.quality_display", "quality_display");
-    private static final List<String> QUALITY_MULTIPLIER_ALIASES =
-            List.of("forge_quality_multiplier", "forge.quality_multiplier", "quality_multiplier");
-    private static final List<String> RECIPE_ID_ALIASES =
-            List.of("forge_recipe_id", "forge.forge_recipe_id");
-
-    private static final Map<String, List<String>> EXPECTED_ALIASES = Map.of(
-            EnhancementTargetVariables.FORGE_PATH_QUALITY_ID, QUALITY_ID_ALIASES,
-            EnhancementTargetVariables.LEGACY_FORGE_PATH_QUALITY_ID, QUALITY_ID_ALIASES,
-            EnhancementTargetVariables.FORGE_PATH_QUALITY_DISPLAY, QUALITY_DISPLAY_ALIASES,
-            EnhancementTargetVariables.LEGACY_FORGE_PATH_QUALITY_DISPLAY, QUALITY_DISPLAY_ALIASES,
-            EnhancementTargetVariables.FORGE_PATH_QUALITY_MULTIPLIER, QUALITY_MULTIPLIER_ALIASES,
-            EnhancementTargetVariables.LEGACY_FORGE_PATH_QUALITY_MULTIPLIER, QUALITY_MULTIPLIER_ALIASES,
-            EnhancementTargetVariables.FORGE_PATH_RECIPE_ID, RECIPE_ID_ALIASES,
-            EnhancementTargetVariables.LEGACY_FORGE_PATH_RECIPE_ID, RECIPE_ID_ALIASES);
-
     private EnhancementVariableContract() {
     }
 
     public static List<String> violations() {
         List<String> violations = new ArrayList<>();
-        checkAliasContract(violations);
         checkMultiplierCoercion(violations);
         checkDefaults(violations);
         return List.copyOf(violations);
-    }
-
-    private static void checkAliasContract(List<String> violations) {
-        Map<String, List<String>> actual = EnhancementTargetVariables.forgeAliasContract();
-        if (!actual.keySet().equals(EXPECTED_ALIASES.keySet())) {
-            violations.add("forge 别名路径期望为 " + EXPECTED_ALIASES.keySet()
-                    + ", 实际为 " + actual.keySet());
-            return;
-        }
-        EXPECTED_ALIASES.forEach((path, expected) -> {
-            List<String> resolved = EnhancementTargetVariables.forgeAliases(path);
-            if (!expected.equals(resolved)) {
-                violations.add("forge 别名集合 '" + path + "' 期望为 " + expected
-                        + ", 实际为 " + resolved);
-            }
-        });
-        if (!EnhancementTargetVariables.forgeAliases("forge.unknown_key").isEmpty()) {
-            violations.add("未知的 forge 路径不应解析出任何别名");
-        }
     }
 
     private static void checkMultiplierCoercion(List<String> violations) {
@@ -88,11 +49,10 @@ public final class EnhancementVariableContract {
     private static void checkDefaults(List<String> violations) {
         EnhancementTargetVariables.Snapshot snapshot = EnhancementTargetVariables.capture(null, null, null);
         Map<String, Object> variables = snapshot.variables();
-        for (List<String> names : EXPECTED_ALIASES.values()) {
-            for (String name : names) {
-                if (!variables.containsKey(name)) {
-                    violations.add("默认变量 '" + name + "' 在空捕获中缺失");
-                }
+        for (String name : List.of("forge_quality_id", "forge_quality_display",
+                "forge_quality_multiplier", "forge_recipe_id")) {
+            if (!variables.containsKey(name)) {
+                violations.add("默认变量 '" + name + "' 在空捕获中缺失");
             }
         }
         Object multiplier = variables.get("forge_quality_multiplier");

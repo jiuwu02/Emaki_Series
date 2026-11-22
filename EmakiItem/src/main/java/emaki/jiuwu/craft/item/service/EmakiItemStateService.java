@@ -19,6 +19,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.item.api.ItemState;
 import emaki.jiuwu.craft.item.api.ItemStateKey;
 import emaki.jiuwu.craft.item.api.ItemStateMetadata;
@@ -36,22 +37,20 @@ public final class EmakiItemStateService implements ItemState {
     private static final String THRESHOLD_MASK_PREFIX = ItemStateSchema.METADATA_PREFIX + "threshold_mask_";
     private static final String THRESHOLD_LAYOUT_PREFIX = ItemStateSchema.METADATA_PREFIX + "threshold_layout_";
 
-    private static final String LEGACY_THRESHOLD_MASK_PREFIX =
-            ItemStateSchema.LEGACY_METADATA_PREFIX + "threshold_mask.";
-    private static final String LEGACY_THRESHOLD_LAYOUT_PREFIX =
-            ItemStateSchema.LEGACY_METADATA_PREFIX + "threshold_layout.";
-
     private final Supplier<ItemStateConfig> configSupplier;
     private final Supplier<DebugLogger> debugLoggerSupplier;
+    private final Supplier<MessageService> messageServiceSupplier;
 
     public EmakiItemStateService() {
-        this(null, null);
+        this(null, null, null);
     }
 
     public EmakiItemStateService(Supplier<ItemStateConfig> configSupplier,
-            Supplier<DebugLogger> debugLoggerSupplier) {
+            Supplier<DebugLogger> debugLoggerSupplier,
+            Supplier<MessageService> messageServiceSupplier) {
         this.configSupplier = configSupplier;
         this.debugLoggerSupplier = debugLoggerSupplier;
+        this.messageServiceSupplier = messageServiceSupplier;
     }
 
     private DebugLogger debugLogger() {
@@ -300,21 +299,15 @@ public final class EmakiItemStateService implements ItemState {
         return null;
     }
 
-    private static long readThresholdMask(PersistentDataContainer pdc,
+    private long readThresholdMask(PersistentDataContainer pdc,
             ItemStateKey<?> key,
             ItemStateConfig.Field field) {
 
         Long mask = pdc.get(thresholdMaskKey(key), PersistentDataType.LONG);
-        if (mask == null) {
-            mask = pdc.get(legacyThresholdMaskKey(key), PersistentDataType.LONG);
-        }
         if (mask == null || mask == 0L) {
             return 0L;
         }
         Integer storedLayout = pdc.get(thresholdLayoutKey(key), PersistentDataType.INTEGER);
-        if (storedLayout == null) {
-            storedLayout = pdc.get(legacyThresholdLayoutKey(key), PersistentDataType.INTEGER);
-        }
         return storedLayout != null && storedLayout == thresholdLayoutSignature(field) ? mask : 0L;
     }
 
@@ -325,17 +318,10 @@ public final class EmakiItemStateService implements ItemState {
         if (mask == 0L) {
             pdc.remove(thresholdMaskKey(key));
             pdc.remove(thresholdLayoutKey(key));
-            removeLegacyThresholdKeys(pdc, key);
             return;
         }
         pdc.set(thresholdMaskKey(key), PersistentDataType.LONG, mask);
         pdc.set(thresholdLayoutKey(key), PersistentDataType.INTEGER, thresholdLayoutSignature(field));
-        removeLegacyThresholdKeys(pdc, key);
-    }
-
-    private static void removeLegacyThresholdKeys(PersistentDataContainer pdc, ItemStateKey<?> key) {
-        pdc.remove(legacyThresholdMaskKey(key));
-        pdc.remove(legacyThresholdLayoutKey(key));
     }
 
     private static int thresholdLayoutSignature(ItemStateConfig.Field field) {
@@ -357,22 +343,6 @@ public final class EmakiItemStateService implements ItemState {
     private static NamespacedKey thresholdLayoutKey(ItemStateKey<?> key) {
         return ObjectsHolder.key(ItemStateSchema.NAMESPACE + ":" + ItemStateSchema.PARTITION
                 + "_" + THRESHOLD_LAYOUT_PREFIX + key.key());
-    }
-
-    private static NamespacedKey legacyThresholdMaskKey(ItemStateKey<?> key) {
-        return ObjectsHolder.key(ItemStateSchema.NAMESPACE + ":" + ItemStateSchema.PARTITION
-                + "." + LEGACY_THRESHOLD_MASK_PREFIX + legacyKeyName(key));
-    }
-
-    private static NamespacedKey legacyThresholdLayoutKey(ItemStateKey<?> key) {
-        return ObjectsHolder.key(ItemStateSchema.NAMESPACE + ":" + ItemStateSchema.PARTITION
-                + "." + LEGACY_THRESHOLD_LAYOUT_PREFIX + legacyKeyName(key));
-    }
-
-    private static String legacyKeyName(ItemStateKey<?> key) {
-        String legacyPath = ItemStateSchema.legacyPath(key);
-        int separator = legacyPath.indexOf('.');
-        return separator < 0 ? key.key() : legacyPath.substring(separator + 1);
     }
 
     @Override
@@ -465,11 +435,8 @@ public final class EmakiItemStateService implements ItemState {
             return ItemStateMutation.rejected(key, "missing_state", null);
         }
         pdc.remove(namespacedKey(key));
-
-        pdc.remove(legacyNamespacedKey(key));
         pdc.remove(thresholdMaskKey(key));
         pdc.remove(thresholdLayoutKey(key));
-        removeLegacyThresholdKeys(pdc, key);
         writeMetadata(pdc, nextMetadata(readMetadata(pdc)));
         boolean committed = item.setItemMeta(meta);
         ItemStateMutation<T> result = ItemStateMutation.committed(key, old, null, null, false);
@@ -592,8 +559,6 @@ public final class EmakiItemStateService implements ItemState {
             String keyName;
             if (rawKey.startsWith(ItemStateSchema.PARTITION + "_")) {
                 keyName = rawKey.substring(ItemStateSchema.PARTITION.length() + 1);
-            } else if (rawKey.startsWith(ItemStateSchema.PARTITION + ".")) {
-                keyName = rawKey.substring(ItemStateSchema.PARTITION.length() + 1);
             } else {
                 continue;
             }
@@ -661,29 +626,16 @@ public final class EmakiItemStateService implements ItemState {
         return ObjectsHolder.key(key.namespacedPath());
     }
 
-    private static NamespacedKey legacyNamespacedKey(ItemStateKey<?> key) {
-        return ObjectsHolder.key(ItemStateSchema.legacyNamespacedPath(key));
-    }
-
-    private static NamespacedKey effectiveKey(PersistentDataContainer pdc, ItemStateKey<?> key) {
-        NamespacedKey current = namespacedKey(key);
-        if (pdc == null || pdc.getKeys().contains(current)) {
-            return current;
-        }
-        NamespacedKey legacy = legacyNamespacedKey(key);
-        return pdc.getKeys().contains(legacy) ? legacy : current;
-    }
-
-    private static <T> T readTyped(PersistentDataContainer pdc, ItemStateKey<T> key) {
+    private <T> T readTyped(PersistentDataContainer pdc, ItemStateKey<T> key) {
         Object value = read(pdc, key);
         return value == null || !key.javaType().isInstance(value) ? null : key.javaType().cast(value);
     }
 
-    private static Object read(PersistentDataContainer pdc, ItemStateKey<?> key) {
+    private Object read(PersistentDataContainer pdc, ItemStateKey<?> key) {
         if (pdc == null || key == null || hasWrongType(pdc, key)) {
             return null;
         }
-        NamespacedKey target = effectiveKey(pdc, key);
+        NamespacedKey target = namespacedKey(key);
         return switch (key.type()) {
             case INTEGER -> pdc.get(target, PersistentDataType.INTEGER);
             case LONG -> pdc.get(target, PersistentDataType.LONG);
@@ -701,7 +653,7 @@ public final class EmakiItemStateService implements ItemState {
             return true;
         }
 
-        NamespacedKey namespacedKey = effectiveKey(pdc, key);
+        NamespacedKey namespacedKey = namespacedKey(key);
         if (!pdc.getKeys().contains(namespacedKey)) {
             return false;
         }
@@ -726,8 +678,6 @@ public final class EmakiItemStateService implements ItemState {
             case BOOLEAN -> pdc.set(namespacedKey, PersistentDataType.BYTE, (byte) ((Boolean) value ? 1 : 0));
             case STRING -> pdc.set(namespacedKey, PersistentDataType.STRING, (String) value);
         }
-
-        pdc.remove(legacyNamespacedKey(key));
     }
 
     private static Object readAny(PersistentDataContainer pdc, NamespacedKey key) {
