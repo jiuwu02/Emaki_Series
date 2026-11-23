@@ -21,7 +21,6 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 
-@SuppressWarnings("deprecation")
 public final class AdvancementJsonBuilder {
 
     private final ItemSourceService itemSourceService;

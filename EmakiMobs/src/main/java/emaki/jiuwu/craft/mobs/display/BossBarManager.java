@@ -9,6 +9,8 @@ import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import net.kyori.adventure.bossbar.BossBar;
 import org.bukkit.Bukkit;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.LivingEntity;
@@ -104,13 +106,17 @@ public final class BossBarManager implements Listener {
         }
     }
 
-    @SuppressWarnings("deprecation")
     private static float progress(LivingEntity entity) {
-        double maxHp = entity.getMaxHealth();
+        double maxHp = maxHealth(entity);
         if (!(maxHp > 0)) return 1.0F;
         double ratio = Math.min(1.0, Math.max(0.0, entity.getHealth() / maxHp));
         if (Double.isNaN(ratio)) return 1.0F;
         return (float) ratio;
+    }
+
+    private static double maxHealth(LivingEntity entity) {
+        AttributeInstance attribute = entity.getAttribute(Attribute.MAX_HEALTH);
+        return attribute == null ? entity.getHealth() : attribute.getValue();
     }
 
     private void updateBarProgress(LivingEntity entity, BossBar bar) {

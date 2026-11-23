@@ -30,8 +30,6 @@ import emaki.jiuwu.craft.item.model.RefreshFullReason;
 
 public final class EmakiItemSetService {
 
-    @SuppressWarnings({"unused", "FieldCanBeLocal"})
-    private final EmakiItemFactory itemFactory;
     private final ItemSetPresentationCalculator calculator;
     private final ItemSetListenerScopeRefresher refresher;
 
@@ -122,7 +120,6 @@ public final class EmakiItemSetService {
                                 ItemOperationLedger itemOperationLedger,
                                 EmakiScheduling scheduling,
                                 PlaceholderRegistry placeholderRegistry) {
-        this.itemFactory = itemFactory;
         Supplier<DebugLogger> effectiveDebugLoggerSupplier = debugLoggerSupplier == null ? () -> null : debugLoggerSupplier;
         ItemOperationLedger effectiveLedger = itemOperationLedger == null
                 ? new ItemOperationLedger(effectiveDebugLoggerSupplier, placeholderRegistry)

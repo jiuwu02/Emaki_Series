@@ -449,9 +449,6 @@ public final class MmoItemsBridge implements Listener {
                     continue;
                 }
 
-                @SuppressWarnings("deprecation")
-                String statName = stat.name();
-                statObjects.putIfAbsent(normalizeMmoId(statName), stat);
                 String statId = stat.getId();
                 if (Texts.isNotBlank(statId)) {
                     statObjects.putIfAbsent(normalizeMmoId(statId), stat);

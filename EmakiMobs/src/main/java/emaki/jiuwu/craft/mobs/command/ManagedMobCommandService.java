@@ -7,6 +7,8 @@ import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import emaki.jiuwu.craft.corelib.log.LogTags;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -82,7 +84,6 @@ final class ManagedMobCommandService {
         return collectManaged(entity -> createMatch(entity, mobId, fixedCenter, filterByRadius, radiusSquared));
     }
 
-    @SuppressWarnings("deprecation")
     private Match createMatch(LivingEntity entity, String mobId, Location center,
                               boolean filterByRadius, double radiusSquared) {
         String managedId = mobIdentifier.readId(entity);
@@ -98,7 +99,12 @@ final class ManagedMobCommandService {
         return new Match(entity.getUniqueId(), managedId, distanceSquared,
                 location.getWorld().getName(),
                 location.getBlockX(), location.getBlockY(), location.getBlockZ(),
-                entity.getHealth(), entity.getMaxHealth());
+                entity.getHealth(), maxHealth(entity));
+    }
+
+    private static double maxHealth(LivingEntity entity) {
+        AttributeInstance attribute = entity.getAttribute(Attribute.MAX_HEALTH);
+        return attribute == null ? entity.getHealth() : attribute.getValue();
     }
 
     private CompletableFuture<List<LivingEntity>> discoverCandidates() {

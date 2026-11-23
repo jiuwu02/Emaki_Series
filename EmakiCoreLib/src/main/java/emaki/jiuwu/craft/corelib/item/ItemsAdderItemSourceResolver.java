@@ -67,11 +67,10 @@ final class ItemsAdderItemSourceResolver
 
         private String failureReason = "";
 
-        @SuppressWarnings("deprecation")
         @Override
         public boolean ensureAvailable() {
             try {
-                ItemsAdder.areItemsLoaded();
+                CustomStack.getNamespacedIdsInRegistry();
                 failureReason = "";
                 return true;
             } catch (RuntimeException | LinkageError exception) {
@@ -87,11 +86,10 @@ final class ItemsAdderItemSourceResolver
             return failureReason;
         }
 
-        @SuppressWarnings("deprecation")
         @Override
         public boolean detectLoaded() {
             try {
-                if (ItemsAdder.areItemsLoaded()) {
+                if (!CustomStack.getNamespacedIdsInRegistry().isEmpty()) {
                     return true;
                 }
                 List<CustomStack> items = ItemsAdder.getAllItems();

@@ -38,7 +38,6 @@ import emaki.jiuwu.craft.cooking.log.CookingLogTag;
 public final class CookingRewardService {
 
     private final EmakiCookingPlugin plugin;
-    @SuppressWarnings("unused")
     private final MessageService messageService;
     private final ItemSourceService itemSourceService;
     private final ActionLineRunner actionLines;
