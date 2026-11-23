@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -198,6 +200,9 @@ final class EditorServiceDelegate {
             return false;
         }
         boolean changed = false;
+        File backupDir = new File(ownerRef.backupRoot(), session.dungeonId() + File.separator + "world-"
+                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")));
+        boolean backed = false;
         for (String sub : EditorService.REGION_SUBDIRS) {
             File dir = new File(editDir, sub);
             File[] files = dir.listFiles((folder, name) -> name.endsWith(".mca"));
@@ -212,6 +217,8 @@ final class EditorServiceDelegate {
                 File targetDir = new File(templateDir, sub);
                 try {
                     Files.createDirectories(targetDir.toPath());
+                    backed |= backupTemplateFile(new File(targetDir, file.getName()),
+                            sub + File.separator + file.getName(), backupDir);
                     Files.copy(file.toPath(), new File(targetDir, file.getName()).toPath(),
                             StandardCopyOption.REPLACE_EXISTING);
                     session.regionSnapshot().put(sub + "/" + file.getName(), file.lastModified());
@@ -229,6 +236,7 @@ final class EditorServiceDelegate {
             if (levelFile.lastModified() != previous) {
                 File target = new File(templateDir, "level.dat");
                 try {
+                    backed |= backupTemplateFile(target, "level.dat", backupDir);
                     Files.copy(levelFile.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
                     session.regionSnapshot().put("level.dat", levelFile.lastModified());
                     changed = true;
@@ -239,7 +247,28 @@ final class EditorServiceDelegate {
                 }
             }
         }
+        if (backed) {
+            ownerRef.messages.info(LogTag.EDITOR, "console.editor_world_backup_created", Map.of(
+                    "path", backupDir.getPath()));
+        }
         return changed;
+    }
+
+    private boolean backupTemplateFile(File target, String relative, File backupDir) {
+        if (!target.isFile()) {
+            return false;
+        }
+        File slot = new File(backupDir, relative);
+        try {
+            Files.createDirectories(slot.getParentFile().toPath());
+            Files.copy(target.toPath(), slot.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            return true;
+        } catch (IOException exception) {
+            ownerRef.messages.warning(LogTag.EDITOR, "console.editor_world_backup_failed", Map.of(
+                    "file", relative,
+                    "error", String.valueOf(exception.getMessage())));
+            return false;
+        }
     }
 
     EditorSession requireReady(Player player) {

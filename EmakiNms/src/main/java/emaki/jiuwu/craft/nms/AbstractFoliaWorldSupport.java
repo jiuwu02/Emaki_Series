@@ -339,7 +339,7 @@ public abstract class AbstractFoliaWorldSupport implements WorldMountSupport {
         return Boolean.TRUE.equals(NmsAccess.call(console, isServerThread));
     }
 
-    private Logger logger() {
+    protected Logger logger() {
         return ownerPlugin.getLogger();
     }
 }

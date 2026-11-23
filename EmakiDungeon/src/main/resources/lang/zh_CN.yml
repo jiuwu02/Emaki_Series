@@ -624,6 +624,8 @@ console:
   editor_markers_skip_no_box: "<gray>跳过模块标注</gray> | 类型=%type% | id=%id% | 原因=缺少 location/region"
   editor_fill_command_failed: "<red>填充指令执行失败</red> | 错误=%error%"
   editor_region_writeback_failed: "<red>区域回写失败</red> | 文件=%file% | 错误=%error%"
+  editor_world_backup_created: "<gray>模板世界数据已备份</gray> | 路径=%path%"
+  editor_world_backup_failed: "<red>模板世界数据备份失败</red> | 文件=%file% | 错误=%error%"
   editor_playerdata_handoff_failed: "<red>玩家数据交接失败</red> | 玩家=%player% | 错误=%error%"
   challenge_enter_failed: "<red>进入挑战失败</red> | 实例=%instance% | 玩家=%player% | 错误=%error%"
   challenge_enter_skipped: "<yellow>跳过进入挑战</yellow> | 实例=%instance% | 玩家=%player% | 原因=%reason%"

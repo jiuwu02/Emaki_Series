@@ -176,6 +176,7 @@ public class FoliaWorldSupport26_2Impl extends AbstractFoliaWorldSupport {
         Object primaryLevelData = NmsAccess.call(console, worldData);
         Object storedGenSettings = NmsAccess.callStatic(readExistingSavedData, storageAccess, dimensionKey, NmsAccess.call(console, registryAccess), NmsAccess.readStaticField(WORLD_GEN_SETTINGS, "TYPE"));
         Object worldGenSettings = ((Optional<?>) NmsAccess.call(storedGenSettings, dataResultValue)).orElse(null);
+        boolean synthesized = worldGenSettings == null;
         Object frozen = dimensionRegistries;
         if (worldGenSettings == null) {
             Object worldOptions = NmsAccess.construct(WORLD_OPTIONS, new String[]{"long", "boolean", "boolean"}, creator.seed(), creator.generateStructures(), creator.bonusChest());
@@ -203,6 +204,7 @@ public class FoliaWorldSupport26_2Impl extends AbstractFoliaWorldSupport {
         long worldSeed = (Long) NmsAccess.call(NmsAccess.call(worldGenSettings, worldGenSettingsOptions), worldOptionsSeed);
         long biomeZoomSeed = (Long) NmsAccess.callStatic(obfuscateSeed, worldSeed);
         Object customStem = ((Optional<?>) NmsAccess.call(NmsAccess.call(worldGenSettings, worldGenSettingsDimensions), dimensionFromSettings, actualDimension)).orElse(null);
+        boolean stemFromSettings = customStem != null;
         if (customStem == null) {
             customStem = NmsAccess.call(levelStemRegistry, registryValue, actualDimension);
         }
@@ -227,6 +229,12 @@ public class FoliaWorldSupport26_2Impl extends AbstractFoliaWorldSupport {
                 NmsAccess.construct(VILLAGE_SIEGE, new String[0]),
                 NmsAccess.construct(WANDERING_TRADER_SPAWNER, new String[]{SAVED_DATA_STORAGE}, savedDataStorage));
         List<?> dimensionSpawners = creator.environment() == World.Environment.NORMAL ? spawners : List.of();
+        logger().info("[DEBUG:nms:mount] world=" + name + " dimensionKey=" + dimensionKey
+                + " genSource=" + (synthesized ? "synthesized" : "stored")
+                + " stemFrom=" + (stemFromSettings ? "settings" : "registry")
+                + " chunkGenerator=" + (chunkGenerator == null ? "null" : chunkGenerator.getClass().getName())
+                + " biomeProvider=" + (biomeProvider == null ? "null" : biomeProvider.getClass().getName())
+                + " creatorType=" + creator.type().name());
         return NmsAccess.construct(SERVER_LEVEL, SERVER_LEVEL_CONSTRUCTOR,
                 console, levelExecutor(), storageAccess, worldGenSettings, dimensionKey, customStem,
                 NmsAccess.call(primaryLevelData, debugWorld), biomeZoomSeed,

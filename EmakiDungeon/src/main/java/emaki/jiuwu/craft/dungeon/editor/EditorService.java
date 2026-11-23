@@ -894,14 +894,14 @@ public final class EditorService implements Listener {
             unload.run();
             return;
         }
-        chatInput.cancel(player);
-        try {
-            player.closeInventory();
-        } catch (Throwable ignored) {
-            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#1", ignored);
-        }
-        messages.send(player, messageKey, Map.of());
         dispatcher.runEntity(plugin, player, () -> {
+            chatInput.cancel(player);
+            try {
+                player.closeInventory();
+            } catch (Throwable ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#1", ignored);
+            }
+            messages.send(player, messageKey, Map.of());
             if (origin != null) {
                 try {
                     player.teleport(origin);

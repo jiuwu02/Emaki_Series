@@ -624,6 +624,8 @@ console:
   editor_markers_skip_no_box: "<gray>Skip marker</gray> | type=%type% | id=%id% | reason=missing location/region"
   editor_fill_command_failed: "<red>Fill command failed</red> | error=%error%"
   editor_region_writeback_failed: "<red>Region write-back failed</red> | file=%file% | error=%error%"
+  editor_world_backup_created: "<gray>Template world data backed up</gray> | path=%path%"
+  editor_world_backup_failed: "<red>Template world data backup failed</red> | file=%file% | error=%error%"
   editor_playerdata_handoff_failed: "<red>Player data handoff failed</red> | player=%player% | error=%error%"
   challenge_enter_failed: "<red>Challenge enter failed</red> | instance=%instance% | player=%player% | error=%error%"
   challenge_enter_skipped: "<yellow>Challenge enter skipped</yellow> | instance=%instance% | player=%player% | reason=%reason%"
