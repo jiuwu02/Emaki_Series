@@ -173,13 +173,12 @@ public final class EditorModuleMarkers {
         }
         emaki.jiuwu.craft.dungeon.flow.FlowPoint a = first != null ? first : second;
         emaki.jiuwu.craft.dungeon.flow.FlowPoint b = second != null ? second : first;
-        double pad = first == null || second == null ? 0.75D : 0.0D;
-        Box box = new Box(Math.min(Math.floor(a.x()), Math.floor(b.x())) - pad,
-                Math.min(Math.floor(a.y()), Math.floor(b.y())) - pad,
-                Math.min(Math.floor(a.z()), Math.floor(b.z())) - pad,
-                Math.max(Math.floor(a.x()), Math.floor(b.x())) + pad,
-                Math.max(Math.floor(a.y()), Math.floor(b.y())) + pad,
-                Math.max(Math.floor(a.z()), Math.floor(b.z())) + pad);
+        Box box = new Box(Math.min(Math.floor(a.x()), Math.floor(b.x())),
+                Math.min(Math.floor(a.y()), Math.floor(b.y())),
+                Math.min(Math.floor(a.z()), Math.floor(b.z())),
+                Math.max(Math.floor(a.x()), Math.floor(b.x())) + 1.0D,
+                Math.max(Math.floor(a.y()), Math.floor(b.y())) + 1.0D,
+                Math.max(Math.floor(a.z()), Math.floor(b.z())) + 1.0D);
         out.addAll(spawnEdges(world, session.playerId(), box, Color.YELLOW));
     }
 

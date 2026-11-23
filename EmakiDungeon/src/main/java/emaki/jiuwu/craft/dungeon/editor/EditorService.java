@@ -250,6 +250,10 @@ public final class EditorService implements Listener {
         if (session == null) {
             return "";
         }
+        DungeonConfig fresh = templates.findConfig(session.dungeonId());
+        if (fresh != null) {
+            return fresh.type();
+        }
         DungeonConfig config = configCache == null ? null : configCache.get(session.dungeonId());
         return config == null ? "" : config.type();
     }

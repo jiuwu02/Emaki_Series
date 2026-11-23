@@ -57,7 +57,7 @@ public final class CaptureService {
         public int floors = 1;
         public boolean mirrorable;
         public String intrusionPolicy = TemplateModel.INTRUSION_ALLOW;
-        public String doorPolicy = TemplateModel.POLICY_SEAL;
+        public String doorPolicy = TemplateModel.POLICY_KEEP;
         public String sealBlock = "";
         public final List<Integer> rotations = new ArrayList<>(List.of(0, 90, 180, 270));
         public final List<DoorAnchor> anchors = new ArrayList<>();
@@ -501,7 +501,7 @@ public final class CaptureService {
         session.floors = 1;
         session.mirrorable = false;
         session.intrusionPolicy = TemplateModel.INTRUSION_ALLOW;
-        session.doorPolicy = TemplateModel.POLICY_SEAL;
+        session.doorPolicy = TemplateModel.POLICY_KEEP;
         session.sealBlock = "";
         session.rotations.clear();
         session.rotations.addAll(List.of(0, 90, 180, 270));

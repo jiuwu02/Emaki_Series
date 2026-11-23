@@ -89,12 +89,8 @@ public final class CaptureMarkers {
         int[] a = first != null ? first : second;
         int[] b = second != null ? second : first;
         EditorModuleMarkers.Box box = new EditorModuleMarkers.Box(
-                Math.min(a[0], b[0]) - (first == null || second == null ? POINT_HALF : 0.0D),
-                Math.min(a[1], b[1]) - (first == null || second == null ? POINT_HALF : 0.0D),
-                Math.min(a[2], b[2]) - (first == null || second == null ? POINT_HALF : 0.0D),
-                Math.max(a[0], b[0]) + (first == null || second == null ? POINT_HALF : 0.0D),
-                Math.max(a[1], b[1]) + (first == null || second == null ? POINT_HALF : 0.0D),
-                Math.max(a[2], b[2]) + (first == null || second == null ? POINT_HALF : 0.0D));
+                Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.min(a[2], b[2]),
+                Math.max(a[0], b[0]) + 1, Math.max(a[1], b[1]) + 1, Math.max(a[2], b[2]) + 1);
         out.addAll(renderer.spawnEdges(world, ownerId, box, COLOR_SELECTION));
         if (first != null && second != null && !session.tags.isEmpty()) {
             Entity label = renderer.spawnTag(world, ownerId, box,
