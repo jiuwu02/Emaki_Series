@@ -51,6 +51,7 @@ public final class Bake {
         }
         root.put("room_zones", roomsSection);
         Map<String, Integer> sectionCounter = new LinkedHashMap<>();
+        Map<String, Map<String, Object>> sections = new LinkedHashMap<>();
         for (RoomPlacement room : layout.rooms()) {
             for (ModuleNode node : room.meta().nodes()) {
                 String section = node.moduleType();
@@ -68,7 +69,7 @@ public final class Bake {
                 body.put("id", id);
                 body.putIfAbsent("enabled", true);
                 body.putIfAbsent("location", pointMap(anchorWorld[0], anchorWorld[1], anchorWorld[2], (int) node.yaw()));
-                Map<String, Object> sectionMap = (Map<String, Object>) root.computeIfAbsent(section,
+                Map<String, Object> sectionMap = sections.computeIfAbsent(section,
                         key -> new LinkedHashMap<>());
                 if (sectionMap.containsKey(id)) {
                     warnings.add("节点 id 冲突已改写: " + section + "." + id);
@@ -78,6 +79,7 @@ public final class Bake {
                 sectionMap.put(id, body);
             }
         }
+        sections.forEach(root::put);
         return new Result(root, spawnPoint, warnings);
     }
 
@@ -108,49 +110,47 @@ public final class Bake {
         };
     }
 
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> bakeParams(Map<String, Object> params,
+    private static Map<String, Object> bakeParams(Map<?, ?> params,
             int[] anchorWorld, RoomPlacement room) {
         Map<String, Object> result = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : params.entrySet()) {
+        for (Map.Entry<?, ?> entry : params.entrySet()) {
+            if (!(entry.getKey() instanceof String key)) {
+                continue;
+            }
             Object value = entry.getValue();
             if (value instanceof Map<?, ?> map) {
-                Map<String, Object> typed = (Map<String, Object>) map;
-                if (typed.containsKey("dx") || typed.containsKey("min")) {
-                    result.put(entry.getKey(), bakeCoordinateNode(typed, anchorWorld, room));
+                if (map.containsKey("dx") || map.containsKey("min")) {
+                    result.put(key, bakeCoordinateNode(map, anchorWorld, room));
                 } else {
-                    result.put(entry.getKey(), bakeParams(typed, anchorWorld, room));
+                    result.put(key, bakeParams(map, anchorWorld, room));
                 }
             } else if (value instanceof List<?> list) {
                 List<Object> baked = new ArrayList<>();
                 for (Object item : list) {
                     if (item instanceof Map<?, ?> map) {
-                        Map<String, Object> typed = (Map<String, Object>) map;
-                        if (typed.containsKey("dx") || typed.containsKey("min")) {
-                            baked.add(bakeCoordinateNode(typed, anchorWorld, room));
+                        if (map.containsKey("dx") || map.containsKey("min")) {
+                            baked.add(bakeCoordinateNode(map, anchorWorld, room));
                         } else {
-                            baked.add(bakeParams(typed, anchorWorld, room));
+                            baked.add(bakeParams(map, anchorWorld, room));
                         }
                     } else {
                         baked.add(item);
                     }
                 }
-                result.put(entry.getKey(), baked);
+                result.put(key, baked);
             } else {
-                result.put(entry.getKey(), value);
+                result.put(key, value);
             }
         }
         return result;
     }
 
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> bakeCoordinateNode(Map<String, Object> node,
+    private static Map<String, Object> bakeCoordinateNode(Map<?, ?> node,
             int[] anchorWorld, RoomPlacement room) {
         if (node.containsKey("min")) {
             Map<String, Object> result = new LinkedHashMap<>();
             for (String key : new String[] {"min", "max"}) {
-                Map<String, Object> corner = (Map<String, Object>) node.get(key);
-                if (corner != null) {
+                if (node.get(key) instanceof Map<?, ?> corner) {
                     result.put(key, bakeCoordinateNode(corner, anchorWorld, room));
                 }
             }
