@@ -1,13 +1,17 @@
 # EmakiCodex 主配置
 # 控制动态成就注册, 触发与界面坐标
 
-version: "2.0.5"
+version: "2.0.6"
 
 # 语言文件名, 对应 lang/<language>.yml
 language: "zh_CN"
 
 # 是否在启动时释放 advancements/ 下的内置示例数据
 release_default_data: true
+
+# 玩家数据持久化后端: file=本地文件 | database=共享数据库 (需 EmakiCoreLib database.yml 启用)
+storage:
+  backend: file
 
 # OP 是否绕过本插件的权限检查
 op_bypass: false

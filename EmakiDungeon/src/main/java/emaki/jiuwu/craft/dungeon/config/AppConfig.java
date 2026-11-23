@@ -34,7 +34,8 @@ public record AppConfig(
         boolean matchmakingEnabled,
         int matchmakingTargetSize,
         int matchmakingRecruitTtlSeconds,
-        int reconnectGraceSeconds
+        int reconnectGraceSeconds,
+        String storageBackend
 ) {
     static final String CURRENT_VERSION = "1.0.0";
 
@@ -66,7 +67,8 @@ public record AppConfig(
                 true,
                 0,
                 300,
-                0
+                0,
+                "file"
         );
     }
 
@@ -112,7 +114,12 @@ public record AppConfig(
                 section.getBoolean("matchmaking.enabled", defaults.matchmakingEnabled()),
                 section.getInt("matchmaking.target-size", defaults.matchmakingTargetSize()),
                 section.getInt("matchmaking.recruit-ttl-seconds", defaults.matchmakingRecruitTtlSeconds()),
-                section.getInt("recovery.reconnect-grace-seconds", defaults.reconnectGraceSeconds())
+                section.getInt("recovery.reconnect-grace-seconds", defaults.reconnectGraceSeconds()),
+                section.getString("storage.backend", defaults.storageBackend())
         );
+    }
+
+    public boolean databaseBackend() {
+        return "database".equalsIgnoreCase(storageBackend);
     }
 }

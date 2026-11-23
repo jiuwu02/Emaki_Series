@@ -16,6 +16,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
@@ -356,6 +358,15 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
         requirementService = new RequirementService();
         var playerDataFiles = coreLib.asyncYamlFiles(this);
         dataStore = new PlayerLevelDataStore(this, () -> playerDataFiles);
+        if (appConfig.databaseBackend()) {
+            PlayerDomainRepository repository = coreLib.getService(PlayerDomainRepository.class);
+            PlayerDataLease lease = coreLib.getService(PlayerDataLease.class);
+            if (repository == null || lease == null) {
+                throw new IllegalStateException(
+                        "storage.backend=database 但 EmakiCoreLib 数据库服务不可用; 请启用 database.yml 的 enabled 并检查启动日志");
+            }
+            dataStore.attachDatabase(repository, lease);
+        }
         pdcService = new LevelPdcService(appConfig.pdcNamespace(), appConfig.pdcEnabled());
         experienceRuleService = new LevelExperienceRuleService();
         experienceRuleService.config(appConfig);

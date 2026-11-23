@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.kits;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.data.SharedStateRepository;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapAssemblies;
@@ -120,9 +121,17 @@ public final class EmakiKitsPlugin extends JavaPlugin {
         bootstrapService.bootstrap();
 
         store = new KitStore(getDataFolder(), getLogger());
-        store.load();
         economy = new EconomyPort(coreLib);
         reloadContent();
+        if (config.storage().databaseBackend()) {
+            SharedStateRepository sharedState = coreLib.getService(SharedStateRepository.class);
+            if (sharedState == null) {
+                throw new IllegalStateException(
+                        "storage.backend=database 但 EmakiCoreLib 数据库服务不可用; 请启用 database.yml 的 enabled 并检查启动日志");
+            }
+            store.attachDatabase(sharedState);
+        }
+        store.load();
 
         rewards = new RewardDispatcher(this, store, economy, () -> config, this::kit);
         service = new KitService(store, rewards, economy, () -> config, this::kit);

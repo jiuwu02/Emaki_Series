@@ -337,7 +337,8 @@ final class ForgeLifecycleCoordinatorDelegate {
                 ConditionBlock.fromConfig(condition, true, false).invalidAsFailure(),
                 history == null || history.getBoolean("enabled", true),
                 history == null || history.getBoolean("auto_save", true),
-                history == null ? 6000 : Numbers.tryParseInt(history.get("save_interval"), 6000)
+                history == null ? 6000 : Numbers.tryParseInt(history.get("save_interval"), 6000),
+                configuration.getString("storage.backend", "file")
         );
     }
 

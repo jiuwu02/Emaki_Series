@@ -71,46 +71,57 @@ public final class StorageDataFile {
         if (!Files.isRegularFile(file)) {
             return LoadResult.empty();
         }
+        try (InputStream in = new BufferedInputStream(Files.newInputStream(file))) {
+            return parse(playerId, in);
+        }
+    }
+
+    public LoadResult decode(UUID playerId, byte[] content) throws IOException {
+        if (content == null || content.length == 0) {
+            return LoadResult.empty();
+        }
+        return parse(playerId, new ByteArrayInputStream(content));
+    }
+
+    private LoadResult parse(UUID playerId, InputStream in) throws IOException {
         List<Record> records = new ArrayList<>();
         List<ReservationRecord> reservations = new ArrayList<>();
         List<byte[]> corrupt = new ArrayList<>();
         boolean truncated = false;
         String truncationDetail = null;
-        try (InputStream in = new BufferedInputStream(Files.newInputStream(file))) {
-            int version = StorageCodec.readHeader(in);
-            long declared = StorageCodec.readVarLong(in);
-            for (long index = 0; index < declared; index++) {
-                byte[] payload;
-                long amount;
-                long stackLimit;
-                try {
-                    payload = StorageCodec.readItemPayload(in);
-                    amount = StorageCodec.readVarLong(in);
-                    stackLimit = StorageCodec.readVarLong(in);
-                } catch (IOException framingFailure) {
-                    truncated = true;
-                    truncationDetail = "第 " + index + " 条记录框架被截断: " + describe(framingFailure);
-                    break;
-                }
-                try {
-                    ItemStack template = StorageCodec.decodeItem(payload);
-                    if (template == null || template.getType().isAir()) {
-                        corrupt.add(StorageCodec.reframe(payload));
-                        continue;
-                    }
-                    template.setAmount(1);
-                    records.add(new Record(template, amount, stackLimit));
-                } catch (RuntimeException decodeFailure) {
-                    corrupt.add(StorageCodec.reframe(payload));
-                }
+        int version = StorageCodec.readHeader(in);
+        long declared = StorageCodec.readVarLong(in);
+        for (long index = 0; index < declared; index++) {
+            byte[] payload;
+            long amount;
+            long stackLimit;
+            try {
+                payload = StorageCodec.readItemPayload(in);
+                amount = StorageCodec.readVarLong(in);
+                stackLimit = StorageCodec.readVarLong(in);
+            } catch (IOException framingFailure) {
+                truncated = true;
+                truncationDetail = "第 " + index + " 条记录框架被截断: " + describe(framingFailure);
+                break;
             }
-            if (!truncated && version >= StorageCodec.RESERVATION_FORMAT_VERSION) {
-                ReservationSection section = readReservations(in);
-                reservations.addAll(section.reservations());
-                if (section.truncated()) {
-                    truncated = true;
-                    truncationDetail = "预留区被截断: " + section.detail();
+            try {
+                ItemStack template = StorageCodec.decodeItem(payload);
+                if (template == null || template.getType().isAir()) {
+                    corrupt.add(StorageCodec.reframe(payload));
+                    continue;
                 }
+                template.setAmount(1);
+                records.add(new Record(template, amount, stackLimit));
+            } catch (RuntimeException decodeFailure) {
+                corrupt.add(StorageCodec.reframe(payload));
+            }
+        }
+        if (!truncated && version >= StorageCodec.RESERVATION_FORMAT_VERSION) {
+            ReservationSection section = readReservations(in);
+            reservations.addAll(section.reservations());
+            if (section.truncated()) {
+                truncated = true;
+                truncationDetail = "预留区被截断: " + section.detail();
             }
         }
         Path quarantine = corrupt.isEmpty() ? null : quarantine(playerId, corrupt);
@@ -167,6 +178,10 @@ public final class StorageDataFile {
         Path directory = playerDirectory(playerId);
         Files.createDirectories(directory);
         Path target = directory.resolve(DATA_FILE_NAME);
+        Files.write(target, encode(records, reservations));
+    }
+
+    public byte[] encode(List<Record> records, List<ReservationRecord> reservations) throws IOException {
         List<ReservationRecord> holds = reservations == null ? List.of() : reservations;
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         StorageCodec.writeHeader(buffer);
@@ -189,7 +204,7 @@ public final class StorageDataFile {
         }
         byte[] payload = buffer.toByteArray();
         verify(new ByteArrayInputStream(payload), records.size(), holds.size());
-        Files.write(target, payload);
+        return payload;
     }
 
     private void verify(InputStream in, int expected, int expectedHolds) throws IOException {

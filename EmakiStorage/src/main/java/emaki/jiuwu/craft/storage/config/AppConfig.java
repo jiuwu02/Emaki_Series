@@ -285,6 +285,7 @@ public final class AppConfig extends BaseAppConfig {
     private final PersistenceConfig persistence;
     private final LoggingConfig logging;
     private final boolean debug;
+    private final String storageBackend;
 
     public AppConfig(String language,
             String configVersion,
@@ -299,7 +300,8 @@ public final class AppConfig extends BaseAppConfig {
             SearchConfig search,
             PersistenceConfig persistence,
             LoggingConfig logging,
-            boolean debug) {
+            boolean debug,
+            String storageBackend) {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.opBypass = opBypass;
@@ -313,6 +315,7 @@ public final class AppConfig extends BaseAppConfig {
         this.persistence = persistence == null ? PersistenceConfig.defaults() : persistence;
         this.logging = logging == null ? LoggingConfig.defaults() : logging;
         this.debug = debug;
+        this.storageBackend = storageBackend;
     }
 
     public static AppConfig defaults() {
@@ -320,7 +323,7 @@ public final class AppConfig extends BaseAppConfig {
                 GuiConfig.defaults(), CapacityConfig.defaults(), UnlockConfig.defaults(),
                 DisplayConfig.defaults(), BehaviorConfig.defaults(),
                 AutoPickupConfig.defaults(), SearchConfig.defaults(),
-                PersistenceConfig.defaults(), LoggingConfig.defaults(), false);
+                PersistenceConfig.defaults(), LoggingConfig.defaults(), false, "file");
     }
 
     public boolean releaseDefaultData() {
@@ -369,5 +372,9 @@ public final class AppConfig extends BaseAppConfig {
 
     public boolean debug() {
         return debug;
+    }
+
+    public boolean databaseBackend() {
+        return "database".equalsIgnoreCase(storageBackend);
     }
 }

@@ -1,12 +1,16 @@
 # EmakiAttribute 主配置
 
-version: "5.0.10"
+version: "5.0.11"
 
 # 对应 lang/<language>.yml
 language: "zh_CN"
 
 # 关闭后不释放缺失的内置数据文件
 release_default_data: true
+
+# 玩家数据持久化后端: file=本地文件 | database=共享数据库 (需 EmakiCoreLib database.yml 启用)
+storage:
+  backend: file
 
 # Lore 与 PDC 默认分别读取, 同属性值相加
 # require_lore_pdc_match 启用后要求同一属性两侧均存在且数值一致, 仅计一次; 否则该属性失效

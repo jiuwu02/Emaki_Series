@@ -13,6 +13,7 @@ public final class AppConfig extends BaseAppConfig {
     private final PersistenceSettings persistenceSettings;
     private final GuiSettings guiSettings;
     private final PurchaseSettings purchaseSettings;
+    private final String storageBackend;
 
     public AppConfig(String language,
             String configVersion,
@@ -22,7 +23,8 @@ public final class AppConfig extends BaseAppConfig {
             StorageSettings storageSettings,
             PersistenceSettings persistenceSettings,
             GuiSettings guiSettings,
-            PurchaseSettings purchaseSettings) {
+            PurchaseSettings purchaseSettings,
+            String storageBackend) {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.queueSettings = queueSettings == null ? QueueSettings.defaults() : queueSettings.normalized();
@@ -35,6 +37,7 @@ public final class AppConfig extends BaseAppConfig {
         this.purchaseSettings = purchaseSettings == null
                 ? PurchaseSettings.defaults()
                 : purchaseSettings.normalized();
+        this.storageBackend = storageBackend == null ? "file" : storageBackend;
     }
 
     public static AppConfig defaults() {
@@ -46,11 +49,20 @@ public final class AppConfig extends BaseAppConfig {
                 StorageSettings.defaults(),
                 PersistenceSettings.defaults(),
                 GuiSettings.defaults(),
-                PurchaseSettings.defaults());
+                PurchaseSettings.defaults(),
+                "file");
     }
 
     public boolean releaseDefaultData() {
         return releaseDefaultData;
+    }
+
+    public String storageBackend() {
+        return storageBackend;
+    }
+
+    public boolean databaseBackend() {
+        return "database".equalsIgnoreCase(storageBackend);
     }
 
     public QueueSettings queueSettings() {

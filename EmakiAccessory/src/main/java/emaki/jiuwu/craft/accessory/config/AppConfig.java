@@ -8,11 +8,12 @@ public record AppConfig(String version,
         int autosaveSeconds,
         int drainTimeoutSeconds,
         AccessorySlotSourceConfig slotSources,
-        DurabilityConfig durability) {
+        DurabilityConfig durability,
+        String storageBackend) {
 
     public static AppConfig defaults() {
         return new AppConfig("1.0.0", "zh_CN", true, false, true, 300, 10,
-                AccessorySlotSourceConfig.defaults(), DurabilityConfig.defaults());
+                AccessorySlotSourceConfig.defaults(), DurabilityConfig.defaults(), "file");
     }
 
     public AppConfig {
@@ -22,5 +23,10 @@ public record AppConfig(String version,
         drainTimeoutSeconds = Math.max(1, drainTimeoutSeconds);
         slotSources = slotSources == null ? AccessorySlotSourceConfig.defaults() : slotSources;
         durability = durability == null ? DurabilityConfig.defaults() : durability;
+        storageBackend = storageBackend == null || storageBackend.isBlank() ? "file" : storageBackend;
+    }
+
+    public boolean databaseBackend() {
+        return "database".equalsIgnoreCase(storageBackend);
     }
 }

@@ -20,7 +20,11 @@ public record AppConfig(String version,
                         List<ConfigIssue> issues) {
 
     public record StorageSettings(String backend, int saveDelayTicks, boolean atomicWrites,
-                                  RetentionSettings retention) {}
+                                  RetentionSettings retention) {
+        public boolean databaseBackend() {
+            return "database".equalsIgnoreCase(backend);
+        }
+    }
     public record RetentionSettings(int auditDays, int idempotencyDays) {}
     public record EconomySettings(String provider, String currencyId) {}
     public record InviteSettings(boolean enabled, boolean requireNewPlayer,

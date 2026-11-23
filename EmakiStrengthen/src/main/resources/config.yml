@@ -1,12 +1,17 @@
 # EmakiStrengthen 主配置
 
-version: "5.0.6"
+version: "5.0.7"
 
 # 对应 lang/<language>.yml
 language: "zh_CN"
 
 # 关闭后不释放缺失的内置配方
 release_default_data: true
+
+# 保底状态持久化后端: file=本地文件 | database=共享数据库 (需 EmakiCoreLib database.yml 启用)
+# database 模式下 PLAYER 作用域保底按玩家入共享库, ITEM 作用域仍存本地 pity-state.properties
+storage:
+  backend: file
 
 # 附近广播的半径, 单位: 方块; 小于 1 的值会按 1 处理
 local_broadcast_radius: 48

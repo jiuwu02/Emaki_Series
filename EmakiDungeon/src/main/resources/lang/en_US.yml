@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.33"
+version: "1.0.34"
 
 tags:
   challenge: '[ challenge ]'
@@ -609,6 +609,8 @@ console:
   editor_state_save_failed: "<red>Editor state save failed</red> | dungeon=%dungeon% | error=%error%"
   default_config_copy_failed: "<red>Default dungeon config copy failed</red> | dungeon=%dungeon% | error=%error%"
   instances_save_failed: "<red>Instance data save failed</red> | file=%file% | error=%error%"
+  # Console: player data database load failure; placeholders: %player%, %error%
+  player_data_load_failed: "<red>Player data load failed</red> | player=%player% | error=%error%"
   player_data_save_failed: "<red>Player data save failed</red> | file=%file% | error=%error%"
   parties_save_failed: "<red>Party data save failed</red> | file=%file% | error=%error%"
   rewardbox_update_failed: "<red>Reward box update failed</red> | player=%player% | cause=%cause%"

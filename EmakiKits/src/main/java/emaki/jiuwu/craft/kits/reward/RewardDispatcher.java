@@ -97,19 +97,17 @@ public final class RewardDispatcher {
             }
             if (guaranteed != null) {
                 if (selected.id().equals(pity.guaranteedId())) {
-                    store.mutate(s -> s.pityCounts().remove(pityKey));
+                    store.removeCounter(pityKey);
                 } else {
-                    long misses = store.read(s -> s.pityCounts().getOrDefault(pityKey, 0L));
-                    if (misses + 1 >= pity.count()) {
+                    long misses = store.incrementCounter(pityKey, 1L);
+                    if (misses >= pity.count()) {
                         selected = guaranteed;
-                        store.mutate(s -> s.pityCounts().remove(pityKey));
+                        store.removeCounter(pityKey);
                         store.recordAudit(new KitState.AuditRecord(
-                                store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
+                                store.nextAuditId(), System.currentTimeMillis(),
                                 playerId, kitId, "pity_forced",
                                 "transaction=" + transactionId + ", entry=" + guaranteed.id()
                                         + ", count=" + pity.count()));
-                    } else {
-                        store.mutate(s -> s.pityCounts().merge(pityKey, 1L, Long::sum));
                     }
                 }
             }
@@ -170,7 +168,7 @@ public final class RewardDispatcher {
                                 LogTags.send(plugin, null, Level.WARNING, "console.kit_action_execution_failed", Map.of("kit", kitId, "entry", entry.id(), "outcome", outcome, "line", line));
                             }
                             store.recordAudit(new KitState.AuditRecord(
-                                    store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
+                                    store.nextAuditId(), System.currentTimeMillis(),
                                     playerId, kitId, "action", "transaction=" + transactionId
                                     + ", entry=" + entry.id() + ", outcome=" + outcome
                                     + ", line=" + line));
@@ -218,7 +216,7 @@ public final class RewardDispatcher {
 
     private void audit(UUID playerId, String kitId, String action, String detail,
                        List<String> auditIds) {
-        String id = store.read(s -> "A" + s.nextSequence());
+        String id = store.nextAuditId();
         store.recordAudit(new KitState.AuditRecord(id, System.currentTimeMillis(), playerId,
                 kitId, action, detail));
         auditIds.add(id);

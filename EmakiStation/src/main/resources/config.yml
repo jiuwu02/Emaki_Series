@@ -1,7 +1,7 @@
 # EmakiStation 主配置
 # 控制工作站队列, 容量限制, EmakiStorage 通道, 持久化与界面刷新
 
-version: "2.0.6"
+version: "2.0.7"
 
 # 语言文件名, 对应 lang/<language>.yml
 language: "zh_CN"
@@ -64,6 +64,9 @@ limits:
 # 仓库通道 (EmakiStorage)
 # ============================================================
 storage:
+  # 玩家队列与解锁数据持久化后端: file=本地文件 | database=共享数据库 (需 EmakiCoreLib database.yml 启用)
+  backend: file
+
   # 是否允许工作站调用 EmakiStorage
   # 实际启用仍取决于 EmakiStorage 是否提供所需能力
   enabled: true

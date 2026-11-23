@@ -16,6 +16,8 @@ import org.bukkit.event.Listener;
 
 import emaki.jiuwu.craft.attribute.listener.DamageIndicatorListener;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
@@ -207,7 +209,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         if (plugin.languageLoader() != null) {
             plugin.languageLoader().load();
         }
-        plugin.setConfigModel(loadConfigModel(plugin));
+        AttributeConfig configModel = loadConfigModel(plugin);
+        attachDatabaseBackend(plugin, configModel);
+        plugin.setConfigModel(configModel);
         if (plugin.attributeService() != null) {
             plugin.attributeService().reloadConfig(plugin.configModel());
         }
@@ -266,6 +270,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 "config-apply",
                 "正在应用配置...",
                 configModel -> {
+                    attachDatabaseBackend(plugin, configModel);
                     plugin.setConfigModel(configModel);
                     if (plugin.attributeService() != null) {
                         plugin.attributeService().reloadConfig(plugin.configModel());
@@ -461,6 +466,20 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         if (plugin.languageLoader() != null) {
             plugin.languageLoader().setLanguage(restored.language());
         }
+    }
+
+    private void attachDatabaseBackend(EmakiAttributePlugin plugin, AttributeConfig config) {
+        if (!config.databaseBackend()) {
+            return;
+        }
+        EmakiCoreLibPlugin coreLib = plugin.coreLib();
+        PlayerDomainRepository repository = coreLib.getService(PlayerDomainRepository.class);
+        PlayerDataLease lease = coreLib.getService(PlayerDataLease.class);
+        if (repository == null || lease == null) {
+            throw new IllegalStateException(
+                    "storage.backend=database 但 EmakiCoreLib 数据库服务不可用; 请启用 database.yml 的 enabled 并检查启动日志");
+        }
+        plugin.parentAttributeService().dataStore().attachDatabase(repository, lease);
     }
 
     private AttributeConfig loadConfigModel(EmakiAttributePlugin plugin) {

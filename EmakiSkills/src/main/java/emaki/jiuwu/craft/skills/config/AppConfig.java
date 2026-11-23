@@ -22,6 +22,7 @@ public final class AppConfig extends BaseAppConfig {
     private final PassiveTriggerSettings passiveTriggerSettings;
     private final ScriptEngineSettings scriptEngine;
     private final ScriptSettings scripts;
+    private final String storageBackend;
 
     public AppConfig(String language,
             String configVersion,
@@ -36,7 +37,8 @@ public final class AppConfig extends BaseAppConfig {
             Map<String, TriggerConfig> passiveTriggers,
             PassiveTriggerSettings passiveTriggerSettings,
             ScriptEngineSettings scriptEngine,
-            ScriptSettings scripts) {
+            ScriptSettings scripts,
+            String storageBackend) {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.defaultSlotCount = Math.max(1, defaultSlotCount);
@@ -52,6 +54,7 @@ public final class AppConfig extends BaseAppConfig {
                 : passiveTriggerSettings;
         this.scriptEngine = scriptEngine == null ? ScriptEngineSettings.defaults() : scriptEngine;
         this.scripts = scripts == null ? ScriptSettings.defaults() : scripts;
+        this.storageBackend = storageBackend;
     }
 
     public static AppConfig defaults() {
@@ -69,7 +72,8 @@ public final class AppConfig extends BaseAppConfig {
                 Map.of(),
                 PassiveTriggerSettings.defaults(),
                 ScriptEngineSettings.defaults(),
-                ScriptSettings.defaults()
+                ScriptSettings.defaults(),
+                "file"
         );
     }
 
@@ -119,6 +123,14 @@ public final class AppConfig extends BaseAppConfig {
 
     public ScriptSettings scripts() {
         return scripts;
+    }
+
+    public String storageBackend() {
+        return storageBackend;
+    }
+
+    public boolean databaseBackend() {
+        return "database".equalsIgnoreCase(storageBackend);
     }
 
     public record SkillSourceSettings(boolean readLoreSkills,

@@ -1,6 +1,6 @@
 # EmakiAccessory 主配置
 
-version: "2.0.6"
+version: "2.0.7"
 
 # 对应 lang/<language>.yml
 language: "zh_CN"
@@ -13,6 +13,10 @@ drop_on_death: false
 
 # 优先按 EmakiItem 定义 ID 去重; 依赖不可用时回退到原版材质
 unique: true
+
+# 玩家饰品数据持久化后端: file=本地文件 | database=共享数据库 (需 EmakiCoreLib database.yml 启用)
+storage:
+  backend: file
 
 # ============================================================
 # 穿戴槽位声明来源

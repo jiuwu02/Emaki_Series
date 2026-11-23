@@ -17,6 +17,7 @@ public final class AppConfig extends BaseAppConfig {
     private final boolean historyEnabled;
     private final boolean historyAutoSave;
     private final int historySaveInterval;
+    private final String storageBackend;
 
     public AppConfig(String language,
             String configVersion,
@@ -29,7 +30,8 @@ public final class AppConfig extends BaseAppConfig {
             boolean invalidAsFailure,
             boolean historyEnabled,
             boolean historyAutoSave,
-            int historySaveInterval) {
+            int historySaveInterval,
+            String storageBackend) {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.qualitySettings = qualitySettings;
@@ -41,6 +43,7 @@ public final class AppConfig extends BaseAppConfig {
         this.historyEnabled = historyEnabled;
         this.historyAutoSave = historyAutoSave;
         this.historySaveInterval = historySaveInterval;
+        this.storageBackend = storageBackend;
     }
 
     public static AppConfig defaults() {
@@ -56,7 +59,8 @@ public final class AppConfig extends BaseAppConfig {
                 true,
                 true,
                 true,
-                6000
+                6000,
+                "file"
         );
     }
 
@@ -98,5 +102,13 @@ public final class AppConfig extends BaseAppConfig {
 
     public int historySaveInterval() {
         return historySaveInterval;
+    }
+
+    public String storageBackend() {
+        return storageBackend;
+    }
+
+    public boolean databaseBackend() {
+        return "database".equalsIgnoreCase(storageBackend);
     }
 }

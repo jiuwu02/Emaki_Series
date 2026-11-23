@@ -23,6 +23,9 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
+import emaki.jiuwu.craft.corelib.api.data.SharedStateRepository;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
@@ -534,11 +537,27 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 this, dispatcher, getDataFolder());
         records = new emaki.jiuwu.craft.dungeon.placeholder.DungeonRecordStore(
                 this, dispatcher, getDataFolder());
+        emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxStore rewardBoxStore =
+                new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxStore(this, messageService, dispatcher, getDataFolder());
 
         PartiesStore partiesStore = new PartiesStore(this, messageService, dispatcher, getDataFolder());
         parties = new PartyService(this, dispatcher, messageService, debugLogger(), partiesStore,
                 appConfig.partyMaxSize(), appConfig.partyInviteMode(), allocator::isPartyBusy);
         parties.bindScriptManager(scriptManager);
+        if (appConfig.databaseBackend()) {
+            PlayerDomainRepository repository = coreLib.getService(PlayerDomainRepository.class);
+            PlayerDataLease lease = coreLib.getService(PlayerDataLease.class);
+            SharedStateRepository sharedState = coreLib.getService(SharedStateRepository.class);
+            if (repository == null || lease == null || sharedState == null) {
+                throw new IllegalStateException(
+                        "storage.backend=database 但 EmakiCoreLib 数据库服务不可用; 请启用 database.yml 的 enabled 并检查启动日志");
+            }
+            playersDataStore.attachDatabase(repository, lease);
+            records.attachDatabase(repository, lease);
+            rewardBoxStore.attachDatabase(repository, lease);
+            leaderboard.attachSharedState(sharedState);
+            partiesStore.attachSharedState(sharedState);
+        }
         parties.start();
         ensurePlaceholderExpansion();
 
@@ -597,8 +616,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new emaki.jiuwu.craft.dungeon.drop.RewardChestService(registry, messageService);
         this.rewardChests = rewardChests;
         rewardBox = new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService(
-                new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxStore(this, messageService, dispatcher, getDataFolder()),
-                messageService, appConfigSupplier);
+                rewardBoxStore, messageService, appConfigSupplier);
         rewardBox.loadGuiConfig(this);
         rewardBoxGui = new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui(rewardBox, messageService);
         DropRouter dropRouter =
@@ -680,8 +698,14 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new emaki.jiuwu.craft.dungeon.random.template.CaptureInteractListener(
                         randomService.captures(), captureGui), this);
 
-        getServer().getPluginManager().registerEvents(
-                new DungeonLifecycleListener(recovery, parties, scriptManager, ticketService), this);
+        DungeonRecordStore recordStore = records;
+        DungeonLifecycleListener lifecycleListener =
+                new DungeonLifecycleListener(recovery, parties, scriptManager, ticketService, playerId -> {
+                    recordStore.unload(playerId);
+                    playersDataStore.unload(playerId);
+                    rewardBoxStore.unload(playerId);
+                });
+        getServer().getPluginManager().registerEvents(lifecycleListener, this);
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(chatInputService, this);
         getServer().getPluginManager().registerEvents(editorService, this);

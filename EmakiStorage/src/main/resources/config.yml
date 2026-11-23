@@ -1,13 +1,17 @@
 # EmakiStorage 主配置
 # 控制仓库界面, 容量, 存取行为, 自动拾取, 搜索, 持久化与流水日志
 
-version: "2.0.6"
+version: "2.0.7"
 
 # 语言文件名, 对应 lang/<language>.yml
 language: "zh_CN"
 
 # 是否在启动时释放 unlock_costs.yml 等内置业务示例数据
 release_default_data: true
+
+# 玩家数据持久化后端: file=本地文件 | database=共享数据库 (需 EmakiCoreLib database.yml 启用)
+storage:
+  backend: file
 
 # OP 是否绕过本插件的权限检查
 op_bypass: false

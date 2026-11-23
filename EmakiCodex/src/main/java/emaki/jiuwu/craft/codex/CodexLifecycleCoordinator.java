@@ -24,6 +24,8 @@ import emaki.jiuwu.craft.codex.codex.service.PlayerCodexStore;
 import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.codex.editor.CodexEditorModule;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -96,6 +98,15 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         AsyncYamlFiles codexFiles = coreLibPlugin.asyncYamlFiles(plugin);
         CodexDataFile codexDataFile = new CodexDataFile(plugin.getLogger(), plugin.dataPath("data"));
         PlayerCodexStore codexStore = new PlayerCodexStore(plugin.getLogger(), codexFiles, codexDataFile);
+        if (config.databaseBackend()) {
+            PlayerDomainRepository repository = coreLibPlugin.getService(PlayerDomainRepository.class);
+            PlayerDataLease lease = coreLibPlugin.getService(PlayerDataLease.class);
+            if (repository == null || lease == null) {
+                throw new IllegalStateException(
+                        "storage.backend=database 但 EmakiCoreLib 数据库服务不可用; 请启用 database.yml 的 enabled 并检查启动日志");
+            }
+            codexStore.attachDatabase(repository, lease);
+        }
         CodexProviderRegistrar codexProviderRegistrar = new CodexProviderRegistrar(
                 plugin, codexCategoryLoader, codexStore, executionDispatcher, threadOwnership);
         CodexEntryService codexEntryService = new CodexEntryService(
@@ -228,7 +239,8 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 bool(configuration, "op_bypass", false),
                 new ScriptHostSettings(
                         scripts == null || bool(scripts, "enabled", true),
-                        scripts == null ? 5000L : scriptTimeoutMs(scripts)));
+                        scripts == null ? 5000L : scriptTimeoutMs(scripts)),
+                configuration.getString("storage.backend", "file"));
     }
 
     private long scriptTimeoutMs(YamlSection scripts) {

@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.dungeon.listener;
 
 import java.util.Map;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -20,13 +22,15 @@ public final class DungeonLifecycleListener implements Listener {
     private final PartyService parties;
     private final ScriptRuntimeManager scriptManager;
     private final TicketService tickets;
+    private final Consumer<UUID> playerUnload;
 
     public DungeonLifecycleListener(RecoveryService recovery, PartyService parties,
-            ScriptRuntimeManager scriptManager, TicketService tickets) {
+            ScriptRuntimeManager scriptManager, TicketService tickets, Consumer<UUID> playerUnload) {
         this.recovery = recovery;
         this.parties = parties;
         this.scriptManager = scriptManager;
         this.tickets = tickets;
+        this.playerUnload = playerUnload;
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -46,5 +50,8 @@ public final class DungeonLifecycleListener implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         recovery.onQuit(event.getPlayer());
         parties.handleQuit(event.getPlayer());
+        if (playerUnload != null) {
+            playerUnload.accept(event.getPlayer().getUniqueId());
+        }
     }
 }

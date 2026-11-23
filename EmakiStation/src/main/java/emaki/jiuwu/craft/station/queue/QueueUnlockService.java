@@ -74,7 +74,7 @@ public final class QueueUnlockService {
         if (unlocks == null) {
             return CompletableFuture.completedFuture(null);
         }
-        return unlocks.dirty() ? store.saveAsync(unlocks) : CompletableFuture.completedFuture(null);
+        return store.unloadAsync(unlocks);
     }
 
     public CompletableFuture<Void> saveAllAsync() {

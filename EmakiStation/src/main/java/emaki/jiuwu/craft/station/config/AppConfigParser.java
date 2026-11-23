@@ -22,7 +22,8 @@ public final class AppConfigParser {
                 parseStorage(section.getSection("storage"), defaults.storageSettings()),
                 parsePersistence(section.getSection("persistence"), defaults.persistenceSettings()),
                 parseGui(section.getSection("gui"), defaults.guiSettings()),
-                parsePurchase(section.getSection("queue"), defaults.purchaseSettings()));
+                parsePurchase(section.getSection("queue"), defaults.purchaseSettings()),
+                section.getString("storage.backend", defaults.storageBackend()));
     }
 
     private static PurchaseSettings parsePurchase(YamlSection queueSection, PurchaseSettings defaults) {

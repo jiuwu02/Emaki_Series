@@ -105,7 +105,7 @@ public final class KitService {
         }
         String claimKey = StoreKeys.claim(kitId, player.getUniqueId(), periodKey);
         List<String> auditIds = new ArrayList<>();
-        String transactionId = store.read(s -> "T" + s.nextSequence());
+        String transactionId = store.nextTransactionId();
         boolean reserved = store.claimOnce(claimKey, () -> {});
         if (!reserved) {
             return ClaimResult.failure(ClaimResult.Status.ALREADY_CLAIMED, "error.kit.already_claimed", kitId, periodKey);
@@ -138,23 +138,20 @@ public final class KitService {
             return ClaimResult.failure(ClaimResult.Status.STORAGE_FAILED, "error.reward.delivery_failed", kitId, periodKey);
         }
         if (def.type() == KitType.CHOICE) {
-            store.mutate(s -> s.selections().put(
-                    StoreKeys.selection(kitId, player.getUniqueId(), periodKey),
-                    String.join(",", selections)));
+            store.putSelection(StoreKeys.selection(kitId, player.getUniqueId(), periodKey),
+                    String.join(",", selections));
         }
-        store.mutate(s -> {
-            String totalKey = KitState.countKey("claim", kitId, player.getUniqueId());
-            s.claimTotals().merge(totalKey, 1L, Long::sum);
-            if (def.hasPurchase()) {
-                String purchaseKey = KitState.countKey("purchase", kitId, player.getUniqueId());
-                s.purchaseCounts().computeIfPresent(purchaseKey, (k, v) -> v > 0 ? v - 1 : 0L);
-            }
-        });
+        String totalKey = KitState.countKey("claim", kitId, player.getUniqueId());
+        store.incrementCounter(totalKey, 1L);
+        if (def.hasPurchase()) {
+            String purchaseKey = KitState.countKey("purchase", kitId, player.getUniqueId());
+            store.incrementCounter(purchaseKey, -1L);
+        }
         if (def.hasOpenCount()) {
             return applyOpenCount(player, def, periodKey, transactionId, auditIds, makeup);
         }
         store.recordAudit(new KitState.AuditRecord(
-                store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
+                store.nextAuditId(), System.currentTimeMillis(),
                 player.getUniqueId(), kitId, makeup ? "claim_makeup" : "claim_success",
                 "transaction=" + transactionId + ", period=" + periodKey));
         return ClaimResult.success(kitId, periodKey, auditIds);
@@ -184,7 +181,7 @@ public final class KitService {
                 ? StoreKeys.cdkGlobal(code)
                 : StoreKeys.cdkPlayer(code, player.getUniqueId());
         String periodKey = "cdk:" + code;
-        String transactionId = store.read(s -> "T" + s.nextSequence());
+        String transactionId = store.nextTransactionId();
         List<String> auditIds = new ArrayList<>();
         String countKey = StoreKeys.cdkCount(code, player.getUniqueId());
         long perPlayerLimit = def.cdk().perPlayerLimit();
@@ -194,16 +191,9 @@ public final class KitService {
                 return ClaimResult.failure(ClaimResult.Status.CDK_EXHAUSTED, "error.cdk.exhausted", kitId, periodKey);
             }
         } else {
-            boolean[] reserved = {false};
-            store.mutate(s -> {
-                long used = s.cdkRedeemCounts().getOrDefault(countKey, 0L);
-                if (used >= perPlayerLimit) {
-                    return;
-                }
-                s.cdkRedeemCounts().put(countKey, used + 1);
-                reserved[0] = true;
-            });
-            if (!reserved[0]) {
+            long used = store.incrementCounter(countKey, 1L);
+            if (used > perPlayerLimit) {
+                store.incrementCounter(countKey, -1L);
                 return ClaimResult.failure(ClaimResult.Status.CDK_EXHAUSTED, "error.cdk.player_limit", kitId, periodKey);
             }
         }
@@ -214,14 +204,14 @@ public final class KitService {
                     payload, transactionId, 0));
         } catch (RuntimeException exception) {
             if (globalOnce) {
-                store.mutate(s -> s.idempotencyKeys().remove(idempotencyKey));
+                store.removeClaim(idempotencyKey);
             } else {
-                store.mutate(s -> s.cdkRedeemCounts().computeIfPresent(countKey, (k, v) -> v > 1 ? v - 1 : null));
+                store.incrementCounter(countKey, -1L);
             }
             return ClaimResult.failure(ClaimResult.Status.STORAGE_FAILED, "error.reward.delivery_failed", kitId, periodKey);
         }
         store.recordAudit(new KitState.AuditRecord(
-                store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
+                store.nextAuditId(), System.currentTimeMillis(),
                 player.getUniqueId(), kitId, "cdk_redeem",
                 "transaction=" + transactionId + ", code=" + code + ", mode="
                         + def.cdk().mode() + ", globalOnce=" + globalOnce));
@@ -253,23 +243,21 @@ public final class KitService {
                 return ClaimResult.failure(ClaimResult.Status.PAYMENT_FAILED, "error.economy.insufficient", kitId, "once");
             }
         }
-        String transactionId = store.read(s -> "T" + s.nextSequence());
+        String transactionId = store.nextTransactionId();
         String debitKey = "purchase|" + kitId + "|" + player.getUniqueId() + "|" + transactionId;
         boolean reserved = store.claimOnce(debitKey, () -> {});
         if (!reserved) {
             return ClaimResult.failure(ClaimResult.Status.ALREADY_CLAIMED, "error.purchase.duplicate", kitId, "once");
         }
         if (price > 0D && !economy.debit(player, settings, price)) {
-            store.mutate(s -> s.idempotencyKeys().remove(debitKey));
+            store.removeClaim(debitKey);
             return ClaimResult.failure(ClaimResult.Status.PAYMENT_FAILED, "error.economy.debit_failed", kitId, "once");
         }
-        store.mutate(s -> {
-            String availableKey = KitState.countKey("purchase", kitId, player.getUniqueId());
-            s.purchaseCounts().merge(availableKey, 1L, Long::sum);
-            s.purchaseCounts().merge(countKey, 1L, Long::sum);
-        });
+        String availableKey = KitState.countKey("purchase", kitId, player.getUniqueId());
+        store.incrementCounter(availableKey, 1L);
+        store.incrementCounter(countKey, 1L);
         store.recordAudit(new KitState.AuditRecord(
-                store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
+                store.nextAuditId(), System.currentTimeMillis(),
                 player.getUniqueId(), kitId, "purchase",
                 "transaction=" + transactionId + ", price=" + price + ", provider=" + settings.provider()));
         return ClaimResult.success(kitId, "purchase", List.of());
@@ -328,9 +316,9 @@ public final class KitService {
         if (!reserved) {
             return false;
         }
-        store.mutate(s -> s.inviteBinds().computeIfAbsent(inviteeId, key -> new ArrayList<>()).add(inviterId));
+        store.addInviteBind(inviteeId, inviterId);
         store.recordAudit(new KitState.AuditRecord(
-                store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
+                store.nextAuditId(), System.currentTimeMillis(),
                 auditPlayer, "invite", auditAction, auditDetail));
         return true;
     }
@@ -355,7 +343,7 @@ public final class KitService {
             return;
         }
         String pairKey = StoreKeys.claim(inviteKit.id(), rewardPlayer, "invite:" + inviterId + ":" + inviteeId);
-        String transactionId = store.read(s -> "T" + s.nextSequence());
+        String transactionId = store.nextTransactionId();
         boolean rewardReserved = store.claimOnce(pairKey, () -> {});
         if (!rewardReserved) {
             return;
@@ -365,7 +353,7 @@ public final class KitService {
             payload.addAll(inviteKit.randomRewards().entries());
             rewards.deliver(rewardPlayer, online, inviteKit.id(), payload, transactionId, 0);
         } catch (RuntimeException exception) {
-            store.mutate(s -> s.idempotencyKeys().remove(pairKey));
+            store.removeClaim(pairKey);
         }
     }
 
@@ -388,7 +376,7 @@ public final class KitService {
             }
             String periodKey = firstJoin ? "join:first" : "join:" + System.currentTimeMillis();
             String claimKey = StoreKeys.claim(def.id(), player.getUniqueId(), periodKey);
-            String transactionId = store.read(s -> "T" + s.nextSequence());
+            String transactionId = store.nextTransactionId();
             boolean reserved = store.claimOnce(claimKey, () -> {});
             if (!reserved) {
                 continue;
@@ -398,17 +386,17 @@ public final class KitService {
                 payload.addAll(def.randomRewards().entries());
                 rewards.deliver(player.getUniqueId(), player, def.id(), payload, transactionId, 0);
                 store.recordAudit(new KitState.AuditRecord(
-                        store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
+                        store.nextAuditId(), System.currentTimeMillis(),
                         player.getUniqueId(), def.id(), "join_claim",
                         "transaction=" + transactionId + ", first=" + firstJoin + ", world=" + worldName));
             } catch (RuntimeException exception) {
-                store.mutate(s -> s.idempotencyKeys().remove(claimKey));
+                store.removeClaim(claimKey);
             }
         }
         if (firstJoin && inviterId != null) {
             bindFromJoin(player, inviterId);
         }
-        store.mutate(s -> s.firstJoin().putIfAbsent(player.getUniqueId(), String.valueOf(System.currentTimeMillis())));
+        store.putFirstJoin(player.getUniqueId(), String.valueOf(System.currentTimeMillis()));
         return ClaimResult.success("join", "once", List.of());
     }
 
@@ -502,10 +490,7 @@ public final class KitService {
     private ClaimResult applyOpenCount(Player player, KitDefinition def, String periodKey,
                                        String transactionId, List<String> auditIds, boolean makeup) {
         String openKey = KitState.countKey("open", def.id(), player.getUniqueId());
-        long opens = store.read(s -> {
-            s.openCounts().merge(openKey, 1L, Long::sum);
-            return s.openCounts().get(openKey);
-        });
+        long opens = store.incrementCounter(openKey, 1L);
         for (OpenMilestone milestone : def.open().milestones()) {
             if (opens != milestone.count()) {
                 continue;
@@ -519,14 +504,12 @@ public final class KitService {
                 auditIds.addAll(rewards.deliver(player.getUniqueId(), player, def.id(),
                         milestone.rewards(), transactionId, 1));
             } catch (RuntimeException exception) {
-                store.mutate(s -> {
-                    s.idempotencyKeys().remove(key);
-                    s.openCounts().computeIfPresent(openKey, (k, v) -> v > 0 ? v - 1 : 0L);
-                });
+                store.removeClaim(key);
+                store.incrementCounter(openKey, -1L);
             }
         }
         store.recordAudit(new KitState.AuditRecord(
-                store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
+                store.nextAuditId(), System.currentTimeMillis(),
                 player.getUniqueId(), def.id(), makeup ? "claim_makeup" : "claim_success",
                 "transaction=" + transactionId + ", period=" + periodKey + ", opens=" + opens));
         return ClaimResult.success(def.id(), periodKey, List.copyOf(auditIds));
@@ -534,12 +517,10 @@ public final class KitService {
 
     private void rollback(String claimKey, String kitId, UUID playerId, String periodKey,
                           String transactionId) {
-        store.mutate(s -> {
-            s.idempotencyKeys().remove(claimKey);
-            s.selections().remove(StoreKeys.selection(kitId, playerId, periodKey));
-        });
+        store.removeClaim(claimKey);
+        store.removeSelection(StoreKeys.selection(kitId, playerId, periodKey));
         store.recordAudit(new KitState.AuditRecord(
-                store.read(s -> "A" + s.nextSequence()), System.currentTimeMillis(),
+                store.nextAuditId(), System.currentTimeMillis(),
                 playerId, kitId, "claim_rollback",
                 "transaction=" + transactionId + ", period=" + periodKey));
     }
@@ -570,26 +551,46 @@ public final class KitService {
         }
         long now = System.currentTimeMillis();
         int[] removed = {0};
-        store.mutate(s -> {
-            if (auditDays > 0) {
-                long cutoff = now - auditDays * 86_400_000L;
-                int before = s.audits().size();
-                s.audits().values().removeIf(record -> record.atMillis() > 0L && record.atMillis() < cutoff);
-                removed[0] += before - s.audits().size();
-            }
-            if (idempotencyDays > 0) {
-                String zone = config.get().timeZone();
-                LocalDate cutoffDate = LocalDate.now(ZoneId.of(zone)).minusDays(idempotencyDays);
-                Set<String> protectedPeriods = new HashSet<>();
-                for (KitType type : List.of(KitType.DAILY, KitType.WEEKLY, KitType.MONTHLY)) {
-                    protectedPeriods.add(PeriodKeys.currentFor(type, zone));
-                    protectedPeriods.add(PeriodKeys.previousFor(type, zone));
+        if (auditDays > 0) {
+            long cutoff = now - auditDays * 86_400_000L;
+            List<String> expiredAudits = store.read(s -> {
+                List<String> ids = new ArrayList<>();
+                for (KitState.AuditRecord record : s.audits().values()) {
+                    if (record.atMillis() > 0L && record.atMillis() < cutoff) {
+                        ids.add(record.id());
+                    }
                 }
-                int before = s.idempotencyKeys().size();
-                s.idempotencyKeys().removeIf(key -> expiredPeriodKey(key, cutoffDate, protectedPeriods));
-                removed[0] += before - s.idempotencyKeys().size();
+                return ids;
+            });
+            for (String id : expiredAudits) {
+                if (store.removeAudit(id)) {
+                    removed[0]++;
+                }
             }
-        });
+        }
+        if (idempotencyDays > 0) {
+            String zone = config.get().timeZone();
+            LocalDate cutoffDate = LocalDate.now(ZoneId.of(zone)).minusDays(idempotencyDays);
+            Set<String> protectedPeriods = new HashSet<>();
+            for (KitType type : List.of(KitType.DAILY, KitType.WEEKLY, KitType.MONTHLY)) {
+                protectedPeriods.add(PeriodKeys.currentFor(type, zone));
+                protectedPeriods.add(PeriodKeys.previousFor(type, zone));
+            }
+            List<String> expiredClaims = store.read(s -> {
+                List<String> keys = new ArrayList<>();
+                for (String key : s.idempotencyKeys()) {
+                    if (expiredPeriodKey(key, cutoffDate, protectedPeriods)) {
+                        keys.add(key);
+                    }
+                }
+                return keys;
+            });
+            for (String key : expiredClaims) {
+                if (store.removeClaim(key)) {
+                    removed[0]++;
+                }
+            }
+        }
         return removed[0];
     }
 

@@ -47,7 +47,10 @@ public final class StorageMetaFile {
     }
 
     public Meta load(UUID playerId, SortMode fallbackSort, boolean autoPickupByDefault) {
-        YamlSection section = YamlFiles.load(metaFile(playerId).toFile());
+        return fromSection(YamlFiles.load(metaFile(playerId).toFile()), fallbackSort, autoPickupByDefault);
+    }
+
+    public static Meta fromSection(YamlSection section, SortMode fallbackSort, boolean autoPickupByDefault) {
         if (section == null || section.isEmpty()) {
             return Meta.defaults(fallbackSort, autoPickupByDefault);
         }
@@ -63,13 +66,19 @@ public final class StorageMetaFile {
     public void save(UUID playerId, Meta meta) throws IOException {
         Map<String, Object> values = new LinkedHashMap<>();
         values.put("version", CURRENT_VERSION);
+        values.putAll(toValues(meta));
+        YamlFiles.save(metaFile(playerId).toFile(), values);
+    }
+
+    public static Map<String, Object> toValues(Meta meta) {
+        Map<String, Object> values = new LinkedHashMap<>();
         values.put("player_name", meta.playerName() == null ? "" : meta.playerName());
         values.put("granted_slots", meta.grantedSlots());
         values.put("purchased_slots", meta.purchasedSlots());
         values.put("default_stack_limit", meta.defaultStackLimit());
         values.put("sort_mode", meta.sortMode() == null ? SortMode.AMOUNT_DESC.id() : meta.sortMode().id());
         values.put("auto_pickup", meta.autoPickupEnabled());
-        YamlFiles.save(metaFile(playerId).toFile(), values);
+        return values;
     }
 
     private static int intValue(YamlSection section, String path, int fallback) {

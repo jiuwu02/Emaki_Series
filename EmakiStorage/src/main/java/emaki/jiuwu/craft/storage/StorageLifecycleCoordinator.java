@@ -10,6 +10,8 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -95,6 +97,15 @@ final class StorageLifecycleCoordinator
                 plugin.dataPath("data"), plugin.dataPath("corrupt"), textIndexer);
         dataStore.configure(config.behavior().defaultSort(), config.capacity().warnEntryCount(),
                 config.autoPickup().defaultEnabled());
+        if (config.databaseBackend()) {
+            PlayerDomainRepository repository = coreLib.getService(PlayerDomainRepository.class);
+            PlayerDataLease lease = coreLib.getService(PlayerDataLease.class);
+            if (repository == null || lease == null) {
+                throw new IllegalStateException(
+                        "storage.backend=database 但 EmakiCoreLib 数据库服务不可用; 请启用 database.yml 的 enabled 并检查启动日志");
+            }
+            dataStore.attachDatabase(repository, lease);
+        }
 
         StorageCapacityService capacityService = new StorageCapacityService(config);
         StorageTransactionService transactionService = new StorageTransactionService(
@@ -196,7 +207,8 @@ final class StorageLifecycleCoordinator
                 parseSearch(configuration.getSection("search"), issues),
                 parsePersistence(configuration.getSection("persistence")),
                 parseLogging(configuration.getSection("logging")),
-                bool(configuration, "debug", false));
+                bool(configuration, "debug", false),
+                configuration.getString("storage.backend", "file"));
     }
 
     private AppConfig.GuiConfig parseGui(YamlSection section) {

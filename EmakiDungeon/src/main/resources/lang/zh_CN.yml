@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.33"
+version: "1.0.34"
 
 tags:
   challenge: '[ 挑战 ]'
@@ -609,6 +609,8 @@ console:
   editor_state_save_failed: "<red>编辑状态保存失败</red> | 副本=%dungeon% | 错误=%error%"
   default_config_copy_failed: "<red>默认副本配置复制失败</red> | 副本=%dungeon% | 错误=%error%"
   instances_save_failed: "<red>实例数据保存失败</red> | 文件=%file% | 错误=%error%"
+  # 控制台: 玩家数据数据库加载失败; 占位符: %player%, %error%
+  player_data_load_failed: "<red>玩家数据加载失败</red> | 玩家=%player% | 错误=%error%"
   player_data_save_failed: "<red>玩家数据保存失败</red> | 文件=%file% | 错误=%error%"
   parties_save_failed: "<red>队伍数据保存失败</red> | 文件=%file% | 错误=%error%"
   rewardbox_update_failed: "<red>奖励箱更新失败</red> | 玩家=%player% | 原因=%cause%"

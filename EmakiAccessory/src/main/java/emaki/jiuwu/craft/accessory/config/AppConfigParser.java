@@ -23,7 +23,8 @@ public final class AppConfigParser {
                 section.getInt("persistence.autosave_seconds", defaults.autosaveSeconds()),
                 section.getInt("persistence.drain_timeout_seconds", defaults.drainTimeoutSeconds()),
                 parseSlotSources(section.getSection("slot_sources")),
-                parseDurability(section.getSection("durability"))
+                parseDurability(section.getSection("durability")),
+                section.getString("storage.backend", defaults.storageBackend())
         );
     }
 

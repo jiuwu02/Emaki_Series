@@ -37,6 +37,8 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
 import emaki.jiuwu.craft.corelib.log.LogTag;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
@@ -94,6 +96,15 @@ final class AccessoryLifecycleCoordinator
                 () -> plugin.pageRegistry().firstPageId());
         PlayerAccessoryStore accessoryStore = new PlayerAccessoryStore(
                 plugin.getLogger(), accessoryFiles, dataFile);
+        if (appConfig.databaseBackend()) {
+            PlayerDomainRepository repository = coreLibPlugin.getService(PlayerDomainRepository.class);
+            PlayerDataLease lease = coreLibPlugin.getService(PlayerDataLease.class);
+            if (repository == null || lease == null) {
+                throw new IllegalStateException(
+                        "storage.backend=database 但 EmakiCoreLib 数据库服务不可用; 请启用 database.yml 的 enabled 并检查启动日志");
+            }
+            accessoryStore.attachDatabase(repository, lease);
+        }
 
         AccessoryUniqueService uniqueService = new AccessoryUniqueService(appConfig.unique());
         AccessorySetService setService = new AccessorySetService();

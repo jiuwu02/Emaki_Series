@@ -7,6 +7,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.editor.EditorService;
@@ -119,6 +121,16 @@ final class StationLifecycleCoordinator
         QueueStore queueStore = new QueueStore(plugin, () -> queueFiles);
         QueueService queueService = new QueueService(queueStore);
         QueueUnlockStore unlockStore = new QueueUnlockStore(plugin, () -> queueFiles);
+        if (config.databaseBackend()) {
+            PlayerDomainRepository repository = coreLibPlugin.getService(PlayerDomainRepository.class);
+            PlayerDataLease lease = coreLibPlugin.getService(PlayerDataLease.class);
+            if (repository == null || lease == null) {
+                throw new IllegalStateException(
+                        "storage.backend=database 但 EmakiCoreLib 数据库服务不可用; 请启用 database.yml 的 enabled 并检查启动日志");
+            }
+            queueStore.attachDatabase(repository, lease);
+            unlockStore.attachDatabase(repository, lease);
+        }
 
         StationQueueUnlockService purchaseService = new StationQueueUnlockService(
                 coreLibPlugin.economyManager(),

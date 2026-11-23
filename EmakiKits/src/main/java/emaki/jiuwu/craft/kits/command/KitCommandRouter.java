@@ -632,8 +632,7 @@ public final class KitCommandRouter {
             messages.send(sender, "error.kit.unknown", Map.of("kit", kitId));
             return;
         }
-        store.mutate(s -> s.purchaseCounts().merge(
-                KitState.countKey("purchase", kitId, target.getUniqueId()), 1L, Long::sum));
+        store.incrementCounter(KitState.countKey("purchase", kitId, target.getUniqueId()), 1L);
         messages.send(sender, "grant.success", Map.of("player", target.getName(), "kit", kitId));
     }
 
@@ -659,7 +658,7 @@ public final class KitCommandRouter {
                     return;
                 }
                 String code = config.get().cdk().caseSensitive() ? args[2] : args[2].toLowerCase(Locale.ROOT);
-                store.mutate(s -> s.cdkDisabled().add(code));
+                store.disableCdk(code);
                 messages.send(sender, "cdk.disabled", Map.of("code", code));
             }
             default -> messages.send(sender, "general.usage_cdk");

@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.14"
+version: "5.0.15"
 
 # tags: 日志/消息分类头文案; 由 CoreLib 统一定义, 各模块消息发送接口按枚举拼接
 tags:
@@ -51,6 +51,14 @@ gui:
   packet_backend_registration_failed: "注册 packet GUI 后端失败: %error%, EmakiCoreLib 将使用 Bukkit(实体)后端"
 
 console:
+  # 控制台: 数据库已连接; 占位符: %server_id%, %database%
+  database_ready: "<green>数据库已连接: <aqua>%server_id%</aqua>@<aqua>%database%</aqua></green>"
+  # 控制台: 数据库初始化失败; 占位符: %error%
+  database_init_failed: "<red>数据库初始化失败: <white>%error%</white></red>"
+  # 控制台: 玩家数据租约被强占接管; 占位符: %player%, %server_id%
+  database_lease_takeover: "<yellow>玩家数据租约已强占接管: <aqua>%player%</aqua> -> <aqua>%server_id%</aqua></yellow>"
+  # 控制台: 玩家数据租约丢失并停止续租; 占位符: %player%
+  database_lease_lost: "<yellow>玩家数据租约已丢失, 已停止续租: <aqua>%player%</aqua></yellow>"
   plugin_starting: "<gray>正在启动...</gray>"
   plugin_started: "<green>启动完成</green>"
   plugin_stopped: "<yellow>已关闭</yellow>"
@@ -864,6 +872,46 @@ command:
   help_value_desc_check_module: "只检查 %value% 模块的配置并输出预检报告"
   help_value_desc_loops_player: "查看 %value% 的长期管道任务"
   help_value_desc_loops_cancel_player: "取消 %value% 的全部长期管道任务"
+  # 命令: 数据库未启用提示
+  db_disabled: "<red>数据库未启用, 请先在 database.yml 开启 enabled 并重启</red>"
+  # 命令: db 子命令用法提示
+  db_usage: "<yellow>用法: db check | db export [目录] | db import <zip> | db copy --from <源database.yml路径></yellow>"
+  # 命令: db 后台任务失败; 占位符: %error%
+  db_task_failed: "<red>数据库任务失败: <white>%error%</white></red>"
+  # 命令: db check 报告头; 占位符: %engine%, %configured%
+  db_check_header: "<aqua>数据库引擎:</aqua> <yellow>%engine%</yellow> <dark_gray>(配置值 %configured%)</dark_gray>"
+  # 命令: db check 连接成功
+  db_check_connected: "<green>数据库连接正常</green>"
+  # 命令: db check 连接失败; 占位符: %error%
+  db_check_connection_failed: "<red>数据库连接失败: <white>%error%</white></red>"
+  # 命令: db check 建表步骤报告; 占位符: %applied%, %total%
+  db_check_schema: "<aqua>建表步骤:</aqua> <yellow>%applied%</yellow><dark_gray>/</dark_gray><yellow>%total%</yellow>"
+  # 命令: db check 表行数条目; 占位符: %table%, %rows%
+  db_check_table: "<gray>- <aqua>%table%</aqua> <yellow>%rows%</yellow> 行</gray>"
+  # 命令: db export 开始; 占位符: %directory%
+  db_export_started: "<gray>正在导出数据库到 <aqua>%directory%</aqua> ...</gray>"
+  # 命令: db export 完成; 占位符: %file%, %rows%
+  db_export_success: "<green>导出完成: <aqua>%file%</aqua>, 共 <yellow>%rows%</yellow> 行</green>"
+  # 命令: db import 开始; 占位符: %file%
+  db_import_started: "<gray>正在从 <aqua>%file%</aqua> 回灌数据 ...</gray>"
+  # 命令: db import 完成; 占位符: %file%, %rows%
+  db_import_success: "<green>导入完成: <aqua>%file%</aqua>, 共回灌 <yellow>%rows%</yellow> 行</green>"
+  # 命令: db copy 开始; 占位符: %source%
+  db_copy_started: "<gray>正在从 <aqua>%source%</aqua> 整库复制到当前库 ...</gray>"
+  # 命令: db copy 完成; 占位符: %source_engine%, %target_engine%, %rows%
+  db_copy_success: "<green>复制完成: <yellow>%source_engine%</yellow> -> <yellow>%target_engine%</yellow>, 共 <yellow>%rows%</yellow> 行</green>"
+  # 命令: db 命令帮助头
+  help_db_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiCoreLib db 命令帮助</gradient> <gray><st>        </st></gray>"
+  # 命令: db check 帮助条目
+  help_db_entry_check: "- <hover:show_text:'<gray>check</gray> <dark_gray>·</dark_gray> <gray>检查数据库连接、引擎与建表步骤</gray>'><gray>check</gray></hover> <click:run_command:'%root% db check'><green>[ ✦ 点击执行 ]</green></click>"
+  # 命令: db export 帮助条目
+  help_db_entry_export: "- <hover:show_text:'<gray>export</gray> <dark_gray>·</dark_gray> <gray>把全部数据导出为 zip (JSONL + manifest 行数校验和)</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:目录 - 输出目录, 省略时为插件数据目录</gray>'><gray>export</gray></hover> <click:run_command:'%root% db export'><green>[ ✦ 点击执行 ]</green></click>"
+  # 命令: db import 帮助条目
+  help_db_entry_import: "- <hover:show_text:'<gray>import</gray> <dark_gray>·</dark_gray> <gray>从导出的 zip 幂等回灌数据 (校验和+行数校验)</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:zip 文件 - 导出包路径, 相对路径按插件数据目录解析</gray>'><gray>import</gray></hover> <hover:show_text:'<gray>参数:zip文件</gray><newline><gray>导出包路径, 需要自己填写</gray>'><gray>[ zip文件 ]</gray></hover>"
+  # 命令: db copy 帮助条目
+  help_db_entry_copy: "- <hover:show_text:'<gray>copy</gray> <dark_gray>·</dark_gray> <gray>从另一个 database.yml 指向的数据库整库复制到当前库 (跨引擎切换)</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:--from 后接源 database.yml 路径</gray>'><gray>copy</gray></hover> <hover:show_text:'<gray>参数:--from <源database.yml路径></gray><newline><gray>源配置文件路径, 需要自己填写</gray>'><gray>[ --from ]</gray></hover>"
+  # 命令: db 根帮助条目
+  help_entry_db: "- <hover:show_text:'<gray>db</gray> <dark_gray>·</dark_gray> <gray>数据库维护: 体检、导出、导入、跨引擎复制</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakicorelib.admin</white>'><gray>db</gray></hover> <click:run_command:'%root% help db'><hover:show_text:'<gray>可选参数</gray><newline><gray>check</gray> <dark_gray>·</dark_gray> <gray>连接/引擎/建表步骤报告</gray><newline><gray>export</gray> <dark_gray>·</dark_gray> <gray>导出数据为 zip</gray><newline><gray>import</gray> <dark_gray>·</dark_gray> <gray>从 zip 幂等回灌</gray><newline><gray>copy</gray> <dark_gray>·</dark_gray> <gray>跨引擎整库复制</gray>'><gray>[ ✦ 参数 ]</gray></click>"
   help_footer: "<gray><st>                                        </st></gray>"
 journal:
   async_scheduler_unavailable: "无法访问异步任务调度器, 回退到公共线程池: %error%"

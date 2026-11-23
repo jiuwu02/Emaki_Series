@@ -1,13 +1,17 @@
 # EmakiSkills 主配置: 技能槽, 来源, 施法模式, 触发器与脚本限制
 
 # version 由资源同步维护, 不是功能开关
-version: "3.0.8"
+version: "3.0.9"
 
 # 语言文件名, 对应 lang/<language>.yml
 language: "zh_CN"
 
 # 是否在启动时释放插件内置的默认技能数据
 release_default_data: true
+
+# 玩家数据持久化后端: file=本地文件 | database=共享数据库 (需 EmakiCoreLib database.yml 启用)
+storage:
+  backend: file
 
 slots:
   # 默认技能槽数量; 小于 1 的值会按 1 处理

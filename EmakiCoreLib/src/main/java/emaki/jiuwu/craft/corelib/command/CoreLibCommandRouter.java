@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.command;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -7,6 +8,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -26,6 +29,8 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckFixResult;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
+import emaki.jiuwu.craft.corelib.db.DatabaseMaintenance;
+import emaki.jiuwu.craft.corelib.db.DatabaseService;
 import emaki.jiuwu.craft.corelib.debug.ActionDebugRunner;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -36,7 +41,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_RELOAD = "emakicorelib.reload";
     private static final String PERMISSION_ADMIN = "emakicorelib.admin";
-    private static final List<String> SUB_COMMANDS = List.of("help", "reload", "check", "debug", "action");
+    private static final List<String> SUB_COMMANDS = List.of("help", "reload", "check", "debug", "action", "db");
     private static final List<String> ACTION_MODES = List.of("list", "run");
     private static final List<String> CHECK_MODES = List.of("report", "--fix");
     private static final List<String> DEBUG_MODES = List.of("loops", "all", "action");
@@ -44,6 +49,8 @@ public final class CoreLibCommandRouter implements TabExecutor {
     private static final List<String> DEBUG_ACTION_RUN_MODES = List.of("shadow", "execute");
     private static final List<String> DEBUG_ALL_MODES = List.of("on", "off", "status");
     private static final List<String> LOOP_DEBUG_MODES = List.of("list", "player", "key", "cancel", "cancel-player");
+    private static final List<String> DB_MODES = List.of("check", "export", "import", "copy");
+    private static final List<String> DB_COPY_FLAGS = List.of("--from");
 
     private final EmakiCoreLibPlugin plugin;
     private final ExecutionDispatcher executionDispatcher;
@@ -68,6 +75,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             case "check" -> handleCheck(sender, args);
             case "debug" -> handleDebug(sender, label, args);
             case "action" -> handleAction(sender, args);
+            case "db" -> handleDb(sender, label, args);
             default -> {
                 sendHelp(sender, label);
                 yield true;
@@ -118,6 +126,10 @@ public final class CoreLibCommandRouter implements TabExecutor {
                     result.add(player.getName());
                 }
             }
+        } else if (args.length == 2 && "db".equalsIgnoreCase(args[0])) {
+            complete(args[1], DB_MODES, result);
+        } else if (args.length == 3 && "db".equalsIgnoreCase(args[0]) && "copy".equalsIgnoreCase(args[1])) {
+            complete(args[2], DB_COPY_FLAGS, result);
         }
         return result;
     }
@@ -450,6 +462,135 @@ public final class CoreLibCommandRouter implements TabExecutor {
         }
     }
 
+    private boolean handleDb(CommandSender sender, String label, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            sendLang(sender, "command.no_permission_admin");
+            return true;
+        }
+        DatabaseService service = plugin.getService(DatabaseService.class);
+        if (service == null) {
+            sendLang(sender, "command.db_disabled");
+            return true;
+        }
+        DatabaseMaintenance maintenance = service.maintenance();
+        String mode = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "";
+        switch (mode) {
+            case "check" -> runDatabaseTask(sender, () -> {
+                DatabaseMaintenance.CheckReport report = maintenance.check();
+                return () -> sendDbCheck(sender, report);
+            });
+            case "export" -> {
+                Path directory = args.length >= 3 ? resolveDataPath(args[2]) : plugin.getDataFolder().toPath();
+                sendLang(sender, "command.db_export_started", Map.of("directory", directory.toString()));
+                runDatabaseTask(sender, () -> {
+                    DatabaseMaintenance.ExportReport report = maintenance.exportTo(directory);
+                    return () -> sendDbExport(sender, report);
+                });
+            }
+            case "import" -> {
+                if (args.length < 3) {
+                    sendLang(sender, "command.db_usage");
+                    return true;
+                }
+                Path zipFile = resolveDataPath(args[2]);
+                sendLang(sender, "command.db_import_started", Map.of("file", zipFile.toString()));
+                runDatabaseTask(sender, () -> {
+                    DatabaseMaintenance.ImportReport report = maintenance.importFrom(zipFile);
+                    return () -> sendDbImport(sender, report);
+                });
+            }
+            case "copy" -> {
+                String source = null;
+                for (int index = 2; index + 1 < args.length; index++) {
+                    if ("--from".equalsIgnoreCase(args[index])) {
+                        source = args[index + 1];
+                    }
+                }
+                if (source == null) {
+                    sendLang(sender, "command.db_usage");
+                    return true;
+                }
+                Path sourceConfig = resolveDataPath(source);
+                sendLang(sender, "command.db_copy_started", Map.of("source", sourceConfig.toString()));
+                runDatabaseTask(sender, () -> {
+                    DatabaseMaintenance.CopyReport report = maintenance.copyFrom(sourceConfig);
+                    return () -> sendDbCopy(sender, report);
+                });
+            }
+            default -> sendHelpPage(sender, helpRoot(label), List.of("db"));
+        }
+        return true;
+    }
+
+    private void runDatabaseTask(CommandSender sender, Supplier<Runnable> task) {
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                return task.get();
+            } catch (RuntimeException exception) {
+                return failedDbReply(sender, exception);
+            }
+        }).whenComplete((reply, throwable) -> dispatchSender(sender,
+                throwable == null ? reply : failedDbReply(sender, throwable)));
+    }
+
+    private Runnable failedDbReply(CommandSender sender, Throwable throwable) {
+        String error = String.valueOf(throwable);
+        return () -> sendLang(sender, "command.db_task_failed", Map.of("error", error));
+    }
+
+    private Path resolveDataPath(String value) {
+        Path path = Path.of(value);
+        return path.isAbsolute() ? path.normalize() : plugin.getDataFolder().toPath().resolve(path).normalize();
+    }
+
+    private void sendDbCheck(CommandSender sender, DatabaseMaintenance.CheckReport report) {
+        if (!report.connected()) {
+            sendLang(sender, "command.db_check_connection_failed", Map.of("error", String.valueOf(report.error())));
+            return;
+        }
+        sendLang(sender, "command.db_check_header", Map.of(
+                "engine", report.engine(), "configured", String.valueOf(report.configuredEngine())));
+        sendLang(sender, "command.db_check_connected");
+        sendLang(sender, "command.db_check_schema", Map.of(
+                "applied", String.valueOf(report.appliedSteps()), "total", String.valueOf(report.totalSteps())));
+        for (DatabaseMaintenance.TableCount count : report.counts()) {
+            sendLang(sender, "command.db_check_table", Map.of(
+                    "table", count.table(), "rows", String.valueOf(count.rows())));
+        }
+    }
+
+    private void sendDbExport(CommandSender sender, DatabaseMaintenance.ExportReport report) {
+        sendLang(sender, "command.db_export_success", Map.of(
+                "file", report.file().toString(), "rows", String.valueOf(totalRows(report.counts()))));
+    }
+
+    private void sendDbImport(CommandSender sender, DatabaseMaintenance.ImportReport report) {
+        sendLang(sender, "command.db_import_success", Map.of(
+                "file", report.file().toString(), "rows", String.valueOf(totalRows(report.counts()))));
+    }
+
+    private void sendDbCopy(CommandSender sender, DatabaseMaintenance.CopyReport report) {
+        sendLang(sender, "command.db_copy_success", Map.of(
+                "source_engine", report.sourceEngine(),
+                "target_engine", report.targetEngine(),
+                "rows", String.valueOf(totalRows(report.counts()))));
+    }
+
+    private long totalRows(List<DatabaseMaintenance.TableCount> counts) {
+        long total = 0L;
+        for (DatabaseMaintenance.TableCount count : counts) {
+            total += count.rows();
+        }
+        return total;
+    }
+
+    private void sendDbHelp(CommandSender sender, String root) {
+        sendHelpLines(sender, root, "command.help_db_header",
+                "command.help_db_entry_check", "command.help_db_entry_export",
+                "command.help_db_entry_import", "command.help_db_entry_copy");
+        sendHelpFooter(sender);
+    }
+
     private void sendHelp(CommandSender sender, String label) {
         sendHelpPage(sender, helpRoot(label), List.of());
     }
@@ -469,6 +610,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
                 keys.add("command.help_entry_check");
                 keys.add("command.help_entry_action");
                 keys.add("command.help_entry_debug");
+                keys.add("command.help_entry_db");
             }
             keys.add("command.help_entry_help");
             sendHelpLines(sender, root, keys.toArray(String[]::new));
@@ -484,6 +626,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             case "check" -> sendCheckHelp(sender, root, path);
             case "action" -> sendActionHelp(sender, root);
             case "debug" -> sendDebugHelp(sender, root, path);
+            case "db" -> sendDbHelp(sender, root);
             default -> sendHelpPage(sender, root, List.of());
         }
     }
@@ -617,7 +760,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
         return switch (subcommand) {
             case "help" -> true;
             case "reload" -> sender.hasPermission(PERMISSION_RELOAD);
-            case "check", "debug", "action" -> sender.hasPermission(PERMISSION_ADMIN);
+            case "check", "debug", "action", "db" -> sender.hasPermission(PERMISSION_ADMIN);
             default -> true;
         };
     }

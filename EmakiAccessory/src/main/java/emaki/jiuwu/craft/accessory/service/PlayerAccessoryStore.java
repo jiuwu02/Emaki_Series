@@ -15,8 +15,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.logging.Logger;
 
+import java.nio.charset.StandardCharsets;
+
 import emaki.jiuwu.craft.accessory.model.PlayerAccessories;
 import emaki.jiuwu.craft.accessory.persistence.AccessoryDataFile;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.data.DomainSaveResult;
+import emaki.jiuwu.craft.corelib.api.data.DomainSnapshot;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
@@ -43,18 +50,29 @@ public final class PlayerAccessoryStore {
     private record PendingLoad(long generation, CompletableFuture<PlayerAccessories> future) {
     }
 
+    private static final String DATABASE_DOMAIN = "accessory";
+    private static final int DATABASE_SCHEMA_VERSION = 1;
+
     private final Logger logger;
     private final AsyncYamlFiles asyncYamlFiles;
     private final AccessoryDataFile dataFile;
     private final PlayerAccessoryCache cache = new PlayerAccessoryCache();
     private final Map<UUID, PendingLoad> pendingLoads = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> databaseRevisions = new ConcurrentHashMap<>();
     private final Set<UUID> writeProtected = ConcurrentHashMap.newKeySet();
+    private volatile PlayerDomainRepository databaseRepository;
+    private volatile PlayerDataLease databaseLease;
     private FlushResult flushResult;
 
     public PlayerAccessoryStore(Logger logger, AsyncYamlFiles asyncYamlFiles, AccessoryDataFile dataFile) {
         this.logger = logger;
         this.asyncYamlFiles = asyncYamlFiles;
         this.dataFile = dataFile;
+    }
+
+    public void attachDatabase(PlayerDomainRepository databaseRepository, PlayerDataLease databaseLease) {
+        this.databaseRepository = databaseRepository;
+        this.databaseLease = databaseLease;
     }
 
     public PlayerAccessoryCache cache() {
@@ -113,6 +131,17 @@ public final class PlayerAccessoryStore {
     }
 
     private CompletableFuture<PlayerAccessories> readAsync(UUID playerId, String playerName) {
+        PlayerDomainRepository repository = databaseRepository;
+        if (repository != null) {
+            return acquireDatabaseLease(playerId)
+                    .thenCompose(ignored -> repository.load(playerId, DATABASE_DOMAIN))
+                    .thenApply(snapshot -> {
+                        if (snapshot != null) {
+                            databaseRevisions.put(playerId, snapshot.revision());
+                        }
+                        return readDatabase(playerId, playerName, snapshot);
+                    });
+        }
         File file = dataFile.fileFor(playerId);
         if (asyncYamlFiles == null) {
             return CompletableFuture.completedFuture(readFile(playerId, playerName, file));
@@ -121,8 +150,19 @@ public final class PlayerAccessoryStore {
                 () -> readFile(playerId, playerName, file));
     }
 
+    private PlayerAccessories readDatabase(UUID playerId, String playerName, DomainSnapshot snapshot) {
+        YamlSection root = snapshot == null || snapshot.payload().length == 0
+                ? null
+                : YamlFiles.load(new String(snapshot.payload(), StandardCharsets.UTF_8));
+        return readRoot(playerId, playerName, root);
+    }
+
     private PlayerAccessories readFile(UUID playerId, String playerName, File file) {
         YamlSection root = file.isFile() ? YamlFiles.load(file) : null;
+        return readRoot(playerId, playerName, root);
+    }
+
+    private PlayerAccessories readRoot(UUID playerId, String playerName, YamlSection root) {
         if (dataFile.recognized(root)) {
             writeProtected.remove(playerId);
         } else {
@@ -136,7 +176,15 @@ public final class PlayerAccessoryStore {
     }
 
     public CompletableFuture<Boolean> unloadAsync(UUID playerId) {
-        return save(playerId, true);
+        if (playerId == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+        CompletableFuture<Boolean> saved = save(playerId, true);
+        PlayerDataLease lease = databaseLease;
+        if (lease == null) {
+            return saved;
+        }
+        return saved.whenComplete((result, throwable) -> lease.release(playerId));
     }
 
     private CompletableFuture<Boolean> save(UUID playerId, boolean closeAfterSave) {
@@ -186,6 +234,10 @@ public final class PlayerAccessoryStore {
         }
         PlayerAccessories snapshot = ticket.snapshot();
         Map<String, Object> values = dataFile.write(snapshot);
+        PlayerDomainRepository repository = databaseRepository;
+        if (repository != null) {
+            return writeDatabaseSnapshot(ticket.key(), snapshot, values, repository);
+        }
         File file = dataFile.fileFor(ticket.key());
         if (asyncYamlFiles == null) {
             return CompletableFuture.completedFuture(writeFile(file, values));
@@ -209,6 +261,50 @@ public final class PlayerAccessoryStore {
             LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.accessory_file_save_failed", Map.of("file", file.getName(), "error", Texts.toStringSafe(exception.getMessage())));
             return false;
         }
+    }
+
+    private CompletableFuture<Boolean> writeDatabaseSnapshot(UUID playerId, PlayerAccessories snapshot,
+            Map<String, Object> values, PlayerDomainRepository repository) {
+        byte[] payload = YamlFiles.dump(values).getBytes(StandardCharsets.UTF_8);
+        long expectedRevision = databaseRevisions.getOrDefault(playerId, 0L);
+        return repository
+                .save(playerId, DATABASE_DOMAIN, snapshot.playerName(), payload, DATABASE_SCHEMA_VERSION, expectedRevision)
+                .handle((result, throwable) -> {
+                    if (throwable == null && result != null
+                            && result.outcome() == DomainSaveResult.Outcome.COMMITTED) {
+                        databaseRevisions.put(playerId, result.revision());
+                        return true;
+                    }
+                    Throwable failure = throwable == null
+                            ? new IllegalStateException("数据库保存未提交: "
+                                    + (result == null ? "unknown" : result.outcome()))
+                            : AsyncFailures.unwrapOnce(throwable);
+                    LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.accessory_save_failed",
+                            Map.of("player", playerId, "error", Texts.toStringSafe(failure.getMessage())));
+                    return false;
+                });
+    }
+
+    private CompletableFuture<Void> acquireDatabaseLease(UUID playerId) {
+        PlayerDataLease lease = databaseLease;
+        if (lease == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return attemptLease(lease, playerId, 5);
+    }
+
+    private CompletableFuture<Void> attemptLease(PlayerDataLease lease, UUID playerId, int attemptsLeft) {
+        return lease.acquire(playerId).thenCompose(acquired -> {
+            if (Boolean.TRUE.equals(acquired)) {
+                return CompletableFuture.completedFuture(null);
+            }
+            if (attemptsLeft <= 1) {
+                return CompletableFuture.failedFuture(new IllegalStateException("数据租约获取失败: " + playerId));
+            }
+            return CompletableFuture.runAsync(() -> { },
+                            CompletableFuture.delayedExecutor(2L, TimeUnit.SECONDS))
+                    .thenCompose(ignored -> attemptLease(lease, playerId, attemptsLeft - 1));
+        });
     }
 
     public synchronized FlushResult flushAndSeal(long timeout, TimeUnit unit) {

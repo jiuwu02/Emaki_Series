@@ -4,7 +4,7 @@
 # 修改后使用 /ekits reload 热重载
 # 文件位置: plugins/EmakiKits/config.yml
 
-version: "1.0.6"
+version: "1.0.7"
 language: "zh_CN"
 
 # 首次启动或 kits/ 目录为空时是否释放内置示例礼包
@@ -18,8 +18,9 @@ join:
   missed_window_seconds: 7200
   invite_code_type: "uuid"
 
+# 数据持久化后端: file=本地文件 store.yml | database=共享数据库 (需 EmakiCoreLib database.yml 启用)
 storage:
-  backend: "yaml"
+  backend: "file"
   save_delay_ticks: 20
   atomic_writes: true
   retention:

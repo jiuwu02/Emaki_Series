@@ -1,12 +1,14 @@
 package emaki.jiuwu.craft.attribute.service;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -20,8 +22,15 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.ParentAttributeData;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.data.DomainSaveResult;
+import emaki.jiuwu.craft.corelib.api.data.DomainSnapshot;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import emaki.jiuwu.craft.corelib.log.LogTags;
@@ -31,6 +40,8 @@ import java.util.logging.Level;
 public final class ParentAttributeDataStore {
 
     private static final long DRAIN_TIMEOUT_MS = 5_000L;
+    private static final String DATABASE_DOMAIN = "attribute";
+    private static final int DATABASE_SCHEMA_VERSION = 1;
 
     enum Lifecycle {
         LOADING,
@@ -76,12 +87,20 @@ public final class ParentAttributeDataStore {
     private final Map<UUID, AtomicLong> generations = new ConcurrentHashMap<>();
     private final Map<UUID, SaveLane> saveLanes = new ConcurrentHashMap<>();
     private final Map<UUID, CompletableFuture<ParentAttributeData>> pendingLoads = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> databaseRevisions = new ConcurrentHashMap<>();
     private final AtomicBoolean sealed = new AtomicBoolean();
     private final Object lifecycleLock = new Object();
     private volatile AsyncYamlFiles asyncYamlFiles;
+    private volatile PlayerDomainRepository databaseRepository;
+    private volatile PlayerDataLease databaseLease;
 
     public ParentAttributeDataStore(EmakiAttributePlugin plugin) {
         this.plugin = plugin;
+    }
+
+    public void attachDatabase(PlayerDomainRepository databaseRepository, PlayerDataLease databaseLease) {
+        this.databaseRepository = databaseRepository;
+        this.databaseLease = databaseLease;
     }
 
     public ParentAttributeData load(Player player) {
@@ -156,6 +175,7 @@ public final class ParentAttributeDataStore {
         pendingLoads.remove(uuid);
         SessionEntry entry = entries.get(uuid);
         if (entry == null) {
+            releaseDatabaseLease(uuid);
             return;
         }
         SaveTicket ticket = null;
@@ -167,10 +187,11 @@ public final class ParentAttributeDataStore {
             if (ticket == null) {
                 entries.remove(uuid, entry);
                 saveLanes.remove(uuid);
+                releaseDatabaseLease(uuid);
                 return;
             }
         }
-        enqueueSave(ticket);
+        enqueueSave(ticket).whenComplete((ignored, throwable) -> releaseDatabaseLease(uuid));
     }
 
     private List<CompletableFuture<Boolean>> saveAllAsync() {
@@ -311,6 +332,24 @@ public final class ParentAttributeDataStore {
     }
 
     private CompletableFuture<ParentAttributeData> startLoad(UUID uuid, String name, SessionEntry entry) {
+        PlayerDomainRepository repository = databaseRepository;
+        if (repository != null) {
+            return acquireDatabaseLease(uuid)
+                    .thenCompose(ignored -> repository.load(uuid, DATABASE_DOMAIN))
+                    .handle((snapshot, throwable) -> {
+                        if (throwable != null) {
+                            LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.parent_attribute_load_failed", Map.of("player", uuid, "error", String.valueOf(AsyncFailures.unwrapOnce(throwable))));
+                            synchronized (entry) {
+                                entry.lifecycle = Lifecycle.LOAD_FAILED;
+                                return entry.data;
+                            }
+                        }
+                        if (snapshot != null) {
+                            databaseRevisions.put(uuid, snapshot.revision());
+                        }
+                        return installLoaded(uuid, name, entry, decodeDatabasePayload(snapshot));
+                    });
+        }
         AsyncYamlFiles files = asyncYamlFiles();
         if (files == null) {
             LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.parent_attribute_load_unavailable", Map.of("player", uuid));
@@ -441,6 +480,10 @@ public final class ParentAttributeDataStore {
     }
 
     private CompletableFuture<Boolean> writeTicket(SaveTicket ticket) {
+        PlayerDomainRepository repository = databaseRepository;
+        if (repository != null) {
+            return writeDatabaseSnapshot(ticket, repository);
+        }
         AsyncYamlFiles files = asyncYamlFiles();
         if (files == null) {
             LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.parent_attribute_save_unavailable", Map.of("player", ticket.uuid()));
@@ -448,6 +491,26 @@ public final class ParentAttributeDataStore {
         }
         return files.save(file(ticket.uuid()), serialize(ticket.snapshot()))
                 .handle((ignored, throwable) -> throwable == null);
+    }
+
+    private CompletableFuture<Boolean> writeDatabaseSnapshot(SaveTicket ticket, PlayerDomainRepository repository) {
+        ParentAttributeData snapshot = ticket.snapshot();
+        byte[] payload = YamlFiles.dump(serialize(snapshot)).getBytes(StandardCharsets.UTF_8);
+        long expectedRevision = databaseRevisions.getOrDefault(ticket.uuid(), 0L);
+        return repository
+                .save(ticket.uuid(), DATABASE_DOMAIN, snapshot.name(), payload, DATABASE_SCHEMA_VERSION, expectedRevision)
+                .handle((result, throwable) -> {
+                    if (throwable == null && result != null
+                            && result.outcome() == DomainSaveResult.Outcome.COMMITTED) {
+                        databaseRevisions.put(ticket.uuid(), result.revision());
+                        return true;
+                    }
+                    Throwable failure = throwable == null
+                            ? new IllegalStateException("数据库保存未提交: "
+                                    + (result == null ? "unknown" : result.outcome()))
+                            : AsyncFailures.unwrapOnce(throwable);
+                    throw new CompletionException(failure);
+                });
     }
 
     private void commitSaved(SaveTicket ticket) {
@@ -553,6 +616,42 @@ public final class ParentAttributeDataStore {
             if (remove) {
                 data.removeAllocation(entry.getKey());
             }
+        }
+    }
+
+    private YamlSection decodeDatabasePayload(DomainSnapshot snapshot) {
+        if (snapshot == null || snapshot.payload().length == 0) {
+            return new MapYamlSection();
+        }
+        return YamlFiles.load(new String(snapshot.payload(), StandardCharsets.UTF_8));
+    }
+
+    private CompletableFuture<Void> acquireDatabaseLease(UUID uuid) {
+        PlayerDataLease lease = databaseLease;
+        if (lease == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return attemptLease(lease, uuid, 5);
+    }
+
+    private CompletableFuture<Void> attemptLease(PlayerDataLease lease, UUID uuid, int attemptsLeft) {
+        return lease.acquire(uuid).thenCompose(acquired -> {
+            if (Boolean.TRUE.equals(acquired)) {
+                return CompletableFuture.completedFuture(null);
+            }
+            if (attemptsLeft <= 1) {
+                return CompletableFuture.failedFuture(new IllegalStateException("数据租约获取失败: " + uuid));
+            }
+            return CompletableFuture.runAsync(() -> { },
+                            CompletableFuture.delayedExecutor(2L, TimeUnit.SECONDS))
+                    .thenCompose(ignored -> attemptLease(lease, uuid, attemptsLeft - 1));
+        });
+    }
+
+    private void releaseDatabaseLease(UUID uuid) {
+        PlayerDataLease lease = databaseLease;
+        if (lease != null) {
+            lease.release(uuid);
         }
     }
 

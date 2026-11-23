@@ -38,7 +38,8 @@ public record AttributeConfig(String language,
         List<DamageCauseRule> allowedDamageCauses,
         Map<String, DamageCauseRule> damageCauseIndex,
         List<ScalingCurveConfig> scalingCurves,
-        ScriptsConfig scripts) {
+        ScriptsConfig scripts,
+        String storageBackend) {
 
     public AttributeConfig {
         allowedDamageCauses = allowedDamageCauses == null ? List.of() : List.copyOf(allowedDamageCauses);
@@ -77,7 +78,8 @@ public record AttributeConfig(String language,
                 List.of(),
                 Map.of(),
                 List.of(),
-                ScriptsConfig.defaults()
+                ScriptsConfig.defaults(),
+                "file"
         );
     }
 
@@ -163,8 +165,13 @@ public record AttributeConfig(String language,
                 List.copyOf(causes),
                 damageCauseIndex(causes),
                 List.copyOf(curves),
-                ScriptsConfig.fromConfig(configuration.getSection("scripts"))
+                ScriptsConfig.fromConfig(configuration.getSection("scripts")),
+                ConfigNodes.string(configuration, "storage.backend", defaults.storageBackend())
         );
+    }
+
+    public boolean databaseBackend() {
+        return "database".equalsIgnoreCase(storageBackend);
     }
 
     public boolean allowsDamageCause(String cause) {

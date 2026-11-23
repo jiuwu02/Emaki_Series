@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage, 占位符见各分组旁注释
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.6"
+version: "1.0.7"
 
 tags:
   kits: "[ 礼包 ]"
@@ -313,6 +313,8 @@ console:
   editor_browser_list_failed: "<red>无法列举礼包定义目录: %path%  (%error%)</red>"
   skip_invalid_uuid_key: "跳过非法 UUID 存档键: %key%"
   persistence_write_failed: "持久化写入失败: operation=flush, file=%file%, cause=%error%"
+  # 控制台: 共享数据库读写失败; 占位符: %namespace%, %key%, %error%
+  database_op_failed: "共享数据库读写失败: namespace=%namespace%, key=%key%, cause=%error%"
 
 error:
   permission:

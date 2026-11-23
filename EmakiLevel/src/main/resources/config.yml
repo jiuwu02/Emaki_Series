@@ -1,13 +1,17 @@
 # EmakiLevel 主配置: 等级, 经验倍率, 每日上限, 来源与反滥用记录
 
 # version 由资源同步维护, 不是功能开关
-version: "2.0.6"
+version: "2.0.7"
 
 # 语言文件名, 对应 lang/<language>.yml
 language: "zh_CN"
 
 # 是否释放内置默认数据; false 时不生成缺失示例
 release_default_data: true
+
+# 玩家数据持久化后端: file=本地文件 | database=共享数据库 (需 EmakiCoreLib database.yml 启用)
+storage:
+  backend: file
 
 # 主等级类型 ID; 调用方未指定类型时使用此值
 primary_type: "main"

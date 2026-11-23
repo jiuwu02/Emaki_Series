@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "5.0.14"
+version: "5.0.15"
 
 # tags: log/message category head texts; defined centrally by CoreLib, composed by the tagged send interface
 tags:
@@ -51,6 +51,14 @@ gui:
   packet_backend_registration_failed: "Failed to register packet GUI backend: %error%, EmakiCoreLib will use the Bukkit (entity) backend"
 
 console:
+  # Console: database connected; placeholders: %server_id%, %database%
+  database_ready: "<green>Database connected: <aqua>%server_id%</aqua>@<aqua>%database%</aqua></green>"
+  # Console: database initialization failed; placeholders: %error%
+  database_init_failed: "<red>Database initialization failed: <white>%error%</white></red>"
+  # Console: player data lease taken over; placeholders: %player%, %server_id%
+  database_lease_takeover: "<yellow>Player data lease taken over: <aqua>%player%</aqua> -> <aqua>%server_id%</aqua></yellow>"
+  # Console: player data lease lost, renewal stopped; placeholders: %player%
+  database_lease_lost: "<yellow>Player data lease lost, renewal stopped: <aqua>%player%</aqua></yellow>"
   plugin_starting: "<gray>Starting...</gray>"
   plugin_started: "<green>Started</green>"
   plugin_stopped: "<yellow>Stopped</yellow>"
@@ -917,6 +925,46 @@ command:
   help_value_desc_check_module: "Run config prechecks for the %value% module and print the report"
   help_value_desc_loops_player: "View long-running tasks of %value%"
   help_value_desc_loops_cancel_player: "Cancel all long-running tasks of %value%"
+  # Command: database disabled hint
+  db_disabled: "<red>The database is disabled. Enable enabled in database.yml and restart</red>"
+  # Command: db subcommand usage hint
+  db_usage: "<yellow>Usage: db check | db export [directory] | db import <zip> | db copy --from <source database.yml path></yellow>"
+  # Command: db background task failed; placeholder: %error%
+  db_task_failed: "<red>Database task failed: <white>%error%</white></red>"
+  # Command: db check report header; placeholders: %engine%, %configured%
+  db_check_header: "<aqua>Database engine: </aqua><yellow>%engine%</yellow> <dark_gray>(configured %configured%)</dark_gray>"
+  # Command: db check connection ok
+  db_check_connected: "<green>Database connection is healthy</green>"
+  # Command: db check connection failed; placeholder: %error%
+  db_check_connection_failed: "<red>Database connection failed: <white>%error%</white></red>"
+  # Command: db check schema step report; placeholders: %applied%, %total%
+  db_check_schema: "<aqua>Schema steps: </aqua><yellow>%applied%</yellow><dark_gray>/</dark_gray><yellow>%total%</yellow>"
+  # Command: db check table row count entry; placeholders: %table%, %rows%
+  db_check_table: "<gray>- <aqua>%table%</aqua> <yellow>%rows%</yellow> row (s)</gray>"
+  # Command: db export started; placeholder: %directory%
+  db_export_started: "<gray>Exporting the database to <aqua>%directory%</aqua> ...</gray>"
+  # Command: db export finished; placeholders: %file%, %rows%
+  db_export_success: "<green>Export finished: <aqua>%file%</aqua>, <yellow>%rows%</yellow> row (s) in total</green>"
+  # Command: db import started; placeholder: %file%
+  db_import_started: "<gray>Restoring data from <aqua>%file%</aqua> ...</gray>"
+  # Command: db import finished; placeholders: %file%, %rows%
+  db_import_success: "<green>Import finished: <aqua>%file%</aqua>, <yellow>%rows%</yellow> row (s) restored</green>"
+  # Command: db copy started; placeholder: %source%
+  db_copy_started: "<gray>Copying the whole database from <aqua>%source%</aqua> into the current one ...</gray>"
+  # Command: db copy finished; placeholders: %source_engine%, %target_engine%, %rows%
+  db_copy_success: "<green>Copy finished: <yellow>%source_engine%</yellow> -> <yellow>%target_engine%</yellow>, <yellow>%rows%</yellow> row (s) in total</green>"
+  # Command: db command help header
+  help_db_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiCoreLib db Command Help</gradient> <gray><st>        </st></gray>"
+  # Command: db check help entry
+  help_db_entry_check: "- <hover:show_text:'<gray>check</gray> <dark_gray>·</dark_gray> <gray>Check the database connection, engine and schema steps</gray>'><gray>check</gray></hover> <click:run_command:'%root% db check'><green>[ ✦ Run ]</green></click>"
+  # Command: db export help entry
+  help_db_entry_export: "- <hover:show_text:'<gray>export</gray> <dark_gray>·</dark_gray> <gray>Export all data as a zip (JSONL + manifest with row counts and checksums)</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Argument: directory - output directory, defaults to the plugin data folder</gray>'><gray>export</gray></hover> <click:run_command:'%root% db export'><green>[ ✦ Run ]</green></click>"
+  # Command: db import help entry
+  help_db_entry_import: "- <hover:show_text:'<gray>import</gray> <dark_gray>·</dark_gray> <gray>Idempotently restore data from an export zip (checksum + row count verified)</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Argument: zip file - export package path, relative paths resolve against the plugin data folder</gray>'><gray>import</gray></hover> <hover:show_text:'<gray>Argument: zip file</gray><newline><gray>Export package path, type it yourself</gray>'><gray>[ zip file ]</gray></hover>"
+  # Command: db copy help entry
+  help_db_entry_copy: "- <hover:show_text:'<gray>copy</gray> <dark_gray>·</dark_gray> <gray>Copy the whole database behind another database.yml into the current one (cross-engine switch)</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Argument: --from followed by the source database.yml path</gray>'><gray>copy</gray></hover> <hover:show_text:'<gray>Argument: --from <source database.yml path></gray><newline><gray>Source config file path, type it yourself</gray>'><gray>[ --from ]</gray></hover>"
+  # Command: db root help entry
+  help_entry_db: "- <hover:show_text:'<gray>db</gray> <dark_gray>·</dark_gray> <gray>Database maintenance: check, export, import, cross-engine copy</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Requires permission </gray><white>emakicorelib.admin</white>'><gray>db</gray></hover> <click:run_command:'%root% help db'><hover:show_text:'<gray>Arguments</gray><newline><gray>check</gray> <dark_gray>·</dark_gray> <gray>Connection/engine/schema step report</gray><newline><gray>export</gray> <dark_gray>·</dark_gray> <gray>Export data as a zip</gray><newline><gray>import</gray> <dark_gray>·</dark_gray> <gray>Idempotent restore from a zip</gray><newline><gray>copy</gray> <dark_gray>·</dark_gray> <gray>Whole-database cross-engine copy</gray>'><gray>[ ✦ Arguments ]</gray></click>"
   help_footer: "<gray><st>                                        </st></gray>"
 journal:
   async_scheduler_unavailable: "Cannot access async task scheduler, falling back to the common thread pool: %error%"

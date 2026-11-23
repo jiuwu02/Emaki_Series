@@ -82,8 +82,7 @@ public final class DefaultKitsOperations implements KitOperations {
         if (def == null) {
             return EmakiResult.notFound("emakikits.api.kit_not_found");
         }
-        plugin.kitStore().mutate(s -> s.purchaseCounts().merge(
-                KitState.countKey("purchase", def.id(), player.getUniqueId()), 1L, Long::sum));
+        plugin.kitStore().incrementCounter(KitState.countKey("purchase", def.id(), player.getUniqueId()), 1L);
         return EmakiResult.ok();
     }
 

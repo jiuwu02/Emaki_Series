@@ -125,6 +125,8 @@ public final class RuntimeLibraryLoader {
                 RuntimeLibrary.maven("boosted-yaml", new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.8")),
                 RuntimeLibrary.maven("exp4j", new LibraryCoordinate("net.objecthunter", "exp4j", "0.4.8")),
                 RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.3.1")),
+                RuntimeLibrary.maven("postgresql", new LibraryCoordinate("org.postgresql", "postgresql", "42.7.7")),
+                RuntimeLibrary.maven("sqlite-jdbc", new LibraryCoordinate("org.xerial", "sqlite-jdbc", "3.50.3.0")),
 
                 RuntimeLibrary.maven("polyglot", new LibraryCoordinate("org.graalvm.polyglot", "polyglot", GRAALVM_VERSION)),
                 RuntimeLibrary.maven("js-language", new LibraryCoordinate("org.graalvm.js", "js-language", GRAALVM_VERSION)),

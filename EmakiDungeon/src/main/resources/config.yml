@@ -4,7 +4,7 @@
 # 重载不会中断运行中实例, 仅对新创建的副本生效
 # 文件位置: plugins/EmakiDungeon/config.yml
 
-version: "1.0.33"
+version: "1.0.34"
 language: "zh_CN"
 
 # DEBUG 锚日志开关与审计保留天数 (按日切分)
@@ -77,6 +77,8 @@ monitor:
 # bStats 经 CoreLib 统一接入 (插件 ID 35153, 不单独引入依赖或 shade)
 storage:
   bstats: enabled
+  # 玩家数据持久化后端: file=本地文件 | database=共享数据库 (需 EmakiCoreLib database.yml 启用)
+  backend: file
 
 # Folia 挂起世界全局上限, 达限按满载拒绝新挑战并告警, 重启回收
 folia:

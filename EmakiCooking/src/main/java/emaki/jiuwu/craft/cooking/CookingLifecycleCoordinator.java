@@ -10,6 +10,8 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
@@ -238,6 +240,15 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         nutritionTypeRegistry.reload(nutritionTypeLoader.types());
         var nutritionDataFiles = coreLibPlugin.asyncYamlFiles(plugin);
         PlayerNutritionDataStore nutritionDataStore = new PlayerNutritionDataStore(plugin, () -> nutritionDataFiles);
+        if (appConfigLoader.current().databaseBackend()) {
+            PlayerDomainRepository repository = coreLibPlugin.getService(PlayerDomainRepository.class);
+            PlayerDataLease lease = coreLibPlugin.getService(PlayerDataLease.class);
+            if (repository == null || lease == null) {
+                throw new IllegalStateException(
+                        "storage.backend=database 但 EmakiCoreLib 数据库服务不可用; 请启用 database.yml 的 enabled 并检查启动日志");
+            }
+            nutritionDataStore.attachDatabase(repository, lease);
+        }
         NutritionService nutritionService = new NutritionService(
                 plugin,
                 coreLibPlugin.itemSourceService(),
@@ -439,7 +450,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         return new AppConfig(
                 configuration.getString("language", defaults.language()),
                 configuration.getString("version", defaults.configVersion()),
-                configuration.getBoolean("release_default_data", defaults.releaseDefaultData())
+                configuration.getBoolean("release_default_data", defaults.releaseDefaultData()),
+                configuration.getString("storage.backend", defaults.storageBackend())
         );
     }
 

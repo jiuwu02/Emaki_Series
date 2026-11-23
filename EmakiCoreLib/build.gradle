@@ -1,5 +1,5 @@
 // EmakiCoreLib (原 EmakiCoreLib/pom.xml)
-version = '5.0.14'
+version = '5.0.15'
 
 // libreforge 的类只在 classifier=all 的胖 Jar 中; libreforge.core 仅存在于私有仓库而
 // maven-public 返回 404, 整组排除 (胖 Jar 已自包含编译所需类), 与根 pom 一致
@@ -12,6 +12,8 @@ dependencies {
     // 原 shade artifactSet 白名单 (bstats-base 由 bstats-bukkit 传递带入)
     shadeBundle project(':EmakiCoreLibApi')
     shadeBundle libs.bstats.bukkit
+    shadeBundle(libs.hikari.cp) { transitive = false }
+    shadeBundle(libs.mysql.connector.j) { transitive = false }
 
     // 原 compile 作用域
     api project(':EmakiCoreLibApi')
@@ -25,6 +27,8 @@ dependencies {
     // 原 optional 作用域
     optional libs.exp4j
     optional libs.boosted.yaml
+    optional(libs.hikari.cp) { transitive = false }
+    optional(libs.mysql.connector.j) { transitive = false }
 
     // 原 provided 作用域: 运行期由服务端或 RuntimeLibraryLoader 提供
     provided libs.paper.api
@@ -53,6 +57,8 @@ dependencies {
 
 tasks.named('shadowJar') {
     relocate 'org.bstats', 'emaki.jiuwu.craft.runtime.bstats'
+    relocate 'com.zaxxer.hikari', 'emaki.jiuwu.craft.corelib.libs.hikari'
+    relocate 'com.mysql', 'emaki.jiuwu.craft.corelib.libs.mysql'
     // bstats-bukkit 自带的 plugin.yml 不得覆盖本插件的 paper-plugin.yml
     exclude 'plugin.yml'
 }

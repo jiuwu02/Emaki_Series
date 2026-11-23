@@ -21,6 +21,7 @@ public final class AppConfig extends BaseAppConfig {
     private final double affixBonusPerLevel;
     private final boolean enhancementRejectContainerTarget;
     private final EnhancementTuning enhancementTuning;
+    private final String storageBackend;
 
     public AppConfig(String language,
             String configVersion,
@@ -64,7 +65,7 @@ public final class AppConfig extends BaseAppConfig {
         this(language, configVersion, releaseDefaultData, localBroadcastRadius, localBroadcastStars,
                 globalBroadcastStars, successRates, affixMaxLevel, affixCapacityMax,
                 affixCapacityCostPerLevel, affixBonusPerLevel, enhancementRejectContainerTarget,
-                EnhancementTuning.inert());
+                EnhancementTuning.inert(), "file");
     }
 
     public AppConfig(String language,
@@ -79,10 +80,12 @@ public final class AppConfig extends BaseAppConfig {
             int affixCapacityCostPerLevel,
             double affixBonusPerLevel,
             boolean enhancementRejectContainerTarget,
-            EnhancementTuning enhancementTuning) {
+            EnhancementTuning enhancementTuning,
+            String storageBackend) {
         super(language, configVersion, "4.5.9");
         this.enhancementRejectContainerTarget = enhancementRejectContainerTarget;
         this.enhancementTuning = enhancementTuning == null ? EnhancementTuning.inert() : enhancementTuning;
+        this.storageBackend = storageBackend == null || storageBackend.isBlank() ? "file" : storageBackend;
         this.releaseDefaultData = releaseDefaultData;
         this.localBroadcastRadius = Math.max(1, localBroadcastRadius);
         this.localBroadcastStars = toStarSet(localBroadcastStars);
@@ -153,6 +156,14 @@ public final class AppConfig extends BaseAppConfig {
 
     public EnhancementTuning enhancementTuning() {
         return enhancementTuning;
+    }
+
+    public String storageBackend() {
+        return storageBackend;
+    }
+
+    public boolean databaseBackend() {
+        return "database".equalsIgnoreCase(storageBackend);
     }
 
     public boolean enhancementRejectContainerMaterial() {

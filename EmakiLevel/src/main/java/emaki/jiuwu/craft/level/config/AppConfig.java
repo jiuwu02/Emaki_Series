@@ -31,7 +31,8 @@ public record AppConfig(String version,
         boolean mythicEnabled,
         boolean mythicKillSources,
         boolean mythicDropsEnabled,
-        List<String> mythicDropNames) {
+        List<String> mythicDropNames,
+        String storageBackend) {
 
     public static AppConfig defaults() {
         return new AppConfig(
@@ -59,7 +60,8 @@ public record AppConfig(String version,
                 true,
                 true,
                 true,
-                List.of("emakilevel_exp", "elv_exp")
+                List.of("emakilevel_exp", "elv_exp"),
+                "file"
         );
     }
 
@@ -97,8 +99,13 @@ public record AppConfig(String version,
                 section.getBoolean("mythicmobs.enabled", defaults.mythicEnabled),
                 section.getBoolean("mythicmobs.kill_sources", defaults.mythicKillSources),
                 section.getBoolean("mythicmobs.drops.enabled", defaults.mythicDropsEnabled),
-                mythicDropNames
+                mythicDropNames,
+                section.getString("storage.backend", defaults.storageBackend)
         );
+    }
+
+    public boolean databaseBackend() {
+        return "database".equalsIgnoreCase(storageBackend);
     }
 
     public record ExperienceMultiplierConfig(boolean enabled, double global, Map<String, Double> types, Map<String, Double> reasons) {

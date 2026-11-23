@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "2.0.6"
+version: "2.0.7"
 
 console:
   plugin_starting: "正在启动 EmakiStation..."
@@ -396,3 +396,7 @@ shutdown:
   queue_unlock_flush_incomplete: "队列解锁数据刷写未正常完成: %error%"
 persistence:
   delete_expired_queue_file_failed: "无法删除过期的队列文件: %path%"
+  # 持久化日志: 玩家队列数据保存失败; 占位符: %player%
+  save_player_queue_data_failed: "保存玩家队列数据失败: %player%"
+  # 持久化日志: 玩家队列解锁数据保存失败; 占位符: %player%
+  save_player_queue_unlock_data_failed: "保存玩家队列解锁数据失败: %player%"

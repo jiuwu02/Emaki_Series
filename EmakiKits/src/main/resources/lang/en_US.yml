@@ -2,7 +2,7 @@
 # Messages use MiniMessage, placeholders are noted beside each group
 # version is maintained by the resource sync flow
 
-version: "1.0.6"
+version: "1.0.7"
 
 tags:
   kits: "[ kits ]"
@@ -328,6 +328,8 @@ console:
   editor_browser_list_failed: "<red>Could not list kit definition directory: %path%  (%error%)</red>"
   skip_invalid_uuid_key: "Skipped invalid UUID archive key: %key%"
   persistence_write_failed: "Persistence write failed: operation=flush, file=%file%, cause=%error%"
+  # Console: shared database read/write failure; placeholders: %namespace%, %key%, %error%
+  database_op_failed: "Shared database operation failed: namespace=%namespace%, key=%key%, cause=%error%"
 
 error:
   permission:

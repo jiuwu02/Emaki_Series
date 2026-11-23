@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.level.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,6 +24,11 @@ import java.util.logging.Logger;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.data.DomainSaveResult;
+import emaki.jiuwu.craft.corelib.api.data.DomainSnapshot;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
@@ -56,12 +62,17 @@ public final class PlayerLevelDataStore {
     }
 
     private static final String DEBUG_SESSION_MODULE = "common";
+    private static final String DATABASE_DOMAIN = "level";
+    private static final int DATABASE_SCHEMA_VERSION = 1;
 
     private final File dataFolder;
     private final Logger logger;
     private final Supplier<AsyncYamlFiles> asyncYamlFilesSupplier;
     private final PlayerLevelDataCache cache;
     private final Map<UUID, PendingLoad> pendingLoads = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> databaseRevisions = new ConcurrentHashMap<>();
+    private volatile PlayerDomainRepository databaseRepository;
+    private volatile PlayerDataLease databaseLease;
     private FlushResult flushResult;
 
     public PlayerLevelDataStore(EmakiLevelPlugin plugin) {
@@ -100,6 +111,11 @@ public final class PlayerLevelDataStore {
         this.logger = logger == null ? EmakiLog.of("EmakiLevel") : logger;
         this.asyncYamlFilesSupplier = asyncYamlFilesSupplier;
         this.cache = new PlayerLevelDataCache(anchorGate, anchorSink);
+    }
+
+    public void attachDatabase(PlayerDomainRepository databaseRepository, PlayerDataLease databaseLease) {
+        this.databaseRepository = databaseRepository;
+        this.databaseLease = databaseLease;
     }
 
     public CompletableFuture<PlayerLevelData> beginSession(Player player, Map<String, LevelTypeConfig> types) {
@@ -216,7 +232,12 @@ public final class PlayerLevelDataStore {
         if (uuid == null || cache.isSealed()) {
             return CompletableFuture.completedFuture(false);
         }
-        return saveTicket(cache.snapshotForSave(uuid, expectedGeneration, true));
+        CompletableFuture<Boolean> saved = saveTicket(cache.snapshotForSave(uuid, expectedGeneration, true));
+        PlayerDataLease lease = databaseLease;
+        if (lease == null) {
+            return saved;
+        }
+        return saved.whenComplete((result, throwable) -> lease.release(uuid));
     }
 
     public CompletableFuture<Void> waitForPendingSaves() {
@@ -287,6 +308,11 @@ public final class PlayerLevelDataStore {
 
     public CompletableFuture<List<PlayerLevelData>> allKnownDataAsync(Map<String, LevelTypeConfig> types) {
         Map<UUID, PlayerLevelData> known = new LinkedHashMap<>(cache.activeDataSnapshot());
+        PlayerDomainRepository database = databaseRepository;
+        if (database != null) {
+            return database.listPlayers(DATABASE_DOMAIN)
+                    .thenCompose(players -> loadKnownDatabaseAsync(known, players, types));
+        }
         AsyncYamlFiles asyncYamlFiles = asyncYamlFiles();
         if (asyncYamlFiles == null) {
             return loadKnownFilesAsync(
@@ -300,6 +326,34 @@ public final class PlayerLevelDataStore {
                         () -> dataDirectory().listFiles((directory, name) -> name.endsWith(".yml"))
                 )
                 .thenCompose(files -> loadKnownFilesAsync(known, files, types));
+    }
+
+    private CompletableFuture<List<PlayerLevelData>> loadKnownDatabaseAsync(Map<UUID, PlayerLevelData> known,
+            List<UUID> players,
+            Map<String, LevelTypeConfig> types) {
+        List<UUID> missing = new ArrayList<>();
+        for (UUID playerId : players) {
+            if (!known.containsKey(playerId)) {
+                missing.add(playerId);
+            }
+        }
+        if (missing.isEmpty()) {
+            return CompletableFuture.completedFuture(List.copyOf(known.values()));
+        }
+        List<CompletableFuture<PlayerLevelData>> futures = new ArrayList<>(missing.size());
+        for (UUID playerId : missing) {
+            futures.add(loadDetached(playerId, null, types));
+        }
+        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
+                .thenApply(ignored -> {
+                    for (CompletableFuture<PlayerLevelData> future : futures) {
+                        PlayerLevelData data = future.getNow(null);
+                        if (data != null) {
+                            known.put(data.uuid(), data);
+                        }
+                    }
+                    return List.copyOf(known.values());
+                });
     }
 
     private CompletableFuture<List<PlayerLevelData>> loadKnownFilesAsync(Map<UUID, PlayerLevelData> known,
@@ -390,7 +444,18 @@ public final class PlayerLevelDataStore {
 
         AsyncYamlFiles asyncYamlFiles = asyncYamlFiles();
         CompletableFuture<PlayerLevelData> physicalLoad;
-        if (asyncYamlFiles == null) {
+        PlayerDomainRepository repository = databaseRepository;
+        if (repository != null) {
+            physicalLoad = acquireDatabaseLease(playerId)
+                    .thenCompose(ignored -> repository.load(playerId, DATABASE_DOMAIN))
+                    .thenApply(snapshot -> {
+                        if (snapshot != null) {
+                            databaseRevisions.put(playerId, snapshot.revision());
+                        }
+                        return installLoaded(ticket, readData(playerId, decodeDatabasePayload(snapshot), types),
+                                playerName);
+                    });
+        } else if (asyncYamlFiles == null) {
             physicalLoad = CompletableFuture.failedFuture(
                     new IllegalStateException("AsyncYamlFiles 不可用"));
         } else {
@@ -436,6 +501,17 @@ public final class PlayerLevelDataStore {
     private CompletableFuture<PlayerLevelData> loadDetached(UUID playerId,
             File file,
             Map<String, LevelTypeConfig> types) {
+        PlayerDomainRepository repository = databaseRepository;
+        if (repository != null) {
+            return repository.load(playerId, DATABASE_DOMAIN)
+                    .thenApply(snapshot -> snapshot == null
+                            ? null
+                            : readData(playerId, decodeDatabasePayload(snapshot), types))
+                    .exceptionally(throwable -> {
+                        logLoadFailure(playerId, AsyncFailures.unwrapOnce(throwable));
+                        return null;
+                    });
+        }
         AsyncYamlFiles asyncYamlFiles = asyncYamlFiles();
         if (asyncYamlFiles == null) {
             try {
@@ -471,6 +547,10 @@ public final class PlayerLevelDataStore {
     }
 
     private CompletableFuture<Boolean> writeSnapshot(UUID playerId, PlayerLevelData snapshot) {
+        PlayerDomainRepository repository = databaseRepository;
+        if (repository != null) {
+            return writeDatabaseSnapshot(playerId, snapshot, repository);
+        }
         File file = playerFile(playerId);
         Map<String, Object> serialized = serialize(snapshot);
         AsyncYamlFiles asyncYamlFiles = asyncYamlFiles();
@@ -487,6 +567,27 @@ public final class PlayerLevelDataStore {
                 .thenApply(ignored -> true)
                 .exceptionally(throwable -> {
                     logSaveFailure(playerId, AsyncFailures.unwrapOnce(throwable));
+                    return false;
+                });
+    }
+
+    private CompletableFuture<Boolean> writeDatabaseSnapshot(UUID playerId, PlayerLevelData snapshot,
+            PlayerDomainRepository repository) {
+        byte[] payload = YamlFiles.dump(serialize(snapshot)).getBytes(StandardCharsets.UTF_8);
+        long expectedRevision = databaseRevisions.getOrDefault(playerId, 0L);
+        return repository
+                .save(playerId, DATABASE_DOMAIN, snapshot.name(), payload, DATABASE_SCHEMA_VERSION, expectedRevision)
+                .handle((result, throwable) -> {
+                    if (throwable == null && result != null
+                            && result.outcome() == DomainSaveResult.Outcome.COMMITTED) {
+                        databaseRevisions.put(playerId, result.revision());
+                        return true;
+                    }
+                    Throwable failure = throwable == null
+                            ? new IllegalStateException("数据库保存未提交: "
+                                    + (result == null ? "unknown" : result.outcome()))
+                            : AsyncFailures.unwrapOnce(throwable);
+                    logSaveFailure(playerId, failure);
                     return false;
                 });
     }
@@ -594,6 +695,35 @@ public final class PlayerLevelDataStore {
 
     private AsyncYamlFiles asyncYamlFiles() {
         return asyncYamlFilesSupplier == null ? null : asyncYamlFilesSupplier.get();
+    }
+
+    private YamlSection decodeDatabasePayload(DomainSnapshot snapshot) {
+        if (snapshot == null || snapshot.payload().length == 0) {
+            return new MapYamlSection();
+        }
+        return YamlFiles.load(new String(snapshot.payload(), StandardCharsets.UTF_8));
+    }
+
+    private CompletableFuture<Void> acquireDatabaseLease(UUID playerId) {
+        PlayerDataLease lease = databaseLease;
+        if (lease == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return attemptLease(lease, playerId, 5);
+    }
+
+    private CompletableFuture<Void> attemptLease(PlayerDataLease lease, UUID playerId, int attemptsLeft) {
+        return lease.acquire(playerId).thenCompose(acquired -> {
+            if (Boolean.TRUE.equals(acquired)) {
+                return CompletableFuture.completedFuture(null);
+            }
+            if (attemptsLeft <= 1) {
+                return CompletableFuture.failedFuture(new IllegalStateException("数据租约获取失败: " + playerId));
+            }
+            return CompletableFuture.runAsync(() -> { },
+                            CompletableFuture.delayedExecutor(2L, TimeUnit.SECONDS))
+                    .thenCompose(ignored -> attemptLease(lease, playerId, attemptsLeft - 1));
+        });
     }
 
     private void logLoadFailure(UUID playerId, Throwable throwable) {

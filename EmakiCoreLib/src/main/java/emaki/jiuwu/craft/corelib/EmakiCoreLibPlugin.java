@@ -70,6 +70,12 @@ import emaki.jiuwu.craft.corelib.matcher.NameMatcherSupport;
 import emaki.jiuwu.craft.corelib.text.VanillaTranslationService;
 
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
+import emaki.jiuwu.craft.corelib.api.data.SharedStateRepository;
+import emaki.jiuwu.craft.corelib.db.DatabaseConfig;
+import emaki.jiuwu.craft.corelib.db.DatabaseService;
+import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckService;
@@ -238,6 +244,8 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
     @Override
     public void onLoad() { new EmakiCoreLibPluginDelegate(this).onLoad(); }
 
+    private DatabaseService databaseService;
+
     @Override
     public void onEnable() {
         ConsoleOutputs.sendGradientAscii(
@@ -256,6 +264,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         getServer().getPluginManager().registerEvents(furnitureEventRelay, this);
         ensureBundledFile("config.yml");
         configModel = loadConfigModel();
+        databaseService = startDatabaseService();
         initializeServices();
         targetIdentityRegistry.register(this, new MythicTargetIdentityProvider(mythicMobBridge));
         messageService.info(LogTag.STARTUP, "console.plugin_starting");
@@ -311,6 +320,10 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         shutdownBukkitComponents();
         ExpressionEngine.clearThreadLocalCache();
 
+        if (databaseService != null) {
+            databaseService.close();
+            databaseService = null;
+        }
         CorePluginLifecycle lifecycle = corePluginLifecycle;
         if (lifecycle == null) {
             lifecycle = new CorePluginLifecycle(this::finalizeCoreRuntimeAsync);
@@ -333,6 +346,28 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                 }
             }
         });
+    }
+
+    private DatabaseService startDatabaseService() {
+        YamlConfigLoader<DatabaseConfig> loader = new YamlConfigLoader<>(this, "database.yml",
+                DatabaseConfig::defaults, DatabaseConfig::fromConfig);
+        DatabaseConfig databaseConfig = loader.load();
+        if (!databaseConfig.enabled()) {
+            return null;
+        }
+        try {
+            DatabaseService service = DatabaseService.start(this, databaseConfig);
+            messageService.info(LogTag.STARTUP, "console.database_ready", Map.of(
+                    "server_id", databaseConfig.serverId(), "database", databaseConfig.database()));
+            return service;
+        } catch (Exception exception) {
+            messageService.severe(LogTag.STARTUP, "console.database_init_failed", Map.of(
+                    "error", String.valueOf(exception)));
+            if (!databaseConfig.fallbackFile()) {
+                throw new IllegalStateException("database init failed", exception);
+            }
+            return null;
+        }
     }
 
     private void shutdownBukkitComponents() { new EmakiCoreLibPluginDelegate(this).shutdownBukkitComponents(); }
@@ -779,6 +814,12 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         registerService(FurnitureEventRelay.class, furnitureEventRelay);
         registerService(EmakiItemAssemblyService.class, itemAssemblyService);
         registerService(EmakiEventBus.class, eventBus);
+        if (databaseService != null) {
+            registerService(DatabaseService.class, databaseService);
+            registerService(PlayerDomainRepository.class, databaseService.repository());
+            registerService(PlayerDataLease.class, databaseService.lease());
+            registerService(SharedStateRepository.class, databaseService.sharedState());
+        }
         registerService(EmakiCoreLibPlugin.class, this);
     }
 

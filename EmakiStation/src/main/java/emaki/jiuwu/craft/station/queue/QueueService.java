@@ -57,7 +57,7 @@ public final class QueueService {
         for (CraftQueue queue : queues.all()) {
             queue.freezeAll(now);
         }
-        return store.saveAsync(queues);
+        return store.unloadAsync(queues);
     }
 
     public CompletableFuture<Void> saveAsync(UUID playerId) {

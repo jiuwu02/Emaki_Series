@@ -18,6 +18,7 @@ public final class AppConfig extends BaseAppConfig {
     private final boolean opBypass;
 
     private final ScriptHostSettings scripts;
+    private final String storageBackend;
 
     public AppConfig(String language,
             String configVersion,
@@ -28,7 +29,8 @@ public final class AppConfig extends BaseAppConfig {
             boolean packetCoordinates,
             boolean advancementTriggersEnabled,
             boolean opBypass,
-            ScriptHostSettings scripts) {
+            ScriptHostSettings scripts,
+            String storageBackend) {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.advancementEnabled = advancementEnabled;
@@ -38,6 +40,7 @@ public final class AppConfig extends BaseAppConfig {
         this.advancementTriggersEnabled = advancementTriggersEnabled;
         this.opBypass = opBypass;
         this.scripts = scripts;
+        this.storageBackend = storageBackend;
     }
 
     public static AppConfig defaults() {
@@ -51,7 +54,8 @@ public final class AppConfig extends BaseAppConfig {
                 true,
                 true,
                 false,
-                ScriptHostSettings.defaults()
+                ScriptHostSettings.defaults(),
+                "file"
         );
     }
 
@@ -85,5 +89,13 @@ public final class AppConfig extends BaseAppConfig {
 
     public ScriptHostSettings scripts() {
         return scripts;
+    }
+
+    public String storageBackend() {
+        return storageBackend;
+    }
+
+    public boolean databaseBackend() {
+        return "database".equalsIgnoreCase(storageBackend);
     }
 }
