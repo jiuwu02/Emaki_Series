@@ -403,7 +403,7 @@ final class EditorServiceDelegate {
                     continue;
                 }
                 for (File child : children) {
-                    if (!child.getName().startsWith(EditorService.EDIT_WORLD_PREFIX)) {
+                    if (!child.getName().startsWith("emd")) {
                         continue;
                     }
                     if (Bukkit.getWorld(child.getName()) != null) {

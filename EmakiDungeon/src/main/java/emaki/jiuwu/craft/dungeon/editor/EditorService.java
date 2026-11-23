@@ -24,6 +24,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -949,21 +950,20 @@ public final class EditorService implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        Player player = event.getPlayer();
-        EditorSession session = sessions.get(player.getUniqueId());
+        EditorSession session = sessions.get(event.getPlayer().getUniqueId());
         if (session == null) {
             return;
         }
-        World world = Bukkit.getWorld(session.editWorldName());
-        if (world == null) {
-            dispatcher.runGlobal(plugin, () -> discardSession(session));
+        dispatcher.runGlobal(plugin, () -> discardSession(session));
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        EditorSession session = sessions.get(event.getPlayer().getUniqueId());
+        if (session == null) {
             return;
         }
-        if (player.getWorld() != world) {
-            Location spawn = world.getSpawnLocation();
-            dispatcher.runEntity(plugin, player, () -> player.teleport(spawn), null);
-        }
-        messages.send(player, "editor.rejoined", Map.of("dungeon", session.dungeonId()));
+        discardSession(session);
     }
 
     public void reloadConfigCache(String dungeonId) {
