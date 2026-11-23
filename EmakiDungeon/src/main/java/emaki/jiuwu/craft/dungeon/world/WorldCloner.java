@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -18,6 +19,8 @@ import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 public final class WorldCloner {
 
     private static final String PLAYER_DATA_DIR = "playerdata";
+    private static final String PLAYERS_DIR = "players";
+    private static final List<String> IDENTITY_BASENAMES = List.of("uid.dat", "session.lock");
 
     private final Plugin plugin;
     private final ExecutionDispatcher dispatcher;
@@ -34,6 +37,7 @@ public final class WorldCloner {
         Path target = WorldFolders.dataDir(worldContainer, worldName);
         dispatcher.runAsync(plugin, () -> {
             try {
+                deleteTree(target);
                 copyTree(templateDir.toPath(), target);
                 future.complete(null);
             } catch (Exception exception) {
@@ -71,7 +75,8 @@ public final class WorldCloner {
         Files.walkFileTree(source, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                if (PLAYER_DATA_DIR.equals(String.valueOf(dir.getFileName()))) {
+                String dirName = String.valueOf(dir.getFileName());
+                if (PLAYER_DATA_DIR.equals(dirName) || PLAYERS_DIR.equals(dirName)) {
                     return FileVisitResult.SKIP_SUBTREE;
                 }
                 Path destination = target.resolve(source.relativize(dir));
@@ -81,7 +86,12 @@ public final class WorldCloner {
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Path destination = target.resolve(source.relativize(file));
+                Path relative = source.relativize(file);
+                if (IDENTITY_BASENAMES.contains(String.valueOf(file.getFileName()))
+                        || relative.equals(Path.of("data", "paper", "metadata.dat"))) {
+                    return FileVisitResult.CONTINUE;
+                }
+                Path destination = target.resolve(relative);
                 Files.createDirectories(destination.getParent());
                 Files.copy(file, destination, StandardCopyOption.REPLACE_EXISTING);
                 return FileVisitResult.CONTINUE;
