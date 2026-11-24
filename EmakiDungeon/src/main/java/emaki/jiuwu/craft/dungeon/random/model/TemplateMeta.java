@@ -26,6 +26,12 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
         doorPolicy = TemplateModel.normalizePolicy(doorPolicy);
     }
 
+    public TemplateMeta withAnchors(List<DoorAnchor> nextAnchors) {
+        return new TemplateMeta(id, templateRef, structureType, tags, sizeX, sizeY, sizeZ, floors,
+                nextAnchors, rotations, mirrorable, intrusionPolicy, doorPolicy, sealBlock, nodes,
+                mask, entities, selection, weight);
+    }
+
     public DoorAnchor anchor(String anchorId) {
         for (DoorAnchor anchor : anchors) {
             if (anchor.id().equals(anchorId)) {

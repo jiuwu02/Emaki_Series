@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.corelib.display.DisplayKey;
 import emaki.jiuwu.craft.corelib.display.TextDisplayService;
 import emaki.jiuwu.craft.corelib.display.TextDisplaySpec;
 import emaki.jiuwu.craft.corelib.editor.YamlTextDocument;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.log.LogTag;
@@ -142,11 +143,7 @@ public final class EditorModuleMarkers {
             session.markers(new ArrayList<>());
             return;
         }
-        for (Entity entity : existing) {
-            if (entity != null && entity.isValid()) {
-                entity.remove();
-            }
-        }
+        removeAll(existing);
         session.markers(new ArrayList<>());
     }
 
@@ -171,6 +168,15 @@ public final class EditorModuleMarkers {
             spawnTag(world, session.playerId(), editorLabelGroup(session.playerId()),
                     "struct:" + entry.getKey(), box,
                     structureLabel(meta.structureType(), entry.getKey(), meta.tags(), meta.weight()));
+            for (emaki.jiuwu.craft.dungeon.random.model.TemplateModel.DoorAnchor anchor : meta.anchors()) {
+                Box doorBox = doorBox(anchor);
+                if (doorBox == null) {
+                    continue;
+                }
+                out.addAll(spawnEdges(world, session.playerId(), doorBox, Color.fromRGB(0xFF69B4)));
+                spawnTag(world, session.playerId(), editorLabelGroup(session.playerId()),
+                        "door:" + entry.getKey() + ":" + anchor.id(), doorBox, doorLabel(anchor.id()));
+            }
         }
     }
 
@@ -356,6 +362,39 @@ public final class EditorModuleMarkers {
                 "type", plain(structureType), "tags", plain(tagsText)));
     }
 
+    public String doorLabel(String doorId) {
+        String template = messages.messageOrFallback("editor.marker.label_door",
+                "<white>door</white> <gray>%id%</gray>");
+        return Texts.formatTemplate(template, Map.of("id", plain(doorId)));
+    }
+
+    public String doorSelectionLabel(String targetId) {
+        String template = messages.messageOrFallback("editor.marker.label_door_selection",
+                "<white>door</white> <gray>-> %target%</gray>");
+        return Texts.formatTemplate(template, Map.of("target", plain(targetId)));
+    }
+
+    public Box doorBox(emaki.jiuwu.craft.dungeon.random.model.TemplateModel.DoorAnchor anchor) {
+        if (anchor == null) {
+            return null;
+        }
+        int width = Math.max(1, anchor.width());
+        int height = Math.max(1, anchor.height());
+        int x1 = anchor.x();
+        int x2 = anchor.x();
+        int z1 = anchor.z();
+        int z2 = anchor.z();
+        if (emaki.jiuwu.craft.dungeon.random.model.TemplateModel.facingDx(anchor.facing()) == 0) {
+            x2 = anchor.x() + width - 1;
+        } else {
+            z2 = anchor.z() + width - 1;
+        }
+        int y1 = anchor.baseY();
+        int y2 = anchor.baseY() + height - 1;
+        return new Box(Math.min(x1, x2), Math.min(y1, y2), Math.min(z1, z2),
+                Math.max(x1, x2), Math.max(y1, y2), Math.max(z1, z2));
+    }
+
     public String nodeLabel(String moduleType, String nodeId) {
         String template = messages.messageOrFallback("editor.marker.label_node",
                 "<white>%module%</white> <gray>%id%</gray>");
@@ -386,16 +425,58 @@ public final class EditorModuleMarkers {
                 LABEL_PROFILE, 0, Set.of(ownerId)));
     }
 
-    public static void removeAll(List<Entity> entities) {
+    public void removeAll(List<Entity> entities) {
+        if (entities == null) {
+            return;
+        }
+        List<Entity> copy = new ArrayList<>(entities);
+        entities.clear();
+        for (Entity entity : copy) {
+            removeEntity(entity);
+        }
+    }
+
+    public static void removeAllNow(List<Entity> entities) {
         if (entities == null) {
             return;
         }
         for (Entity entity : entities) {
-            if (entity != null && entity.isValid()) {
-                entity.remove();
+            if (entity != null) {
+                try {
+                    if (entity.isValid()) {
+                        entity.remove();
+                    }
+                } catch (Throwable ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorModuleMarkers.java#0", ignored);
+                }
             }
         }
         entities.clear();
+    }
+
+    private void removeEntity(Entity entity) {
+        if (entity == null) {
+            return;
+        }
+        try {
+            if (Bukkit.isPrimaryThread()) {
+                if (entity.isValid()) {
+                    entity.remove();
+                }
+                return;
+            }
+            dispatcher.runEntity(plugin, entity, () -> {
+                try {
+                    if (entity.isValid()) {
+                        entity.remove();
+                    }
+                } catch (Throwable ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorModuleMarkers.java#1", ignored);
+                }
+            });
+        } catch (Throwable ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorModuleMarkers.java#2", ignored);
+        }
     }
 
     private void hideFromOthers(UUID ownerId, Entity entity) {

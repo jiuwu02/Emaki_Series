@@ -56,6 +56,7 @@ public final class CaptureService {
         public final List<String> tags = new ArrayList<>();
         public int floors = 1;
         public int weight = 1;
+        public String targetId;
         public boolean mirrorable;
         public String intrusionPolicy = TemplateModel.INTRUSION_ALLOW;
         public String doorPolicy = TemplateModel.POLICY_KEEP;
@@ -126,15 +127,15 @@ public final class CaptureService {
         return Result.ok("random.template.started", Map.of("world", world.getName()));
     }
 
-    public Result pos(Player player, int which) {
+    public Result pos(Player player, int which, RandomConfig config) {
         try {
-            return posInner(player, which);
+            return posInner(player, which, config);
         } finally {
             fireRefresh(player.getUniqueId());
         }
     }
 
-    Result posInner(Player player, int which) {
+    Result posInner(Player player, int which, RandomConfig config) {
         Session session = sessions.get(player.getUniqueId());
         if (session == null) {
             return Result.fail("random.template.no_session", Map.of());
@@ -144,13 +145,29 @@ public final class CaptureService {
             return Result.fail("random.template.no_target", Map.of());
         }
         int[] point = {block.getX(), block.getY(), block.getZ()};
+        String dungeonId = dungeonOf(session);
+        String hit = dungeonId.isBlank() ? null : containing(dungeonId, point);
         if (which == 1) {
             session.pos1 = point;
         } else {
             session.pos2 = point;
         }
-        return Result.ok("random.template.pos_set", Map.of("which", String.valueOf(which),
-                "coord", point[0] + "," + point[1] + "," + point[2]));
+        String coord = point[0] + "," + point[1] + "," + point[2];
+        if (session.pos1 == null || session.pos2 == null) {
+            if (hit != null) {
+                session.targetId = hit;
+            }
+            return hit == null
+                    ? Result.ok("random.template.pos_set_new", Map.of("which", String.valueOf(which),
+                            "coord", coord))
+                    : Result.ok("random.template.pos_set_door", Map.of("which", String.valueOf(which),
+                            "coord", coord, "target", hit));
+        }
+        String target = dungeonId.isBlank() ? null : containing(dungeonId, session.pos1, session.pos2);
+        if (target != null) {
+            return createDoor(player, session, target);
+        }
+        return createRegion(player, session.structureType, config);
     }
 
     public Result meta(Player player, String key, String value) {
@@ -211,58 +228,200 @@ public final class CaptureService {
         return Result.ok("random.template.meta_set", Map.of("key", key, "value", value));
     }
 
-    public Result anchorAdd(Player player, String id, String facing, int width, int height) {
+    public Result doorRemove(Player player, String id) {
         try {
-            return anchorAddInner(player, id, facing, width, height);
+            return doorRemoveInner(player, id);
         } finally {
             fireRefresh(player.getUniqueId());
         }
     }
 
-    Result anchorAddInner(Player player, String id, String facing, int width, int height) {
+    Result doorRemoveInner(Player player, String id) {
         Session session = sessions.get(player.getUniqueId());
         if (session == null) {
             return Result.fail("random.template.no_session", Map.of());
         }
-        if (session.pos1 == null && session.pos2 == null) {
-            return Result.fail("random.template.pos_missing", Map.of());
+        if (session.anchors.removeIf(anchor -> anchor.id().equals(id))) {
+            return Result.ok("random.template.door_removed", Map.of("id", id,
+                    "target", session.targetId == null ? "" : session.targetId));
         }
-        Block block = player.getTargetBlockExact(12);
-        if (block == null) {
-            return Result.fail("random.template.no_target", Map.of());
+        String dungeonId = dungeonOf(session);
+        if (dungeonId.isBlank()) {
+            return Result.fail("random.template.door_unknown", Map.of("id", id));
         }
-        if (width < 1 || width > 16 || height < 1 || height > 16) {
-            return Result.fail("random.template.anchor_invalid", Map.of("id", id));
+        for (Map.Entry<String, TemplateMeta> entry : storeProvider.apply(dungeonId).loadAll().entrySet()) {
+            TemplateMeta meta = entry.getValue();
+            List<DoorAnchor> kept = new ArrayList<>();
+            for (DoorAnchor anchor : meta.anchors()) {
+                if (!anchor.id().equals(id)) {
+                    kept.add(anchor);
+                }
+            }
+            if (kept.size() == meta.anchors().size()) {
+                continue;
+            }
+            if (!saveStructure(session, meta.withAnchors(kept))) {
+                return Result.fail("random.template.save_failed", Map.of("error", "template_write"));
+            }
+            session.targetId = entry.getKey();
+            return Result.ok("random.template.door_removed", Map.of("id", id, "target", entry.getKey()));
         }
-        for (DoorAnchor anchor : session.anchors) {
-            if (anchor.id().equals(id)) {
-                return Result.fail("random.template.anchor_dup", Map.of("id", id));
+        return Result.fail("random.template.door_unknown", Map.of("id", id));
+    }
+
+    public String targetOf(Session session) {
+        if (session == null) {
+            return null;
+        }
+        String dungeonId = dungeonOf(session);
+        if (dungeonId.isBlank()) {
+            return null;
+        }
+        if (session.pos1 != null && session.pos2 != null) {
+            String hit = containing(dungeonId, session.pos1, session.pos2);
+            if (hit != null) {
+                return hit;
             }
         }
-        session.anchors.add(new DoorAnchor(id, block.getX(), block.getY(), block.getZ(),
-                TemplateModel.normalizeFacing(facing), width, height, block.getY(),
-                session.anchors.size() + 1, "", session.sealBlock));
-        return Result.ok("random.template.anchor_added", Map.of("id", id,
-                "coord", block.getX() + "," + block.getY() + "," + block.getZ()));
-    }
-
-    public Result anchorRemove(Player player, String id) {
-        try {
-            return anchorRemoveInner(player, id);
-        } finally {
-            fireRefresh(player.getUniqueId());
+        int[] single = session.pos1 != null ? session.pos1 : session.pos2;
+        if (single != null) {
+            String hit = containing(dungeonId, single);
+            if (hit != null) {
+                return hit;
+            }
         }
+        if (session.targetId != null && storeProvider.apply(dungeonId).exists(session.targetId)) {
+            return session.targetId;
+        }
+        return null;
     }
 
-    Result anchorRemoveInner(Player player, String id) {
-        Session session = sessions.get(player.getUniqueId());
+    public List<DoorAnchor> doorsOf(Session session) {
         if (session == null) {
-            return Result.fail("random.template.no_session", Map.of());
+            return List.of();
         }
-        boolean removed = session.anchors.removeIf(anchor -> anchor.id().equals(id));
-        return removed
-                ? Result.ok("random.template.anchor_removed", Map.of("id", id))
-                : Result.fail("random.template.anchor_unknown", Map.of("id", id));
+        String target = targetOf(session);
+        String dungeonId = dungeonOf(session);
+        if (target != null && !dungeonId.isBlank()) {
+            TemplateMeta meta = storeProvider.apply(dungeonId).loadMeta(target);
+            if (meta != null) {
+                return meta.anchors();
+            }
+        }
+        return session.anchors;
+    }
+
+    private String containing(String dungeonId, int[] point) {
+        return containing(dungeonId, point, null);
+    }
+
+    private String containing(String dungeonId, int[] first, int[] second) {
+        for (Map.Entry<String, TemplateMeta> entry : storeProvider.apply(dungeonId).loadAll().entrySet()) {
+            List<Integer> sel = entry.getValue().selection();
+            if (sel.size() != 6) {
+                continue;
+            }
+            if (inside(sel, first) && (second == null || inside(sel, second))) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    private boolean inside(List<Integer> sel, int[] point) {
+        if (point == null) {
+            return false;
+        }
+        int minX = Math.min(sel.get(0), sel.get(3));
+        int minY = Math.min(sel.get(1), sel.get(4));
+        int minZ = Math.min(sel.get(2), sel.get(5));
+        int maxX = Math.max(sel.get(0), sel.get(3));
+        int maxY = Math.max(sel.get(1), sel.get(4));
+        int maxZ = Math.max(sel.get(2), sel.get(5));
+        return point[0] >= minX && point[0] <= maxX
+                && point[1] >= minY && point[1] <= maxY
+                && point[2] >= minZ && point[2] <= maxZ;
+    }
+
+    private Result createDoor(Player player, Session session, String targetId) {
+        String dungeonId = dungeonOf(session);
+        if (dungeonId.isBlank()) {
+            return Result.fail("random.template.world_forbidden", Map.of());
+        }
+        TemplateMeta meta = storeProvider.apply(dungeonId).loadMeta(targetId);
+        List<Integer> sel = meta == null ? List.<Integer>of() : meta.selection();
+        if (sel.size() != 6) {
+            return Result.fail("random.template.door_no_target", Map.of());
+        }
+        int minX = Math.min(sel.get(0), sel.get(3));
+        int minY = Math.min(sel.get(1), sel.get(4));
+        int minZ = Math.min(sel.get(2), sel.get(5));
+        int maxX = Math.max(sel.get(0), sel.get(3));
+        int maxY = Math.max(sel.get(1), sel.get(4));
+        int maxZ = Math.max(sel.get(2), sel.get(5));
+        if (!inside(sel, session.pos1) || !inside(sel, session.pos2)) {
+            return Result.fail("random.template.door_not_surface", Map.of("target", targetId));
+        }
+        int[] a = session.pos1;
+        int[] b = session.pos2;
+        int lowX = Math.min(a[0], b[0]);
+        int highX = Math.max(a[0], b[0]);
+        int lowY = Math.min(a[1], b[1]);
+        int highY = Math.max(a[1], b[1]);
+        int lowZ = Math.min(a[2], b[2]);
+        int highZ = Math.max(a[2], b[2]);
+        String facing;
+        int doorX;
+        int doorY = lowY;
+        int doorZ;
+        int width;
+        int height = highY - lowY + 1;
+        if (lowX == highX && (lowX == minX || lowX == maxX)) {
+            facing = lowX == maxX ? TemplateModel.FACING_E : TemplateModel.FACING_W;
+            doorX = lowX;
+            doorZ = lowZ;
+            width = highZ - lowZ + 1;
+        } else if (lowZ == highZ && (lowZ == minZ || lowZ == maxZ)) {
+            facing = lowZ == maxZ ? TemplateModel.FACING_S : TemplateModel.FACING_N;
+            doorX = lowX;
+            doorZ = lowZ;
+            width = highX - lowX + 1;
+        } else {
+            return Result.fail("random.template.door_not_surface", Map.of("target", targetId));
+        }
+        String id = nextDoorId(meta);
+        DoorAnchor anchor = new DoorAnchor(id, doorX, doorY, doorZ, facing, width, height, doorY,
+                meta.anchors().size() + 1, "", meta.sealBlock());
+        Result check = validateAnchor(anchor, minX, minY, minZ, maxX, maxY, maxZ,
+                meta.doorPolicy(), meta.sealBlock());
+        if (check != null) {
+            return check;
+        }
+        List<DoorAnchor> anchors = new ArrayList<>(meta.anchors());
+        anchors.add(anchor);
+        if (!saveStructure(session, meta.withAnchors(anchors))) {
+            return Result.fail("random.template.save_failed", Map.of("error", "template_write"));
+        }
+        session.targetId = targetId;
+        session.pos1 = null;
+        session.pos2 = null;
+        return Result.ok("random.template.door_created", Map.of("id", id, "target", targetId,
+                "facing", facing, "width", String.valueOf(width), "height", String.valueOf(height)));
+    }
+
+    private String nextDoorId(TemplateMeta meta) {
+        int max = 0;
+        for (DoorAnchor anchor : meta.anchors()) {
+            String id = anchor.id();
+            if (!id.startsWith("door_")) {
+                continue;
+            }
+            try {
+                max = Math.max(max, Integer.parseInt(id.substring(5)));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return "door_" + (max + 1);
     }
 
     public Result nodeAdd(Player player, String module, String nodeId, String anchorId) {
@@ -377,7 +536,8 @@ public final class CaptureService {
             return Result.fail("random.template.too_large", Map.of("id", normalizedId));
         }
         for (DoorAnchor anchor : session.anchors) {
-            Result anchorCheck = validateAnchor(anchor, minX, minY, minZ, maxX, maxY, maxZ, session);
+            Result anchorCheck = validateAnchor(anchor, minX, minY, minZ, maxX, maxY, maxZ,
+                    session.doorPolicy, session.sealBlock);
             if (anchorCheck != null) {
                 return anchorCheck;
             }
@@ -482,7 +642,13 @@ public final class CaptureService {
         session.structureType = normalizedType;
         String regionId = nextRegionId(dungeonId, normalizedType);
         Result saved = save(player, regionId, config, true);
-        return saved.ok() ? Result.ok("random.region_created", saved.params()) : saved;
+        if (!saved.ok()) {
+            return saved;
+        }
+        session.targetId = regionId;
+        Map<String, String> params = new LinkedHashMap<>(saved.params());
+        params.put("type", normalizedType);
+        return Result.ok("random.region_created", params);
     }
 
     private String nextRegionId(String dungeonId, String prefix) {
@@ -515,10 +681,11 @@ public final class CaptureService {
         session.rotations.addAll(List.of(0, 90, 180, 270));
         session.anchors.clear();
         session.nodes.clear();
+        session.targetId = null;
     }
 
     private Result validateAnchor(DoorAnchor anchor, int minX, int minY, int minZ,
-            int maxX, int maxY, int maxZ, Session session) {
+            int maxX, int maxY, int maxZ, String doorPolicy, String sealBlock) {
         boolean onSurface = anchor.x() == minX || anchor.x() == maxX
                 || anchor.y() == minY || anchor.y() == maxY
                 || anchor.z() == minZ || anchor.z() == maxZ;
@@ -543,8 +710,8 @@ public final class CaptureService {
                 }
             }
         }
-        boolean seal = TemplateModel.POLICY_SEAL.equals(anchor.policyOrDefault(session.doorPolicy));
-        if (seal && anchor.sealBlock().isBlank() && session.sealBlock.isBlank()) {
+        boolean seal = TemplateModel.POLICY_SEAL.equals(anchor.policyOrDefault(doorPolicy));
+        if (seal && anchor.sealBlock().isBlank() && (sealBlock == null || sealBlock.isBlank())) {
             return Result.fail("random.template.seal_missing", Map.of("id", anchor.id()));
         }
         return null;
@@ -656,11 +823,13 @@ public final class CaptureService {
     public Result discard(Player player) {
         Session removed = sessions.remove(player.getUniqueId());
         if (removed != null) {
-            emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers.removeAll(removed.markers);
             emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers renderer = markerRenderer;
             if (renderer != null) {
+                renderer.removeAll(removed.markers);
                 renderer.clearLabels(emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers
                         .captureLabelGroup(removed.playerId));
+            } else {
+                emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers.removeAllNow(removed.markers);
             }
         }
         return removed == null

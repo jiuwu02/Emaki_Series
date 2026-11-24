@@ -137,7 +137,7 @@ public final class CaptureGui implements Listener {
             case NODE -> renderNode(inventory, session, holder);
             case PLACE -> renderPlace(inventory);
             case STRUCTURE -> renderStructure(inventory, session, holder);
-            case CREATE -> renderCreate(inventory);
+            case CREATE -> renderCreate(inventory, session);
         }
     }
 
@@ -148,7 +148,7 @@ public final class CaptureGui implements Listener {
                 List.of(coordLine(session.pos2))));
         inventory.setItem(SLOT_META, item(Material.BOOK, "random.gui.meta", List.of()));
         inventory.setItem(SLOT_ANCHORS, item(Material.IRON_DOOR, "random.gui.anchors",
-                List.of(String.valueOf(session.anchors.size()))));
+                List.of(String.valueOf(captures.doorsOf(session).size()))));
         inventory.setItem(SLOT_NODES, item(Material.CHEST, "random.gui.nodes",
                 List.of(String.valueOf(session.nodes.size()))));
         inventory.setItem(SLOT_SAVE, item(Material.LIME_CONCRETE, "random.gui.create_region", List.of()));
@@ -178,14 +178,15 @@ public final class CaptureGui implements Listener {
     }
 
     private void renderAnchors(Inventory inventory, CaptureService.Session session, Holder holder) {
+        List<DoorAnchor> doors = captures.doorsOf(session);
         int start = holder.page * 36;
-        for (int index = 0; index < 36 && start + index < session.anchors.size(); index++) {
-            DoorAnchor anchor = session.anchors.get(start + index);
+        for (int index = 0; index < 36 && start + index < doors.size(); index++) {
+            DoorAnchor anchor = doors.get(start + index);
             inventory.setItem(index, itemRaw(Material.IRON_DOOR,
                     "<white>" + plain(anchor.id()) + "</white>",
                     List.of(anchor.facing(), anchor.width() + "x" + anchor.height())));
         }
-        renderNav(inventory, holder, session.anchors.size(), Material.LIME_DYE, "random.gui.anchor_add");
+        renderNav(inventory, holder, doors.size(), Material.LIME_DYE, "random.gui.door_add");
         inventory.setItem(SLOT_BACK, item(Material.OAK_DOOR, "random.gui.back", List.of()));
     }
 
@@ -250,9 +251,12 @@ public final class CaptureGui implements Listener {
         inventory.setItem(SLOT_BACK, item(Material.OAK_DOOR, "random.gui.back", List.of()));
     }
 
-    private void renderCreate(Inventory inventory) {
-        inventory.setItem(10, item(Material.LIGHT_BLUE_CONCRETE, "random.gui.create_room", List.of()));
-        inventory.setItem(11, item(Material.ORANGE_CONCRETE, "random.gui.create_corridor", List.of()));
+    private void renderCreate(Inventory inventory, CaptureService.Session session) {
+        inventory.setItem(10, item(Material.LIGHT_BLUE_CONCRETE, "random.gui.create_room",
+                List.of(TemplateModel.TYPE_ROOM.equals(session.structureType) ? "*" : "")));
+        inventory.setItem(11, item(Material.ORANGE_CONCRETE, "random.gui.create_corridor",
+                List.of(TemplateModel.TYPE_CORRIDOR.equals(session.structureType) ? "*" : "")));
+        inventory.setItem(SLOT_INFO, item(Material.PAPER, "random.gui.create_hint", List.of()));
         inventory.setItem(SLOT_BACK, item(Material.OAK_DOOR, "random.gui.back", List.of()));
     }
 
@@ -325,18 +329,18 @@ public final class CaptureGui implements Listener {
             case NODE -> handleNode(player, holder, session, slot);
             case PLACE -> handlePlace(player, session, slot);
             case STRUCTURE -> handleStructure(player, holder, session, slot);
-            case CREATE -> handleCreate(player, slot);
+            case CREATE -> handleCreate(player, session, slot);
         }
     }
 
     private void handleMain(Player player, CaptureService.Session session, int slot) {
         switch (slot) {
             case SLOT_POS1 -> {
-                report(player, captures.pos(player, 1));
+                report(player, captures.pos(player, 1, configSupplier == null ? null : configSupplier.get()));
                 reopen(player, new Holder(Panel.MAIN, new String[0], 0));
             }
             case SLOT_POS2 -> {
-                report(player, captures.pos(player, 2));
+                report(player, captures.pos(player, 2, configSupplier == null ? null : configSupplier.get()));
                 reopen(player, new Holder(Panel.MAIN, new String[0], 0));
             }
             case SLOT_META -> open(player, new Holder(Panel.META, new String[0], 0));
@@ -407,32 +411,19 @@ public final class CaptureGui implements Listener {
     }
 
     private void handleAnchors(Player player, Holder holder, CaptureService.Session session, int slot) {
-        if (handleNav(player, holder, session.anchors.size(), slot, Panel.ANCHORS)) {
+        List<DoorAnchor> doors = captures.doorsOf(session);
+        if (handleNav(player, holder, doors.size(), slot, Panel.ANCHORS)) {
             return;
         }
         if (slot == SLOT_ACTION) {
-            prompt(player, holder, "anchor_add", text -> {
-                String[] parts = text.trim().split("\\s+");
-                if (parts.length < 4) {
-                    messages.send(player, "random.template.usage", Map.of());
-                    reopen(player, holder);
-                    return;
-                }
-                try {
-                    int width = Integer.parseInt(parts[2]);
-                    int height = Integer.parseInt(parts[3]);
-                    report(player, captures.anchorAdd(player, parts[0], parts[1], width, height));
-                } catch (NumberFormatException exception) {
-                    messages.send(player, "random.template.usage", Map.of());
-                }
-                reopen(player, holder);
-            });
+            messages.send(player, "random.gui.door_hint", Map.of());
+            reopen(player, holder);
             return;
         }
         int start = holder.page * 36;
-        if (slot >= 0 && slot < 36 && start + slot < session.anchors.size()) {
-            String id = session.anchors.get(start + slot).id();
-            report(player, captures.anchorRemove(player, id));
+        if (slot >= 0 && slot < 36 && start + slot < doors.size()) {
+            String id = doors.get(start + slot).id();
+            report(player, captures.doorRemove(player, id));
             reopen(player, holder);
             return;
         }
@@ -514,7 +505,7 @@ public final class CaptureGui implements Listener {
         open(player, new Holder(Panel.NODES, new String[0], 0));
     }
 
-    private void handleCreate(Player player, int slot) {
+    private void handleCreate(Player player, CaptureService.Session session, int slot) {
         if (slot == SLOT_BACK) {
             open(player, new Holder(Panel.MAIN, new String[0], 0));
             return;
@@ -523,9 +514,8 @@ public final class CaptureGui implements Listener {
         if (type == null) {
             return;
         }
-        RandomConfig config = configSupplier == null ? null : configSupplier.get();
-        report(player, captures.createRegion(player, type, config));
-        open(player, new Holder(Panel.MAIN, new String[0], 0));
+        report(player, captures.meta(player, "type", type));
+        reopen(player, new Holder(Panel.CREATE, new String[0], 0));
     }
 
     private void handleStructure(Player player, Holder holder, CaptureService.Session session, int slot) {

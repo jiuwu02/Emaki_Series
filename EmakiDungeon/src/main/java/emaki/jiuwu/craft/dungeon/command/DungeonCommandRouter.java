@@ -54,7 +54,7 @@ public final class DungeonCommandRouter {
     private static final List<String> PARTY_SUBS = List.of(
             "create", "invite", "accept", "deny", "kick", "leave", "disband", "chat"
     );
-    private static final List<String> EDITOR_SUBS = List.of("menu", "save", "exit", "pos1", "pos2", "anchor", "status", "mark", "marks", "test", "fill");
+    private static final List<String> EDITOR_SUBS = List.of("menu", "save", "exit", "pos1", "pos2", "door", "status", "mark", "marks", "test", "fill");
     private static final List<String> RECRUIT_SUBS = List.of("open", "close", "list", "join");
     private static final List<String> MATCH_SUBS = List.of("join", "leave");
     private static final List<String> SPECTATE_SUBS = List.of("next", "prev");
@@ -662,7 +662,7 @@ public final class DungeonCommandRouter {
                     editor.mark(player, args[2], args.length >= 4 ? args[3] : null);
                 }
                 case "marks" -> editor.listMarks(player);
-                case "anchor" -> routeRegionCommand(player, args, "anchor");
+                case "door" -> routeRegionCommand(player, args, "door");
                 case "status" -> routeRegionCommand(player, args, "status");
                 case "test" -> {
                     String pointer = snapshots.pointerOf(player.getUniqueId());
@@ -696,7 +696,7 @@ public final class DungeonCommandRouter {
             messages.send(player, "editor.busy_challenge", Map.of());
             return;
         }
-        if ("anchor".equals(Texts.lower(args[1])) || "status".equals(Texts.lower(args[1]))) {
+        if ("door".equals(Texts.lower(args[1])) || "status".equals(Texts.lower(args[1]))) {
             messages.send(player, "editor.random_only", Map.of());
             return;
         }
@@ -721,7 +721,7 @@ public final class DungeonCommandRouter {
             case "menu" -> randomCommands.regionMenu(player);
             case "pos1" -> randomCommands.regionPos(player, 1);
             case "pos2" -> randomCommands.regionPos(player, 2);
-            case "anchor" -> randomCommands.regionAnchor(player, args);
+            case "door" -> randomCommands.regionDoor(player, args);
             default -> randomCommands.regionStatus(player);
         }
     }
@@ -821,8 +821,8 @@ public final class DungeonCommandRouter {
                 }
                 return blocks;
             }
-            if (args.length == 3 && "anchor".equals(Texts.lower(args[1]))) {
-                return List.of("add", "remove");
+            if (args.length == 3 && "door".equals(Texts.lower(args[1]))) {
+                return List.of("remove", "list");
             }
         }
         if ("recruit".equals(root)) {
@@ -1044,10 +1044,10 @@ public final class DungeonCommandRouter {
                         "command.help_value_desc_editor_mark", "editor mark", EditorService.markTypes());
                 return;
             }
-            if ("anchor".equals(tail)) {
-                sendHelpLines(sender, root, "command.help_editor_anchor_header",
-                        "command.help_editor_anchor_entry_add",
-                        "command.help_editor_anchor_entry_remove");
+            if ("door".equals(tail)) {
+                sendHelpLines(sender, root, "command.help_editor_door_header",
+                        "command.help_editor_door_entry_create",
+                        "command.help_editor_door_entry_remove");
                 sendHelpFooter(sender);
                 return;
             }
@@ -1055,7 +1055,7 @@ public final class DungeonCommandRouter {
         sendHelpLines(sender, root, "command.help_editor_header",
                 "command.help_editor_entry_dungeon", "command.help_editor_entry_exit",
                 "command.help_editor_entry_pos_one", "command.help_editor_entry_pos_two",
-                "command.help_editor_entry_anchor", "command.help_editor_entry_status",
+                "command.help_editor_entry_door", "command.help_editor_entry_status",
                 "command.help_editor_entry_mark", "command.help_editor_entry_marks",
                 "command.help_editor_entry_test", "command.help_editor_entry_fill");
         sendHelpFooter(sender);

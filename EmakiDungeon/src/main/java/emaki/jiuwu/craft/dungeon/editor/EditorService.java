@@ -225,6 +225,7 @@ public final class EditorService implements Listener {
             }
             Location fresh = player.getLocation();
             session.origin(fresh);
+            rememberReturn(player, fresh);
             session.ready(true);
             player.teleport(world.getSpawnLocation());
             messages.send(player, "editor.opened", Map.of(
@@ -886,7 +887,11 @@ public final class EditorService implements Listener {
         session.flowDoc().discard();
         EditorModuleMarkers bound = markers;
         if (bound != null) {
-            bound.clear(session);
+            try {
+                bound.clear(session);
+            } catch (Throwable ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#7", ignored);
+            }
         }
         Location origin = session.origin();
         Runnable unload = () -> {
@@ -907,9 +912,10 @@ public final class EditorService implements Listener {
                 FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#1", ignored);
             }
             messages.send(player, messageKey, Map.of());
-            if (origin != null) {
+            if (origin != null && player.isOnline()) {
                 try {
                     player.teleport(origin);
+                    states.clearReturn(player.getUniqueId());
                 } catch (Throwable ignored) {
                     FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#2", ignored);
                 }
@@ -952,10 +958,13 @@ public final class EditorService implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = org.bukkit.event.EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent event) {
-        EditorSession session = sessions.get(event.getPlayer().getUniqueId());
+        Player player = event.getPlayer();
+        EditorSession session = sessions.get(player.getUniqueId());
         if (session == null) {
+            dispatcher.runEntity(plugin, player, () -> restoreReturn(player, null), () -> {
+            });
             return;
         }
         dispatcher.runGlobal(plugin, () -> discardSession(session));
@@ -963,11 +972,61 @@ public final class EditorService implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        EditorSession session = sessions.get(event.getPlayer().getUniqueId());
+        Player player = event.getPlayer();
+        EditorSession session = sessions.get(player.getUniqueId());
         if (session == null) {
             return;
         }
+        returnPlayer(player, session);
         discardSession(session);
+    }
+
+    private void returnPlayer(Player player, EditorSession session) {
+        restoreReturn(player, session == null ? null : session.editWorldName());
+    }
+
+    void restoreReturn(Player player, String editWorldName) {
+        if (player == null) {
+            return;
+        }
+        EditorStateStore.ReturnPoint point = states.returnOf(player.getUniqueId());
+        if (point == null) {
+            return;
+        }
+        World world = point.world() == null || point.world().isBlank()
+                ? null : Bukkit.getWorld(point.world());
+        Location target = world == null
+                ? (Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0).getSpawnLocation())
+                : new Location(world, point.x(), point.y(), point.z(), point.yaw(), point.pitch());
+        if (target == null) {
+            states.clearReturn(player.getUniqueId());
+            return;
+        }
+        if (editWorldName != null && player.getWorld() != null
+                && !player.getWorld().getName().equals(editWorldName)) {
+            states.clearReturn(player.getUniqueId());
+            return;
+        }
+        try {
+            player.teleport(target);
+        } catch (Throwable ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#8", ignored);
+            return;
+        }
+        Location now = player.getLocation();
+        if (now.getWorld() != null && now.getWorld().equals(target.getWorld())
+                && now.distanceSquared(target) < 4.0D) {
+            states.clearReturn(player.getUniqueId());
+        }
+    }
+
+    void rememberReturn(Player player, Location location) {
+        if (player == null || location == null || location.getWorld() == null) {
+            return;
+        }
+        states.rememberReturn(player.getUniqueId(), location.getWorld().getName(),
+                location.getX(), location.getY(), location.getZ(),
+                location.getYaw(), location.getPitch());
     }
 
     public void reloadConfigCache(String dungeonId) {

@@ -31,17 +31,111 @@ public final class EditorStateStore {
         }
     }
 
+    public record ReturnPoint(String world, double x, double y, double z, float yaw, float pitch,
+            long since) {
+    }
+
+    private static final long RETURN_TTL_MILLIS = 24L * 60L * 60L * 1000L;
+
     private final Plugin plugin;
     private final MessageService messages;
     private final File editorRoot;
     private final File templateRoot;
+    private final File returnFile;
     private final Map<String, State> states = new ConcurrentHashMap<>();
+    private final Map<UUID, ReturnPoint> returns = new ConcurrentHashMap<>();
 
     public EditorStateStore(Plugin plugin, MessageService messages, File dataFolder) {
         this.plugin = plugin;
         this.messages = messages;
         this.editorRoot = new File(dataFolder, "editor");
         this.templateRoot = new File(dataFolder, "world");
+        this.returnFile = new File(editorRoot, "returns.yml");
+        loadReturns();
+    }
+
+    public ReturnPoint returnOf(UUID player) {
+        ReturnPoint point = player == null ? null : returns.get(player);
+        if (point == null) {
+            return null;
+        }
+        if (System.currentTimeMillis() - point.since() > RETURN_TTL_MILLIS) {
+            clearReturn(player);
+            return null;
+        }
+        return point;
+    }
+
+    public void rememberReturn(UUID player, String world, double x, double y, double z, float yaw, float pitch) {
+        if (player == null) {
+            return;
+        }
+        returns.put(player, new ReturnPoint(world, x, y, z, yaw, pitch, System.currentTimeMillis()));
+        saveReturns();
+    }
+
+    public void clearReturn(UUID player) {
+        if (player == null || returns.remove(player) == null) {
+            return;
+        }
+        saveReturns();
+    }
+
+    private void loadReturns() {
+        File file = returnFile;
+        if (!file.isFile()) {
+            return;
+        }
+        YamlSection section = YamlFiles.load(file);
+        if (section == null || section.isEmpty()) {
+            return;
+        }
+        for (String key : section.getKeys(false)) {
+            YamlSection entry = section.getSection(key);
+            if (entry == null || entry.isEmpty()) {
+                continue;
+            }
+            UUID player;
+            try {
+                player = UUID.fromString(key);
+            } catch (IllegalArgumentException ignored) {
+                continue;
+            }
+            Object rawSince = entry.get("since");
+            long since = rawSince instanceof Number value ? value.longValue() : 0L;
+            returns.put(player, new ReturnPoint(entry.getString("world", ""),
+                    number(entry, "x"), number(entry, "y"), number(entry, "z"),
+                    (float) number(entry, "yaw"), (float) number(entry, "pitch"), since));
+        }
+    }
+
+    private double number(YamlSection section, String key) {
+        Object raw = section.get(key);
+        return raw instanceof Number value ? value.doubleValue() : 0.0D;
+    }
+
+    private void saveReturns() {
+        Map<String, Object> root = new LinkedHashMap<>();
+        for (Map.Entry<UUID, ReturnPoint> entry : returns.entrySet()) {
+            ReturnPoint point = entry.getValue();
+            Map<String, Object> node = new LinkedHashMap<>();
+            node.put("world", point.world());
+            node.put("x", point.x());
+            node.put("y", point.y());
+            node.put("z", point.z());
+            node.put("yaw", point.yaw());
+            node.put("pitch", point.pitch());
+            node.put("since", point.since());
+            root.put(entry.getKey().toString(), node);
+        }
+        try {
+            editorRoot.mkdirs();
+            YamlFiles.save(returnFile, root);
+        } catch (IOException exception) {
+            messages.warning(LogTag.EDITOR, "console.editor_state_save_failed", Map.of(
+                    "dungeon", "returns",
+                    "error", String.valueOf(exception.getMessage())));
+        }
     }
 
     public void loadAll(List<String> dungeonIds) {

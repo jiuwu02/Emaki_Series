@@ -125,6 +125,7 @@ public final class RandomCommands {
         if (!ensureRegionSession(player)) {
             return;
         }
+        sendTarget(player);
         if (gui != null) {
             gui.openMain(player);
         }
@@ -134,7 +135,7 @@ public final class RandomCommands {
         if (!ensureRegionSession(player)) {
             return;
         }
-        report(player, service.captures().pos(player, which));
+        report(player, service.captures().pos(player, which, service.config()));
     }
 
     public void regionStatus(Player player) {
@@ -143,12 +144,27 @@ public final class RandomCommands {
             messages.send(player, "random.template.no_session", Map.of());
             return;
         }
+        sendTarget(player);
         messages.send(player, "random.template.status", Map.of(
                 "type", session.structureType,
                 "tags", String.join(",", session.tags),
-                "anchors", String.valueOf(session.anchors.size()),
+                "anchors", String.valueOf(service.captures().doorsOf(session).size()),
                 "nodes", String.valueOf(session.nodes.size()),
                 "floors", String.valueOf(session.floors)));
+    }
+
+    private void sendTarget(Player player) {
+        var captures = service.captures();
+        var session = captures.sessionOf(player.getUniqueId());
+        if (session == null) {
+            return;
+        }
+        String target = captures.targetOf(session);
+        if (target == null) {
+            messages.send(player, "random.template.menu_new", Map.of());
+        } else {
+            messages.send(player, "random.template.menu_target", Map.of("target", target));
+        }
     }
 
     private boolean ensureRegionSession(Player player) {
@@ -160,34 +176,37 @@ public final class RandomCommands {
         return captures.hasSession(player.getUniqueId());
     }
 
-    public void regionAnchor(Player player, String[] args) {
+    public void regionDoor(Player player, String[] args) {
         if (!ensureRegionSession(player)) {
             return;
         }
         CaptureService captures = service.captures();
+        var session = captures.sessionOf(player.getUniqueId());
+        sendTarget(player);
         if (args.length < 3) {
-            messages.send(player, "editor.anchor_usage", Map.of());
+            messages.send(player, "editor.door_usage", Map.of());
             return;
         }
         String action = args[2].toLowerCase(java.util.Locale.ROOT);
-        if ("add".equals(action)) {
-            if (args.length < 7) {
-                messages.send(player, "editor.anchor_usage", Map.of());
-                return;
-            }
-            report(player, captures.anchorAdd(player, args[3], args[4],
-                    parseInt(args[5], 1), parseInt(args[6], 1)));
-            return;
-        }
         if ("remove".equals(action)) {
             if (args.length < 4) {
-                messages.send(player, "editor.anchor_usage", Map.of());
+                messages.send(player, "editor.door_usage", Map.of());
                 return;
             }
-            report(player, captures.anchorRemove(player, args[3]));
+            report(player, captures.doorRemove(player, args[3]));
             return;
         }
-        messages.send(player, "editor.anchor_usage", Map.of());
+        if ("list".equals(action)) {
+            messages.send(player, "random.template.door_list_header", Map.of());
+            for (var anchor : captures.doorsOf(session)) {
+                messages.send(player, "random.template.door_list_entry", Map.of(
+                        "id", anchor.id(),
+                        "facing", anchor.facing(),
+                        "size", anchor.width() + "x" + anchor.height()));
+            }
+            return;
+        }
+        messages.send(player, "editor.door_usage", Map.of());
     }
 
     private void report(Player player, Result result) {

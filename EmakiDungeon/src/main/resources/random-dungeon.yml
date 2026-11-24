@@ -3,8 +3,9 @@
 # 加载期 schema 校验失败时整份拒绝并保留上一份合法配置, 错误逐字段输出到控制台。
 
 random-dungeon:
-  # 1. 结构模板注册视图(生成期参数)。模板结构字段(标签/锚点/掩码等)由采集命令落库在
-  #    plugins/EmakiDungeon/random-dungeon/templates/<type-id>.yml(+.nbt), 此处只登记生成期权重与额度。
+  # 1. 结构模板注册视图(生成期参数)。模板结构字段(标签/门锚点/掩码/权重等)由采集命令落库在
+  #    plugins/EmakiDungeon/world/<副本ID>/structures/<模板ID>.yml(+.nbt) 即该副本的模板库,
+  #    此处只登记生成期权重与额度。
   #    weight: 第二阶段抽样权重, 0 表示不参与随机仍可被必选引用;
   #           显式登记时覆盖模板内权重(采集 GUI 结构页可设, 随模板落库), 未登记时取模板 weight(缺省 1)
   #    min-count/max-count: 数量区间, max-count 0 表示不限

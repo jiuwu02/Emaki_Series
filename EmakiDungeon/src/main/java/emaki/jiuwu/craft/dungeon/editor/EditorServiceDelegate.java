@@ -365,6 +365,7 @@ final class EditorServiceDelegate {
             if (player != null && origin != null && player.getWorld() == session.editWorld()) {
                 try {
                     player.teleport(origin);
+                    ownerRef.states.clearReturn(player.getUniqueId());
                 } catch (Throwable ignored) {
                     FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#3", ignored);
                 }
