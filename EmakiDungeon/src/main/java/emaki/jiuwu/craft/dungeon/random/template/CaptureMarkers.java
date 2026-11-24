@@ -40,6 +40,7 @@ public final class CaptureMarkers {
 
     public void refresh(CaptureService.Session session) {
         EditorModuleMarkers.removeAll(session.markers);
+        renderer.clearLabels(EditorModuleMarkers.captureLabelGroup(session.playerId));
         if (session.worldName == null || session.worldName.isBlank()) {
             return;
         }
@@ -74,10 +75,9 @@ public final class CaptureMarkers {
                 Math.max(sel.get(0), sel.get(3)), Math.max(sel.get(1), sel.get(4)), Math.max(sel.get(2), sel.get(5)));
         Color color = TemplateModel.TYPE_CORRIDOR.equals(meta.structureType()) ? COLOR_CORRIDOR : COLOR_ROOM;
         out.addAll(renderer.spawnEdges(world, ownerId, box, color));
-        Entity label = renderer.spawnTag(world, ownerId, box, tagText(meta.structureType(), templateId, meta.tags()));
-        if (label != null) {
-            out.add(label);
-        }
+        renderer.spawnTag(world, ownerId, EditorModuleMarkers.captureLabelGroup(ownerId),
+                "struct:" + templateId, box,
+                renderer.structureLabel(meta.structureType(), templateId, meta.tags(), meta.weight()));
     }
 
     private void renderSelection(World world, UUID ownerId, CaptureService.Session session, List<Entity> out) {
@@ -90,14 +90,11 @@ public final class CaptureMarkers {
         int[] b = second != null ? second : first;
         EditorModuleMarkers.Box box = new EditorModuleMarkers.Box(
                 Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.min(a[2], b[2]),
-                Math.max(a[0], b[0]) + 1, Math.max(a[1], b[1]) + 1, Math.max(a[2], b[2]) + 1);
+                Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.max(a[2], b[2]));
         out.addAll(renderer.spawnEdges(world, ownerId, box, COLOR_SELECTION));
         if (first != null && second != null && !session.tags.isEmpty()) {
-            Entity label = renderer.spawnTag(world, ownerId, box,
-                    tagText(session.structureType, "", session.tags));
-            if (label != null) {
-                out.add(label);
-            }
+            renderer.spawnTag(world, ownerId, EditorModuleMarkers.captureLabelGroup(ownerId), "sel", box,
+                    renderer.selectionLabel(session.structureType, session.tags));
         }
     }
 
@@ -108,26 +105,9 @@ public final class CaptureMarkers {
                     pos[0] - POINT_HALF, pos[1] - POINT_HALF, pos[2] - POINT_HALF,
                     pos[0] + POINT_HALF, pos[1] + POINT_HALF, pos[2] + POINT_HALF);
             out.addAll(renderer.spawnEdges(world, ownerId, box, Color.fromRGB(0xFFD700)));
-            Entity label = renderer.spawnTag(world, ownerId, box,
-                    "<white>" + plain(node.moduleType()) + "</white> <gray>" + plain(node.nodeId()) + "</gray>");
-            if (label != null) {
-                out.add(label);
-            }
+            renderer.spawnTag(world, ownerId, EditorModuleMarkers.captureLabelGroup(ownerId),
+                    "node:" + node.nodeId(), box, renderer.nodeLabel(node.moduleType(), node.nodeId()));
         }
     }
 
-    private String tagText(String structureType, String templateId, List<String> tags) {
-        StringBuilder text = new StringBuilder("<white>").append(plain(structureType)).append("</white>");
-        if (templateId != null && !templateId.isBlank()) {
-            text.append(" <gray>").append(plain(templateId)).append("</gray>");
-        }
-        if (tags != null && !tags.isEmpty()) {
-            text.append(" <gray>[").append(plain(String.join(",", tags))).append("]</gray>");
-        }
-        return text.toString();
-    }
-
-    private String plain(String raw) {
-        return raw == null ? "" : raw.replace("<", "").replace(">", "");
-    }
 }

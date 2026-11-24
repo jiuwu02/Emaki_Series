@@ -172,6 +172,8 @@ public final class CaptureGui implements Listener {
         inventory.setItem(15, item(Material.SHIELD, "random.gui.meta_intrusion", List.of(session.intrusionPolicy)));
         inventory.setItem(16, item(Material.OAK_DOOR, "random.gui.meta_door", List.of(session.doorPolicy)));
         inventory.setItem(17, item(Material.BRICKS, "random.gui.meta_seal", List.of(session.sealBlock)));
+        inventory.setItem(18, item(Material.GOLD_INGOT, "random.gui.meta_weight",
+                List.of(String.valueOf(session.weight))));
         inventory.setItem(SLOT_BACK, item(Material.OAK_DOOR, "random.gui.back", List.of()));
     }
 
@@ -273,6 +275,8 @@ public final class CaptureGui implements Listener {
         inventory.setItem(15, item(Material.SHIELD, "random.gui.meta_intrusion", List.of(meta.intrusionPolicy())));
         inventory.setItem(16, item(Material.OAK_DOOR, "random.gui.meta_door", List.of(meta.doorPolicy())));
         inventory.setItem(17, item(Material.BRICKS, "random.gui.meta_seal", List.of(meta.sealBlock())));
+        inventory.setItem(18, item(Material.GOLD_INGOT, "random.gui.meta_weight",
+                List.of(String.valueOf(meta.weight()))));
         inventory.setItem(SLOT_DELETE, item(Material.RED_CONCRETE, "random.gui.structure_delete", List.of()));
         inventory.setItem(SLOT_BACK, item(Material.OAK_DOOR, "random.gui.back", List.of()));
     }
@@ -390,6 +394,10 @@ public final class CaptureGui implements Listener {
             }
             case 17 -> prompt(player, holder, "seal-block", text -> {
                 report(player, captures.meta(player, "seal-block", text));
+                reopen(player, holder);
+            });
+            case 18 -> prompt(player, holder, "weight", text -> {
+                report(player, captures.meta(player, "weight", text));
                 reopen(player, holder);
             });
             case SLOT_BACK -> open(player, new Holder(Panel.MAIN, new String[0], 0));
@@ -606,6 +614,12 @@ public final class CaptureGui implements Listener {
                         meta.rotations(), meta.nodes()));
                 reopen(player, holder);
             });
+            case 18 -> prompt(player, holder, "weight", text -> {
+                saveStructure(player, templateId, copy(meta, meta.structureType(), meta.tags(), meta.floors(),
+                        meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), meta.sealBlock(),
+                        meta.rotations(), meta.nodes(), Math.max(0, parseInt(text, meta.weight()))));
+                reopen(player, holder);
+            });
             case SLOT_DELETE -> {
                 deleteStructure(player, templateId);
                 player.closeInventory();
@@ -654,9 +668,17 @@ public final class CaptureGui implements Listener {
     private TemplateMeta copy(TemplateMeta meta, String structureType, List<String> tags, int floors,
             boolean mirrorable, String intrusion, String door, String seal, List<Integer> rotations,
             List<ModuleNode> nodes) {
+        return copy(meta, structureType, tags, floors, mirrorable, intrusion, door, seal,
+                rotations, nodes, meta.weight());
+    }
+
+    private TemplateMeta copy(TemplateMeta meta, String structureType, List<String> tags, int floors,
+            boolean mirrorable, String intrusion, String door, String seal, List<Integer> rotations,
+            List<ModuleNode> nodes, int weight) {
         return new TemplateMeta(meta.id(), meta.templateRef(), structureType, tags,
                 meta.sizeX(), meta.sizeY(), meta.sizeZ(), floors, meta.anchors(), rotations,
-                mirrorable, intrusion, door, seal, nodes, meta.mask(), meta.entities(), meta.selection());
+                mirrorable, intrusion, door, seal, nodes, meta.mask(), meta.entities(), meta.selection(),
+                weight);
     }
 
     private void saveStructure(Player player, String templateId, TemplateMeta meta) {

@@ -16,7 +16,7 @@ public final class RandomConfig {
     public record MandatoryRule(String tag, int minCount, int maxCount, String placementRule, int percentile) {
     }
 
-    public record RoomType(String typeId, int weight, int minCount, int maxCount) {
+    public record RoomType(String typeId, Integer weight, int minCount, int maxCount) {
     }
 
     public record Corridor(String linkMode, String templateRef, int width, int height,
@@ -185,10 +185,10 @@ public final class RandomConfig {
             if (entry == null) {
                 continue;
             }
-            int weight = entry.getInt("weight", 1);
+            Integer weight = entry.contains("weight") ? entry.getInt("weight", 1) : null;
             int minCount = entry.getInt("min-count", 0);
             int maxCount = entry.getInt("max-count", 0);
-            if (weight < 0) {
+            if (weight != null && weight < 0) {
                 errors.add("room-types." + typeId + ".weight: 不得为负");
             }
             if (minCount < 0 || (maxCount != 0 && maxCount < minCount)) {

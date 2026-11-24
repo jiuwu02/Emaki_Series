@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.38"
+version: "1.0.40"
 
 tags:
   challenge: '[ challenge ]'
@@ -376,6 +376,11 @@ editor:
     <white>List staged: /edungeon editor marks | Test: /edungeon editor test</white>
     <gray>Mark and panel changes are written to the template only when you press Save</gray>
   marker:
+    label_module: "<white>%type%</white> <gray>%id%</gray>"
+    label_structure: "<white>%type%</white> <gray>%id%</gray> <gray>[%tags%]</gray>\n<gray>Weight: %weight%</gray>"
+    label_structure_notags: "<white>%type%</white> <gray>%id%</gray>\n<gray>Weight: %weight%</gray>"
+    label_selection: "<white>%type%</white> <gray>[%tags%]</gray>"
+    label_node: "<white>%module%</white> <gray>%id%</gray>"
     spawn: "Spawn point"
     room: "Room"
     gate: "Gate"
@@ -763,6 +768,7 @@ random:
     meta_intrusion: "<white>Intrusion policy</white>"
     meta_door: "<white>Door policy</white>"
     meta_seal: "<white>Seal block</white>"
+    meta_weight: "<white>Weight</white>"
     back: "<white>Back</white>"
     prev: "<white>Previous page</white>"
     next: "<white>Next page</white>"
@@ -779,5 +785,6 @@ random:
       floors: "<white>Floors</white>"
       rotations: "<white>Rotations (0,90,180,270)</white>"
       seal-block: "<white>Seal block</white>"
+      weight: "<white>Weight (≥0, 0=excluded from random)</white>"
       anchor_add: "<white>Anchor: id facing width height</white>"
       node_param: "<white>New parameter value</white>"

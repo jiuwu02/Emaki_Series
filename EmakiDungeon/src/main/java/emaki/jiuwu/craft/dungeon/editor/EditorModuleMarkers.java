@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -15,13 +16,16 @@ import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TextDisplay;
 import org.bukkit.util.Transformation;
 import org.bukkit.plugin.Plugin;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
+import emaki.jiuwu.craft.corelib.display.DisplayKey;
+import emaki.jiuwu.craft.corelib.display.TextDisplayService;
+import emaki.jiuwu.craft.corelib.display.TextDisplaySpec;
 import emaki.jiuwu.craft.corelib.editor.YamlTextDocument;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -34,6 +38,10 @@ public final class EditorModuleMarkers {
     private static final double POINT_HALF = 0.75D;
     private static final Quaternionf ROT_Z = new Quaternionf().rotationZ((float) (Math.PI / 2.0D));
     private static final Quaternionf ROT_Y = new Quaternionf().rotationY((float) (-Math.PI / 2.0D));
+
+    private static final String LABEL_NAMESPACE = "emakidungeon";
+    private static final DisplayGeometry.TextProfile LABEL_PROFILE = new DisplayGeometry.TextProfile(
+            DisplayGeometry.Vector3.ZERO, DisplayGeometry.Vector3.ONE, "center", 200, 0xB4000000, true, false);
 
     private static final Map<String, String> MODULE_SECTIONS = new LinkedHashMap<>();
 
@@ -76,6 +84,7 @@ public final class EditorModuleMarkers {
     private final Plugin plugin;
     private final ExecutionDispatcher dispatcher;
     private final MessageService messages;
+    private final TextDisplayService labels;
     private volatile java.util.function.Function<String, emaki.jiuwu.craft.dungeon.random.template.TemplateStore> storeProvider;
 
     public void bindStoreProvider(
@@ -83,10 +92,12 @@ public final class EditorModuleMarkers {
         this.storeProvider = storeProvider;
     }
 
-    public EditorModuleMarkers(Plugin plugin, ExecutionDispatcher dispatcher, MessageService messages) {
+    public EditorModuleMarkers(Plugin plugin, ExecutionDispatcher dispatcher, MessageService messages,
+            TextDisplayService labels) {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
         this.messages = messages;
+        this.labels = labels;
     }
 
     public int refresh(EditorSession session) {
@@ -125,6 +136,7 @@ public final class EditorModuleMarkers {
     }
 
     public void clear(EditorSession session) {
+        clearLabels(editorLabelGroup(session.playerId()));
         List<Entity> existing = session.markers();
         if (existing == null || existing.isEmpty()) {
             session.markers(new ArrayList<>());
@@ -156,12 +168,9 @@ public final class EditorModuleMarkers {
                     Math.max(sel.get(1), sel.get(4)), Math.max(sel.get(2), sel.get(5)));
             Color color = "corridor".equals(meta.structureType()) ? Color.ORANGE : Color.AQUA;
             out.addAll(spawnEdges(world, session.playerId(), box, color));
-            String text = "<white>" + plain(meta.structureType()) + "</white> <gray>"
-                    + plain(entry.getKey()) + " [" + plain(String.join(",", meta.tags())) + "]</gray>";
-            Entity label = spawnTag(world, session.playerId(), box, text);
-            if (label != null) {
-                out.add(label);
-            }
+            spawnTag(world, session.playerId(), editorLabelGroup(session.playerId()),
+                    "struct:" + entry.getKey(), box,
+                    structureLabel(meta.structureType(), entry.getKey(), meta.tags(), meta.weight()));
         }
     }
 
@@ -176,9 +185,9 @@ public final class EditorModuleMarkers {
         Box box = new Box(Math.min(Math.floor(a.x()), Math.floor(b.x())),
                 Math.min(Math.floor(a.y()), Math.floor(b.y())),
                 Math.min(Math.floor(a.z()), Math.floor(b.z())),
-                Math.max(Math.floor(a.x()), Math.floor(b.x())) + 1.0D,
-                Math.max(Math.floor(a.y()), Math.floor(b.y())) + 1.0D,
-                Math.max(Math.floor(a.z()), Math.floor(b.z())) + 1.0D);
+                Math.max(Math.floor(a.x()), Math.floor(b.x())),
+                Math.max(Math.floor(a.y()), Math.floor(b.y())),
+                Math.max(Math.floor(a.z()), Math.floor(b.z())));
         out.addAll(spawnEdges(world, session.playerId(), box, Color.YELLOW));
     }
 
@@ -222,10 +231,8 @@ public final class EditorModuleMarkers {
             return;
         }
         out.addAll(spawnEdges(world, session.playerId(), box, colorOf(type)));
-        Entity label = spawnLabel(world, session.playerId(), box, type, moduleId);
-        if (label != null) {
-            out.add(label);
-        }
+        spawnLabel(world, session.playerId(), editorLabelGroup(session.playerId()),
+                "mod:" + type + ":" + moduleId, box, type, moduleId);
     }
 
     public Box boxOf(Map<?, ?> module) {
@@ -314,44 +321,69 @@ public final class EditorModuleMarkers {
         return spawned;
     }
 
-    public Entity spawnLabel(World world, UUID ownerId, Box box, String type, String moduleId) {
-        String key = "editor.marker." + type;
-        String text = messages.messageOrFallback(key, type);
-        Location center = new Location(world, box.centerX(),
-                Math.min(box.maxY() + 0.6D, box.centerY() + 1.2D), box.centerZ());
-        TextDisplay label = world.spawn(center, TextDisplay.class, display -> {
-            display.text(MiniMessages.parse("<white>" + text + "</white> <gray>" + moduleId + "</gray>"));
-            display.setBillboard(Display.Billboard.CENTER);
-            display.setSeeThrough(false);
-            display.setDefaultBackground(false);
-            display.setBackgroundColor(Color.fromARGB(180, 0, 0, 0));
-            display.setShadowed(true);
-            display.setBrightness(new Display.Brightness(15, 0));
-            display.setViewRange(VIEW_RANGE);
-            display.setPersistent(false);
-            display.setAlignment(TextDisplay.TextAlignment.CENTER);
-        });
-        hideFromOthers(ownerId, label);
-        return label;
+    public static String editorLabelGroup(UUID ownerId) {
+        return "editor:" + ownerId;
     }
 
-    public Entity spawnTag(World world, UUID ownerId, Box box, String text) {
-        Location center = new Location(world, box.centerX(),
+    public static String captureLabelGroup(UUID ownerId) {
+        return "capture:" + ownerId;
+    }
+
+    public void clearLabels(String group) {
+        TextDisplayService service = labels;
+        if (service != null && group != null && !group.isBlank()) {
+            service.removeGroup(LABEL_NAMESPACE, group);
+        }
+    }
+
+    public String structureLabel(String structureType, String templateId, List<String> tags, int weight) {
+        String tagsText = tags == null ? "" : String.join(",", tags);
+        boolean hasTags = !tagsText.isEmpty();
+        String template = messages.messageOrFallback(
+                hasTags ? "editor.marker.label_structure" : "editor.marker.label_structure_notags",
+                hasTags ? "<white>%type%</white> <gray>%id%</gray> <gray>[%tags%]</gray>\n<gray>weight: %weight%</gray>"
+                        : "<white>%type%</white> <gray>%id%</gray>\n<gray>weight: %weight%</gray>");
+        return Texts.formatTemplate(template, Map.of(
+                "type", plain(structureType), "id", plain(templateId),
+                "tags", plain(tagsText), "weight", String.valueOf(weight)));
+    }
+
+    public String selectionLabel(String structureType, List<String> tags) {
+        String tagsText = tags == null ? "" : String.join(",", tags);
+        String template = messages.messageOrFallback("editor.marker.label_selection",
+                "<white>%type%</white> <gray>[%tags%]</gray>");
+        return Texts.formatTemplate(template, Map.of(
+                "type", plain(structureType), "tags", plain(tagsText)));
+    }
+
+    public String nodeLabel(String moduleType, String nodeId) {
+        String template = messages.messageOrFallback("editor.marker.label_node",
+                "<white>%module%</white> <gray>%id%</gray>");
+        return Texts.formatTemplate(template, Map.of(
+                "module", plain(moduleType), "id", plain(nodeId)));
+    }
+
+    public void spawnLabel(World world, UUID ownerId, String group, String id, Box box, String type, String moduleId) {
+        String typeName = messages.messageOrFallback("editor.marker." + type, type);
+        String template = messages.messageOrFallback("editor.marker.label_module",
+                "<white>%type%</white> <gray>%id%</gray>");
+        upsertLabel(group, id, ownerId, world, box,
+                Texts.formatTemplate(template, Map.of("type", typeName, "id", String.valueOf(moduleId))));
+    }
+
+    public void spawnTag(World world, UUID ownerId, String group, String id, Box box, String text) {
+        upsertLabel(group, id, ownerId, world, box, text);
+    }
+
+    private void upsertLabel(String group, String id, UUID ownerId, World world, Box box, String text) {
+        TextDisplayService service = labels;
+        if (service == null || text == null || text.isBlank()) {
+            return;
+        }
+        Location base = new Location(world, box.centerX(),
                 Math.min(box.maxY() + 0.6D, box.centerY() + 1.2D), box.centerZ());
-        TextDisplay label = world.spawn(center, TextDisplay.class, display -> {
-            display.text(MiniMessages.parse(text));
-            display.setBillboard(Display.Billboard.CENTER);
-            display.setSeeThrough(false);
-            display.setDefaultBackground(false);
-            display.setBackgroundColor(Color.fromARGB(180, 0, 0, 0));
-            display.setShadowed(true);
-            display.setBrightness(new Display.Brightness(15, 0));
-            display.setViewRange(VIEW_RANGE);
-            display.setPersistent(false);
-            display.setAlignment(TextDisplay.TextAlignment.CENTER);
-        });
-        hideFromOthers(ownerId, label);
-        return label;
+        service.upsert(new TextDisplaySpec(new DisplayKey(LABEL_NAMESPACE, group, id), text, base,
+                LABEL_PROFILE, 0, Set.of(ownerId)));
     }
 
     public static void removeAll(List<Entity> entities) {

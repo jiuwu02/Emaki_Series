@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.38"
+version: "1.0.40"
 
 tags:
   challenge: '[ 挑战 ]'
@@ -376,6 +376,11 @@ editor:
     <white>列出暂存: /edungeon editor marks | 测试: /edungeon editor test</white>
     <gray>标记与面板改动在点"保存"后才写入模板</gray>
   marker:
+    label_module: "<white>%type%</white> <gray>%id%</gray>"
+    label_structure: "<white>%type%</white> <gray>%id%</gray> <gray>[%tags%]</gray>\n<gray>权重: %weight%</gray>"
+    label_structure_notags: "<white>%type%</white> <gray>%id%</gray>\n<gray>权重: %weight%</gray>"
+    label_selection: "<white>%type%</white> <gray>[%tags%]</gray>"
+    label_node: "<white>%module%</white> <gray>%id%</gray>"
     spawn: "刷怪点"
     room: "房间"
     gate: "门禁"
@@ -763,6 +768,7 @@ random:
     meta_intrusion: "<white>侵入策略</white>"
     meta_door: "<white>门策略</white>"
     meta_seal: "<white>封口方块</white>"
+    meta_weight: "<white>权重</white>"
     back: "<white>返回上一级</white>"
     prev: "<white>上一页</white>"
     next: "<white>下一页</white>"
@@ -779,5 +785,6 @@ random:
       floors: "<white>楼层数</white>"
       rotations: "<white>旋转(0,90,180,270)</white>"
       seal-block: "<white>封口方块</white>"
+      weight: "<white>权重(≥0, 0=不参与随机)</white>"
       anchor_add: "<white>锚点: id 朝向 宽 高</white>"
       node_param: "<white>参数新值</white>"

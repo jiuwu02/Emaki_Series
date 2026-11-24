@@ -55,6 +55,7 @@ public final class CaptureService {
         public String structureType = TemplateModel.TYPE_ROOM;
         public final List<String> tags = new ArrayList<>();
         public int floors = 1;
+        public int weight = 1;
         public boolean mirrorable;
         public String intrusionPolicy = TemplateModel.INTRUSION_ALLOW;
         public String doorPolicy = TemplateModel.POLICY_KEEP;
@@ -84,8 +85,14 @@ public final class CaptureService {
 
     private volatile java.util.function.Consumer<Session> refreshHook;
 
+    private volatile emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers markerRenderer;
+
     public void bindRefreshHook(java.util.function.Consumer<Session> refreshHook) {
         this.refreshHook = refreshHook;
+    }
+
+    public void bindMarkerRenderer(emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers markerRenderer) {
+        this.markerRenderer = markerRenderer;
     }
 
     void fireRefresh(UUID playerId) {
@@ -177,6 +184,7 @@ public final class CaptureService {
                     }
                 }
                 case "floors" -> session.floors = Math.max(1, Integer.parseInt(value.trim()));
+                case "weight" -> session.weight = Math.max(0, Integer.parseInt(value.trim()));
                 case "mirrorable" -> session.mirrorable = Boolean.parseBoolean(value.trim());
                 case "intrusion-policy" -> session.intrusionPolicy = TemplateModel.normalizeIntrusion(value);
                 case "door-policy" -> session.doorPolicy = TemplateModel.normalizePolicy(value);
@@ -440,7 +448,7 @@ public final class CaptureService {
                 List.copyOf(session.anchors), List.copyOf(session.rotations), session.mirrorable,
                 session.intrusionPolicy, session.doorPolicy, session.sealBlock,
                 List.copyOf(session.nodes), mask, entities,
-                List.of(minX, minY, minZ, maxX, maxY, maxZ));
+                List.of(minX, minY, minZ, maxX, maxY, maxZ), session.weight);
         try {
             store.save(normalizedId, meta, data);
         } catch (IOException exception) {
@@ -649,6 +657,11 @@ public final class CaptureService {
         Session removed = sessions.remove(player.getUniqueId());
         if (removed != null) {
             emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers.removeAll(removed.markers);
+            emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers renderer = markerRenderer;
+            if (renderer != null) {
+                renderer.clearLabels(emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers
+                        .captureLabelGroup(removed.playerId));
+            }
         }
         return removed == null
                 ? Result.fail("random.template.no_session", Map.of())

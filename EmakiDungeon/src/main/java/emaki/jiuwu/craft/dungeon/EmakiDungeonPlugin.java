@@ -591,7 +591,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                         chatInputService);
         editorService.bindGui(editorGui);
         var moduleMarkers = new emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers(
-                this, dispatcher, messageService);
+                this, dispatcher, messageService,
+                EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).textDisplayService());
         editorService.bindMarkers(moduleMarkers);
         TicketService ticketService = new TicketService(this, dispatcher, getDataFolder());
         ChallengeGuiService challengeGui = new ChallengeGuiService(this, guiService, languageLoader);
@@ -691,6 +692,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         var captureMarkers = new emaki.jiuwu.craft.dungeon.random.template.CaptureMarkers(
                 this, dispatcher, moduleMarkers, randomService::storeOf);
         randomService.captures().bindRefreshHook(captureMarkers::refresh);
+        randomService.captures().bindMarkerRenderer(moduleMarkers);
         moduleMarkers.bindStoreProvider(randomService::storeOf);
         randomCommands.bindGui(captureGui);
         getServer().getPluginManager().registerEvents(captureGui, this);

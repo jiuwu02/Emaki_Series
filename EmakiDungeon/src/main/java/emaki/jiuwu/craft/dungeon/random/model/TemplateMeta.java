@@ -12,9 +12,10 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
         int sizeX, int sizeY, int sizeZ, int floors, List<DoorAnchor> anchors,
         List<Integer> rotations, boolean mirrorable, String intrusionPolicy, String doorPolicy,
         String sealBlock, List<ModuleNode> nodes, Mask mask, List<Map<String, Object>> entities,
-        List<Integer> selection) {
+        List<Integer> selection, int weight) {
 
     public TemplateMeta {
+        weight = Math.max(0, weight);
         selection = selection == null ? List.of() : List.copyOf(selection);
         tags = tags == null ? List.of() : List.copyOf(tags);
         anchors = anchors == null ? List.of() : List.copyOf(anchors);
@@ -45,6 +46,7 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
         root.put("size-y", sizeY);
         root.put("size-z", sizeZ);
         root.put("floors", floors);
+        root.put("weight", weight);
         List<Object> anchorMaps = new ArrayList<>();
         for (DoorAnchor anchor : anchors) {
             Map<String, Object> entry = new LinkedHashMap<>();
@@ -201,7 +203,8 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
                 nodes,
                 mask,
                 entities,
-                selection);
+                selection,
+                Math.max(0, intValue(root, "weight", 1)));
     }
 
     private static int intValue(Map<String, Object> map, String key, int fallback) {

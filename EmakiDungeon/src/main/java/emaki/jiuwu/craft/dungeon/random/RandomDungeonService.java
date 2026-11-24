@@ -300,7 +300,8 @@ public final class RandomDungeonService {
         List<Assigner.TemplateOption> options = new ArrayList<>();
         for (Map.Entry<String, TemplateMeta> entry : metas.entrySet()) {
             RandomConfig.RoomType type = config.roomTypes.get(entry.getKey());
-            int weight = type == null ? 1 : type.weight();
+            int weight = type == null || type.weight() == null
+                    ? entry.getValue().weight() : type.weight();
             int minCount = type == null ? 0 : type.minCount();
             int maxCount = type == null ? 0 : type.maxCount();
             options.add(new Assigner.TemplateOption(entry.getKey(), entry.getValue().tags(),
