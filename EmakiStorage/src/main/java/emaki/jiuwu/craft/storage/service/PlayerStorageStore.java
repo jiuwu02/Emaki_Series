@@ -12,11 +12,13 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLeases;
+import emaki.jiuwu.craft.corelib.api.async.AsyncWaits;
 import emaki.jiuwu.craft.corelib.api.data.DomainSaveResult;
 import emaki.jiuwu.craft.corelib.api.data.DomainSnapshot;
 import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
@@ -152,7 +154,7 @@ public final class PlayerStorageStore {
                 fallback.playerName(playerName);
                 fallback.sortMode(defaultSortMode);
                 cache.installLoadFailure(ticket, fallback);
-                logFailure("load", playerId, unwrap(throwable));
+                logFailure("load", playerId, AsyncFailures.unwrap(throwable));
                 future.complete(null);
                 return;
             }
@@ -347,7 +349,7 @@ public final class PlayerStorageStore {
             }
         }).handle((ignored, throwable) -> {
             if (throwable != null) {
-                logFailure("save", playerId, unwrap(throwable));
+                logFailure("save", playerId, AsyncFailures.unwrap(throwable));
                 return false;
             }
             return true;
@@ -377,7 +379,7 @@ public final class PlayerStorageStore {
                     Throwable failure = throwable == null
                             ? new IllegalStateException("数据库保存未提交: "
                                     + (result == null ? "unknown" : result.outcome()))
-                            : unwrap(throwable);
+                            : AsyncFailures.unwrap(throwable);
                     logFailure("save", playerId, failure);
                     return false;
                 });
@@ -407,7 +409,7 @@ public final class PlayerStorageStore {
         CompletableFuture<Void> all = saves.isEmpty()
                 ? CompletableFuture.completedFuture(null)
                 : CompletableFuture.allOf(saves.toArray(CompletableFuture[]::new));
-        awaitUntil(all, deadline);
+        AsyncWaits.awaitUntil(all, deadline);
 
         int saved = 0;
         for (CompletableFuture<Boolean> save : saves) {
@@ -422,44 +424,15 @@ public final class PlayerStorageStore {
         return flushResult;
     }
 
-    private void awaitUntil(CompletableFuture<?> future, long deadlineNanos) {
-        if (future.isDone()) {
-            return;
-        }
-        CountDownLatch latch = new CountDownLatch(1);
-        future.whenComplete((ignored, throwable) -> latch.countDown());
-        long remaining = deadlineNanos - System.nanoTime();
-        if (remaining <= 0L) {
-            return;
-        }
-        try {
-            boolean ignored = latch.await(remaining, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();
-        }
-    }
 
     private CompletableFuture<Void> acquireDatabaseLease(UUID playerId) {
         PlayerDataLease lease = databaseLease;
         if (lease == null) {
             return CompletableFuture.completedFuture(null);
         }
-        return attemptLease(lease, playerId, 5);
+        return PlayerDataLeases.acquireWithRetry(lease, playerId, 5);
     }
 
-    private CompletableFuture<Void> attemptLease(PlayerDataLease lease, UUID playerId, int attemptsLeft) {
-        return lease.acquire(playerId).thenCompose(acquired -> {
-            if (Boolean.TRUE.equals(acquired)) {
-                return CompletableFuture.completedFuture(null);
-            }
-            if (attemptsLeft <= 1) {
-                return CompletableFuture.failedFuture(new IllegalStateException("数据租约获取失败: " + playerId));
-            }
-            return CompletableFuture.runAsync(() -> { },
-                            CompletableFuture.delayedExecutor(2L, TimeUnit.SECONDS))
-                    .thenCompose(ignored -> attemptLease(lease, playerId, attemptsLeft - 1));
-        });
-    }
 
     private void logFailure(String stage, UUID playerId, Throwable throwable) {
         LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.data_handling_failed", Map.of("player", playerId, "stage", stage, "error", describe(throwable)));
@@ -473,11 +446,4 @@ public final class PlayerStorageStore {
         return throwable.getClass().getSimpleName() + (message == null || message.isBlank() ? "" : " " + message);
     }
 
-    private static Throwable unwrap(Throwable throwable) {
-        Throwable current = throwable;
-        while (current instanceof CompletionException && current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current;
-    }
 }

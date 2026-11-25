@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import java.util.Set;
 
 final class StrengthenRecipeDelegate {
@@ -134,7 +135,7 @@ final class StrengthenRecipeDelegate {
         }
         List<String> result = new ArrayList<>();
         for (String value : values) {
-            String normalized = StrengthenApiValues.stripMiniTags(value);
+            String normalized = Texts.stripMiniTags(value);
             if (StrengthenApiValues.isNotBlank(normalized)) {
                 result.add(normalized);
             }

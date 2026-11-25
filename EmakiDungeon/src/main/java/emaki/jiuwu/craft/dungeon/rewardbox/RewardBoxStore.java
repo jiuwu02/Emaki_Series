@@ -14,7 +14,6 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -22,12 +21,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.corelib.api.data.DomainPayloads;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLeases;
+import emaki.jiuwu.craft.corelib.api.async.AsyncWaits;
 import emaki.jiuwu.craft.corelib.api.data.DomainSaveResult;
 import emaki.jiuwu.craft.corelib.api.data.DomainSnapshot;
 import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
 import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
-import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -252,7 +253,7 @@ public final class RewardBoxStore {
         if (snapshot != null) {
             databaseRevisions.put(playerId, snapshot.revision());
         }
-        return decodeDatabasePayload(snapshot);
+        return DomainPayloads.decodeYaml(snapshot);
     }
 
     private boolean persistDatabase(UUID playerId, Map<String, Object> values, PlayerDomainRepository repository) {
@@ -274,37 +275,18 @@ public final class RewardBoxStore {
         return false;
     }
 
-    private YamlSection decodeDatabasePayload(DomainSnapshot snapshot) {
-        if (snapshot == null || snapshot.payload().length == 0) {
-            return new MapYamlSection();
-        }
-        return YamlFiles.load(new String(snapshot.payload(), StandardCharsets.UTF_8));
-    }
 
     private CompletableFuture<Void> acquireDatabaseLease(UUID playerId) {
         PlayerDataLease lease = databaseLease;
         if (lease == null || databaseLeased.contains(playerId) || Bukkit.getPlayer(playerId) == null) {
             return CompletableFuture.completedFuture(null);
         }
-        return attemptLease(lease, playerId, 5).thenRun(() -> databaseLeased.add(playerId));
+        return PlayerDataLeases.acquireWithRetry(lease, playerId, 5).thenRun(() -> databaseLeased.add(playerId));
     }
 
-    private CompletableFuture<Void> attemptLease(PlayerDataLease lease, UUID playerId, int attemptsLeft) {
-        return lease.acquire(playerId).thenCompose(acquired -> {
-            if (Boolean.TRUE.equals(acquired)) {
-                return CompletableFuture.completedFuture(null);
-            }
-            if (attemptsLeft <= 1) {
-                return CompletableFuture.failedFuture(new IllegalStateException("数据租约获取失败: " + playerId));
-            }
-            return CompletableFuture.runAsync(() -> { },
-                            CompletableFuture.delayedExecutor(2L, TimeUnit.SECONDS))
-                    .thenCompose(ignored -> attemptLease(lease, playerId, attemptsLeft - 1));
-        });
-    }
 
     private Throwable failureOf(CompletableFuture<?> future) {
-        if (!awaitUntil(future, System.nanoTime() + TimeUnit.SECONDS.toNanos(5L))) {
+        if (!AsyncWaits.awaitUntil(future, System.nanoTime() + TimeUnit.SECONDS.toNanos(5L))) {
             return new IllegalStateException("数据库操作超时");
         }
         if (!future.isCompletedExceptionally()) {
@@ -318,23 +300,6 @@ public final class RewardBoxStore {
         }
     }
 
-    private boolean awaitUntil(CompletableFuture<?> future, long deadline) {
-        if (future.isDone()) {
-            return true;
-        }
-        long remainingNanos = deadline - System.nanoTime();
-        if (remainingNanos <= 0L) {
-            return false;
-        }
-        CountDownLatch latch = new CountDownLatch(1);
-        future.whenComplete((ignored, throwable) -> latch.countDown());
-        try {
-            return future.isDone() || latch.await(remainingNanos, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
-    }
 
     private Object laneOf(UUID playerId) {
         return lanes.computeIfAbsent(playerId, id -> new Object());

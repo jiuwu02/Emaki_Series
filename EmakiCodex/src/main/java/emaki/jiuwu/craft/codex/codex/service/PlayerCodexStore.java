@@ -17,6 +17,7 @@ import java.util.logging.Logger;
 
 import emaki.jiuwu.craft.codex.codex.model.PlayerCodex;
 import emaki.jiuwu.craft.codex.codex.persistence.CodexDataFile;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLeases;
 import emaki.jiuwu.craft.corelib.api.data.DomainSaveResult;
 import emaki.jiuwu.craft.corelib.api.data.DomainSnapshot;
 import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
@@ -276,22 +277,9 @@ public final class PlayerCodexStore {
         if (lease == null) {
             return CompletableFuture.completedFuture(null);
         }
-        return attemptLease(lease, playerId, 5);
+        return PlayerDataLeases.acquireWithRetry(lease, playerId, 5);
     }
 
-    private CompletableFuture<Void> attemptLease(PlayerDataLease lease, UUID playerId, int attemptsLeft) {
-        return lease.acquire(playerId).thenCompose(acquired -> {
-            if (Boolean.TRUE.equals(acquired)) {
-                return CompletableFuture.completedFuture(null);
-            }
-            if (attemptsLeft <= 1) {
-                return CompletableFuture.failedFuture(new IllegalStateException("数据租约获取失败: " + playerId));
-            }
-            return CompletableFuture.runAsync(() -> { },
-                            CompletableFuture.delayedExecutor(2L, TimeUnit.SECONDS))
-                    .thenCompose(ignored -> attemptLease(lease, playerId, attemptsLeft - 1));
-        });
-    }
 
     public synchronized FlushResult flushAndSeal(long timeout, TimeUnit unit) {
         if (flushResult != null) {

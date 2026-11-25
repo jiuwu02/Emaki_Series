@@ -23,13 +23,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.data.DomainPayloads;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLeases;
 import emaki.jiuwu.craft.corelib.api.data.DomainSaveResult;
 import emaki.jiuwu.craft.corelib.api.data.DomainSnapshot;
 import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
 import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
-import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
@@ -386,7 +387,7 @@ public final class PlayerNutritionDataStore {
                         if (snapshot != null) {
                             databaseRevisions.put(uuid, snapshot.revision());
                         }
-                        return deserialize(decodeDatabasePayload(snapshot), uuid, name, types);
+                        return deserialize(DomainPayloads.decodeYaml(snapshot), uuid, name, types);
                     });
         }
         File file = file(uuid);
@@ -545,34 +546,15 @@ public final class PlayerNutritionDataStore {
         return Math.max(min, Math.min(max, value));
     }
 
-    private YamlSection decodeDatabasePayload(DomainSnapshot snapshot) {
-        if (snapshot == null || snapshot.payload().length == 0) {
-            return new MapYamlSection();
-        }
-        return YamlFiles.load(new String(snapshot.payload(), StandardCharsets.UTF_8));
-    }
 
     private CompletableFuture<Void> acquireDatabaseLease(UUID uuid) {
         PlayerDataLease lease = databaseLease;
         if (lease == null) {
             return CompletableFuture.completedFuture(null);
         }
-        return attemptLease(lease, uuid, 5);
+        return PlayerDataLeases.acquireWithRetry(lease, uuid, 5);
     }
 
-    private CompletableFuture<Void> attemptLease(PlayerDataLease lease, UUID uuid, int attemptsLeft) {
-        return lease.acquire(uuid).thenCompose(acquired -> {
-            if (Boolean.TRUE.equals(acquired)) {
-                return CompletableFuture.completedFuture(null);
-            }
-            if (attemptsLeft <= 1) {
-                return CompletableFuture.failedFuture(new IllegalStateException("数据租约获取失败: " + uuid));
-            }
-            return CompletableFuture.runAsync(() -> { },
-                            CompletableFuture.delayedExecutor(2L, TimeUnit.SECONDS))
-                    .thenCompose(_ -> attemptLease(lease, uuid, attemptsLeft - 1));
-        });
-    }
 
     private void logLoadFailure(UUID uuid, Throwable throwable) {
         LogTags.send(logger, LogTag.PERSISTENCE, Level.WARNING, "persistence.load_player_nutrition_data_failed", Map.of("player", uuid), AsyncFailures.unwrap(throwable));

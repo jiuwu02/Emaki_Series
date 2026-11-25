@@ -11,7 +11,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -22,13 +21,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.data.DomainPayloads;
+import emaki.jiuwu.craft.corelib.api.data.PlayerDataLeases;
+import emaki.jiuwu.craft.corelib.api.async.AsyncWaits;
 import emaki.jiuwu.craft.corelib.api.data.DomainSaveResult;
 import emaki.jiuwu.craft.corelib.api.data.DomainSnapshot;
 import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
 import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
-import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.skills.model.PlayerCastTimingState;
@@ -153,7 +154,7 @@ public final class PlayerSkillDataStore {
                     }
                     PlayerSkillProfile loaded = readProfileFromSection(
                             playerId,
-                            decodeDatabasePayload(snapshot));
+                            DomainPayloads.decodeYaml(snapshot));
                     return cache.installLoaded(ticket, loaded) == PlayerSkillProfileCache.CommitResult.COMMITTED
                             ? loaded
                             : cache.profile(playerId);
@@ -268,7 +269,7 @@ public final class PlayerSkillDataStore {
         CompletableFuture<Void> savesComplete = saveFutures.isEmpty()
                 ? CompletableFuture.completedFuture(null)
                 : CompletableFuture.allOf(saveFutures.toArray(CompletableFuture[]::new));
-        awaitUntil(savesComplete, deadline);
+        AsyncWaits.awaitUntil(savesComplete, deadline);
 
         int savedEntries = 0;
         for (CompletableFuture<Boolean> saveFuture : saveFutures) {
@@ -301,7 +302,7 @@ public final class PlayerSkillDataStore {
         PlayerDomainRepository repository = databaseRepository;
         if (repository != null) {
             CompletableFuture<PlayerSkillProfile> loadResult = beginSession(playerId);
-            awaitUntil(loadResult, System.nanoTime() + TimeUnit.SECONDS.toNanos(5L));
+            AsyncWaits.awaitUntil(loadResult, System.nanoTime() + TimeUnit.SECONDS.toNanos(5L));
             return loadResult.getNow(null);
         }
         File file = profileFile(playerId);
@@ -568,23 +569,6 @@ public final class PlayerSkillDataStore {
         return current != null && current.generation() == ticket.generation() ? current : null;
     }
 
-    private boolean awaitUntil(CompletableFuture<?> future, long deadline) {
-        if (future.isDone()) {
-            return true;
-        }
-        long remainingNanos = deadline - System.nanoTime();
-        if (remainingNanos <= 0L) {
-            return false;
-        }
-        CountDownLatch latch = new CountDownLatch(1);
-        future.whenComplete((ignored, throwable) -> latch.countDown());
-        try {
-            return future.isDone() || latch.await(remainingNanos, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
-    }
 
     private File profileFile(UUID playerId) {
         File dataDirectory = new File(plugin.getDataFolder(), "data");
@@ -598,34 +582,15 @@ public final class PlayerSkillDataStore {
         return asyncYamlFilesSupplier == null ? null : asyncYamlFilesSupplier.get();
     }
 
-    private YamlSection decodeDatabasePayload(DomainSnapshot snapshot) {
-        if (snapshot == null || snapshot.payload().length == 0) {
-            return new MapYamlSection();
-        }
-        return YamlFiles.load(new String(snapshot.payload(), StandardCharsets.UTF_8));
-    }
 
     private CompletableFuture<Void> acquireDatabaseLease(UUID playerId) {
         PlayerDataLease lease = databaseLease;
         if (lease == null) {
             return CompletableFuture.completedFuture(null);
         }
-        return attemptLease(lease, playerId, 5);
+        return PlayerDataLeases.acquireWithRetry(lease, playerId, 5);
     }
 
-    private CompletableFuture<Void> attemptLease(PlayerDataLease lease, UUID playerId, int attemptsLeft) {
-        return lease.acquire(playerId).thenCompose(acquired -> {
-            if (Boolean.TRUE.equals(acquired)) {
-                return CompletableFuture.completedFuture(null);
-            }
-            if (attemptsLeft <= 1) {
-                return CompletableFuture.failedFuture(new IllegalStateException("数据租约获取失败: " + playerId));
-            }
-            return CompletableFuture.runAsync(() -> { },
-                            CompletableFuture.delayedExecutor(2L, TimeUnit.SECONDS))
-                    .thenCompose(ignored -> attemptLease(lease, playerId, attemptsLeft - 1));
-        });
-    }
 
     private void logLoadFailure(UUID playerId, Throwable throwable) {
         LogTags.send(plugin, LogTag.PERSISTENCE, Level.WARNING, "persistence.read_player_profile_failed", Map.of("player", playerId), throwable);

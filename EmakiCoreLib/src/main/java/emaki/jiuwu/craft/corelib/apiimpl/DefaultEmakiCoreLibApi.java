@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
@@ -13,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegisteredTrigger;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
@@ -299,7 +299,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
         }).thenApply(DefaultEmakiCoreLibApi::triggerResult)
                 .exceptionally(throwable -> EmakiResult.failure(FailureKind.INTERNAL_ERROR,
                         "action.trigger.dispatch.exception",
-                        Map.of("error", Texts.toStringSafe(unwrap(throwable).getMessage()))));
+                        Map.of("error", Texts.toStringSafe(AsyncFailures.unwrap(throwable).getMessage()))));
     }
 
     @Override
@@ -492,11 +492,4 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     private record TriggerExecution(boolean partial, CoreActionExecutionResult failure) {
     }
 
-    private static Throwable unwrap(Throwable throwable) {
-        Throwable current = throwable;
-        while (current instanceof CompletionException && current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current;
-    }
 }

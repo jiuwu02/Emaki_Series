@@ -11,11 +11,11 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.corelib.api.async.AsyncWaits;
 import emaki.jiuwu.craft.corelib.api.data.SharedEntry;
 import emaki.jiuwu.craft.corelib.api.data.SharedStateRepository;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
@@ -215,7 +215,7 @@ public final class PartiesStore {
     }
 
     private Throwable failureOf(CompletableFuture<?> future) {
-        if (!awaitUntil(future, System.nanoTime() + TimeUnit.SECONDS.toNanos(5L))) {
+        if (!AsyncWaits.awaitUntil(future, System.nanoTime() + TimeUnit.SECONDS.toNanos(5L))) {
             return new IllegalStateException("共享状态操作超时");
         }
         if (!future.isCompletedExceptionally()) {
@@ -229,21 +229,4 @@ public final class PartiesStore {
         }
     }
 
-    private boolean awaitUntil(CompletableFuture<?> future, long deadline) {
-        if (future.isDone()) {
-            return true;
-        }
-        long remainingNanos = deadline - System.nanoTime();
-        if (remainingNanos <= 0L) {
-            return false;
-        }
-        CountDownLatch latch = new CountDownLatch(1);
-        future.whenComplete((ignored, throwable) -> latch.countDown());
-        try {
-            return future.isDone() || latch.await(remainingNanos, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
-    }
 }

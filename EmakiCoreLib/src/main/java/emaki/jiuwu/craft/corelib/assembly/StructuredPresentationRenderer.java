@@ -11,6 +11,7 @@ import java.util.Map;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.item.MaterialNames;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
@@ -172,49 +173,11 @@ final class StructuredPresentationRenderer {
         if (itemStack == null || itemStack.getType().isAir()) {
             return Component.empty();
         }
-        String translationKey = translationKey(itemStack.getType());
+        String translationKey = MaterialNames.translationKey(itemStack.getType());
         if (Texts.isNotBlank(translationKey)) {
             return Component.translatable(translationKey);
         }
-        return Component.text(humanizeMaterial(itemStack.getType()));
-    }
-
-    private String translationKey(Material material) {
-        if (material == null) {
-            return "";
-        }
-        try {
-            if (material.isItem()) {
-                return material.getItemTranslationKey();
-            }
-            if (material.isBlock()) {
-                return material.getBlockTranslationKey();
-            }
-            return material.translationKey();
-        } catch (RuntimeException _) {
-            return "";
-        }
-    }
-
-    private String humanizeMaterial(Material material) {
-        if (material == null) {
-            return "";
-        }
-        String[] parts = material.name().toLowerCase(Locale.ROOT).split("_");
-        StringBuilder builder = new StringBuilder();
-        for (String part : parts) {
-            if (part.isEmpty()) {
-                continue;
-            }
-            if (builder.length() > 0) {
-                builder.append(' ');
-            }
-            builder.append(Character.toUpperCase(part.charAt(0)));
-            if (part.length() > 1) {
-                builder.append(part.substring(1));
-            }
-        }
-        return builder.toString();
+        return Component.text(MaterialNames.humanize(itemStack.getType()));
     }
 
     private String renderTemplate(String template, Map<String, Object> formattedStats) {

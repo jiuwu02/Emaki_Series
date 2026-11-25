@@ -4,10 +4,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 
 import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
@@ -88,7 +88,7 @@ final class ActionExecutionApiService {
         }
         return engine.run(owner, compiled.pipeline(), context)
                 .thenApply(ActionExecutionApiService::result)
-                .exceptionally(throwable -> internalFailure("action.execution.exception", unwrap(throwable)));
+                .exceptionally(throwable -> internalFailure("action.execution.exception", AsyncFailures.unwrap(throwable)));
     }
 
     private static CompletableFuture<CoreActionExecutionResult> completed(CoreActionExecutionResult result) {
@@ -134,13 +134,6 @@ final class ActionExecutionApiService {
                 List.of(), List.of());
     }
 
-    private static Throwable unwrap(Throwable throwable) {
-        Throwable current = throwable;
-        while (current instanceof CompletionException && current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current;
-    }
 
     private record CompileKey(ActionEngine engine, String line, PhaseContract phase) {
     }

@@ -105,11 +105,11 @@ public final class ItemTextBridge {
         if (hasCustomName(itemMeta)) {
             return customName(itemMeta);
         }
-        String translationKey = translationKey(itemStack.getType());
+        String translationKey = MaterialNames.translationKey(itemStack.getType());
         if (translationKey != null && !translationKey.isBlank()) {
             return Component.translatable(translationKey);
         }
-        return Component.text(humanizeMaterial(itemStack.getType()));
+        return Component.text(MaterialNames.humanize(itemStack.getType()));
     }
 
     public static String effectiveNameText(ItemStack itemStack) {
@@ -153,44 +153,6 @@ public final class ItemTextBridge {
             return NamespacedKey.minecraft("air");
         }
         return NamespacedKey.minecraft(material.name().toLowerCase(Locale.ROOT));
-    }
-
-    private static String humanizeMaterial(Material material) {
-        if (material == null) {
-            return "";
-        }
-        String[] parts = material.name().toLowerCase(Locale.ROOT).split("_");
-        StringBuilder builder = new StringBuilder();
-        for (String part : parts) {
-            if (part.isEmpty()) {
-                continue;
-            }
-            if (builder.length() > 0) {
-                builder.append(' ');
-            }
-            builder.append(Character.toUpperCase(part.charAt(0)));
-            if (part.length() > 1) {
-                builder.append(part.substring(1));
-            }
-        }
-        return builder.toString();
-    }
-
-    private static String translationKey(Material material) {
-        if (material == null) {
-            return "";
-        }
-        try {
-            if (material.isItem()) {
-                return material.getItemTranslationKey();
-            }
-            if (material.isBlock()) {
-                return material.getBlockTranslationKey();
-            }
-            return material.translationKey();
-        } catch (RuntimeException _) {
-            return "";
-        }
     }
 
     /**

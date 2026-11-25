@@ -6,7 +6,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 /**
  * Package-local value helpers shared by the strengthen API's parsing and rendering code.
@@ -23,8 +22,6 @@ import java.util.regex.Pattern;
  * <p>Every member is package-private and consumed inside this module only.
  */
 final class StrengthenApiValues {
-
-    private static final Pattern MINI_TAG_PATTERN = Pattern.compile("<[^>]+>");
 
     private StrengthenApiValues() {
     }
@@ -53,13 +50,6 @@ final class StrengthenApiValues {
         return toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
     }
 
-    static String stripMiniTags(Object value) {
-        String text = toStringSafe(value);
-        if (text.indexOf('<') < 0 || text.indexOf('>') < 0) {
-            return text;
-        }
-        return MINI_TAG_PATTERN.matcher(text).replaceAll("");
-    }
 
     static double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
