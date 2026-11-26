@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.log.LogTag;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.InstanceState;
@@ -119,6 +120,7 @@ public final class RandomDungeonService {
     }
 
     public void loadAll() {
+        warnLegacyFile();
         reloadConfig();
         reloadTemplates();
         sweepTask = dispatcher.runGlobalTimer(plugin, this::sweep, 10L, 10L);
@@ -132,21 +134,27 @@ public final class RandomDungeonService {
     }
 
     public void reloadConfig() {
-        File file = new File(dataFolder, "random-dungeon.yml");
-        if (!file.isFile()) {
-            try {
-                emaki.jiuwu.craft.corelib.api.yaml.YamlFiles.copyResourceIfMissing(plugin, "random-dungeon.yml", file);
-            } catch (IOException ignored) {
-            }
-        }
+        File file = new File(dataFolder, "config.yml");
         YamlSection root = YamlFiles.load(file);
+        if (root.getSection("random-dungeon") == null) {
+            root = YamlFiles.loadResource(plugin, "config.yml");
+            messages.warning(LogTag.CONFIG, "console.random_config_section_missing", Map.of());
+        }
         RandomConfig.Loaded loaded = RandomConfig.parse(root);
         if (loaded.valid()) {
             config = loaded.config();
-                configErrors = List.of();
+            configErrors = List.of();
         } else {
             configErrors = List.copyOf(loaded.errors());
         }
+    }
+
+    private void warnLegacyFile() {
+        File legacy = new File(dataFolder, "random-dungeon.yml");
+        if (!legacy.isFile()) {
+            return;
+        }
+        messages.warning(LogTag.CONFIG, "console.random_config_legacy_ignored", Map.of());
     }
 
     public void reloadTemplates() {

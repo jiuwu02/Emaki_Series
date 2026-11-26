@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.42"
+version: "1.0.43"
 
 tags:
   challenge: "[ 挑战 ]"
@@ -598,6 +598,8 @@ console:
   action_dispatch_failed: "Action 段派发失败 | 段=%segment% | 错误=%error%"
   instance_crashed: "实例循环异常终止 | 实例=%instance% | 错误=%error%"
   flow_file_failed: "流程 YAML 创建失败 | 副本=%dungeon% | 错误=%error%"
+  random_config_legacy_ignored: "<yellow>检测到已下线的独立配置文件 random-dungeon.yml, 已忽略; 随机地牢配置请改到 config.yml 的 random-dungeon 段</yellow>"
+  random_config_section_missing: "<yellow>config.yml 缺少 random-dungeon 段, 本次按插件内置默认值运行; 请把旧的 random-dungeon.yml 内容搬进 config.yml</yellow>"
   flow_load_failed: "流程 YAML 加载失败, 使用空定义 | 实例=%instance% | 错误=%error%"
   editor_worlds_swept: "启动清扫编辑世界残留 | 数量=%count%"
   editor_template_saved: "编辑模板已回写 | 副本=%dungeon% | 世代=%generation%"

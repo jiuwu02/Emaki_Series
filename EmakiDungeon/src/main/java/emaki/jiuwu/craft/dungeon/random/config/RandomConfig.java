@@ -93,7 +93,8 @@ public final class RandomConfig {
         }
         YamlSection section = root.getSection("random-dungeon");
         if (section == null || section.isEmpty()) {
-            section = root;
+            errors.add("random-dungeon: 配置段缺失");
+            return new Loaded(null, errors);
         }
         RoomCount roomCount = parseRoomCount(section, errors);
         Map<String, MandatoryRule> mandatory = parseMandatory(section, errors);

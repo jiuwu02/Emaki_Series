@@ -770,6 +770,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             }
         }
         registerDungeonPermissions(templates.discoverDungeons());
+        if (randomService != null) {
+            randomService.reloadConfig();
+        }
     }
 
     private void registerDungeonPermissions(Collection<String> dungeonIds) {
