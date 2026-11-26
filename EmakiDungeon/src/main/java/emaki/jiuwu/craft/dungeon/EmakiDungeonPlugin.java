@@ -690,6 +690,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         var randomCommands = new emaki.jiuwu.craft.dungeon.random.command.RandomCommands(
                 randomService, messageService);
         router.bindRandom(randomCommands);
+        router.bindDebug(debugCommand());
         randomService.loadAll();
         this.randomService = randomService;
         var captureGui = new emaki.jiuwu.craft.dungeon.random.template.CaptureGui(

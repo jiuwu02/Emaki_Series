@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.45"
+version: "1.0.46"
 
 tags:
   challenge: "[ 挑战 ]"
@@ -30,8 +30,19 @@ command:
   help_entry_stats: "- <hover:show_text:'<gray>stats</gray> <dark_gray>·</dark_gray> <gray>查询次数限制与成绩</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数 [玩家] [副本ID] 均可省略, 支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>省略 [玩家] 查自己, 省略 [副本ID] 查全部副本</gray><newline><dark_gray>▸</dark_gray> <gray>输出日/周/月次数限制、冷却与最佳成绩</gray>'><gray>stats</gray></hover> <click:run_command:'%root% help stats'><hover:show_text:'<gray>参数:玩家</gray><newline><gray>在线玩家名, 点击查看当前可选玩家</gray>'><gray>[ ✦ 玩家 ]</gray></click>"
   help_entry_rank: "- <hover:show_text:'<gray>rank</gray> <dark_gray>·</dark_gray> <gray>查看副本排行榜</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:副本ID, 点击查看当前可选值</gray><newline><dark_gray>▸</dark_gray> <gray>输出前 10 名的分数、用时、难度与成员</gray>'><gray>rank</gray></hover> <click:run_command:'%root% help rank'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
   help_entry_globalchat: "- <hover:show_text:'<gray>globalchat</gray> <dark_gray>·</dark_gray> <gray>切换全局消息收听开关</gray><newline><newline><dark_gray>▸</dark_gray> <gray>开启后副本内也能看到全局聊天</gray>'><gray>globalchat</gray></hover> <click:run_command:'%root% help globalchat'><hover:show_text:'<gray>可选参数</gray><newline><gray>on</gray> <dark_gray>·</dark_gray> <gray>开启全局收听</gray><newline><gray>off</gray> <dark_gray>·</dark_gray> <gray>关闭全局收听</gray>'><gray>[ ✦ 参数 ]</gray></click>"
-  help_entry_editor: "- <hover:show_text:'<gray>editor</gray> <dark_gray>·</dark_gray> <gray>地图内编辑器</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakidungeon.editor</white><newline><dark_gray>▸</dark_gray> <gray>用 </gray><white>%root% editor [副本ID]</white><gray> 打开编辑会话</gray><newline><dark_gray>▸</dark_gray> <gray>会话中另有子命令, 点击查看</gray><newline><dark_gray>▸</dark_gray> <gray>在副本实例或挑战中不能打开</gray>'><gray>editor</gray></hover> <click:run_command:'%root% help editor'><hover:show_text:'<gray>可选参数</gray><newline><gray>[副本ID]</gray> <dark_gray>·</dark_gray> <gray>打开该副本的编辑会话</gray><newline><gray>exit</gray> <dark_gray>·</dark_gray> <gray>退出编辑会话</gray><newline><gray>pos1</gray> <dark_gray>·</dark_gray> <gray>记录角点 1</gray><newline><gray>pos2</gray> <dark_gray>·</dark_gray> <gray>记录角点 2</gray><newline><gray>door</gray> <dark_gray>·</dark_gray> <gray>门管理(选区内两点自动创建)</gray><newline><gray>status</gray> <dark_gray>·</dark_gray> <gray>区域编辑状态</gray><newline><gray>mark</gray> <dark_gray>·</dark_gray> <gray>标记模块节点</gray><newline><gray>marks</gray> <dark_gray>·</dark_gray> <gray>列出暂存标记</gray><newline><gray>test</gray> <dark_gray>·</dark_gray> <gray>启动测试开局</gray><newline><gray>fill</gray> <dark_gray>·</dark_gray> <gray>区域填充方块</gray>'><gray>[ ✦ 参数 ]</gray></click>"
+  help_entry_editor: "- <hover:show_text:'<gray>editor</gray> <dark_gray>·</dark_gray> <gray>地图内编辑器</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakidungeon.editor</white><newline><dark_gray>▸</dark_gray> <gray>用 </gray><white>%root% editor [副本ID]</white><gray> 打开编辑会话</gray><newline><dark_gray>▸</dark_gray> <gray>会话中另有子命令, 点击查看</gray><newline><dark_gray>▸</dark_gray> <gray>在副本实例或挑战中不能打开</gray>'><gray>editor</gray></hover> <click:run_command:'%root% help editor'><hover:show_text:'<gray>可选参数</gray><newline><gray>[副本ID]</gray> <dark_gray>·</dark_gray> <gray>打开该副本的编辑会话</gray><newline><gray>exit</gray> <dark_gray>·</dark_gray> <gray>退出编辑会话</gray><newline><gray>pos1</gray> <dark_gray>·</dark_gray> <gray>记录角点 1</gray><newline><gray>pos2</gray> <dark_gray>·</dark_gray> <gray>记录角点 2</gray><newline><gray>door</gray> <dark_gray>·</dark_gray> <gray>门管理(选区内两点自动创建)</gray><newline><gray>status</gray> <dark_gray>·</dark_gray> <gray>区域编辑状态</gray><newline><gray>mark</gray> <dark_gray>·</dark_gray> <gray>标记模块节点</gray><newline><gray>marks</gray> <dark_gray>·</dark_gray> <gray>列出暂存标记</gray><newline><gray>test</gray> <dark_gray>·</dark_gray> <gray>启动测试开局</gray>'><gray>[ ✦ 参数 ]</gray></click>"
   help_entry_admin: "- <hover:show_text:'<gray>admin</gray> <dark_gray>·</dark_gray> <gray>管理命令</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakidungeon.admin</white>'><gray>admin</gray></hover> <click:run_command:'%root% help admin'><hover:show_text:'<gray>可选参数</gray><newline><gray>instances</gray> <dark_gray>·</dark_gray> <gray>实例列表</gray><newline><gray>inspect</gray> <dark_gray>·</dark_gray> <gray>实例运行详情</gray><newline><gray>stop</gray> <dark_gray>·</dark_gray> <gray>强制结束实例</gray><newline><gray>status</gray> <dark_gray>·</dark_gray> <gray>运行状态</gray><newline><gray>reload</gray> <dark_gray>·</dark_gray> <gray>重载配置</gray><newline><gray>validate</gray> <dark_gray>·</dark_gray> <gray>校验副本模板</gray><newline><gray>poolreset</gray> <dark_gray>·</dark_gray> <gray>重置池补位</gray><newline><gray>clearslots</gray> <dark_gray>·</dark_gray> <gray>清理占位</gray>'><gray>[ ✦ 参数 ]</gray></click>"
+  help_entry_debug: "- <hover:show_text:'<gray>debug</gray> <dark_gray>·</dark_gray> <gray>调试工具: 全局 Debug 开关, 跟踪玩家与模块</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需要权限 </gray><white>emakidungeon.admin</white>'><gray>debug</gray></hover> <click:run_command:'%root% help debug'><hover:show_text:'<gray>可选参数</gray><newline><gray>status</gray> <dark_gray>·</dark_gray> <gray>查看当前 Debug 状态</gray><newline><gray>on</gray> <dark_gray>·</dark_gray> <gray>开启全部调试输出</gray><newline><gray>off</gray> <dark_gray>·</dark_gray> <gray>关闭全部调试输出</gray><newline><gray>player</gray> <dark_gray>·</dark_gray> <gray>跟踪或取消跟踪玩家</gray><newline><gray>module</gray> <dark_gray>·</dark_gray> <gray>开关指定模块的调试输出</gray>'><gray>[ ✦ 参数 ]</gray></click>"
+  help_debug_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiDungeon debug 命令帮助</gradient> <gray><st>        </st></gray>"
+  help_debug_entry_status: "- <hover:show_text:'<gray>status</gray> <dark_gray>·</dark_gray> <gray>查看当前 Debug 状态, 跟踪玩家与模块</gray>'><gray>status</gray></hover> <click:run_command:'%root% debug status'><green>[ ✦ 点击执行 ]</green></click>"
+  help_debug_entry_on: "- <hover:show_text:'<gray>on</gray> <dark_gray>·</dark_gray> <gray>开启全部调试输出</gray>'><gray>on</gray></hover> <click:run_command:'%root% debug on'><green>[ ✦ 点击执行 ]</green></click>"
+  help_debug_entry_off: "- <hover:show_text:'<gray>off</gray> <dark_gray>·</dark_gray> <gray>关闭全部调试输出</gray>'><gray>off</gray></hover> <click:run_command:'%root% debug off'><green>[ ✦ 点击执行 ]</green></click>"
+  help_debug_entry_player: "- <hover:show_text:'<gray>player</gray> <dark_gray>·</dark_gray> <gray>跟踪或取消跟踪玩家的调试输出</gray><newline><newline><dark_gray>▸</dark_gray> <gray>对同一玩家再次执行即取消</gray>'><gray>player</gray></hover> <click:run_command:'%root% help debug player'><hover:show_text:'<gray>参数:玩家</gray><newline><gray>在线玩家名, 点击查看当前可选玩家</gray>'><gray>[ ✦ 玩家 ]</gray></hover></click>"
+  help_debug_entry_module: "- <hover:show_text:'<gray>module</gray> <dark_gray>·</dark_gray> <gray>开关指定模块的调试输出</gray><newline><newline><dark_gray>▸</dark_gray> <gray>对同一模块再次执行即关闭</gray>'><gray>module</gray></hover> <click:run_command:'%root% help debug module'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
+  help_debug_player_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiDungeon debug player [玩家] 可选值</gradient> <gray><st>        </st></gray>"
+  help_debug_module_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiDungeon debug module [模块] 可选值</gradient> <gray><st>        </st></gray>"
+  help_value_desc_debug_player: "查看 %value% 的调试跟踪状态"
+  help_value_desc_debug_module: "切换 %value% 模块的调试输出"
   help_entry_recruit: "- <hover:show_text:'<gray>recruit</gray> <dark_gray>·</dark_gray> <gray>组队招募板</gray><newline><newline><dark_gray>▸</dark_gray> <gray>匹配服务未启用时不可用</gray>'><gray>recruit</gray></hover> <click:run_command:'%root% help recruit'><hover:show_text:'<gray>可选参数</gray><newline><gray>open</gray> <dark_gray>·</dark_gray> <gray>发布招募</gray><newline><gray>close</gray> <dark_gray>·</dark_gray> <gray>关闭自己的招募</gray><newline><gray>list</gray> <dark_gray>·</dark_gray> <gray>查看招募列表</gray><newline><gray>join</gray> <dark_gray>·</dark_gray> <gray>按编号加入招募</gray>'><gray>[ ✦ 参数 ]</gray></click>"
   help_entry_match: "- <hover:show_text:'<gray>match</gray> <dark_gray>·</dark_gray> <gray>本服自动匹配</gray><newline><newline><dark_gray>▸</dark_gray> <gray>匹配服务未启用时不可用</gray>'><gray>match</gray></hover> <click:run_command:'%root% help match'><hover:show_text:'<gray>可选参数</gray><newline><gray>join</gray> <dark_gray>·</dark_gray> <gray>加入匹配队列</gray><newline><gray>leave</gray> <dark_gray>·</dark_gray> <gray>离开匹配队列</gray>'><gray>[ ✦ 参数 ]</gray></click>"
   help_entry_spectate: "- <hover:show_text:'<gray>spectate</gray> <dark_gray>·</dark_gray> <gray>切换观战目标</gray><newline><newline><dark_gray>▸</dark_gray> <gray>仅观战模式可用</gray>'><gray>spectate</gray></hover> <click:run_command:'%root% help spectate'><hover:show_text:'<gray>可选参数</gray><newline><gray>next</gray> <dark_gray>·</dark_gray> <gray>下一个目标</gray><newline><gray>prev</gray> <dark_gray>·</dark_gray> <gray>上一个目标</gray>'><gray>[ ✦ 参数 ]</gray></click>"
@@ -52,15 +63,14 @@ command:
   help_editor_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiDungeon editor 命令帮助</gradient> <gray><st>        </st></gray>"
   help_editor_entry_dungeon: "- <hover:show_text:'<gray>参数:副本ID</gray><newline><gray>打开该副本的地图内编辑会话</gray><newline><newline><dark_gray>▸</dark_gray> <gray>点击查看当前可选的副本ID</gray><newline><dark_gray>▸</dark_gray> <gray>在副本实例或挑战中不能打开</gray>'><gray>[副本ID]</gray></hover> <click:run_command:'%root% help editor dungeon'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
   help_editor_entry_exit: "- <hover:show_text:'<gray>exit</gray> <dark_gray>·</dark_gray> <gray>退出编辑会话</gray><newline><newline><dark_gray>▸</dark_gray> <gray>仅编辑会话中可用</gray>'><gray>exit</gray></hover> <click:run_command:'%root% editor exit'><green>[ ✦ 点击执行 ]</green></click>"
-  help_editor_entry_pos_one: "- <hover:show_text:'<gray>pos1</gray> <dark_gray>·</dark_gray> <gray>记录区域角点 1</gray><newline><newline><dark_gray>▸</dark_gray> <gray>与 pos2 圈定区域后可标记区域模块或填充</gray>'><gray>pos1</gray></hover> <click:run_command:'%root% editor pos1'><green>[ ✦ 点击执行 ]</green></click>"
-  help_editor_entry_pos_two: "- <hover:show_text:'<gray>pos2</gray> <dark_gray>·</dark_gray> <gray>记录区域角点 2</gray><newline><newline><dark_gray>▸</dark_gray> <gray>与 pos1 圈定区域后可标记区域模块或填充</gray>'><gray>pos2</gray></hover> <click:run_command:'%root% editor pos2'><green>[ ✦ 点击执行 ]</green></click>"
-  help_editor_entry_clearpos: "- <hover:show_text:'<gray>clearpos</gray> <dark_gray>·</dark_gray> <gray>清空当前角点选区</gray><newline><newline><dark_gray>▸</dark_gray> <gray>框错角点时用它归零, 不影响已创建的房间与走廊</gray>'><gray>clearpos</gray></hover> <click:run_command:'%root% editor clearpos'><green>[ ✦ 点击执行 ]</green></click>"
+  help_editor_entry_pos_one: "- <hover:show_text:'<gray>pos1</gray> <dark_gray>·</dark_gray> <gray>记录区域角点 1 (仅随机类型副本)</gray><newline><newline><dark_gray>▸</dark_gray> <gray>与 pos2 圈定区域后自动落库房间/走廊或生成门</gray>'><gray>pos1</gray></hover> <click:run_command:'%root% editor pos1'><green>[ ✦ 点击执行 ]</green></click>"
+  help_editor_entry_pos_two: "- <hover:show_text:'<gray>pos2</gray> <dark_gray>·</dark_gray> <gray>记录区域角点 2 (仅随机类型副本)</gray><newline><newline><dark_gray>▸</dark_gray> <gray>与 pos1 圈定区域后自动落库房间/走廊或生成门</gray>'><gray>pos2</gray></hover> <click:run_command:'%root% editor pos2'><green>[ ✦ 点击执行 ]</green></click>"
+  help_editor_entry_clearpos: "- <hover:show_text:'<gray>clearpos</gray> <dark_gray>·</dark_gray> <gray>清空当前角点选区 (仅随机类型副本)</gray><newline><newline><dark_gray>▸</dark_gray> <gray>框错角点时用它归零, 不影响已创建的房间与走廊</gray>'><gray>clearpos</gray></hover> <click:run_command:'%root% editor clearpos'><green>[ ✦ 点击执行 ]</green></click>"
   help_editor_entry_door: "- <hover:show_text:'<gray>door</gray> <dark_gray>·</dark_gray> <gray>门管理(仅随机类型)</gray>'><gray>door</gray></hover> <click:run_command:'%root% help editor door'><hover:show_text:'<gray>可选参数</gray><newline><gray>remove</gray> <dark_gray>·</dark_gray> <gray>移除门</gray><newline><gray>list</gray> <dark_gray>·</dark_gray> <gray>列出门</gray>'><gray>[ ✦ 参数 ]</gray></click>"
   help_editor_entry_status: "- <hover:show_text:'<gray>status</gray> <dark_gray>·</dark_gray> <gray>查看区域编辑状态(仅随机类型)</gray><newline><newline><dark_gray>▸</dark_gray> <gray>含结构类型、标签、门点位数、节点数与楼层数</gray>'><gray>status</gray></hover> <click:run_command:'%root% editor status'><green>[ ✦ 点击执行 ]</green></click>"
   help_editor_entry_mark: "- <hover:show_text:'<gray>mark</gray> <dark_gray>·</dark_gray> <gray>标记一个模块节点</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:类型 [id], 类型点击查看可选值</gray><newline><dark_gray>▸</dark_gray> <gray>单点类取准星方块, 区域类用 pos1/pos2, 无坐标类任意处可标</gray><newline><dark_gray>▸</dark_gray> <gray>id 可省略, 自动编号</gray>'><gray>mark</gray></hover> <click:run_command:'%root% help editor mark'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
   help_editor_entry_marks: "- <hover:show_text:'<gray>marks</gray> <dark_gray>·</dark_gray> <gray>列出全部暂存标记</gray>'><gray>marks</gray></hover> <click:run_command:'%root% editor marks'><green>[ ✦ 点击执行 ]</green></click>"
   help_editor_entry_test: "- <hover:show_text:'<gray>test</gray> <dark_gray>·</dark_gray> <gray>启动测试开局</gray><newline><newline><dark_gray>▸</dark_gray> <gray>走正常进入流程, 不计次数且不上榜</gray><newline><dark_gray>▸</dark_gray> <gray>须先保存改动再测试</gray>'><gray>test</gray></hover> <click:run_command:'%root% editor test'><green>[ ✦ 点击执行 ]</green></click>"
-  help_editor_entry_fill: "- <hover:show_text:'<gray>fill</gray> <dark_gray>·</dark_gray> <gray>填充 pos1/pos2 圈定区域的方块</gray>'><gray>fill</gray></hover> <hover:show_text:'<gray>参数:方块</gray><newline><gray>方块ID 或方块状态, 需要自己填写</gray><newline><newline><dark_gray>▸</dark_gray> <gray>需先用 pos1/pos2 圈定区域</gray><newline><dark_gray>▸</dark_gray> <gray>支持 Tab 补全</gray><newline><dark_gray>▸</dark_gray> <gray>没有可点击的执行按钮</gray>'><gray>[ 方块 ]</gray></hover>"
   help_admin_header: "<gray><st>        </st></gray> <gradient:#FF80FF:#00FFFF>EmakiDungeon admin 命令帮助</gradient> <gray><st>        </st></gray>"
   help_admin_entry_instances: "- <hover:show_text:'<gray>instances</gray> <dark_gray>·</dark_gray> <gray>列出全部运行中的副本实例</gray><newline><newline><dark_gray>▸</dark_gray> <gray>含实例ID、副本、状态、队伍与写队列</gray>'><gray>instances</gray></hover> <click:run_command:'%root% admin instances'><green>[ ✦ 点击执行 ]</green></click>"
   help_admin_entry_inspect: "- <hover:show_text:'<gray>inspect</gray> <dark_gray>·</dark_gray> <gray>查看实例运行详情</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:实例ID, 点击查看当前可选值</gray><newline><dark_gray>▸</dark_gray> <gray>含流程房间、检查点、门禁、写队列与时间线</gray>'><gray>inspect</gray></hover> <click:run_command:'%root% help admin inspect'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
@@ -321,7 +331,7 @@ globalchat:
 
 editor:
   usage: "<red>用法: /edungeon editor <副本ID></red>"
-  usage_session: "<gray>会话子命令: menu | save | exit | pos1 | pos2 | clearpos | door remove|list | status | mark <类型> [id] | marks | fill <方块> | test</gray>"
+  usage_session: "<gray>会话子命令: menu | save | exit | pos1 | pos2 | clearpos | door remove|list | status | mark <类型> [id] | marks | test</gray>"
   anchor_usage: "<red>用法: /edungeon editor door remove <门ID> | /edungeon editor door list (门在房间/走廊选区内用 pos1/pos2 两点自动创建)</red>"
   door_usage: "<red>用法: /edungeon editor door remove <门ID> | /edungeon editor door list (门在房间/走廊选区内用 pos1/pos2 两点自动创建)</red>"
   random_only: "<red>该命令只能在随机类型地牢 (type: random) 的编辑世界使用</red>"
@@ -348,7 +358,6 @@ editor:
   pos_set: "<green>角点<which> 已记录: <coord></green>"
   pos_missing: "<red>缺少角点<which>, 请用 /edungeon editor pos<which> 记录</red>"
   pos_auto: "<gray>已自动记录角点1, 站到区域另一角用 /edungeon editor pos2 记录后重试</gray>"
-  pos_cleared: "<green>已清空角点选区</green>"
   mark_usage: "<red>用法: /edungeon editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|option|tip|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
   mark_unknown_type: "<red>未知标记类型: <type></red>"
   mark_ok: "<green>已暂存标记 <type> -> <id> (<coord>), 保存后写入流程 YAML</green>"
@@ -364,19 +373,13 @@ editor:
   save_failed: "<red>保存失败 (改动仍在会话中): <error></red>"
   saved: "<green>已保存并回写模板 (<dungeon>), 世代 <generation>, 地形变更: <terrain></green>"
   discarded: "<green>已放弃编辑会话, 未保存的配置与地形改动全部丢弃</green>"
-  fill_usage: "<red>用法: /edungeon editor fill <方块> (需先用 pos1/pos2 圈定区域)</red>"
-  fill_invalid: "<red>无效的方块或方块状态: <block></red>"
-  fill_busy: "<yellow>方块写入队列繁忙, 请稍候重试</yellow>"
-  fill_started: "<gray>已提交区域填充 <count> 格, 分帧写入中</gray>"
-  fill_too_large: "<red>填充数量 <count> 超过上限 <limit></red>"
   help_mark: |
     <gray>===== 标记速查 (共 21 类) =====</gray>
     <white>用法: /edungeon editor mark 类型 [id] (类型用 Tab 补全, 或看主面板"全部模块")</white>
     <white>单点(视线方块): entry/exit/spawn/block/chest/option/tip/item/fx/respawn</white>
-    <white>区域(两点): room/gate/trigger/teleport/boundary/effect/mechanism/room_timer/checkpoint</white>
+    <white>区域(两点, 仅随机副本): room/gate/trigger/teleport/boundary/effect/mechanism/room_timer/checkpoint</white>
     <white>无坐标: kill_target/temp_item (在编辑世界任意处即可标记)</white>
-    <white>角点: /edungeon editor pos1 与 /edungeon editor pos2</white>
-    <white>区域填充: /edungeon editor fill 方块</white>
+    <white>角点: /edungeon editor pos1 与 /edungeon editor pos2 (仅随机副本)</white>
     <white>列出暂存: /edungeon editor marks | 测试: /edungeon editor test</white>
     <gray>标记与面板改动在点"保存"后才写入模板</gray>
   marker:
@@ -431,8 +434,6 @@ editor:
     exit_mode_direct: "<red>踩到即直接离开</red>"
     exit_mode_confirm: "<green>踩到需二次确认</green>"
     exit_item: "<white>离开副本点位</white>"
-    pos1: "<white>角点1: <coord></white>"
-    pos2: "<white>角点2: <coord></white>"
     status: "<white>标记<marks> - <state> - 世代<generation></white>"
     state_dirty: "<red>未保存</red>"
     state_clean: "<green>已保存</green>"
@@ -635,7 +636,6 @@ console:
   editor_markers_spawned: "<green>已生成功能模块标注</green> | 世界=%world% | 实体=%count%"
   editor_markers_skip_not_map: "<gray>跳过模块标注</gray> | 段=%section% | id=%id% | 原因=节点不是映射"
   editor_markers_skip_no_box: "<gray>跳过模块标注</gray> | 类型=%type% | id=%id% | 原因=缺少 location/region"
-  editor_fill_command_failed: "<red>填充指令执行失败</red> | 错误=%error%"
   editor_region_writeback_failed: "<red>区域回写失败</red> | 文件=%file% | 错误=%error%"
   editor_world_backup_created: "<gray>模板世界数据已备份</gray> | 路径=%path%"
   editor_world_backup_failed: "<red>模板世界数据备份失败</red> | 文件=%file% | 错误=%error%"

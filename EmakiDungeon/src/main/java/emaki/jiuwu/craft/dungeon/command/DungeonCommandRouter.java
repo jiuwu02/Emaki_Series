@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -49,12 +48,12 @@ public final class DungeonCommandRouter {
 
     private static final List<String> ROOT_SUBS = List.of(
             "help", "list", "enter", "leave", "cancel", "ready", "rewards",
-            "party", "stats", "rank", "globalchat", "editor", "admin", "recruit", "match", "spectate", "random"
+            "party", "stats", "rank", "globalchat", "editor", "admin", "debug", "recruit", "match", "spectate", "random"
     );
     private static final List<String> PARTY_SUBS = List.of(
             "create", "invite", "accept", "deny", "kick", "leave", "disband", "chat"
     );
-    private static final List<String> EDITOR_SUBS = List.of("menu", "save", "exit", "pos1", "pos2", "clearpos", "door", "status", "mark", "marks", "test", "fill");
+    private static final List<String> EDITOR_SUBS = List.of("menu", "save", "exit", "pos1", "pos2", "clearpos", "door", "status", "mark", "marks", "test");
     private static final List<String> RECRUIT_SUBS = List.of("open", "close", "list", "join");
     private static final List<String> MATCH_SUBS = List.of("join", "leave");
     private static final List<String> SPECTATE_SUBS = List.of("next", "prev");
@@ -109,6 +108,12 @@ public final class DungeonCommandRouter {
 
     private emaki.jiuwu.craft.dungeon.random.command.RandomCommands randomCommands;
 
+    volatile emaki.jiuwu.craft.corelib.debug.DebugCommand debugCommand;
+
+    public void bindDebug(emaki.jiuwu.craft.corelib.debug.DebugCommand debugCommand) {
+        this.debugCommand = debugCommand;
+    }
+
     public void bindRandom(emaki.jiuwu.craft.dungeon.random.command.RandomCommands randomCommands) {
         this.randomCommands = randomCommands;
     }
@@ -141,6 +146,18 @@ public final class DungeonCommandRouter {
             case "clearslots" -> adminClearSlots(sender);
             default -> messages.send(sender, "command.admin.usage", Map.of());
         }
+    }
+
+    private void routeDebug(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("emakidungeon.admin")) {
+            messages.send(sender, CommandKeys.NO_PERMISSION, Map.of());
+            return;
+        }
+        emaki.jiuwu.craft.corelib.debug.DebugCommand command = debugCommand;
+        if (command == null) {
+            return;
+        }
+        command.handle(sender, Arrays.copyOfRange(args, 1, args.length), messages);
     }
 
     private void adminInstances(CommandSender sender) { new DungeonCommandRouterDelegate(this).adminInstances(sender); }
@@ -379,6 +396,10 @@ public final class DungeonCommandRouter {
         }
         if ("admin".equalsIgnoreCase(sub)) {
             routeAdmin(sender, args);
+            return;
+        }
+        if ("debug".equalsIgnoreCase(sub)) {
+            routeDebug(sender, args);
             return;
         }
         if (!(sender instanceof Player player)) {
@@ -640,27 +661,9 @@ public final class DungeonCommandRouter {
                     }
                 }
                 case "save" -> editor.save(player);
-                case "pos1" -> {
-                    if (randomDungeon(player)) {
-                        routeRegionCommand(player, args, "pos1");
-                    } else {
-                        editor.markPos(player, 1);
-                    }
-                }
-                case "pos2" -> {
-                    if (randomDungeon(player)) {
-                        routeRegionCommand(player, args, "pos2");
-                    } else {
-                        editor.markPos(player, 2);
-                    }
-                }
-                case "clearpos" -> {
-                    if (randomDungeon(player)) {
-                        routeRegionCommand(player, args, "clearpos");
-                    } else {
-                        editor.clearPos(player);
-                    }
-                }
+                case "pos1" -> routeRegionCommand(player, args, "pos1");
+                case "pos2" -> routeRegionCommand(player, args, "pos2");
+                case "clearpos" -> routeRegionCommand(player, args, "clearpos");
                 case "mark" -> {
                     if (args.length < 3 || Texts.isBlank(args[2])) {
                         messages.send(player, "editor.mark_usage", Map.of());
@@ -679,13 +682,6 @@ public final class DungeonCommandRouter {
                     }
                     editor.startTest(player);
                 }
-                case "fill" -> {
-                    if (args.length < 3 || Texts.isBlank(args[2])) {
-                        messages.send(player, "editor.fill_usage", Map.of());
-                        return;
-                    }
-                    editor.fill(player, args[2]);
-                }
                 default -> messages.send(player, "editor.usage_session", Map.of());
             }
             return;
@@ -703,7 +699,8 @@ public final class DungeonCommandRouter {
             messages.send(player, "editor.busy_challenge", Map.of());
             return;
         }
-        if ("door".equals(Texts.lower(args[1])) || "status".equals(Texts.lower(args[1]))) {
+        String head = Texts.lower(args[1]);
+        if ("door".equals(head) || "status".equals(head) || "clearpos".equals(head)) {
             messages.send(player, "editor.random_only", Map.of());
             return;
         }
@@ -800,6 +797,9 @@ public final class DungeonCommandRouter {
                 if ("admin".equals(sub) && !sender.hasPermission("emakidungeon.admin")) {
                     continue;
                 }
+                if ("debug".equals(sub) && !sender.hasPermission("emakidungeon.admin")) {
+                    continue;
+                }
                 visible.add(sub);
             }
             return visible;
@@ -818,16 +818,6 @@ public final class DungeonCommandRouter {
             }
             if (args.length == 3 && "mark".equals(Texts.lower(args[1]))) {
                 return EditorService.markTypes();
-            }
-            if (args.length == 3 && "fill".equals(Texts.lower(args[1]))) {
-                String prefix = Texts.lower(args[2]);
-                List<String> blocks = new ArrayList<>();
-                for (Material material : Material.values()) {
-                    if (material.isBlock() && Texts.lower(material.name()).startsWith(prefix)) {
-                        blocks.add(Texts.lower(material.name()));
-                    }
-                }
-                return blocks;
             }
             if (args.length == 3 && "door".equals(Texts.lower(args[1]))) {
                 return List.of("remove", "list");
@@ -876,6 +866,11 @@ public final class DungeonCommandRouter {
             if (args.length == 2) {
                 return SPECTATE_SUBS;
             }
+        }
+        if ("debug".equals(root) && sender.hasPermission("emakidungeon.admin")) {
+            emaki.jiuwu.craft.corelib.debug.DebugCommand command = debugCommand;
+            return command == null ? List.of()
+                    : command.tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if ("admin".equals(root) && sender.hasPermission("emakidungeon.admin")) {
             if (args.length == 2) {
@@ -982,7 +977,7 @@ public final class DungeonCommandRouter {
                 sendHelpLines(sender, root, "command.help_entry_editor");
             }
             if (sender.hasPermission("emakidungeon.admin")) {
-                sendHelpLines(sender, root, "command.help_entry_admin");
+                sendHelpLines(sender, root, "command.help_entry_admin", "command.help_entry_debug");
             }
             sendHelpLines(sender, root, "command.help_entry_recruit", "command.help_entry_match",
                     "command.help_entry_spectate", "command.help_entry_random", "command.help_entry_help");
@@ -998,6 +993,10 @@ public final class DungeonCommandRouter {
             sendHelpPage(sender, root, List.of());
             return;
         }
+        if ("debug".equals(head) && !sender.hasPermission("emakidungeon.admin")) {
+            sendHelpPage(sender, root, List.of());
+            return;
+        }
         switch (head) {
             case "enter" -> sendValueHelp(sender, root, "command.help_enter_header",
                     "command.help_value_desc_enter", "enter", templates.discoverDungeons());
@@ -1009,6 +1008,7 @@ public final class DungeonCommandRouter {
             case "globalchat" -> sendGlobalChatHelp(sender, root);
             case "editor" -> sendEditorHelp(sender, root, path);
             case "admin" -> sendAdminHelp(sender, root, path);
+            case "debug" -> sendDebugHelp(sender, root, path);
             case "recruit" -> sendRecruitHelp(sender, root, path);
             case "match" -> sendMatchHelp(sender, root, path);
             case "spectate" -> sendSpectateHelp(sender, root);
@@ -1072,8 +1072,35 @@ public final class DungeonCommandRouter {
                 "command.help_editor_entry_clearpos",
                 "command.help_editor_entry_door", "command.help_editor_entry_status",
                 "command.help_editor_entry_mark", "command.help_editor_entry_marks",
-                "command.help_editor_entry_test", "command.help_editor_entry_fill");
+                "command.help_editor_entry_test");
         sendHelpFooter(sender);
+    }
+
+    private void sendDebugHelp(CommandSender sender, String root, List<String> path) {
+        if (path.size() >= 2) {
+            String tail = Texts.lower(path.get(1));
+            if ("player".equals(tail)) {
+                sendValueHelp(sender, root, "command.help_debug_player_header",
+                        "command.help_value_desc_debug_player", "debug player", onlinePlayerNames());
+                return;
+            }
+            if ("module".equals(tail)) {
+                sendValueHelp(sender, root, "command.help_debug_module_header",
+                        "command.help_value_desc_debug_module", "debug module", debugModules());
+                return;
+            }
+        }
+        sendHelpLines(sender, root, "command.help_debug_header",
+                "command.help_debug_entry_status", "command.help_debug_entry_on",
+                "command.help_debug_entry_off", "command.help_debug_entry_player",
+                "command.help_debug_entry_module");
+        sendHelpFooter(sender);
+    }
+
+    private List<String> debugModules() {
+        List<String> modules = new ArrayList<>();
+        modules.add("dungeon");
+        return modules;
     }
 
     private void sendAdminHelp(CommandSender sender, String root, List<String> path) {

@@ -24,7 +24,6 @@ public final class CaptureMarkers {
     private static final Color COLOR_ROOM = Color.AQUA;
     private static final Color COLOR_CORRIDOR = Color.ORANGE;
     private static final Color COLOR_DOOR = Color.fromRGB(0xFF69B4);
-    private static final double POINT_HALF = 0.75D;
 
     private final Plugin plugin;
     private final ExecutionDispatcher dispatcher;
@@ -213,9 +212,7 @@ public final class CaptureMarkers {
             int x = (int) Math.round(node.dx()) + anchorPos[0];
             int y = (int) Math.round(node.dy()) + anchorPos[1];
             int z = (int) Math.round(node.dz()) + anchorPos[2];
-            EditorModuleMarkers.Box box = new EditorModuleMarkers.Box(
-                    x - POINT_HALF, y - POINT_HALF, z - POINT_HALF,
-                    x + POINT_HALF, y + POINT_HALF, z + POINT_HALF);
+            EditorModuleMarkers.Box box = new EditorModuleMarkers.Box(x, y, z, x, y, z);
             out.addAll(renderer.spawnEdges(world, ownerId, box, Color.fromRGB(0xFFD700)));
             renderer.spawnTag(world, ownerId, EditorModuleMarkers.captureLabelGroup(ownerId),
                     "snode:" + templateId + ":" + node.nodeId(), box,
@@ -236,8 +233,7 @@ public final class CaptureMarkers {
         for (ModuleNode node : session.nodes) {
             int[] pos = session.nodeWorldPos(node);
             EditorModuleMarkers.Box box = new EditorModuleMarkers.Box(
-                    pos[0] - POINT_HALF, pos[1] - POINT_HALF, pos[2] - POINT_HALF,
-                    pos[0] + POINT_HALF, pos[1] + POINT_HALF, pos[2] + POINT_HALF);
+                    pos[0], pos[1], pos[2], pos[0], pos[1], pos[2]);
             out.addAll(renderer.spawnEdges(world, ownerId, box, Color.fromRGB(0xFFD700)));
             renderer.spawnTag(world, ownerId, EditorModuleMarkers.captureLabelGroup(ownerId),
                     "node:" + node.nodeId(), box, renderer.nodeLabel(node.moduleType(), node.nodeId()));

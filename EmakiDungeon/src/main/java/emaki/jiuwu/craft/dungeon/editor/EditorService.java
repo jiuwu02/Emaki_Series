@@ -39,7 +39,6 @@ import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
 import emaki.jiuwu.craft.dungeon.type.DungeonType;
 import emaki.jiuwu.craft.dungeon.type.DungeonTypeRegistry;
 import emaki.jiuwu.craft.dungeon.flow.FlowPoint;
-import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommandQueue;
 import emaki.jiuwu.craft.dungeon.world.TemplateRepository;
 import emaki.jiuwu.craft.dungeon.world.WorldCloner;
@@ -51,7 +50,6 @@ import emaki.jiuwu.craft.dungeon.world.WorldTypeSupport;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.nio.file.Path;
 import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.log.LogTag;
 
@@ -59,8 +57,10 @@ public final class EditorService implements Listener {
 
     public static final String EDIT_WORLD_PREFIX = "emd_edit_";
 
-    private static final long MAX_FILL_BLOCKS = 1_000_000L;
     static final List<String> REGION_SUBDIRS = List.of("region", "entities");
+    static final List<String> WORLD_DATA_FILES = List.of(
+            "level.dat",
+            "data/minecraft/game_rules.dat");
 
     public static List<String> markTypes() { return EditorServiceDelegate.markTypes(); }
 
@@ -266,19 +266,6 @@ public final class EditorService implements Listener {
         return config == null ? "" : config.type();
     }
 
-    public void markPos(Player player, int which) { new EditorServiceDelegate(this).markPos(player, which); }
-
-    public void clearPos(Player player) {
-        EditorSession session = requireReady(player);
-        if (session == null) {
-            return;
-        }
-        session.pos1(null);
-        session.pos2(null);
-        refreshMarkers(session);
-        messages.send(player, "editor.pos_cleared", Map.of());
-    }
-
     public void mark(Player player, String rawType, String rawId) {
         mark(player, rawType, rawId, null);
     }
@@ -299,6 +286,11 @@ public final class EditorService implements Listener {
         FlowPoint first = session.pos1();
         FlowPoint second = session.pos2();
         if (region) {
+            if (!emaki.jiuwu.craft.dungeon.type.DungeonTypeRegistry.RANDOM
+                    .equals(dungeonTypeOf(player.getUniqueId()))) {
+                messages.send(player, "editor.random_only", Map.of());
+                return;
+            }
             if (first == null && second == null) {
                 FlowPoint point = clickPoint != null ? clickPoint : lookPoint(player);
                 if (point == null) {
@@ -439,98 +431,6 @@ public final class EditorService implements Listener {
     private void finishSave(EditorSession session, boolean terrainChanged) { new EditorServiceDelegate(this).finishSave(session, terrainChanged); }
 
     public void discardChanges(Player player) { new EditorServiceDelegate(this).discardChanges(player); }
-
-    public void fill(Player player, String rawBlock) {
-        EditorSession session = requireReady(player);
-        if (session == null) {
-            return;
-        }
-        FlowPoint first = session.pos1();
-        FlowPoint second = session.pos2();
-        if (first == null) {
-            messages.send(player, "editor.pos_missing", Map.of("which", "1"));
-            return;
-        }
-        if (second == null) {
-            messages.send(player, "editor.pos_missing", Map.of("which", "2"));
-            return;
-        }
-        BlockData data;
-        try {
-            data = Bukkit.createBlockData(rawBlock);
-        } catch (IllegalArgumentException exception) {
-            messages.send(player, "editor.fill_invalid", Map.of("block", String.valueOf(rawBlock)));
-            return;
-        }
-        long[] bounds = bounds(first, second);
-        long volume = (bounds[3] - bounds[0] + 1L) * (bounds[4] - bounds[1] + 1L)
-                * (bounds[5] - bounds[2] + 1L);
-        if (volume <= 0L || volume > MAX_FILL_BLOCKS) {
-            messages.send(player, "editor.fill_too_large", Map.of(
-                    "count", String.valueOf(volume),
-                    "limit", String.valueOf(MAX_FILL_BLOCKS)));
-            return;
-        }
-        if (session.queue().isBackpressured()) {
-            messages.send(player, "editor.fill_busy", Map.of());
-            return;
-        }
-        ensurePump(session);
-        int cost = (int) Math.min(volume, Integer.MAX_VALUE);
-        session.queue().submit(new emaki.jiuwu.craft.dungeon.instance.WorldCommand() {
-            @Override
-            public int blockCost() {
-                return cost;
-            }
-
-            @Override
-            public void execute() {
-                World world = Bukkit.getWorld(session.editWorldName());
-                if (world == null) {
-                    return;
-                }
-                for (long x = bounds[0]; x <= bounds[3]; x++) {
-                    for (long y = bounds[1]; y <= bounds[4]; y++) {
-                        for (long z = bounds[2]; z <= bounds[5]; z++) {
-                            world.getBlockAt((int) x, (int) y, (int) z).setBlockData(data, false);
-                        }
-                    }
-                }
-            }
-        });
-        session.dirty(true);
-        messages.send(player, "editor.fill_started", Map.of("count", String.valueOf(volume)));
-    }
-
-    private void ensurePump(EditorSession session) {
-        if (session.pump() != null || session.editWorld() == null) {
-            return;
-        }
-        Location anchor = session.editWorld().getSpawnLocation();
-        session.pump(dispatcher.runGlobalTimer(plugin, () -> {
-            if (sessions.get(session.playerId()) != session) {
-                return;
-            }
-            List<WorldCommand> batch = session.queue().drain();
-            if (batch.isEmpty()) {
-                return;
-            }
-            session.inFlightAdd(batch.size());
-            for (WorldCommand command : batch) {
-                dispatcher.runAtLocation(plugin, anchor, () -> {
-                    try {
-                        command.execute();
-                    } catch (Throwable throwable) {
-                        command.fail(throwable);
-                        messages.warning(LogTag.EDITOR, "console.editor_fill_command_failed", Map.of(
-                                "error", String.valueOf(throwable)));
-                    } finally {
-                        session.inFlightAdd(-1);
-                    }
-                });
-            }
-        }, 1L, 1L));
-    }
 
     File editDataDir(EditorSession session) { return new EditorServiceDelegate(this).editDataDir(session); }
 

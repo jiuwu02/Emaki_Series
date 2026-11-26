@@ -105,28 +105,6 @@ final class EditorServiceDelegate {
         return new ArrayList<>(ownerRef.sessions.values());
     }
 
-    void markPos(Player player, int which) {
-        EditorSession session = ownerRef.requireReady(player);
-        if (session == null) {
-            return;
-        }
-        FlowPoint point = ownerRef.lookPoint(player);
-        if (point == null) {
-            ownerRef.messages.send(player, "editor.no_target", Map.of());
-            return;
-        }
-        if (which == 1) {
-            session.pos1(point);
-        } else {
-            session.pos2(point);
-        }
-        ownerRef.messages.send(player, "editor.pos_set", Map.of(
-                "which", String.valueOf(which),
-                "coord", ownerRef.formatPoint(point)
-        ));
-        ownerRef.refreshMarkers(session);
-    }
-
     void finishSave(EditorSession session, boolean terrainChanged) {
         boolean changed = terrainChanged || session.dirty();
         int generation = changed ? ownerRef.states.bump(session.dungeonId())
@@ -187,9 +165,11 @@ final class EditorServiceDelegate {
                 session.regionSnapshot().put(sub + "/" + file.getName(), file.lastModified());
             }
         }
-        File levelFile = new File(editDir, "level.dat");
-        if (levelFile.isFile()) {
-            session.regionSnapshot().put("level.dat", levelFile.lastModified());
+        for (String relative : EditorService.WORLD_DATA_FILES) {
+            File dataFile = new File(editDir, relative);
+            if (dataFile.isFile()) {
+                session.regionSnapshot().put(relative, dataFile.lastModified());
+            }
         }
     }
 
@@ -230,21 +210,26 @@ final class EditorServiceDelegate {
                 }
             }
         }
-        File levelFile = new File(editDir, "level.dat");
-        if (levelFile.isFile()) {
-            long previous = session.regionSnapshot().getOrDefault("level.dat", -1L);
-            if (levelFile.lastModified() != previous) {
-                File target = new File(templateDir, "level.dat");
-                try {
-                    backed |= backupTemplateFile(target, "level.dat", backupDir);
-                    Files.copy(levelFile.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    session.regionSnapshot().put("level.dat", levelFile.lastModified());
-                    changed = true;
-                } catch (IOException exception) {
-                    ownerRef.messages.warning(LogTag.EDITOR, "console.editor_region_writeback_failed", Map.of(
-                            "file", "level.dat",
-                            "error", String.valueOf(exception.getMessage())));
-                }
+        for (String relative : EditorService.WORLD_DATA_FILES) {
+            File dataFile = new File(editDir, relative);
+            if (!dataFile.isFile()) {
+                continue;
+            }
+            long previous = session.regionSnapshot().getOrDefault(relative, -1L);
+            if (dataFile.lastModified() == previous) {
+                continue;
+            }
+            File target = new File(templateDir, relative);
+            try {
+                Files.createDirectories(target.toPath().getParent());
+                backed |= backupTemplateFile(target, relative, backupDir);
+                Files.copy(dataFile.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                session.regionSnapshot().put(relative, dataFile.lastModified());
+                changed = true;
+            } catch (IOException exception) {
+                ownerRef.messages.warning(LogTag.EDITOR, "console.editor_region_writeback_failed", Map.of(
+                        "file", relative,
+                        "error", String.valueOf(exception.getMessage())));
             }
         }
         if (backed) {

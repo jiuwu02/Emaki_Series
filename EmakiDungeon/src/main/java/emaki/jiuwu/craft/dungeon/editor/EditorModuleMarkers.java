@@ -417,8 +417,13 @@ public final class EditorModuleMarkers {
         if (service == null || text == null || text.isBlank()) {
             return;
         }
-        Location base = new Location(world, box.centerX(),
-                Math.min(box.maxY() + 0.6D, box.centerY() + 1.2D), box.centerZ());
+        boolean point = box.minX() == box.maxX() && box.minY() == box.maxY()
+                && box.minZ() == box.maxZ();
+        double labelY = point ? box.maxY() + 1.5D
+                : Math.min(box.maxY() + 0.6D, box.centerY() + 1.2D);
+        double labelX = point ? box.minX() + 0.5D : box.centerX();
+        double labelZ = point ? box.minZ() + 0.5D : box.centerZ();
+        Location base = new Location(world, labelX, labelY, labelZ);
         service.upsert(new TextDisplaySpec(new DisplayKey(LABEL_NAMESPACE, group, id), text, base,
                 LABEL_PROFILE, 0, Set.of(ownerId)));
     }

@@ -196,10 +196,6 @@ final class EditorGuiDelegate {
         }
     }
 
-    String pointText(FlowPoint point) {
-        return point == null ? "-" : point.x() + "," + point.y() + "," + point.z();
-    }
-
     String fieldKey(String key) {
         return "editor.gui.field." + key;
     }

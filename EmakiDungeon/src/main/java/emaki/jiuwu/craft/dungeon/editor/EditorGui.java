@@ -44,8 +44,6 @@ public final class EditorGui implements Listener {
     static final int SLOT_CLOSE = 53;
     private static final int SLOT_HELP = 14;
     private static final int SLOT_EXITS = 15;
-    private static final int SLOT_POS1 = 20;
-    private static final int SLOT_POS2 = 21;
     private static final int SLOT_STATUS = 26;
     private static final int SLOT_SAVE = 45;
     private static final int SLOT_DISCARD = 47;
@@ -221,10 +219,6 @@ public final class EditorGui implements Listener {
         inventory.setItem(SLOT_HELP, navItem(Material.COMPASS, "editor.gui.help"));
         inventory.setItem(SLOT_EXITS, navItem(Material.RED_BED, "editor.gui.exits"));
         inventory.setItem(SLOT_MODULES, navItem(Material.CHEST, "editor.gui.modules"));
-        inventory.setItem(SLOT_POS1, navItem(Material.LIME_TERRACOTTA, "editor.gui.pos1",
-                "coord", pointText(session.pos1())));
-        inventory.setItem(SLOT_POS2, navItem(Material.LIME_TERRACOTTA, "editor.gui.pos2",
-                "coord", pointText(session.pos2())));
         inventory.setItem(SLOT_STATUS, navItem(Material.ENDER_EYE, "editor.gui.status",
                 "marks", String.valueOf(session.stagedMarks().size()),
                 "state", messages.message(session.dirty() ? "editor.gui.state_dirty"
@@ -453,8 +447,6 @@ public final class EditorGui implements Listener {
     void renderNav(Inventory inventory, EditorHolder holder, int pages, Material actionMaterial) { new EditorGuiDelegate(this).renderNav(inventory, holder, pages, actionMaterial); }
 
     void fill(Inventory inventory) { new EditorGuiDelegate(this).fill(inventory); }
-
-    private String pointText(FlowPoint point) { return new EditorGuiDelegate(this).pointText(point); }
 
     String fieldKey(String key) { return new EditorGuiDelegate(this).fieldKey(key); }
 
