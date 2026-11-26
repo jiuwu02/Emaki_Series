@@ -12,7 +12,8 @@ display-name: "示例副本"
 description: "一份用于演示的线性副本配置"
 difficulty-group: "default"
 
-# 副本类型 (normal=常规, affix=词条类型可挂接点).未知类型加载期告警并静默回退 normal
+# 副本类型: normal=常规副本, random=随机生成地牢 (区域采集与 /edungeon random create 仅该类型可用)
+# 未知类型在加载期告警并静默回退 normal
 type: normal
 
 # 实例内常驻 HUD (默认关闭; channel 仅 bossbar / scoreboard, 非法值静默回退 bossbar)

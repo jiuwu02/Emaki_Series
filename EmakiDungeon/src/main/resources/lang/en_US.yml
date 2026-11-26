@@ -2,12 +2,12 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.41"
+version: "1.0.42"
 
 tags:
-  challenge: '[ challenge ]'
-  rewardbox: '[ rewardbox ]'
-  storage: '[ storage ]'
+  challenge: "[ challenge ]"
+  rewardbox: "[ rewardbox ]"
+  storage: "[ storage ]"
 
 general:
   prefix: "<gray>[ <gradient:#1E3A8A:#8B5CF6>EmakiDungeon</gradient> ]</gray>"
@@ -761,9 +761,19 @@ random:
   create_no_dungeon: "<red>A dungeonId is required: /edungeon random create <dungeonId></red>"
   region_created: "<green>Auto-created <type> <id> | blocks <blocks> | mark two points inside its selection to add a door</green>"
   region_type_invalid: "<red>Invalid region type: <type></red>"
+  region_overlap: "<red>New region overlaps existing structure <white><target></white>: a selection may not contain any existing room/corridor</red>"
   not_random_type: "<red>Dungeon <dungeon> is not a random type; set type: random in its config.yml</red>"
   gui:
-    title: "<dark_gray>Random Template Capture</dark_gray>"
+    title: "<dark_gray>Region capture</dark_gray> <gray>-</gray> <white><region></white>"
+    title_main: "<dark_gray>Region capture</dark_gray> <gray>-</gray> <white><region></white>"
+    title_meta: "<dark_gray>Region capture · structure metadata</dark_gray> <gray>-</gray> <white><region></white>"
+    title_anchors: "<dark_gray>Region capture · doors</dark_gray> <gray>-</gray> <white><region></white>"
+    title_nodes: "<dark_gray>Region capture · function modules</dark_gray> <gray>-</gray> <white><region></white>"
+    title_node: "<dark_gray>Function module parameters</dark_gray> <gray>-</gray> <white><region></white>"
+    title_place: "<dark_gray>Place function module</dark_gray> <gray>-</gray> <white><region></white>"
+    title_structure: "<dark_gray>Structure editor</dark_gray> <gray>-</gray> <white><region></white>"
+    title_create: "<dark_gray>Create region</dark_gray> <gray>-</gray> <white><region></white>"
+    title_no_region: "no structure selected"
     pos1: "<white>Corner 1</white>"
     pos2: "<white>Corner 2</white>"
     meta: "<white>Structure metadata</white>"
@@ -792,6 +802,7 @@ random:
     door_add: "<green>Door: mark two points with pos1/pos2</green>"
     door_hint: "<gray>Door creation: mark two points with pos1 and pos2 inside a room/corridor selection and the door is generated automatically</gray>"
     nodes_hint: "<white>Right-click empty-handed to place a module</white>"
+    place_structure_hint: "<gray>Adds a function node to structure <white><id></white></gray>"
     node_delete: "<red>Delete point</red>"
     structure_missing: "<red>Structure not found</red>"
     structure_delete: "<red>Delete this structure</red>"

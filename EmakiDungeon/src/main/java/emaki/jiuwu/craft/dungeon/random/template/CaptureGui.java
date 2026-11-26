@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.dungeon.editor.EditorModules;
 import emaki.jiuwu.craft.dungeon.random.config.RandomConfig;
 import emaki.jiuwu.craft.dungeon.random.model.TemplateMeta;
 import emaki.jiuwu.craft.dungeon.random.model.TemplateModel;
@@ -54,6 +55,35 @@ public final class CaptureGui implements Listener {
         public Inventory getInventory() {
             return null;
         }
+    }
+
+    private String titleKey(Panel panel) {
+        return switch (panel) {
+            case MAIN -> "random.gui.title_main";
+            case META -> "random.gui.title_meta";
+            case ANCHORS -> "random.gui.title_anchors";
+            case NODES -> "random.gui.title_nodes";
+            case NODE -> "random.gui.title_node";
+            case PLACE -> "random.gui.title_place";
+            case STRUCTURE -> "random.gui.title_structure";
+            case CREATE -> "random.gui.title_create";
+        };
+    }
+
+    private Map<String, String> titleArgs(CaptureService.Session session, Holder holder) {
+        Map<String, String> args = new java.util.LinkedHashMap<>();
+        String region = switch (holder.panel) {
+            case STRUCTURE -> holder.path.length > 0 ? holder.path[0] : "";
+            case NODE -> holder.path.length > 1 && !holder.path[0].isBlank()
+                    ? holder.path[0] : captures.targetOf(session);
+            default -> captures.targetOf(session);
+        };
+        if (region == null || region.isBlank()) {
+            region = messages.message("random.gui.title_no_region", Map.of());
+        }
+        args.put("region", region);
+        args.put("id", region);
+        return args;
     }
 
     private static final int SLOT_PREV = 45;
@@ -106,12 +136,16 @@ public final class CaptureGui implements Listener {
     }
 
     public void openPlacement(Player player, Block block) {
+        openPlacement(player, block, "");
+    }
+
+    public void openPlacement(Player player, Block block, String templateId) {
         CaptureService.Session session = captures.sessionOf(player.getUniqueId());
         if (session == null) {
             return;
         }
         session.pendingBlock = block;
-        open(player, new Holder(Panel.PLACE, new String[0], 0));
+        open(player, new Holder(Panel.PLACE, new String[] {templateId == null ? "" : templateId}, 0));
     }
 
     private void open(Player player, Holder holder) {
@@ -119,7 +153,7 @@ public final class CaptureGui implements Listener {
         if (session == null) {
             return;
         }
-        String title = messages.message("random.gui.title", Map.of());
+        String title = messages.message(titleKey(holder.panel), titleArgs(session, holder));
         Inventory inventory = plugin.getServer().createInventory(holder, 54, MiniMessages.parse(title));
         render(inventory, session, holder);
         player.openInventory(inventory);
@@ -135,7 +169,7 @@ public final class CaptureGui implements Listener {
             case ANCHORS -> renderAnchors(inventory, session, holder);
             case NODES -> renderNodes(inventory, session, holder);
             case NODE -> renderNode(inventory, session, holder);
-            case PLACE -> renderPlace(inventory);
+            case PLACE -> renderPlace(inventory, holder);
             case STRUCTURE -> renderStructure(inventory, session, holder);
             case CREATE -> renderCreate(inventory, session);
         }
@@ -205,48 +239,96 @@ public final class CaptureGui implements Listener {
     private void renderNode(Inventory inventory, CaptureService.Session session, Holder holder) {
         String templateId = holder.path[0];
         String nodeId = holder.path[1];
-        Map<String, Object> params = Map.of();
+        ModuleNode node = nodeOf(session, templateId, nodeId);
+        if (node == null) {
+            inventory.setItem(SLOT_INFO, item(Material.BARRIER, "random.gui.structure_missing", List.of()));
+            inventory.setItem(SLOT_BACK, item(Material.OAK_DOOR, "random.gui.back", List.of()));
+            return;
+        }
+        inventory.setItem(SLOT_INFO, itemRaw(Material.BOOK,
+                "<white>" + plain(node.moduleType()) + "</white> <gray>"
+                        + plain(node.nodeId()) + "</gray>", List.of()));
         if (templateId.isBlank()) {
-            for (ModuleNode node : session.nodes) {
-                if (node.nodeId().equals(nodeId)) {
-                    params = node.params();
-                    inventory.setItem(SLOT_INFO, itemRaw(Material.BOOK,
-                            "<white>" + plain(node.moduleType()) + "</white> <gray>"
-                                    + plain(node.nodeId()) + "</gray>", List.of()));
+            int slot = 0;
+            for (Map.Entry<String, Object> entry : node.params().entrySet()) {
+                if (slot >= 36) {
                     break;
                 }
+                inventory.setItem(slot++, itemRaw(Material.PAPER,
+                        "<white>" + plain(entry.getKey()) + "</white> <gray>"
+                                + plain(String.valueOf(entry.getValue())) + "</gray>", List.of()));
             }
         } else {
-            TemplateMeta meta = captures.structure(session, templateId);
-            if (meta != null) {
-                for (ModuleNode node : meta.nodes()) {
-                    if (node.nodeId().equals(nodeId)) {
-                        params = node.params();
-                        inventory.setItem(SLOT_INFO, itemRaw(Material.BOOK,
-                                "<white>" + plain(node.moduleType()) + "</white> <gray>"
-                                        + plain(node.nodeId()) + "</gray>", List.of()));
-                        break;
-                    }
-                }
+            List<EditorModules.Field> fields = fieldsOf(node);
+            for (int index = 0; index < fields.size() && index < 36; index++) {
+                EditorModules.Field field = fields.get(index);
+                Object value = valueOf(node, field);
+                inventory.setItem(index, itemRaw(Material.PAPER,
+                        "<white>" + plain(fieldLabel(field)) + "</white> <gray>"
+                                + plain(value == null ? "-" : String.valueOf(value)) + "</gray>", List.of()));
             }
-        }
-        int slot = 0;
-        for (Map.Entry<String, Object> entry : params.entrySet()) {
-            if (slot >= 40) {
-                break;
-            }
-            inventory.setItem(slot++, itemRaw(Material.PAPER,
-                    "<white>" + plain(entry.getKey()) + "</white> <gray>"
-                            + plain(String.valueOf(entry.getValue())) + "</gray>", List.of()));
         }
         inventory.setItem(SLOT_DELETE, item(Material.RED_CONCRETE, "random.gui.node_delete", List.of()));
         inventory.setItem(SLOT_BACK, item(Material.OAK_DOOR, "random.gui.back", List.of()));
     }
 
-    private void renderPlace(Inventory inventory) {
+    private ModuleNode nodeOf(CaptureService.Session session, String templateId, String nodeId) {
+        if (templateId.isBlank()) {
+            for (ModuleNode node : session.nodes) {
+                if (node.nodeId().equals(nodeId)) {
+                    return node;
+                }
+            }
+            return null;
+        }
+        return captures.structureNode(session, templateId, nodeId);
+    }
+
+    private List<EditorModules.Field> fieldsOf(ModuleNode node) {
+        EditorModules.ModuleSpec spec = specOf(node.moduleType());
+        return spec == null ? List.of() : spec.fields();
+    }
+
+    private EditorModules.ModuleSpec specOf(String moduleType) {
+        if (moduleType == null) {
+            return null;
+        }
+        for (EditorModules.ModuleSpec spec : EditorModules.all()) {
+            if (spec.section().equals(moduleType)) {
+                return spec;
+            }
+        }
+        return null;
+    }
+
+    private String fieldLabel(EditorModules.Field field) {
+        return messages.message(fieldKey(field.key()), Map.of());
+    }
+
+    private String fieldKey(String key) {
+        return "editor.gui.field." + key;
+    }
+
+    private Object valueOf(ModuleNode node, EditorModules.Field field) {
+        Object current = node.params();
+        for (String segment : field.path()) {
+            if (!(current instanceof Map<?, ?> map)) {
+                return null;
+            }
+            current = map.get(segment);
+        }
+        return current;
+    }
+
+    private void renderPlace(Inventory inventory, Holder holder) {
+        boolean structure = holder.path.length > 0 && !holder.path[0].isBlank();
         for (int index = 0; index < NODE_MODULES.size() && index < 45; index++) {
             inventory.setItem(index, itemRaw(Material.LIME_DYE,
                     "<white>" + plain(NODE_MODULES.get(index)) + "</white>", List.of()));
+        }
+        if (structure) {
+            inventory.setItem(SLOT_INFO, item(Material.PAPER, "random.gui.place_structure_hint",
+                    List.of(holder.path[0])));
         }
         inventory.setItem(SLOT_BACK, item(Material.OAK_DOOR, "random.gui.back", List.of()));
     }
@@ -327,7 +409,7 @@ public final class CaptureGui implements Listener {
             case ANCHORS -> handleAnchors(player, holder, session, slot);
             case NODES -> handleNodes(player, holder, session, slot);
             case NODE -> handleNode(player, holder, session, slot);
-            case PLACE -> handlePlace(player, session, slot);
+            case PLACE -> handlePlace(player, session, holder, slot);
             case STRUCTURE -> handleStructure(player, holder, session, slot);
             case CREATE -> handleCreate(player, session, slot);
         }
@@ -365,10 +447,7 @@ public final class CaptureGui implements Listener {
                 report(player, captures.meta(player, "type", next));
                 reopen(player, holder);
             }
-            case 11 -> prompt(player, holder, "tags", text -> {
-                report(player, captures.meta(player, "tags", text));
-                reopen(player, holder);
-            });
+            case 11 -> promptClose(player, "tags", text -> report(player, captures.meta(player, "tags", text)));
             case 12 -> prompt(player, holder, "floors", text -> {
                 report(player, captures.meta(player, "floors", text));
                 reopen(player, holder);
@@ -396,14 +475,8 @@ public final class CaptureGui implements Listener {
                 report(player, captures.meta(player, "door-policy", next));
                 reopen(player, holder);
             }
-            case 17 -> prompt(player, holder, "seal-block", text -> {
-                report(player, captures.meta(player, "seal-block", text));
-                reopen(player, holder);
-            });
-            case 18 -> prompt(player, holder, "weight", text -> {
-                report(player, captures.meta(player, "weight", text));
-                reopen(player, holder);
-            });
+            case 17 -> promptClose(player, "seal-block", text -> report(player, captures.meta(player, "seal-block", text)));
+            case 18 -> promptClose(player, "weight", text -> report(player, captures.meta(player, "weight", text)));
             case SLOT_BACK -> open(player, new Holder(Panel.MAIN, new String[0], 0));
             default -> {
             }
@@ -463,38 +536,65 @@ public final class CaptureGui implements Listener {
                 messages.send(player, "editor.module_deleted", Map.of("type", "node", "id", nodeId));
                 open(player, new Holder(Panel.NODES, new String[0], 0));
             } else {
-                deleteStructureNode(player, templateId, nodeId);
+                if (captures.deleteStructureNode(session, templateId, nodeId)) {
+                    messages.send(player, "editor.module_deleted", Map.of("type", "node", "id", nodeId));
+                }
                 open(player, new Holder(Panel.STRUCTURE, new String[] {templateId}, 0));
             }
             return;
         }
-        List<String> keys = paramKeys(session, templateId, nodeId);
-        if (slot >= 0 && slot < keys.size()) {
+        ModuleNode node = nodeOf(session, templateId, nodeId);
+        if (node == null) {
+            return;
+        }
+        if (templateId.isBlank()) {
+            List<String> keys = new ArrayList<>(node.params().keySet());
+            if (slot < 0 || slot >= keys.size()) {
+                return;
+            }
             String key = keys.get(slot);
             prompt(player, holder, "node_param", text -> {
-                if (templateId.isBlank()) {
-                    report(player, captures.nodeParam(player, nodeId, key, text));
-                } else {
-                    setStructureNodeParam(player, templateId, nodeId, key, text);
-                }
+                report(player, captures.nodeParam(player, nodeId, key, text));
                 reopen(player, holder);
             });
+            return;
         }
+        List<EditorModules.Field> fields = fieldsOf(node);
+        if (slot < 0 || slot >= fields.size()) {
+            return;
+        }
+        EditorModules.Field field = fields.get(slot);
+        prompt(player, holder, "node_param", text -> {
+            report(player, captures.structureNodeParam(player, templateId, nodeId,
+                    List.of(field.path()), text));
+            reopen(player, holder);
+        });
     }
 
-    private void handlePlace(Player player, CaptureService.Session session, int slot) {
+    private void handlePlace(Player player, CaptureService.Session session, Holder holder, int slot) {
+        String templateId = holder.path.length > 0 ? holder.path[0] : "";
         if (slot == SLOT_BACK) {
             session.pendingBlock = null;
-            open(player, new Holder(Panel.MAIN, new String[0], 0));
+            if (templateId.isBlank()) {
+                open(player, new Holder(Panel.MAIN, new String[0], 0));
+            } else {
+                open(player, new Holder(Panel.STRUCTURE, new String[] {templateId}, 0));
+            }
             return;
         }
         if (slot < 0 || slot >= NODE_MODULES.size() || session.pendingBlock == null) {
             return;
         }
         String module = NODE_MODULES.get(slot);
-        String nodeId = nextNodeId(session, module);
         Block block = session.pendingBlock;
         session.pendingBlock = null;
+        if (!templateId.isBlank()) {
+            String structureNodeId = nextStructureNodeId(session, templateId, module);
+            report(player, captures.nodeAddToStructure(player, templateId, module, structureNodeId, "", block));
+            open(player, new Holder(Panel.STRUCTURE, new String[] {templateId}, 0));
+            return;
+        }
+        String nodeId = nextNodeId(session, module);
         report(player, captures.nodeAdd(player, module, nodeId, "", block));
         for (ModuleNode node : session.nodes) {
             if (node.nodeId().equals(nodeId)) {
@@ -523,7 +623,7 @@ public final class CaptureGui implements Listener {
         TemplateMeta meta = captures.structure(session, templateId);
         if (meta == null) {
             if (slot == SLOT_BACK) {
-                player.closeInventory();
+                open(player, new Holder(Panel.MAIN, new String[0], 0));
             }
             return;
         }
@@ -536,7 +636,7 @@ public final class CaptureGui implements Listener {
                         meta.rotations(), meta.nodes()));
                 reopen(player, holder);
             }
-            case 11 -> prompt(player, holder, "tags", text -> {
+            case 11 -> promptClose(player, "tags", text -> {
                 List<String> tags = new ArrayList<>();
                 for (String tag : text.split(",")) {
                     if (!tag.isBlank()) {
@@ -546,7 +646,6 @@ public final class CaptureGui implements Listener {
                 saveStructure(player, templateId, copy(meta, meta.structureType(), tags, meta.floors(),
                         meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), meta.sealBlock(),
                         meta.rotations(), meta.nodes()));
-                reopen(player, holder);
             });
             case 12 -> prompt(player, holder, "floors", text -> {
                 int floors = Math.max(1, parseInt(text, meta.floors()));
@@ -598,26 +697,19 @@ public final class CaptureGui implements Listener {
                         meta.rotations(), meta.nodes()));
                 reopen(player, holder);
             }
-            case 17 -> prompt(player, holder, "seal-block", text -> {
-                saveStructure(player, templateId, copy(meta, meta.structureType(), meta.tags(), meta.floors(),
-                        meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), text.trim(),
-                        meta.rotations(), meta.nodes()));
-                reopen(player, holder);
-            });
-            case 18 -> prompt(player, holder, "weight", text -> {
-                saveStructure(player, templateId, copy(meta, meta.structureType(), meta.tags(), meta.floors(),
-                        meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), meta.sealBlock(),
-                        meta.rotations(), meta.nodes(), Math.max(0, parseInt(text, meta.weight()))));
-                reopen(player, holder);
-            });
+            case 17 -> promptClose(player, "seal-block", text -> saveStructure(player, templateId,
+                    copy(meta, meta.structureType(), meta.tags(), meta.floors(),
+                            meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), text.trim(),
+                            meta.rotations(), meta.nodes())));
+            case 18 -> promptClose(player, "weight", text -> saveStructure(player, templateId,
+                    copy(meta, meta.structureType(), meta.tags(), meta.floors(),
+                            meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), meta.sealBlock(),
+                            meta.rotations(), meta.nodes(), Math.max(0, parseInt(text, meta.weight())))));
             case SLOT_DELETE -> {
                 deleteStructure(player, templateId);
-                player.closeInventory();
+                open(player, new Holder(Panel.MAIN, new String[0], 0));
             }
-            case SLOT_BACK -> {
-                session.pendingBlock = null;
-                player.closeInventory();
-            }
+            case SLOT_BACK -> open(player, new Holder(Panel.MAIN, new String[0], 0));
             default -> {
             }
         }
@@ -632,28 +724,13 @@ public final class CaptureGui implements Listener {
             open(player, new Holder(panel, holder.path, holder.page + 1));
             return true;
         }
-        return slot == SLOT_CLOSE;
+        if (slot == SLOT_CLOSE) {
+            player.closeInventory();
+            return true;
+        }
+        return false;
     }
 
-    private List<String> paramKeys(CaptureService.Session session, String templateId, String nodeId) {
-        if (templateId.isBlank()) {
-            for (ModuleNode node : session.nodes) {
-                if (node.nodeId().equals(nodeId)) {
-                    return new ArrayList<>(node.params().keySet());
-                }
-            }
-            return List.of();
-        }
-        TemplateMeta meta = captures.structure(session, templateId);
-        if (meta != null) {
-            for (ModuleNode node : meta.nodes()) {
-                if (node.nodeId().equals(nodeId)) {
-                    return new ArrayList<>(node.params().keySet());
-                }
-            }
-        }
-        return List.of();
-    }
 
     private TemplateMeta copy(TemplateMeta meta, String structureType, List<String> tags, int floors,
             boolean mirrorable, String intrusion, String door, String seal, List<Integer> rotations,
@@ -694,55 +771,25 @@ public final class CaptureGui implements Listener {
         captures.fireRefresh(session.playerId);
     }
 
-    private void deleteStructureNode(Player player, String templateId, String nodeId) {
-        CaptureService.Session session = captures.sessionOf(player.getUniqueId());
-        if (session == null) {
-            return;
-        }
-        TemplateMeta meta = captures.structure(session, templateId);
-        if (meta == null) {
-            return;
-        }
-        List<ModuleNode> nodes = new ArrayList<>();
-        for (ModuleNode node : meta.nodes()) {
-            if (!node.nodeId().equals(nodeId)) {
-                nodes.add(node);
-            }
-        }
-        if (captures.saveStructure(session, copy(meta, meta.structureType(), meta.tags(), meta.floors(),
-                meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), meta.sealBlock(),
-                meta.rotations(), nodes))) {
-            messages.send(player, "editor.module_deleted", Map.of("type", "node", "id", nodeId));
-        }
-        captures.fireRefresh(session.playerId);
-    }
 
-    private void setStructureNodeParam(Player player, String templateId, String nodeId, String key, String value) {
-        CaptureService.Session session = captures.sessionOf(player.getUniqueId());
-        if (session == null) {
-            return;
-        }
+
+    private String nextStructureNodeId(CaptureService.Session session, String templateId, String module) {
+        java.util.Set<String> used = new java.util.HashSet<>();
         TemplateMeta meta = captures.structure(session, templateId);
-        if (meta == null) {
-            return;
-        }
-        List<ModuleNode> nodes = new ArrayList<>();
-        for (ModuleNode node : meta.nodes()) {
-            if (node.nodeId().equals(nodeId)) {
-                Map<String, Object> params = new java.util.LinkedHashMap<>(node.params());
-                params.put(key, value);
-                nodes.add(new ModuleNode(node.moduleType(), node.nodeId(), node.anchorId(),
-                        node.dx(), node.dy(), node.dz(), node.yaw(), params));
-            } else {
-                nodes.add(node);
+        if (meta != null) {
+            for (ModuleNode node : meta.nodes()) {
+                used.add(node.nodeId());
             }
         }
-        if (captures.saveStructure(session, copy(meta, meta.structureType(), meta.tags(), meta.floors(),
-                meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), meta.sealBlock(),
-                meta.rotations(), nodes))) {
-            messages.send(player, "random.template.node_param_set", Map.of("id", nodeId, "key", key));
+        int index = 1;
+        while (index < 512) {
+            String candidate = module + "_" + index;
+            if (!used.contains(candidate)) {
+                return candidate;
+            }
+            index++;
         }
-        captures.fireRefresh(session.playerId);
+        return module + "_" + System.currentTimeMillis();
     }
 
     private String nextNodeId(CaptureService.Session session, String module) {
@@ -764,6 +811,17 @@ public final class CaptureGui implements Listener {
 
     private void report(Player player, CaptureService.Result result) {
         messages.send(player, result.messageKey(), result.params());
+    }
+
+    private void promptClose(Player player, String fieldKey, java.util.function.Consumer<String> handler) {
+        String label = messages.message("random.gui.field." + fieldKey, Map.of());
+        player.closeInventory();
+        messages.send(player, "editor.input_prompt", Map.of("field", label));
+        chatInput.await(new ChatInputRequest(plugin, player, 60L, List.of("取消", "cancel"), result -> {
+            if (result.submitted()) {
+                handler.accept(Texts.trim(MiniMessages.plainText(result.text())));
+            }
+        }));
     }
 
     private void prompt(Player player, Holder holder, String fieldKey, java.util.function.Consumer<String> handler) {

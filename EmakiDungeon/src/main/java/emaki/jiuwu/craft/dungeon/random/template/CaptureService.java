@@ -167,6 +167,10 @@ public final class CaptureService {
         if (target != null) {
             return createDoor(player, session, target);
         }
+        String overlap = dungeonId.isBlank() ? null : overlapping(dungeonId, session.pos1, session.pos2);
+        if (overlap != null) {
+            return Result.fail("random.template.region_overlap", Map.of("target", overlap));
+        }
         return createRegion(player, session.structureType, config);
     }
 
@@ -328,6 +332,34 @@ public final class CaptureService {
         return null;
     }
 
+    private String overlapping(String dungeonId, int[] first, int[] second) {
+        int minX = Math.min(first[0], second[0]);
+        int minY = Math.min(first[1], second[1]);
+        int minZ = Math.min(first[2], second[2]);
+        int maxX = Math.max(first[0], second[0]);
+        int maxY = Math.max(first[1], second[1]);
+        int maxZ = Math.max(first[2], second[2]);
+        for (Map.Entry<String, TemplateMeta> entry : storeProvider.apply(dungeonId).loadAll().entrySet()) {
+            List<Integer> sel = entry.getValue().selection();
+            if (sel.size() != 6) {
+                continue;
+            }
+            int selMinX = Math.min(sel.get(0), sel.get(3));
+            int selMinY = Math.min(sel.get(1), sel.get(4));
+            int selMinZ = Math.min(sel.get(2), sel.get(5));
+            int selMaxX = Math.max(sel.get(0), sel.get(3));
+            int selMaxY = Math.max(sel.get(1), sel.get(4));
+            int selMaxZ = Math.max(sel.get(2), sel.get(5));
+            boolean disjoint = maxX < selMinX || minX > selMaxX
+                    || maxY < selMinY || minY > selMaxY
+                    || maxZ < selMinZ || minZ > selMaxZ;
+            if (!disjoint) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
     private boolean inside(List<Integer> sel, int[] point) {
         if (point == null) {
             return false;
@@ -468,6 +500,57 @@ public final class CaptureService {
                 anchorId == null ? "" : anchorId,
                 block.getX() - anchorPos[0], block.getY() - anchorPos[1], block.getZ() - anchorPos[2],
                 0.0D, params));
+        return Result.ok("random.template.node_added", Map.of("module", module, "id", nodeId));
+    }
+
+    public Result nodeAddToStructure(Player player, String templateId, String module, String nodeId,
+            String anchorId, Block target) {
+        try {
+            return nodeAddToStructureInner(player, templateId, module, nodeId, anchorId, target);
+        } finally {
+            fireRefresh(player.getUniqueId());
+        }
+    }
+
+    Result nodeAddToStructureInner(Player player, String templateId, String module, String nodeId,
+            String anchorId, Block target) {
+        Session session = sessions.get(player.getUniqueId());
+        if (session == null) {
+            return Result.fail("random.template.no_session", Map.of());
+        }
+        if ("spawn_point".equals(module)) {
+            return Result.fail("random.template.node_forbidden", Map.of("module", module));
+        }
+        TemplateMeta meta = structure(session, templateId);
+        if (meta == null) {
+            return Result.fail("random.gui.structure_missing", Map.of("id", templateId));
+        }
+        Block block = target != null ? target : player.getTargetBlockExact(12);
+        if (block == null) {
+            return Result.fail("random.template.no_target", Map.of());
+        }
+        DoorAnchor anchor = anchorId == null || anchorId.isBlank() ? null : meta.anchor(anchorId);
+        if (anchorId != null && !anchorId.isBlank() && anchor == null) {
+            return Result.fail("random.template.anchor_unknown", Map.of("id", anchorId));
+        }
+        int anchorX = anchor == null ? 0 : anchor.x();
+        int anchorY = anchor == null ? 0 : anchor.y();
+        int anchorZ = anchor == null ? 0 : anchor.z();
+        Map<String, Object> params = new LinkedHashMap<>();
+        if ("tip_points".equals(module)) {
+            params.put("type", "message");
+            params.put("text", "");
+        }
+        List<ModuleNode> nodes = new ArrayList<>(meta.nodes());
+        nodes.add(new ModuleNode(module, nodeId, anchor == null ? "" : anchor.id(),
+                block.getX() - anchorX, block.getY() - anchorY, block.getZ() - anchorZ,
+                0.0D, params));
+        if (!saveStructure(session, new TemplateMeta(meta.id(), meta.templateRef(), meta.structureType(),
+                meta.tags(), meta.sizeX(), meta.sizeY(), meta.sizeZ(), meta.floors(), meta.anchors(),
+                meta.rotations(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                meta.sealBlock(), nodes, meta.mask(), meta.entities(), meta.selection(), meta.weight()))) {
+            return Result.fail("random.gui.structure_save_failed", Map.of("id", templateId));
+        }
         return Result.ok("random.template.node_added", Map.of("module", module, "id", nodeId));
     }
 
@@ -785,6 +868,105 @@ public final class CaptureService {
         } catch (IOException exception) {
             return false;
         }
+    }
+
+    public Result structureNodeParam(Player player, String templateId, String nodeId,
+            List<String> path, String value) {
+        try {
+            Session session = sessions.get(player.getUniqueId());
+            if (session == null) {
+                return Result.fail("random.template.no_session", Map.of());
+            }
+            TemplateMeta meta = structure(session, templateId);
+            if (meta == null) {
+                return Result.fail("random.gui.structure_missing", Map.of("id", templateId));
+            }
+            ModuleNode target = null;
+            for (ModuleNode node : meta.nodes()) {
+                if (node.nodeId().equals(nodeId)) {
+                    target = node;
+                    break;
+                }
+            }
+            if (target == null) {
+                return Result.fail("random.template.node_unknown", Map.of("id", nodeId));
+            }
+            Map<String, Object> params = new LinkedHashMap<>(target.params());
+            applyParam(params, path, value);
+            ModuleNode updated = new ModuleNode(target.moduleType(), target.nodeId(), target.anchorId(),
+                    target.dx(), target.dy(), target.dz(), target.yaw(), params);
+            if (!saveStructureNode(session, templateId, updated)) {
+                return Result.fail("random.gui.structure_save_failed", Map.of("id", templateId));
+            }
+            return Result.ok("random.template.node_param_set", Map.of("id", nodeId,
+                    "key", String.join(".", path)));
+        } finally {
+            fireRefresh(player.getUniqueId());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void applyParam(Map<String, Object> params, List<String> path, String value) {
+        if (path.isEmpty()) {
+            return;
+        }
+        Map<String, Object> cursor = params;
+        for (int index = 0; index < path.size() - 1; index++) {
+            Object next = cursor.get(path.get(index));
+            if (!(next instanceof Map<?, ?> map)) {
+                Map<String, Object> created = new LinkedHashMap<>();
+                cursor.put(path.get(index), created);
+                cursor = created;
+                continue;
+            }
+            cursor = (Map<String, Object>) map;
+        }
+        cursor.put(path.get(path.size() - 1), value);
+    }
+
+    public ModuleNode structureNode(Session session, String templateId, String nodeId) {
+        TemplateMeta meta = structure(session, templateId);
+        if (meta == null) {
+            return null;
+        }
+        for (ModuleNode node : meta.nodes()) {
+            if (node.nodeId().equals(nodeId)) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    public boolean saveStructureNode(Session session, String templateId, ModuleNode updated) {
+        TemplateMeta meta = structure(session, templateId);
+        if (meta == null || updated == null) {
+            return false;
+        }
+        List<ModuleNode> nodes = new ArrayList<>();
+        for (ModuleNode node : meta.nodes()) {
+            nodes.add(node.nodeId().equals(updated.nodeId()) ? updated : node);
+        }
+        return saveStructure(session, new TemplateMeta(meta.id(), meta.templateRef(), meta.structureType(),
+                meta.tags(), meta.sizeX(), meta.sizeY(), meta.sizeZ(), meta.floors(), meta.anchors(),
+                meta.rotations(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                meta.sealBlock(), nodes, meta.mask(), meta.entities(), meta.selection(), meta.weight()));
+    }
+
+    public boolean deleteStructureNode(Session session, String templateId, String nodeId) {
+        TemplateMeta meta = structure(session, templateId);
+        if (meta == null) {
+            return false;
+        }
+        List<ModuleNode> nodes = new ArrayList<>();
+        for (ModuleNode node : meta.nodes()) {
+            if (!node.nodeId().equals(nodeId)) {
+                nodes.add(node);
+            }
+        }
+        return saveStructure(session, new TemplateMeta(meta.id(), meta.templateRef(), meta.structureType(),
+                meta.tags(), meta.sizeX(), meta.sizeY(), meta.sizeZ(), meta.floors(), meta.anchors(),
+                meta.rotations(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                meta.sealBlock(), nodes, meta.mask(), meta.entities(), meta.selection(), meta.weight()));
     }
 
     public boolean deleteStructure(Session session, String templateId) {

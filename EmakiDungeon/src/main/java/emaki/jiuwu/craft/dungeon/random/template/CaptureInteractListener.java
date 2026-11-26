@@ -38,26 +38,46 @@ public final class CaptureInteractListener implements Listener {
         if (block == null || !block.getWorld().getName().equals(session.worldName)) {
             return;
         }
-        event.setCancelled(true);
-        ModuleNode node = captures.nodeAt(session, block);
-        if (node != null) {
-            gui.openNode(player, node);
-            return;
-        }
         String dungeonId = session.worldName.startsWith(CaptureService.EDIT_WORLD_PREFIX)
                 ? session.worldName.substring(CaptureService.EDIT_WORLD_PREFIX.length())
                 : "";
-        if (!dungeonId.isBlank()) {
-            CaptureService.StructureHit hit = captures.structureAt(dungeonId, block);
-            if (hit != null && hit.nodeId() != null) {
-                gui.openStructureNode(player, hit.templateId(), hit.nodeId());
-                return;
-            }
-            if (hit != null) {
-                gui.openStructure(player, hit.templateId());
-                return;
-            }
+        if (dungeonId.isBlank()) {
+            return;
         }
-        gui.openPlacement(player, block);
+        ModuleNode sessionNode = captures.nodeAt(session, block);
+        if (sessionNode != null) {
+            event.setCancelled(true);
+            gui.openNode(player, sessionNode);
+            return;
+        }
+        CaptureService.StructureHit hit = captures.structureAt(dungeonId, block);
+        if (hit != null) {
+            event.setCancelled(true);
+            if (hit.nodeId() != null) {
+                gui.openStructureNode(player, hit.templateId(), hit.nodeId());
+            } else {
+                gui.openPlacement(player, block, hit.templateId());
+            }
+            return;
+        }
+        if (insideSession(session, block)) {
+            event.setCancelled(true);
+            gui.openPlacement(player, block, "");
+        }
+    }
+
+    private boolean insideSession(CaptureService.Session session, Block block) {
+        if (session.pos1 == null || session.pos2 == null) {
+            return false;
+        }
+        int minX = Math.min(session.pos1[0], session.pos2[0]);
+        int minY = Math.min(session.pos1[1], session.pos2[1]);
+        int minZ = Math.min(session.pos1[2], session.pos2[2]);
+        int maxX = Math.max(session.pos1[0], session.pos2[0]);
+        int maxY = Math.max(session.pos1[1], session.pos2[1]);
+        int maxZ = Math.max(session.pos1[2], session.pos2[2]);
+        return block.getX() >= minX && block.getX() <= maxX
+                && block.getY() >= minY && block.getY() <= maxY
+                && block.getZ() >= minZ && block.getZ() <= maxZ;
     }
 }

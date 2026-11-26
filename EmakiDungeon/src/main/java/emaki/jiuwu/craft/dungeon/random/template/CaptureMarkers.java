@@ -64,6 +64,11 @@ public final class CaptureMarkers {
             renderSessionDoors(world, ownerId, session, out);
             renderSelection(world, ownerId, session, dungeonId, out);
             renderNodes(world, ownerId, session, out);
+            if (!dungeonId.isBlank()) {
+                for (Map.Entry<String, TemplateMeta> entry : storeProvider.apply(dungeonId).loadAll().entrySet()) {
+                    renderStructureNodes(world, ownerId, entry.getKey(), entry.getValue(), out);
+                }
+            }
         });
     }
 
@@ -157,6 +162,32 @@ public final class CaptureMarkers {
         return point[0] >= minX && point[0] <= maxX
                 && point[1] >= minY && point[1] <= maxY
                 && point[2] >= minZ && point[2] <= maxZ;
+    }
+
+    private void renderStructureNodes(World world, UUID ownerId, String templateId,
+            TemplateMeta meta, List<Entity> out) {
+        for (ModuleNode node : meta.nodes()) {
+            int[] anchorPos = anchorPosOf(meta, node.anchorId());
+            int x = (int) Math.round(node.dx()) + anchorPos[0];
+            int y = (int) Math.round(node.dy()) + anchorPos[1];
+            int z = (int) Math.round(node.dz()) + anchorPos[2];
+            EditorModuleMarkers.Box box = new EditorModuleMarkers.Box(
+                    x - POINT_HALF, y - POINT_HALF, z - POINT_HALF,
+                    x + POINT_HALF, y + POINT_HALF, z + POINT_HALF);
+            out.addAll(renderer.spawnEdges(world, ownerId, box, Color.fromRGB(0xFFD700)));
+            renderer.spawnTag(world, ownerId, EditorModuleMarkers.captureLabelGroup(ownerId),
+                    "snode:" + templateId + ":" + node.nodeId(), box,
+                    renderer.nodeLabel(node.moduleType(), node.nodeId()));
+        }
+    }
+
+    private int[] anchorPosOf(TemplateMeta meta, String anchorId) {
+        if (anchorId == null || anchorId.isBlank()) {
+            return new int[] {0, 0, 0};
+        }
+        var anchor = meta.anchor(anchorId);
+        return anchor == null ? new int[] {0, 0, 0}
+                : new int[] {anchor.x(), anchor.y(), anchor.z()};
     }
 
     private void renderNodes(World world, UUID ownerId, CaptureService.Session session, List<Entity> out) {

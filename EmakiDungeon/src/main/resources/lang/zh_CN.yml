@@ -2,12 +2,12 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.41"
+version: "1.0.42"
 
 tags:
-  challenge: '[ 挑战 ]'
-  rewardbox: '[ 奖励箱 ]'
-  storage: '[ 仓库 ]'
+  challenge: "[ 挑战 ]"
+  rewardbox: "[ 奖励箱 ]"
+  storage: "[ 仓库 ]"
 
 general:
   prefix: "<gray>[ <gradient:#1E3A8A:#8B5CF6>EmakiDungeon</gradient> ]</gray>"
@@ -761,9 +761,19 @@ random:
   create_no_dungeon: "<red>必须指定副本ID: /edungeon random create <副本ID></red>"
   region_created: "<green>已自动创建 <type> <id> | 方块 <blocks> | 在其选区内标记两点即可添加门</green>"
   region_type_invalid: "<red>区域类型非法: <type></red>"
+  region_overlap: "<red>新建区域与已存结构 <white><target></white> 重叠: 选区内不得包含任何已存房间/走廊</red>"
   not_random_type: "<red>副本 <dungeon> 不是随机类型, 请在其 config.yml 设 type: random</red>"
   gui:
-    title: "<dark_gray>随机模板采集</dark_gray>"
+    title: "<dark_gray>区域采集</dark_gray> <gray>-</gray> <white><region></white>"
+    title_main: "<dark_gray>区域采集</dark_gray> <gray>-</gray> <white><region></white>"
+    title_meta: "<dark_gray>区域采集 · 结构元数据</dark_gray> <gray>-</gray> <white><region></white>"
+    title_anchors: "<dark_gray>区域采集 · 门管理</dark_gray> <gray>-</gray> <white><region></white>"
+    title_nodes: "<dark_gray>区域采集 · 功能模块</dark_gray> <gray>-</gray> <white><region></white>"
+    title_node: "<dark_gray>功能模块参数</dark_gray> <gray>-</gray> <white><region></white>"
+    title_place: "<dark_gray>放置功能模块</dark_gray> <gray>-</gray> <white><region></white>"
+    title_structure: "<dark_gray>结构编辑</dark_gray> <gray>-</gray> <white><region></white>"
+    title_create: "<dark_gray>创建区域</dark_gray> <gray>-</gray> <white><region></white>"
+    title_no_region: "未选定结构"
     pos1: "<white>角点 1</white>"
     pos2: "<white>角点 2</white>"
     meta: "<white>结构元数据</white>"
@@ -792,6 +802,7 @@ random:
     door_add: "<green>门: 在选区内用 pos1/pos2 标记两点</green>"
     door_hint: "<gray>门的创建方式: 在某个房间/走廊的选区内用 pos1 与 pos2 标记两点, 会自动生成门</gray>"
     nodes_hint: "<white>空手右键放置功能模块</white>"
+    place_structure_hint: "<gray>将写入结构 <white><id></white> 的功能节点</gray>"
     node_delete: "<red>删除点位</red>"
     structure_missing: "<red>结构不存在</red>"
     structure_delete: "<red>删除该结构</red>"
