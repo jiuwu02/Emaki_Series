@@ -127,7 +127,7 @@ public final class CaptureMarkers {
                 "struct:" + templateId, box,
                 renderer.structureLabel(meta.structureType(), templateId, meta.tags(), meta.weight()));
         for (var anchor : meta.anchors()) {
-            EditorModuleMarkers.Box doorBox = renderer.doorBox(anchor);
+            EditorModuleMarkers.Box doorBox = renderer.doorBox(meta, anchor);
             if (doorBox == null) {
                 continue;
             }
@@ -208,25 +208,13 @@ public final class CaptureMarkers {
     private void renderStructureNodes(World world, UUID ownerId, String templateId,
             TemplateMeta meta, List<Entity> out) {
         for (ModuleNode node : meta.nodes()) {
-            int[] anchorPos = anchorPosOf(meta, node.anchorId());
-            int x = (int) Math.round(node.dx()) + anchorPos[0];
-            int y = (int) Math.round(node.dy()) + anchorPos[1];
-            int z = (int) Math.round(node.dz()) + anchorPos[2];
-            EditorModuleMarkers.Box box = new EditorModuleMarkers.Box(x, y, z, x, y, z);
+            int[] pos = meta.nodeAbsolute(node);
+            EditorModuleMarkers.Box box = new EditorModuleMarkers.Box(pos[0], pos[1], pos[2], pos[0], pos[1], pos[2]);
             out.addAll(renderer.spawnEdges(world, ownerId, box, Color.fromRGB(0xFFD700)));
             renderer.spawnTag(world, ownerId, EditorModuleMarkers.captureLabelGroup(ownerId),
                     "snode:" + templateId + ":" + node.nodeId(), box,
                     renderer.nodeLabel(node.moduleType(), node.nodeId()));
         }
-    }
-
-    private int[] anchorPosOf(TemplateMeta meta, String anchorId) {
-        if (anchorId == null || anchorId.isBlank()) {
-            return new int[] {0, 0, 0};
-        }
-        var anchor = meta.anchor(anchorId);
-        return anchor == null ? new int[] {0, 0, 0}
-                : new int[] {anchor.x(), anchor.y(), anchor.z()};
     }
 
     private void renderNodes(World world, UUID ownerId, CaptureService.Session session, List<Entity> out) {

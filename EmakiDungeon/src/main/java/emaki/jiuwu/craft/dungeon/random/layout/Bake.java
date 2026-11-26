@@ -26,7 +26,10 @@ public final class Bake {
             byNode.put(room.nodeId(), room);
         }
         RoomPlacement start = byNode.get(layout.rooms().get(0).nodeId());
-        int[] spawnPoint = resolveSpawnPoint(start, layout);
+        Map<String, Object> entryNode = findEntryNode(layout.rooms());
+        int[] spawnPoint = entryNode != null
+                ? entrySpawnPoint(start, entryNode)
+                : resolveSpawnPoint(start, layout);
         Map<String, Object> spawnNode = new LinkedHashMap<>();
         spawnNode.put("id", "entry");
         spawnNode.put("enabled", true);
@@ -81,6 +84,36 @@ public final class Bake {
         }
         sections.forEach(root::put);
         return new Result(root, spawnPoint, warnings);
+    }
+
+    /** 模板内的 spawn_point 节点 (采集面板里的 entry 模块), 作为副本真正的玩家入口。 */
+    private static Map<String, Object> findEntryNode(List<RoomPlacement> rooms) {
+        for (RoomPlacement room : rooms) {
+            for (ModuleNode node : room.meta().nodes()) {
+                if (TemplateModel.TYPE_ENTRY.equals(node.moduleType())) {
+                    return Map.of("room", room, "node", node);
+                }
+            }
+        }
+        return null;
+    }
+
+    /** entry 节点: 模板局部坐标 = 所属锚点局部坐标 + 节点偏移, 再按房间变体变换到世界。 */
+    @SuppressWarnings("unchecked")
+    private static int[] entrySpawnPoint(RoomPlacement fallback, Map<String, Object> entry) {
+        RoomPlacement room = (RoomPlacement) entry.get("room");
+        ModuleNode node = (ModuleNode) entry.get("node");
+        if (room == null || node == null) {
+            return new int[] {fallback.originX(), fallback.originY(), fallback.originZ(), 0};
+        }
+        DoorAnchor anchor = node.anchorId().isBlank() ? null : room.meta().anchor(node.anchorId());
+        int localX = (anchor == null ? 0 : anchor.x()) + (int) Math.round(node.dx());
+        int localY = (anchor == null ? 0 : anchor.y()) + (int) Math.round(node.dy());
+        int localZ = (anchor == null ? 0 : anchor.z()) + (int) Math.round(node.dz());
+        int[] world = Transforms.transform(room.meta(), room.variant(), localX, localY, localZ);
+        String facing = anchor == null ? "" : room.anchorFacing(anchor);
+        return new int[] {room.originX() + world[0], room.originY() + world[1], room.originZ() + world[2],
+                yawOf(facing)};
     }
 
     private static int[] resolveSpawnPoint(RoomPlacement start, Layout layout) {
@@ -163,7 +196,7 @@ public final class Bake {
         double worldX = anchorWorld[0] + offsetValue(room.variant(), (int) Math.round(dx), (int) Math.round(dz), true);
         double worldZ = anchorWorld[2] + offsetValue(room.variant(), (int) Math.round(dx), (int) Math.round(dz), false);
         double worldY = anchorWorld[1] + dy;
-        double worldYaw = yaw + room.variant().rotations() * 90.0D;
+        double worldYaw = yaw + room.variant().rotations();
         if (room.variant().mirror()) {
             worldYaw = -worldYaw;
         }
@@ -180,7 +213,7 @@ public final class Bake {
 
     private static int offsetValue(Transforms.Variant variant, int dx, int dz, boolean xAxis) {
         int mirrorX = variant.mirror() ? -dx : dx;
-        int[] rotated = switch (Math.floorMod(variant.rotations(), 4)) {
+        int[] rotated = switch (Math.floorMod(Math.floorDiv(variant.rotations(), 90), 4)) {
             case 1 -> new int[] {-dz, mirrorX};
             case 2 -> new int[] {-mirrorX, -dz};
             case 3 -> new int[] {dz, -mirrorX};

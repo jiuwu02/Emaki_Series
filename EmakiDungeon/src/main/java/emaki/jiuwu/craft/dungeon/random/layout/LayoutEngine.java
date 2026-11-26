@@ -29,7 +29,11 @@ import emaki.jiuwu.craft.dungeon.random.model.TemplateModel.DoorAnchor;
 
 public final class LayoutEngine {
 
-    public record Result(Layout layout, String failure) {
+    public record Result(Layout layout, String failure, String detail) {
+
+        public Result(Layout layout, String failure) {
+            this(layout, failure, "");
+        }
     }
 
     private static final String FAIL_CONFLICT = "conflict";
@@ -38,14 +42,37 @@ public final class LayoutEngine {
     public Result layout(long layoutSeed, long orientationSeed, long linkSeed,
             Topology topology, Map<Integer, String> assignment, Map<String, TemplateMeta> metas,
             RandomConfig config, int maxBacktracks, int baseY) {
+        // 统计每次失败卡在哪种连接形式, 供失败后诊断使用
+        Map<String, Integer> stuckByForm = new LinkedHashMap<>();
         for (int attempt = 0; attempt < maxBacktracks; attempt++) {
             Result result = attempt(layoutSeed, orientationSeed, linkSeed, attempt,
                     topology, assignment, metas, config, baseY);
             if (result.layout() != null || FAIL_DOOR_REJECT.equals(result.failure())) {
                 return result;
             }
+            if (!result.detail().isBlank()) {
+                stuckByForm.merge(result.detail(), 1, Integer::sum);
+            }
         }
-        return new Result(null, FAIL_CONFLICT);
+        return new Result(null, FAIL_CONFLICT, summarize(stuckByForm));
+    }
+
+    /** 把 1000 次失败按连接形式聚合成一行诊断, 例如 "corridor=812, direct=188"。 */
+    private static String summarize(Map<String, Integer> stuckByForm) {
+        if (stuckByForm.isEmpty()) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        stuckByForm.entrySet().stream()
+                .sorted((left, right) -> Integer.compare(right.getValue(), left.getValue()))
+                .limit(3)
+                .forEach(entry -> {
+                    if (builder.length() > 0) {
+                        builder.append(", ");
+                    }
+                    builder.append(entry.getKey()).append('=').append(entry.getValue());
+                });
+        return builder.toString();
     }
 
     private Result attempt(long layoutSeed, long orientationSeed, long linkSeed, int attemptIndex,
@@ -149,11 +176,15 @@ public final class LayoutEngine {
             Random layoutRandom, Random orientRandom, Random linkRandom, RandomConfig config, List<Edge> edges) {
         List<DoorAnchor> parentAnchors = new ArrayList<>(parent.meta().anchors());
         Collections.shuffle(parentAnchors, orientRandom);
+        String lastForm = "none";
+        boolean anyFreeAnchor = false;
         for (DoorAnchor parentAnchor : parentAnchors) {
             if (usedAnchors.contains(parent.nodeId() + ":" + parentAnchor.id())) {
                 continue;
             }
+            anyFreeAnchor = true;
             String form = decideForm(linkRandom, config);
+            lastForm = form;
             int[] parentWorld = parent.anchorWorld(parentAnchor);
             String parentFacing = parent.anchorFacing(parentAnchor);
             if ("direct".equals(form)) {
@@ -184,7 +215,8 @@ public final class LayoutEngine {
                 }
             }
         }
-        return new Result(null, FAIL_CONFLICT);
+        // 无空闲锚点 = 门数不足; 有空闲但全部放不下 = 几何/朝向冲突
+        return new Result(null, FAIL_CONFLICT, anyFreeAnchor ? lastForm : "anchors-exhausted");
     }
 
     private record LinkAttempt(RoomPlacement placement, String anchorId, int heightDiff) {
@@ -589,18 +621,21 @@ public final class LayoutEngine {
 
     private List<Transforms.Variant> legalVariants(TemplateMeta meta, RandomConfig config) {
         List<Transforms.Variant> variants = new ArrayList<>();
-        List<Integer> allowed = new ArrayList<>(meta.rotations());
-        allowed.retainAll(config.orientation.rotations());
-        if (allowed.isEmpty()) {
-            allowed = new ArrayList<>(config.orientation.rotations());
-        }
         boolean mirrorAllowed = meta.mirrorable() && "x".equals(config.orientation.mirrorAxis());
-        for (int rotations : allowed) {
+        for (int rotations : rotationSteps(meta.rotatable(), config.orientation.rotatable())) {
             variants.add(new Transforms.Variant(rotations, false));
             if (mirrorAllowed) {
                 variants.add(new Transforms.Variant(rotations, true));
             }
         }
         return variants;
+    }
+
+    /** 模板级与全局级均可旋转才是四向, 否则只保留原始朝向。返回度数。 */
+    static List<Integer> rotationSteps(boolean templateRotatable, boolean globalRotatable) {
+        if (templateRotatable && globalRotatable) {
+            return List.of(0, 90, 180, 270);
+        }
+        return List.of(0);
     }
 }

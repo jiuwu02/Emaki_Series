@@ -4,7 +4,7 @@
 # 重载不会中断运行中实例, 仅对新创建的副本生效
 # 文件位置: plugins/EmakiDungeon/config.yml
 
-version: "1.0.46"
+version: "1.0.47"
 language: "zh_CN"
 
 # DEBUG 锚日志开关与审计保留天数 (按日切分)
@@ -129,6 +129,8 @@ random-dungeon:
   #    含垂直段时水平投影上限 = length-max + 高差
   corridor:
     link-mode: default
+    # template-ref 非空且指向 structure-type=corridor 的模板时, 走廊段按该模板 NBT 逐格拼装
+    # (模板两端锚点朝向须与本段实际行进方向一致, 否则跳过该模板回退程序化地板)
     template-ref: ""
     width: 1
     height: 3
@@ -139,12 +141,15 @@ random-dungeon:
     max-height-diff: 8
     overlap-policy: reject
     floor-block: stone
+    # 走廊模板拼接时相邻两格之间留空块数 (0 = 紧贴)
+    tile-gap: 0
 
-  # 6. 朝向规则: 与模板级 rotations/mirrorable 取交集, 合法集合内均匀选取
+  # 6. 朝向规则: 与模板级 rotatable/mirrorable 两层 AND, 合法集合内均匀选取
+  #    rotatable: 全局旋转开关, false 时全部模板只保留原始朝向 (模板级 rotatable=false 同样只保留原始朝向)
+  #    mirror-axis: none | x, 仅 x 时模板级 mirrorable=true 才产生镜像变体
   orientation:
-    rotations: [0, 90, 180, 270]
+    rotatable: true
     mirror-axis: none
-    selection: uniform
 
   # 7. 藏宝图: enabled 且 granularity=room 时 room-count.max 必须不大于 64
   #    target-icons: 自定义标签 -> 内置图标键(star/skull/chest/flag/dot/gate/stairs/ring), 未映射标签不显示目标图标

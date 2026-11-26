@@ -8,18 +8,32 @@ import java.util.Map;
 import emaki.jiuwu.craft.dungeon.random.model.TemplateModel.DoorAnchor;
 import emaki.jiuwu.craft.dungeon.random.model.TemplateModel.ModuleNode;
 
+/**
+ * 模板元数据。
+ *
+ * <p>坐标约定 (format 2 起):
+ * <ul>
+ *   <li>door-anchors 的 pos / base-y 为模板局部坐标, 原点 = 选区最小角</li>
+ *   <li>module-nodes 的 dx/dy/dz 为相对所属门锚点局部坐标的偏移; anchor 为空时相对选区最小角</li>
+ *   <li>selection 仍记录选区绝对坐标, 仅用于编辑世界内还原选框位置</li>
+ * </ul>
+ *
+ * <p>format 1 的历史数据在读取时按 selection 偏移就地归一化为 format 2 语义。
+ */
 public record TemplateMeta(String id, String templateRef, String structureType, List<String> tags,
         int sizeX, int sizeY, int sizeZ, int floors, List<DoorAnchor> anchors,
-        List<Integer> rotations, boolean mirrorable, String intrusionPolicy, String doorPolicy,
+        boolean rotatable, boolean mirrorable, String intrusionPolicy, String doorPolicy,
         String sealBlock, List<ModuleNode> nodes, Mask mask, List<Map<String, Object>> entities,
         List<Integer> selection, int weight) {
+
+    public static final int FORMAT_LEGACY = 1;
+    public static final int FORMAT_LOCAL = 2;
 
     public TemplateMeta {
         weight = Math.max(0, weight);
         selection = selection == null ? List.of() : List.copyOf(selection);
         tags = tags == null ? List.of() : List.copyOf(tags);
         anchors = anchors == null ? List.of() : List.copyOf(anchors);
-        rotations = rotations == null ? List.of(0, 90, 180, 270) : List.copyOf(rotations);
         nodes = nodes == null ? List.of() : List.copyOf(nodes);
         entities = entities == null ? List.of() : List.copyOf(entities);
         intrusionPolicy = TemplateModel.normalizeIntrusion(intrusionPolicy);
@@ -28,7 +42,7 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
 
     public TemplateMeta withAnchors(List<DoorAnchor> nextAnchors) {
         return new TemplateMeta(id, templateRef, structureType, tags, sizeX, sizeY, sizeZ, floors,
-                nextAnchors, rotations, mirrorable, intrusionPolicy, doorPolicy, sealBlock, nodes,
+                nextAnchors, rotatable, mirrorable, intrusionPolicy, doorPolicy, sealBlock, nodes,
                 mask, entities, selection, weight);
     }
 
@@ -41,9 +55,40 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
         return null;
     }
 
+    public boolean hasSelection() {
+        return selection.size() == 6;
+    }
+
+    public int[] selectionMin() {
+        if (!hasSelection()) {
+            return new int[] {0, 0, 0};
+        }
+        return new int[] {
+                Math.min(selection.get(0), selection.get(3)),
+                Math.min(selection.get(1), selection.get(4)),
+                Math.min(selection.get(2), selection.get(5))};
+    }
+
+    /** 编辑世界内的锚点绝对坐标 (仅用于编辑期渲染与点选)。 */
+    public int[] anchorAbsolute(DoorAnchor anchor) {
+        int[] min = selectionMin();
+        return new int[] {min[0] + anchor.x(), min[1] + anchor.y(), min[2] + anchor.z()};
+    }
+
+    /** 编辑世界内的节点绝对坐标 (仅用于编辑期渲染与点选)。 */
+    public int[] nodeAbsolute(ModuleNode node) {
+        DoorAnchor anchor = node.anchorId() == null || node.anchorId().isBlank()
+                ? null : anchor(node.anchorId());
+        int[] base = anchor == null ? selectionMin() : anchorAbsolute(anchor);
+        return new int[] {
+                base[0] + (int) Math.round(node.dx()),
+                base[1] + (int) Math.round(node.dy()),
+                base[2] + (int) Math.round(node.dz())};
+    }
+
     public Map<String, Object> toMap() {
         Map<String, Object> root = new LinkedHashMap<>();
-        root.put("format", 1);
+        root.put("format", FORMAT_LOCAL);
         root.put("id", id);
         root.put("template-ref", templateRef);
         root.put("structure-type", structureType);
@@ -76,7 +121,7 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
             anchorMaps.add(entry);
         }
         root.put("door-anchors", anchorMaps);
-        root.put("rotations", new ArrayList<>(rotations));
+        root.put("rotatable", rotatable);
         root.put("mirrorable", mirrorable);
         root.put("intrusion-policy", intrusionPolicy);
         root.put("door-policy", doorPolicy);
@@ -119,6 +164,22 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
                 tags.add(String.valueOf(entry));
             }
         }
+        int format = intValue(root, "format", FORMAT_LEGACY);
+        List<Integer> selection = new ArrayList<>();
+        Object rawSelection = root.get("selection");
+        if (rawSelection instanceof List<?> list) {
+            for (Object entry : list) {
+                selection.add(intValue(Map.of("v", entry), "v", 0));
+            }
+        }
+        int[] min = new int[] {0, 0, 0};
+        if (selection.size() == 6) {
+            min = new int[] {
+                    Math.min(selection.get(0), selection.get(3)),
+                    Math.min(selection.get(1), selection.get(4)),
+                    Math.min(selection.get(2), selection.get(5))};
+        }
+        boolean legacy = format < FORMAT_LOCAL;
         List<DoorAnchor> anchors = new ArrayList<>();
         Object rawAnchors = root.get("door-anchors");
         if (rawAnchors instanceof List<?> list) {
@@ -131,27 +192,26 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
                 int px = intValue(pos, "x", 0);
                 int py = intValue(pos, "y", 0);
                 int pz = intValue(pos, "z", 0);
-                anchors.add(new DoorAnchor(
-                        String.valueOf(typed.getOrDefault("id", "anchor")),
-                        px, py, pz,
+                int baseY = intValue(typed, "base-y", py);
+                String anchorId = String.valueOf(typed.getOrDefault("id", "anchor"));
+                if (legacy) {
+                    px -= min[0];
+                    pz -= min[2];
+                    py -= min[1];
+                    baseY -= min[1];
+                }
+                anchors.add(new DoorAnchor(anchorId, px, py, pz,
                         String.valueOf(typed.getOrDefault("facing", TemplateModel.FACING_N)),
                         intValue(typed, "width", 1),
                         intValue(typed, "height", 3),
-                        intValue(typed, "base-y", py),
+                        baseY,
                         intValue(typed, "floor", 1),
                         typed.get("policy") == null ? "" : String.valueOf(typed.get("policy")),
                         typed.get("seal-block") == null ? "" : String.valueOf(typed.get("seal-block"))));
             }
         }
-        List<Integer> rotations = new ArrayList<>();
-        Object rawRotations = root.get("rotations");
-        if (rawRotations instanceof List<?> list && !list.isEmpty()) {
-            for (Object entry : list) {
-                rotations.add(intValue(Map.of("v", entry), "v", 0));
-            }
-        } else {
-            rotations = new ArrayList<>(List.of(0, 90, 180, 270));
-        }
+        boolean rotatable = root.get("rotatable") instanceof Boolean flag
+                ? flag : readLegacyRotatable(root);
         List<ModuleNode> nodes = new ArrayList<>();
         Object rawNodes = root.get("module-nodes");
         if (rawNodes instanceof List<?> list) {
@@ -163,13 +223,22 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
                 Map<String, Object> params = typed.get("params") instanceof Map<?, ?> p
                         ? (Map<String, Object>) p
                         : Map.of();
+                String anchorId = String.valueOf(typed.getOrDefault("anchor", ""));
+                double dx = doubleValue(typed, "dx", 0.0D);
+                double dy = doubleValue(typed, "dy", 0.0D);
+                double dz = doubleValue(typed, "dz", 0.0D);
+                if (legacy) {
+                    if (anchorId.isBlank()) {
+                        dx -= min[0];
+                        dy -= min[1];
+                        dz -= min[2];
+                    }
+                }
                 nodes.add(new ModuleNode(
                         String.valueOf(typed.getOrDefault("module", "")),
                         String.valueOf(typed.getOrDefault("id", "")),
-                        String.valueOf(typed.getOrDefault("anchor", "")),
-                        doubleValue(typed, "dx", 0.0D),
-                        doubleValue(typed, "dy", 0.0D),
-                        doubleValue(typed, "dz", 0.0D),
+                        anchorId,
+                        dx, dy, dz,
                         doubleValue(typed, "yaw", 0.0D),
                         params));
             }
@@ -183,13 +252,6 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
                 }
             }
         }
-        List<Integer> selection = new ArrayList<>();
-        Object rawSelection = root.get("selection");
-        if (rawSelection instanceof List<?> list) {
-            for (Object entry : list) {
-                selection.add(intValue(Map.of("v", entry), "v", 0));
-            }
-        }
         Mask mask = Mask.deserialize(String.valueOf(root.getOrDefault("mask", "")));
         return new TemplateMeta(
                 id,
@@ -201,8 +263,8 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
                 intValue(root, "size-z", 1),
                 Math.max(1, intValue(root, "floors", 1)),
                 anchors,
-                rotations,
-                root.get("mirrorable") instanceof Boolean flag && flag,
+                rotatable,
+                root.get("mirrorable") instanceof Boolean mirrorFlag && mirrorFlag,
                 String.valueOf(root.getOrDefault("intrusion-policy", TemplateModel.INTRUSION_ALLOW)),
                 String.valueOf(root.getOrDefault("door-policy", TemplateModel.POLICY_SEAL)),
                 String.valueOf(root.getOrDefault("seal-block", "")),
@@ -211,6 +273,20 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
                 entities,
                 selection,
                 Math.max(0, intValue(root, "weight", 1)));
+    }
+
+    private static boolean readLegacyRotatable(Map<String, Object> root) {
+        Object raw = root.get("rotations");
+        if (!(raw instanceof List<?> list) || list.isEmpty()) {
+            return true;
+        }
+        int turns = 0;
+        for (Object entry : list) {
+            if (entry instanceof Number number && number.intValue() != 0) {
+                turns++;
+            }
+        }
+        return turns > 0;
     }
 
     private static int intValue(Map<String, Object> map, String key, int fallback) {

@@ -11,6 +11,8 @@ public final class TemplateModel {
 
     public static final String TYPE_ROOM = "room";
     public static final String TYPE_CORRIDOR = "corridor";
+    /** 采集面板里 entry 模块落库的 module 名, 在模板内代表副本入口出生点。 */
+    public static final String TYPE_ENTRY = "spawn_point";
 
     public static final String FACING_N = "north";
     public static final String FACING_E = "east";

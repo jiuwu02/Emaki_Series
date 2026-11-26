@@ -57,11 +57,11 @@ public final class CaptureService {
         public int floors = 1;
         public int weight = 1;
         public String targetId;
+        public boolean rotatable = true;
         public boolean mirrorable;
         public String intrusionPolicy = TemplateModel.INTRUSION_ALLOW;
         public String doorPolicy = TemplateModel.POLICY_KEEP;
         public String sealBlock = "";
-        public final List<Integer> rotations = new ArrayList<>(List.of(0, 90, 180, 270));
         public final List<DoorAnchor> anchors = new ArrayList<>();
         public final List<ModuleNode> nodes = new ArrayList<>();
     }
@@ -225,18 +225,7 @@ public final class CaptureService {
                 case "intrusion-policy" -> session.intrusionPolicy = TemplateModel.normalizeIntrusion(value);
                 case "door-policy" -> session.doorPolicy = TemplateModel.normalizePolicy(value);
                 case "seal-block" -> session.sealBlock = value.trim();
-                case "rotations" -> {
-                    session.rotations.clear();
-                    for (String part : value.split(",")) {
-                        if (!part.isBlank()) {
-                            int rotation = Integer.parseInt(part.trim());
-                            if (rotation != 0 && rotation != 90 && rotation != 180 && rotation != 270) {
-                                return Result.fail("random.template.meta_invalid", Map.of("key", key, "value", value));
-                            }
-                            session.rotations.add(rotation);
-                        }
-                    }
-                }
+                case "rotatable" -> session.rotatable = Boolean.parseBoolean(value.trim());
                 default -> {
                     return Result.fail("random.template.meta_unknown", Map.of("key", key));
                 }
@@ -489,7 +478,11 @@ public final class CaptureService {
             return Result.fail("random.template.no_session", Map.of());
         }
         if ("spawn_point".equals(module)) {
-            return Result.fail("random.template.node_forbidden", Map.of("module", module));
+            for (ModuleNode existing : session.nodes) {
+                if ("spawn_point".equals(existing.moduleType())) {
+                    return Result.fail("random.template.node_single", Map.of("module", module));
+                }
+            }
         }
         Block block = target != null ? target : player.getTargetBlockExact(12);
         if (block == null) {
@@ -533,10 +526,14 @@ public final class CaptureService {
         if (session == null) {
             return Result.fail("random.template.no_session", Map.of());
         }
-        if ("spawn_point".equals(module)) {
-            return Result.fail("random.template.node_forbidden", Map.of("module", module));
-        }
         TemplateMeta meta = structure(session, templateId);
+        if ("spawn_point".equals(module)) {
+            for (ModuleNode existing : meta.nodes()) {
+                if ("spawn_point".equals(existing.moduleType())) {
+                    return Result.fail("random.template.node_single", Map.of("module", module));
+                }
+            }
+        }
         if (meta == null) {
             return Result.fail("random.gui.structure_missing", Map.of("id", templateId));
         }
@@ -548,6 +545,7 @@ public final class CaptureService {
         if (anchorId != null && !anchorId.isBlank() && anchor == null) {
             return Result.fail("random.template.anchor_unknown", Map.of("id", anchorId));
         }
+        int[] selMin = meta.selectionMin();
         int anchorX = anchor == null ? 0 : anchor.x();
         int anchorY = anchor == null ? 0 : anchor.y();
         int anchorZ = anchor == null ? 0 : anchor.z();
@@ -558,11 +556,13 @@ public final class CaptureService {
         }
         List<ModuleNode> nodes = new ArrayList<>(meta.nodes());
         nodes.add(new ModuleNode(module, nodeId, anchor == null ? "" : anchor.id(),
-                block.getX() - anchorX, block.getY() - anchorY, block.getZ() - anchorZ,
+                block.getX() - selMin[0] - anchorX,
+                block.getY() - selMin[1] - anchorY,
+                block.getZ() - selMin[2] - anchorZ,
                 0.0D, params));
         if (!saveStructure(session, new TemplateMeta(meta.id(), meta.templateRef(), meta.structureType(),
                 meta.tags(), meta.sizeX(), meta.sizeY(), meta.sizeZ(), meta.floors(), meta.anchors(),
-                meta.rotations(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                meta.rotatable(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
                 meta.sealBlock(), nodes, meta.mask(), meta.entities(), meta.selection(), meta.weight()))) {
             return Result.fail("random.gui.structure_save_failed", Map.of("id", templateId));
         }
@@ -701,11 +701,26 @@ public final class CaptureService {
                 entities.add(entry);
             }
         }
+        List<DoorAnchor> localAnchors = new ArrayList<>(session.anchors.size());
+        for (DoorAnchor anchor : session.anchors) {
+            localAnchors.add(new DoorAnchor(anchor.id(), anchor.x() - minX, anchor.y() - minY, anchor.z() - minZ,
+                    anchor.facing(), anchor.width(), anchor.height(), anchor.baseY() - minY,
+                    anchor.floor(), anchor.policy(), anchor.sealBlock()));
+        }
+        List<ModuleNode> localNodes = new ArrayList<>(session.nodes.size());
+        for (ModuleNode node : session.nodes) {
+            boolean noAnchor = node.anchorId() == null || node.anchorId().isBlank();
+            localNodes.add(new ModuleNode(node.moduleType(), node.nodeId(), node.anchorId(),
+                    noAnchor ? node.dx() - minX : node.dx(),
+                    noAnchor ? node.dy() - minY : node.dy(),
+                    noAnchor ? node.dz() - minZ : node.dz(),
+                    node.yaw(), node.params()));
+        }
         TemplateMeta meta = new TemplateMeta(normalizedId, normalizedId, session.structureType,
                 List.copyOf(session.tags), sizeX, sizeY, sizeZ, session.floors,
-                List.copyOf(session.anchors), List.copyOf(session.rotations), session.mirrorable,
+                List.copyOf(localAnchors), session.rotatable, session.mirrorable,
                 session.intrusionPolicy, session.doorPolicy, session.sealBlock,
-                List.copyOf(session.nodes), mask, entities,
+                List.copyOf(localNodes), mask, entities,
                 List.of(minX, minY, minZ, maxX, maxY, maxZ), session.weight);
         try {
             store.save(normalizedId, meta, data);
@@ -774,7 +789,7 @@ public final class CaptureService {
             String renamedId = nextRegionId(dungeonId, normalizedType);
             TemplateMeta renamed = new TemplateMeta(renamedId, renamedId, normalizedType, meta.tags(),
                     meta.sizeX(), meta.sizeY(), meta.sizeZ(), meta.floors(), meta.anchors(),
-                    meta.rotations(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                    meta.rotatable(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
                     meta.sealBlock(), meta.nodes(), meta.mask(), meta.entities(), meta.selection(),
                     meta.weight());
             TemplateStore store = storeProvider.apply(dungeonId);
@@ -822,12 +837,11 @@ public final class CaptureService {
         session.structureType = TemplateModel.TYPE_ROOM;
         session.tags.clear();
         session.floors = 1;
+        session.rotatable = true;
         session.mirrorable = false;
         session.intrusionPolicy = TemplateModel.INTRUSION_ALLOW;
         session.doorPolicy = TemplateModel.POLICY_KEEP;
         session.sealBlock = "";
-        session.rotations.clear();
-        session.rotations.addAll(List.of(0, 90, 180, 270));
         session.anchors.clear();
         session.nodes.clear();
         session.targetId = null;
@@ -905,11 +919,8 @@ public final class CaptureService {
                 continue;
             }
             for (ModuleNode node : meta.nodes()) {
-                int[] anchorPos = anchorPosOf(meta, node.anchorId());
-                int bx = (int) Math.round(node.dx()) + anchorPos[0];
-                int by = (int) Math.round(node.dy()) + anchorPos[1];
-                int bz = (int) Math.round(node.dz()) + anchorPos[2];
-                if (bx == block.getX() && by == block.getY() && bz == block.getZ()) {
+                int[] pos = meta.nodeAbsolute(node);
+                if (pos[0] == block.getX() && pos[1] == block.getY() && pos[2] == block.getZ()) {
                     return new StructureHit(entry.getKey(), node.nodeId());
                 }
             }
@@ -1014,7 +1025,7 @@ public final class CaptureService {
         }
         return saveStructure(session, new TemplateMeta(meta.id(), meta.templateRef(), meta.structureType(),
                 meta.tags(), meta.sizeX(), meta.sizeY(), meta.sizeZ(), meta.floors(), meta.anchors(),
-                meta.rotations(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                meta.rotatable(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
                 meta.sealBlock(), nodes, meta.mask(), meta.entities(), meta.selection(), meta.weight()));
     }
 
@@ -1031,7 +1042,7 @@ public final class CaptureService {
         }
         return saveStructure(session, new TemplateMeta(meta.id(), meta.templateRef(), meta.structureType(),
                 meta.tags(), meta.sizeX(), meta.sizeY(), meta.sizeZ(), meta.floors(), meta.anchors(),
-                meta.rotations(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                meta.rotatable(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
                 meta.sealBlock(), nodes, meta.mask(), meta.entities(), meta.selection(), meta.weight()));
     }
 
@@ -1058,14 +1069,6 @@ public final class CaptureService {
             }
         }
         return new int[] {0, 0, 0};
-    }
-
-    private int[] anchorPosOf(TemplateMeta meta, String anchorId) {
-        if (anchorId == null || anchorId.isBlank()) {
-            return new int[] {0, 0, 0};
-        }
-        DoorAnchor anchor = meta.anchor(anchorId);
-        return anchor == null ? new int[] {0, 0, 0} : new int[] {anchor.x(), anchor.y(), anchor.z()};
     }
 
     public Result discard(Player player) {

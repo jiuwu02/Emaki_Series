@@ -21,10 +21,10 @@ public final class RandomConfig {
 
     public record Corridor(String linkMode, String templateRef, int width, int height,
             int lengthMin, int lengthMax, int maxTurns, int maxHeightDiff, String overlapPolicy,
-            String floorBlock) {
+            String floorBlock, int tileGap) {
     }
 
-    public record Orientation(List<Integer> rotations, String mirrorAxis, String selection) {
+    public record Orientation(boolean rotatable, String mirrorAxis) {
     }
 
     public record TreasureMap(boolean enabled, String granularity, int pixelsPerRoom,
@@ -233,38 +233,26 @@ public final class RandomConfig {
             errors.add("corridor.slope: 固定 1:1, 仅接受 1");
         }
         String floorBlock = node == null ? "stone" : node.getString("floor-block", "stone");
+        int tileGap = node == null ? 0 : node.getInt("tile-gap", 0);
+        if (tileGap < 0 || tileGap > 8) {
+            errors.add("corridor.tile-gap: 必须落在 0-8");
+        }
         return new Corridor(linkMode, node == null ? "" : node.getString("template-ref", ""),
                 width, height, lengthMin, lengthMax, maxTurns, maxHeightDiff, overlapPolicy,
-                floorBlock);
+                floorBlock, tileGap);
     }
 
     private static Orientation parseOrientation(YamlSection section, List<String> errors) {
         YamlSection node = section.getSection("orientation");
-        List<Integer> rotations = new ArrayList<>();
-        if (node != null) {
-            Object raw = node.get("rotations");
-            if (raw instanceof List<?> list) {
-                for (Object entry : list) {
-                    int value = entry instanceof Number number ? number.intValue() : -1;
-                    if (value != 0 && value != 90 && value != 180 && value != 270) {
-                        errors.add("orientation.rotations: 非法旋转 " + value);
-                    }
-                    rotations.add(value);
-                }
-            }
-        }
-        if (rotations.isEmpty()) {
-            rotations = new ArrayList<>(List.of(0, 90, 180, 270));
+        boolean rotatable = node == null || node.getBoolean("rotatable", true);
+        if (node != null && node.contains("rotations")) {
+            errors.add("orientation.rotations: 已下线, 请改用 orientation.rotatable");
         }
         String mirrorAxis = node == null ? "none" : node.getString("mirror-axis", "none").toLowerCase(Locale.ROOT);
         if (!"none".equals(mirrorAxis) && !"x".equals(mirrorAxis)) {
             errors.add("orientation.mirror-axis: 仅支持 none 或 x");
         }
-        String selection = node == null ? "uniform" : node.getString("selection", "uniform").toLowerCase(Locale.ROOT);
-        if (!"uniform".equals(selection)) {
-            errors.add("orientation.selection: 唯一合法值 uniform");
-        }
-        return new Orientation(List.copyOf(rotations), mirrorAxis, selection);
+        return new Orientation(rotatable, mirrorAxis);
     }
 
     private static TreasureMap parseTreasureMap(YamlSection section, List<String> errors) {
@@ -390,9 +378,10 @@ public final class RandomConfig {
         builder.append("corridor=").append(corridor.linkMode()).append(',').append(corridor.templateRef()).append(',')
                 .append(corridor.width()).append('x').append(corridor.height()).append(',')
                 .append(corridor.lengthMin()).append('-').append(corridor.lengthMax()).append(',')
-                .append(corridor.maxTurns()).append(',').append(corridor.maxHeightDiff()).append(';');
-        builder.append("orientation=").append(orientation.rotations()).append(',')
-                .append(orientation.mirrorAxis()).append(',').append(orientation.selection()).append(';');
+                .append(corridor.maxTurns()).append(',').append(corridor.maxHeightDiff()).append(',')
+                .append(corridor.tileGap()).append(';');
+        builder.append("orientation=").append(orientation.rotatable()).append(',')
+                .append(orientation.mirrorAxis()).append(';');
         builder.append("treasure-map=").append(treasureMap.enabled()).append(',')
                 .append(treasureMap.granularity()).append(',').append(treasureMap.pixelsPerRoom()).append(',')
                 .append(treasureMap.updateIntervalTicks()).append(',').append(treasureMap.showUnexploredOutline()).append(',')

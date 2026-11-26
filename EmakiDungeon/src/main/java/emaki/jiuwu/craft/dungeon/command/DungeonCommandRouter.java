@@ -940,7 +940,7 @@ public final class DungeonCommandRouter {
     private boolean randomPermitted(CommandSender sender, String sub) {
         return switch (Texts.lower(sub)) {
             case "create", "enter", "leave" -> sender.hasPermission("emakidungeon.play");
-            case "stop", "replay", "reload" -> sender.hasPermission("emakidungeon.admin");
+            case "stop", "replay", "reload", "preview" -> sender.hasPermission("emakidungeon.admin");
             default -> true;
         };
     }
@@ -1187,7 +1187,8 @@ public final class DungeonCommandRouter {
             }
         }
         sendHelpLines(sender, root, "command.help_random_header");
-        for (String entry : List.of("create", "enter", "leave", "list", "records", "stop", "replay", "reload")) {
+        for (String entry : List.of("create", "enter", "leave", "list", "records", "stop", "replay",
+                "reload", "preview")) {
             if (randomPermitted(sender, entry)) {
                 sendHelpLines(sender, root, "command.help_random_entry_" + entry);
             }

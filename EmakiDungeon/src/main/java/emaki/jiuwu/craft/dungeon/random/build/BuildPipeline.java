@@ -2,7 +2,9 @@ package emaki.jiuwu.craft.dungeon.random.build;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
@@ -39,6 +41,21 @@ public final class BuildPipeline {
             java.util.Map<String, TemplateMeta> metas,
             java.util.Map<String, StructureNbt.StructureData> templates,
             String floorBlock, String defaultSealBlock) {
+        return plan(layout, orderedTemplates, metas, templates, floorBlock, defaultSealBlock,
+                null, null, 0);
+    }
+
+    /**
+     * @param corridorTypeId 走廊模板 id, null 表示纯程序化地板
+     * @param corridorMeta   走廊模板元数据
+     * @param tileGap        相邻模板段之间的空块数
+     */
+    public static Plan plan(Layout layout,
+            List<java.util.Map.Entry<String, StructureNbt.StructureData>> orderedTemplates,
+            java.util.Map<String, TemplateMeta> metas,
+            java.util.Map<String, StructureNbt.StructureData> templates,
+            String floorBlock, String defaultSealBlock,
+            String corridorTypeId, TemplateMeta corridorMeta, int tileGap) {
         List<PlannedBlock> rooms = new ArrayList<>();
         for (RoomPlacement room : layout.rooms()) {
             StructureNbt.StructureData data = templates.get(room.typeId());
@@ -57,13 +74,30 @@ public final class BuildPipeline {
         }
         BlockData floor = blockData(floorBlock, Material.STONE.createBlockData());
         List<PlannedBlock> connections = new ArrayList<>();
+        StructureNbt.StructureData corridorData = corridorTypeId == null ? null : templates.get(corridorTypeId);
+        List<BlockData> corridorPalette = corridorData == null ? List.of() : paletteOf(corridorData);
         for (var run : layout.corridors()) {
+            Set<String> tiled = new HashSet<>();
+            List<PlannedBlock> templateBlocks = new ArrayList<>();
+            if (corridorTypeId != null) {
+                for (PlannedBlock block : CorridorAssembler.assemble(run, corridorMeta, corridorData,
+                        corridorPalette, tileGap)) {
+                    templateBlocks.add(block);
+                    tiled.add(block.x() + ":" + block.z());
+                }
+            }
+            // 先清空走廊净空, 再铺地板与模板, 否则模板墙体会被后续 AIR 覆盖挖穿
             for (var cell : run.cells()) {
-                connections.add(new PlannedBlock(cell.x(), cell.y(), cell.z(), floor));
                 connections.add(new PlannedBlock(cell.x(), cell.y() + 1, cell.z(), Material.AIR.createBlockData()));
                 connections.add(new PlannedBlock(cell.x(), cell.y() + 2, cell.z(), Material.AIR.createBlockData()));
                 connections.add(new PlannedBlock(cell.x(), cell.y() + 3, cell.z(), Material.AIR.createBlockData()));
             }
+            for (var cell : run.cells()) {
+                if (!tiled.contains(cell.x() + ":" + cell.z())) {
+                    connections.add(new PlannedBlock(cell.x(), cell.y(), cell.z(), floor));
+                }
+            }
+            connections.addAll(templateBlocks);
         }
         List<PlannedBlock> seals = new ArrayList<>();
         for (var unconnected : layout.unconnected()) {

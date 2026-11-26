@@ -687,6 +687,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 instance -> buildFlowRuntime(instance, stateService, actionBridge, tempItemManager),
                 stateService::register);
         randomService.bindConfigOf(configCache::get);
+        editorService.bindRandomService(() -> randomService);
+        editorService.bindDungeonConfig(configCache::get);
         var randomCommands = new emaki.jiuwu.craft.dungeon.random.command.RandomCommands(
                 randomService, messageService);
         router.bindRandom(randomCommands);

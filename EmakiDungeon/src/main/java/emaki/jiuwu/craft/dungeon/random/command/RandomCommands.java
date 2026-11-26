@@ -13,6 +13,9 @@ import emaki.jiuwu.craft.dungeon.random.template.CaptureService;
 
 public final class RandomCommands {
 
+    /** 预览世界里相邻两份副本的水平间隔块数, 约一个区块。 */
+    private static final int PREVIEW_SPACING = 16;
+
     private final RandomDungeonService service;
     private final MessageService messages;
     private emaki.jiuwu.craft.dungeon.random.template.CaptureGui gui;
@@ -102,6 +105,19 @@ public final class RandomCommands {
                     return;
                 }
                 report(player, service.replay(args[2]));
+            }
+            case "preview" -> {
+                if (!admin) {
+                    messages.send(player, "random.no_permission", Map.of());
+                    return;
+                }
+                if (args.length < 3 || args[2].isBlank()) {
+                    messages.send(player, "random.preview_usage", Map.of());
+                    return;
+                }
+                int count = args.length >= 4 ? Math.max(1, Math.min(9, parseInt(args[3], 1))) : 1;
+                Long seed = args.length >= 5 ? parseLong(args[4]) : null;
+                report(player, service.preview(args[2], count, seed, PREVIEW_SPACING));
             }
             case "reload" -> {
                 if (!admin) {
@@ -261,8 +277,11 @@ public final class RandomCommands {
     public List<String> complete(String[] args) {
         List<String> candidates = new ArrayList<>();
         if (args.length <= 1) {
-            candidates.addAll(List.of("create", "enter", "leave", "list", "records", "stop", "replay", "reload"));
+            candidates.addAll(List.of("create", "enter", "leave", "list", "records", "stop", "replay",
+                    "reload", "preview"));
         } else if (args.length == 2 && "create".equalsIgnoreCase(args[0])) {
+            candidates.addAll(service.dungeonIds());
+        } else if (args.length == 2 && "preview".equalsIgnoreCase(args[0])) {
             candidates.addAll(service.dungeonIds());
         } else if (args.length == 2 && ("enter".equalsIgnoreCase(args[0]) || "stop".equalsIgnoreCase(args[0]))) {
             for (var instance : service.instances()) {

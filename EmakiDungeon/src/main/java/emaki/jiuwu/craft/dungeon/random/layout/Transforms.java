@@ -5,6 +5,11 @@ import emaki.jiuwu.craft.dungeon.random.model.TemplateModel;
 
 public final class Transforms {
 
+    /** 所有旋转变换四分之一圈步数, 度数与步数换算的唯一入口。 */
+    private static int quarterTurns(int degrees) {
+        return Math.floorMod(Math.floorDiv(degrees, 90), 4);
+    }
+
     public record Variant(int rotations, boolean mirror) {
 
         public String key() {
@@ -13,17 +18,17 @@ public final class Transforms {
     }
 
     public static int footprintX(TemplateMeta meta, Variant variant) {
-        return variant.rotations() % 2 == 0 ? meta.sizeX() : meta.sizeZ();
+        return quarterTurns(variant.rotations()) % 2 == 0 ? meta.sizeX() : meta.sizeZ();
     }
 
     public static int footprintZ(TemplateMeta meta, Variant variant) {
-        return variant.rotations() % 2 == 0 ? meta.sizeZ() : meta.sizeX();
+        return quarterTurns(variant.rotations()) % 2 == 0 ? meta.sizeZ() : meta.sizeX();
     }
 
     public static int[] transform(TemplateMeta meta, Variant variant, int x, int y, int z) {
         int lx = variant.mirror() ? meta.sizeX() - 1 - x : x;
         int lz = z;
-        return switch (Math.floorMod(variant.rotations(), 4)) {
+        return switch (quarterTurns(variant.rotations())) {
             case 1 -> new int[] {meta.sizeZ() - 1 - lz, y, lx};
             case 2 -> new int[] {meta.sizeX() - 1 - lx, y, meta.sizeZ() - 1 - lz};
             case 3 -> new int[] {lz, y, meta.sizeX() - 1 - lx};
@@ -34,7 +39,7 @@ public final class Transforms {
     public static double[] transformExact(TemplateMeta meta, Variant variant, double x, double y, double z) {
         double lx = variant.mirror() ? meta.sizeX() - x : x;
         double lz = z;
-        return switch (Math.floorMod(variant.rotations(), 4)) {
+        return switch (quarterTurns(variant.rotations())) {
             case 1 -> new double[] {meta.sizeZ() - lz, y, lx};
             case 2 -> new double[] {meta.sizeX() - lx, y, meta.sizeZ() - lz};
             case 3 -> new double[] {lz, y, meta.sizeX() - lx};
@@ -45,7 +50,7 @@ public final class Transforms {
     public static int[] transformInverse(TemplateMeta meta, Variant variant, int x, int y, int z) {
         int x1;
         int z1;
-        switch (Math.floorMod(variant.rotations(), 4)) {
+        switch (quarterTurns(variant.rotations())) {
             case 1 -> {
                 x1 = z;
                 z1 = meta.sizeZ() - 1 - x;
@@ -69,7 +74,7 @@ public final class Transforms {
 
     public static String transformFacing(Variant variant, String facing) {
         String result = variant.mirror() ? TemplateModel.mirrorFacing(facing) : facing;
-        return TemplateModel.rotateFacing(result, variant.rotations());
+        return TemplateModel.rotateFacing(result, quarterTurns(variant.rotations()));
     }
 
     public static boolean[] transformVector(Variant variant, int dx, int dz) {
@@ -78,7 +83,7 @@ public final class Transforms {
         if (variant.mirror()) {
             rx = -rx;
         }
-        int[] rotated = switch (Math.floorMod(variant.rotations(), 4)) {
+        int[] rotated = switch (quarterTurns(variant.rotations())) {
             case 1 -> new int[] {-rz, rx};
             case 2 -> new int[] {-rx, -rz};
             case 3 -> new int[] {rz, -rx};

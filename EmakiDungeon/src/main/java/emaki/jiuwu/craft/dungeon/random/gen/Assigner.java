@@ -78,11 +78,34 @@ public final class Assigner {
             if (!ok) {
                 continue;
             }
+            // 主动保证 room-types 的 min-count: 先按模板固定占用座位, 再走加权抽样
             List<Node> unassigned = new ArrayList<>();
             for (Node node : topology.nodes()) {
                 if (!assignment.containsKey(node.id())) {
                     unassigned.add(node);
                 }
+            }
+            for (TemplateOption option : options) {
+                int need = option.minCount() - placed.getOrDefault(option.typeId(), 0);
+                if (need <= 0) {
+                    continue;
+                }
+                if (option.maxCount() > 0) {
+                    need = Math.min(need, option.maxCount() - placed.getOrDefault(option.typeId(), 0));
+                }
+                while (need > 0 && !unassigned.isEmpty()) {
+                    Node seat = unassigned.remove(random.nextInt(unassigned.size()));
+                    assignment.put(seat.id(), option.typeId());
+                    placed.merge(option.typeId(), 1, Integer::sum);
+                    need--;
+                }
+                if (need > 0) {
+                    ok = false;
+                    break;
+                }
+            }
+            if (!ok) {
+                continue;
             }
             for (Node node : unassigned) {
                 List<TemplateOption> pool = new ArrayList<>();

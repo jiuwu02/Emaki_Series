@@ -40,6 +40,7 @@ import emaki.jiuwu.craft.dungeon.random.gen.Seeds;
 import emaki.jiuwu.craft.dungeon.random.gen.Topology;
 import emaki.jiuwu.craft.dungeon.random.gen.TopologyGenerator;
 import emaki.jiuwu.craft.dungeon.random.layout.Bake;
+import emaki.jiuwu.craft.dungeon.random.layout.Feasibility;
 import emaki.jiuwu.craft.dungeon.random.layout.LayoutEngine;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement.Layout;
@@ -232,7 +233,23 @@ public final class RandomDungeonService {
         return instances.get(instanceId);
     }
 
+    /**
+     * 编辑器测试专用: 生成随机副本, 标记为测试实例, READY 后把发起者传送进去。
+     * 生成是异步分帧的, 因此在 finishBuild 完成后回调。
+     */
+    public Result createForTest(String dungeonId, Player player, long seedOverride) {
+        Result result = create(dungeonId, 1, seedOverride, player.getUniqueId());
+        if (!result.ok()) {
+            return result;
+        }
+        return result;
+    }
+
     public Result create(String dungeonId, int players, Long seedOverride) {
+        return create(dungeonId, players, seedOverride, null);
+    }
+
+    private Result create(String dungeonId, int players, Long seedOverride, UUID testPlayer) {
         if (config == null) {
             return Result.fail("random.config_invalid", Map.of("errors",
                     String.join("; ", configErrors)));
@@ -265,12 +282,24 @@ public final class RandomDungeonService {
         long seed = seedOverride != null ? seedOverride
                 : ("fixed".equals(config.seed.source()) ? config.seed.fixedValue()
                         : java.util.concurrent.ThreadLocalRandom.current().nextLong());
+        List<Assigner.TemplateOption> options = templateOptions(metas);
+        List<String> candidateIds = new ArrayList<>(options.size());
+        for (Assigner.TemplateOption option : options) {
+            candidateIds.add(option.typeId());
+        }
+        Feasibility.Verdict verdict = Feasibility.check(
+                new TopologyGenerator().generate(Seeds.derive(seed).topology(), roomCount),
+                candidateIds, metas, config);
+        if (!verdict.feasible()) {
+            return Result.fail(verdict.reasonKey(), verdict.params());
+        }
         RandomInstance instance = null;
+        String lastDiagnostic = "";
         for (int allocation = 0; allocation < ALLOCATION_LIMIT; allocation++) {
-            Seeds seeds = Seeds.derive(seed);
+            Seeds seeds = Seeds.derive(seed + allocation);
             Topology topology = new TopologyGenerator().generate(seeds.topology(), roomCount);
             Assigner.Result assignment = new Assigner().assign(seeds.assignment(), topology,
-                    templateOptions(metas), mandatoryRules());
+                    options, mandatoryRules());
             if (assignment.nodeTemplate().isEmpty()) {
                 continue;
             }
@@ -279,17 +308,20 @@ public final class RandomDungeonService {
                     topology, assignment.nodeTemplate(), metas,
                     config, config.limits.maxLayoutBacktracks(), 64);
             if (layoutResult.layout() == null) {
+                lastDiagnostic = layoutResult.detail();
                 if ("door-reject".equals(layoutResult.failure())) {
                     continue;
                 }
                 return Result.fail("random.layout_failed", Map.of(
                         "room-count", String.valueOf(roomCount),
-                        "attempts", String.valueOf(config.limits.maxLayoutBacktracks())));
+                        "attempts", String.valueOf(config.limits.maxLayoutBacktracks()),
+                        "diagnostic", lastDiagnostic.isBlank() ? "-" : lastDiagnostic));
             }
             Bake.Result baked = Bake.bake(layoutResult.layout(), metas);
             String instanceId = worldNames.next("rnd");
             instance = new RandomInstance(instanceId, seed, seeds, config.configHash,
                     topology.hash(), roomCount);
+            instance.testPlayer(testPlayer);
             instance.layout(layoutResult.layout());
             instance.record("generated allocation=" + (allocation + 1));
             instance.forceState(RandomInstanceState.GENERATING);
@@ -304,9 +336,113 @@ public final class RandomDungeonService {
         return Result.fail("random.allocation_failed", Map.of("limit", String.valueOf(ALLOCATION_LIMIT)));
     }
 
+    /**
+     * 预览: 在同一个临时世界里并排生成 count 份完整副本, 每份间隔约一个区块。
+     * 只造方块结构, 不建 flow、不注册实例、不生成出生点。
+     */
+    public Result preview(String dungeonId, int count, Long seedOverride, int spacingBlocks) {
+        if (config == null) {
+            return Result.fail("random.config_invalid", Map.of("errors",
+                    String.join("; ", configErrors)));
+        }
+        if (dungeonId == null || dungeonId.isBlank()) {
+            return Result.fail("random.create_no_dungeon", Map.of());
+        }
+        Map<String, TemplateMeta> metas = metasOf(dungeonId);
+        Map<String, StructureNbt.StructureData> templates = templatesOf(dungeonId);
+        if (metas.isEmpty()) {
+            return Result.fail("random.no_templates", Map.of());
+        }
+        int roomCount = config.roomCountFor(1);
+        List<Assigner.TemplateOption> options = templateOptions(metas);
+        List<String> candidateIds = new ArrayList<>(options.size());
+        for (Assigner.TemplateOption option : options) {
+            candidateIds.add(option.typeId());
+        }
+        long baseSeed = seedOverride != null ? seedOverride
+                : java.util.concurrent.ThreadLocalRandom.current().nextLong();
+        List<Layout> layouts = new ArrayList<>(count);
+        for (int index = 0; index < count; index++) {
+            long seed = baseSeed + index;
+            Seeds seeds = Seeds.derive(seed);
+            Topology topology = new TopologyGenerator().generate(seeds.topology(), roomCount);
+            Feasibility.Verdict verdict = Feasibility.check(topology, candidateIds, metas, config);
+            if (!verdict.feasible()) {
+                return Result.fail(verdict.reasonKey(), verdict.params());
+            }
+            Assigner.Result assignment = new Assigner().assign(seeds.assignment(), topology,
+                    options, mandatoryRules());
+            if (assignment.nodeTemplate().isEmpty()) {
+                return Result.fail("random.preview_allocation_failed", Map.of("index", String.valueOf(index + 1)));
+            }
+            LayoutEngine.Result layoutResult = new LayoutEngine().layout(
+                    seeds.layout(), seeds.orientation(), seeds.link(),
+                    topology, assignment.nodeTemplate(), metas,
+                    config, config.limits.maxLayoutBacktracks(), 64);
+            if (layoutResult.layout() == null) {
+                return Result.fail("random.preview_layout_failed", Map.of(
+                        "index", String.valueOf(index + 1),
+                        "diagnostic", layoutResult.detail().isBlank() ? "-" : layoutResult.detail()));
+            }
+            layouts.add(layoutResult.layout());
+        }
+        String worldName = worldNames.next("rndp");
+        dispatcher.runGlobal(plugin, () -> {
+            World world;
+            try {
+                world = WorldBootstrap.createWorld(worldName, config.world.type());
+            } catch (RuntimeException exception) {
+                return;
+            }
+            String corridorTypeId = corridorTypeIdOf(metas);
+            List<BuildPipeline.PlannedBlock> merged = new ArrayList<>();
+            int cursorX = 0;
+            for (Layout layout : layouts) {
+                BuildPipeline.Plan plan = BuildPipeline.plan(layout, List.of(), metas, templates,
+                        config.corridor.floorBlock(), "stone_bricks",
+                        corridorTypeId, corridorTypeId == null ? null : metas.get(corridorTypeId),
+                        config.corridor.tileGap());
+                // 按该份副本的真实包围盒平移, 保证相邻两份不重叠
+                int minX = Integer.MAX_VALUE;
+                int maxX = Integer.MIN_VALUE;
+                for (RoomPlacement room : layout.rooms()) {
+                    int footprint = emaki.jiuwu.craft.dungeon.random.layout.Transforms
+                            .footprintX(room.meta(), room.variant());
+                    minX = Math.min(minX, room.originX());
+                    maxX = Math.max(maxX, room.originX() + footprint);
+                }
+                if (minX == Integer.MAX_VALUE) {
+                    continue;
+                }
+                int shift = cursorX - minX;
+                for (BuildPipeline.PlannedBlock block : plan.rooms()) {
+                    merged.add(new BuildPipeline.PlannedBlock(block.x() + shift, block.y(), block.z(), block.data()));
+                }
+                for (BuildPipeline.PlannedBlock block : plan.connections()) {
+                    merged.add(new BuildPipeline.PlannedBlock(block.x() + shift, block.y(), block.z(), block.data()));
+                }
+                cursorX += (maxX - minX) + spacingBlocks;
+            }
+            BuildPipeline.Plan shifted = new BuildPipeline.Plan(merged, List.of(), List.of(), merged.size());
+            new BuildPipeline().start(plugin, dispatcher, world, shifted,
+                    config.limits.blocksPerTick(), () -> {
+                    }, warning -> {
+                    });
+        });
+        return Result.ok("random.preview_started", Map.of(
+                "world", worldName,
+                "count", String.valueOf(count),
+                "rooms", String.valueOf(roomCount),
+                "seed", String.valueOf(baseSeed)));
+    }
+
+    /** 房间候选: 只含 structure-type=room 的模板, 走廊模板不参与房间抽样。 */
     private List<Assigner.TemplateOption> templateOptions(Map<String, TemplateMeta> metas) {
         List<Assigner.TemplateOption> options = new ArrayList<>();
         for (Map.Entry<String, TemplateMeta> entry : metas.entrySet()) {
+            if (!TemplateModel.TYPE_ROOM.equals(entry.getValue().structureType())) {
+                continue;
+            }
             RandomConfig.RoomType type = config.roomTypes.get(entry.getKey());
             int weight = type == null || type.weight() == null
                     ? entry.getValue().weight() : type.weight();
@@ -317,6 +453,29 @@ public final class RandomDungeonService {
         }
         options.sort((left, right) -> left.typeId().compareTo(right.typeId()));
         return options;
+    }
+
+    /**
+     * 走廊模板 id: 显式配置优先且必须存在; 未配置时取唯一一个合格的直走廊模板, 多个合格则不启用。
+     */
+    private String corridorTypeIdOf(Map<String, TemplateMeta> metas) {
+        String configured = config.corridor.templateRef();
+        if (configured != null && !configured.isBlank()) {
+            TemplateMeta meta = metas.get(configured);
+            return meta != null && TemplateModel.TYPE_CORRIDOR.equals(meta.structureType()) ? configured : null;
+        }
+        String found = null;
+        for (Map.Entry<String, TemplateMeta> entry : metas.entrySet()) {
+            TemplateMeta meta = entry.getValue();
+            if (!TemplateModel.TYPE_CORRIDOR.equals(meta.structureType())) {
+                continue;
+            }
+            if (found != null) {
+                return null;
+            }
+            found = entry.getKey();
+        }
+        return found;
     }
 
     private List<Assigner.MandatoryRule> mandatoryRules() {
@@ -347,8 +506,11 @@ public final class RandomDungeonService {
                 failInstance(instance, "flow_write_failed");
                 return;
             }
+            String corridorTypeId = corridorTypeIdOf(metas);
             BuildPipeline.Plan plan = BuildPipeline.plan(instance.layout(),
-                    List.of(), metas, templates, config.corridor.floorBlock(), "stone_bricks");
+                    List.of(), metas, templates, config.corridor.floorBlock(), "stone_bricks",
+                    corridorTypeId, corridorTypeId == null ? null : metas.get(corridorTypeId),
+                    config.corridor.tileGap());
             new BuildPipeline().start(plugin, dispatcher, world, plan,
                     config.limits.blocksPerTick(),
                     () -> dispatcher.runGlobal(plugin, () -> finishBuild(instance, world, plan)),
@@ -400,6 +562,11 @@ public final class RandomDungeonService {
         instance.forceState(RandomInstanceState.READY);
         instance.record("ready");
         instanceStore.save(instance);
+        java.util.UUID waiting = instance.testPlayer();
+        Player online = waiting == null ? null : Bukkit.getPlayer(waiting);
+        if (online != null && online.isOnline()) {
+            enter(online, instance.instanceId());
+        }
     }
 
     private int[] spawnOf(RandomInstance instance) {
@@ -429,7 +596,7 @@ public final class RandomDungeonService {
                     double[] local = emaki.jiuwu.craft.dungeon.random.layout.Transforms.transformExact(
                             room.meta(), room.variant(), lx, ly, lz);
                     float yaw = (float) (entry.get("yaw") instanceof Number number ? number.doubleValue() : 0.0D)
-                            + room.variant().rotations() * 90.0F;
+                            + room.variant().rotations();
                     Location location = new Location(world, room.originX() + local[0],
                             room.originY() + local[1], room.originZ() + local[2], yaw, 0.0F);
                     var entity = world.spawnEntity(location, type);

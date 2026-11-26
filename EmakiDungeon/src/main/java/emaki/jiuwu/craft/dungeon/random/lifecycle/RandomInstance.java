@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.dungeon.random.lifecycle;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
@@ -22,6 +23,7 @@ public final class RandomInstance {
     private final List<String> events = new ArrayList<>();
     private volatile Layout layout;
     private volatile DungeonInstance dungeonInstance;
+    private volatile UUID testPlayer;
 
     public RandomInstance(String instanceId, long seed, Seeds seeds, String configHash,
             String topologyHash, int roomCount) {
@@ -88,6 +90,15 @@ public final class RandomInstance {
 
     public void dungeonInstance(DungeonInstance dungeonInstance) {
         this.dungeonInstance = dungeonInstance;
+    }
+
+    /** 编辑器测试实例: 生成完成后把该玩家传送进去; null 表示普通实例。 */
+    public UUID testPlayer() {
+        return testPlayer;
+    }
+
+    public void testPlayer(UUID testPlayer) {
+        this.testPlayer = testPlayer;
     }
 
     public List<String> events() {

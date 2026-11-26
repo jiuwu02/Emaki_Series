@@ -57,6 +57,9 @@ public final class EditorService implements Listener {
 
     public static final String EDIT_WORLD_PREFIX = "emd_edit_";
 
+    private volatile java.util.function.Supplier<emaki.jiuwu.craft.dungeon.random.RandomDungeonService> randomServiceOf;
+    private volatile java.util.function.Function<String, DungeonConfig> dungeonConfigOf;
+
     static final List<String> REGION_SUBDIRS = List.of("region", "entities");
     static final List<String> WORLD_DATA_FILES = List.of(
             "level.dat",
@@ -111,6 +114,14 @@ public final class EditorService implements Listener {
     public void bindTypeRegistry(DungeonTypeRegistry typeRegistry) { new EditorServiceDelegate(this).bindTypeRegistry(typeRegistry); }
 
     public void bindChallenge(ChallengeService challenge) { new EditorServiceDelegate(this).bindChallenge(challenge); }
+
+    public void bindRandomService(java.util.function.Supplier<emaki.jiuwu.craft.dungeon.random.RandomDungeonService> supplier) {
+        this.randomServiceOf = supplier;
+    }
+
+    public void bindDungeonConfig(java.util.function.Function<String, DungeonConfig> supplier) {
+        this.dungeonConfigOf = supplier;
+    }
 
     public void bindGui(EditorGui gui) { new EditorServiceDelegate(this).bindGui(gui); }
 
@@ -379,6 +390,10 @@ public final class EditorService implements Listener {
             messages.send(player, "editor.test_dirty", Map.of());
             return;
         }
+        if (isRandomType(session.dungeonId())) {
+            startRandomTest(player, session);
+            return;
+        }
         if (challenge == null) {
             messages.send(player, "general.invalid_args", Map.of());
             return;
@@ -390,6 +405,35 @@ public final class EditorService implements Listener {
         }
         messages.send(player, "editor.test_failed", Map.of(
                 "code", String.valueOf(result.code())));
+    }
+
+    private boolean isRandomType(String dungeonId) {
+        if (randomServiceOf == null) {
+            return false;
+        }
+        var service = randomServiceOf.get();
+        if (service == null) {
+            return false;
+        }
+        var dungeonConfig = dungeonConfigOf == null ? null : dungeonConfigOf.apply(dungeonId);
+        return dungeonConfig != null
+                && emaki.jiuwu.craft.dungeon.type.DungeonTypeRegistry.RANDOM.equals(dungeonConfig.type());
+    }
+
+    /** random 类型副本的测试: 走随机生成链路, 生成完成 READY 后自动传送进去。 */
+    private void startRandomTest(Player player, EditorSession session) {
+        var service = randomServiceOf == null ? null : randomServiceOf.get();
+        if (service == null) {
+            messages.send(player, "editor.test_random_unavailable", Map.of());
+            return;
+        }
+        long seed = java.util.concurrent.ThreadLocalRandom.current().nextLong();
+        var result = service.createForTest(session.dungeonId(), player, seed);
+        if (!result.ok()) {
+            messages.send(player, result.messageKey(), result.params());
+            return;
+        }
+        messages.send(player, "editor.test_random_started", result.params());
     }
 
     public void save(Player player) {

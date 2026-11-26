@@ -168,7 +168,7 @@ public final class EditorModuleMarkers {
                     "struct:" + entry.getKey(), box,
                     structureLabel(meta.structureType(), entry.getKey(), meta.tags(), meta.weight()));
             for (emaki.jiuwu.craft.dungeon.random.model.TemplateModel.DoorAnchor anchor : meta.anchors()) {
-                Box doorBox = doorBox(anchor);
+                Box doorBox = doorBox(meta, anchor);
                 if (doorBox == null) {
                     continue;
                 }
@@ -373,22 +373,39 @@ public final class EditorModuleMarkers {
     }
 
     public Box doorBox(emaki.jiuwu.craft.dungeon.random.model.TemplateModel.DoorAnchor anchor) {
+        return doorBox(null, anchor);
+    }
+
+    /**
+     * 门锚点选框。传入模板时按模板局部坐标换算回编辑世界绝对坐标; 传 null 时锚点坐标即绝对坐标。
+     */
+    public Box doorBox(emaki.jiuwu.craft.dungeon.random.model.TemplateMeta meta,
+            emaki.jiuwu.craft.dungeon.random.model.TemplateModel.DoorAnchor anchor) {
         if (anchor == null) {
             return null;
         }
+        int originX = 0;
+        int originY = 0;
+        int originZ = 0;
+        if (meta != null) {
+            int[] min = meta.selectionMin();
+            originX = min[0];
+            originY = min[1];
+            originZ = min[2];
+        }
         int width = Math.max(1, anchor.width());
         int height = Math.max(1, anchor.height());
-        int x1 = anchor.x();
-        int x2 = anchor.x();
-        int z1 = anchor.z();
-        int z2 = anchor.z();
+        int x1 = originX + anchor.x();
+        int x2 = x1;
+        int z1 = originZ + anchor.z();
+        int z2 = z1;
         if (emaki.jiuwu.craft.dungeon.random.model.TemplateModel.facingDx(anchor.facing()) == 0) {
-            x2 = anchor.x() + width - 1;
+            x2 = x1 + width - 1;
         } else {
-            z2 = anchor.z() + width - 1;
+            z2 = z1 + width - 1;
         }
-        int y1 = anchor.baseY();
-        int y2 = anchor.baseY() + height - 1;
+        int y1 = originY + anchor.baseY();
+        int y2 = y1 + height - 1;
         return new Box(Math.min(x1, x2), Math.min(y1, y2), Math.min(z1, z2),
                 Math.max(x1, x2), Math.max(y1, y2), Math.max(z1, z2));
     }

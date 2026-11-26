@@ -30,7 +30,7 @@ import emaki.jiuwu.craft.dungeon.random.model.TemplateModel.ModuleNode;
 public final class CaptureGui implements Listener {
 
     static final List<String> NODE_MODULES = List.of(
-            "spawn_points", "respawn_points", "check_points", "exit_points", "block_points",
+            "spawn_point", "spawn_points", "respawn_points", "check_points", "exit_points", "block_points",
             "reward_points", "option_points", "tip_points", "teleport_zones", "boundary_zones",
             "effect_zones", "mechanism_zones", "room_timer_zones", "item_points", "fx_points",
             "temp_items", "kill_targets");
@@ -262,8 +262,8 @@ public final class CaptureGui implements Listener {
                 List.of(String.valueOf(session.floors))));
         inventory.setItem(13, item(Material.GLASS_PANE, "random.gui.meta_mirrorable",
                 List.of(String.valueOf(session.mirrorable))));
-        inventory.setItem(14, item(Material.COMPASS, "random.gui.meta_rotations",
-                List.of(session.rotations.toString())));
+        inventory.setItem(14, item(Material.COMPASS, "random.gui.meta_rotatable",
+                List.of(String.valueOf(session.rotatable))));
         inventory.setItem(15, item(Material.SHIELD, "random.gui.meta_intrusion", List.of(session.intrusionPolicy)));
         inventory.setItem(16, item(Material.OAK_DOOR, "random.gui.meta_door", List.of(session.doorPolicy)));
         inventory.setItem(17, item(Material.BRICKS, "random.gui.meta_seal", List.of(session.sealBlock)));
@@ -417,8 +417,8 @@ public final class CaptureGui implements Listener {
                 List.of(String.valueOf(meta.floors()))));
         inventory.setItem(13, item(Material.GLASS_PANE, "random.gui.meta_mirrorable",
                 List.of(String.valueOf(meta.mirrorable()))));
-        inventory.setItem(14, item(Material.COMPASS, "random.gui.meta_rotations",
-                List.of(meta.rotations().toString())));
+        inventory.setItem(14, item(Material.COMPASS, "random.gui.meta_rotatable",
+                List.of(String.valueOf(meta.rotatable()))));
         inventory.setItem(15, item(Material.SHIELD, "random.gui.meta_intrusion", List.of(meta.intrusionPolicy())));
         inventory.setItem(16, item(Material.OAK_DOOR, "random.gui.meta_door", List.of(meta.doorPolicy())));
         inventory.setItem(17, item(Material.BRICKS, "random.gui.meta_seal", List.of(meta.sealBlock())));
@@ -702,46 +702,34 @@ public final class CaptureGui implements Listener {
                     }
                 }
                 saveStructure(player, templateId, copy(meta, meta.structureType(), tags, meta.floors(),
-                        meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), meta.sealBlock(),
-                        meta.rotations(), meta.nodes()));
+                        meta.rotatable(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                        meta.sealBlock(), meta.nodes()));
             });
             case 12 -> prompt(player, holder, "floors", text -> {
                 int floors = Math.max(1, parseInt(text, meta.floors()));
                 saveStructure(player, templateId, copy(meta, meta.structureType(), meta.tags(), floors,
-                        meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), meta.sealBlock(),
-                        meta.rotations(), meta.nodes()));
+                        meta.rotatable(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                        meta.sealBlock(), meta.nodes()));
                 reopen(player, holder);
             });
             case 13 -> {
                 saveStructure(player, templateId, copy(meta, meta.structureType(), meta.tags(), meta.floors(),
-                        !meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), meta.sealBlock(),
-                        meta.rotations(), meta.nodes()));
+                        meta.rotatable(), !meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                        meta.sealBlock(), meta.nodes()));
                 reopen(player, holder);
             }
-            case 14 -> prompt(player, holder, "rotations", text -> {
-                List<Integer> rotations = new ArrayList<>();
-                for (String part : text.split(",")) {
-                    if (!part.isBlank()) {
-                        int rotation = Integer.parseInt(part.trim());
-                        if (rotation == 0 || rotation == 90 || rotation == 180 || rotation == 270) {
-                            rotations.add(rotation);
-                        }
-                    }
-                }
-                if (rotations.isEmpty()) {
-                    rotations = new ArrayList<>(meta.rotations());
-                }
+            case 14 -> {
                 saveStructure(player, templateId, copy(meta, meta.structureType(), meta.tags(), meta.floors(),
-                        meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), meta.sealBlock(),
-                        rotations, meta.nodes()));
+                        !meta.rotatable(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                        meta.sealBlock(), meta.nodes()));
                 reopen(player, holder);
-            });
+            }
             case 15 -> {
                 String next = TemplateModel.INTRUSION_REJECT.equals(meta.intrusionPolicy())
                         ? TemplateModel.INTRUSION_ALLOW : TemplateModel.INTRUSION_REJECT;
                 saveStructure(player, templateId, copy(meta, meta.structureType(), meta.tags(), meta.floors(),
-                        meta.mirrorable(), next, meta.doorPolicy(), meta.sealBlock(),
-                        meta.rotations(), meta.nodes()));
+                        meta.rotatable(), meta.mirrorable(), next, meta.doorPolicy(), meta.sealBlock(),
+                        meta.nodes()));
                 reopen(player, holder);
             }
             case 16 -> {
@@ -751,18 +739,18 @@ public final class CaptureGui implements Listener {
                     default -> TemplateModel.POLICY_SEAL;
                 };
                 saveStructure(player, templateId, copy(meta, meta.structureType(), meta.tags(), meta.floors(),
-                        meta.mirrorable(), meta.intrusionPolicy(), next, meta.sealBlock(),
-                        meta.rotations(), meta.nodes()));
+                        meta.rotatable(), meta.mirrorable(), meta.intrusionPolicy(), next, meta.sealBlock(),
+                        meta.nodes()));
                 reopen(player, holder);
             }
             case 17 -> promptClose(player, "seal-block", text -> saveStructure(player, templateId,
                     copy(meta, meta.structureType(), meta.tags(), meta.floors(),
-                            meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), text.trim(),
-                            meta.rotations(), meta.nodes())));
+                            meta.rotatable(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                            text.trim(), meta.nodes())));
             case 18 -> promptClose(player, "weight", text -> saveStructure(player, templateId,
                     copy(meta, meta.structureType(), meta.tags(), meta.floors(),
-                            meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), meta.sealBlock(),
-                            meta.rotations(), meta.nodes(), Math.max(0, parseInt(text, meta.weight())))));
+                            meta.rotatable(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                            meta.sealBlock(), meta.nodes(), Math.max(0, parseInt(text, meta.weight())))));
             case SLOT_DELETE -> {
                 deleteStructure(player, templateId);
                 open(player, new Holder(Panel.MAIN, new String[0], 0));
@@ -791,17 +779,17 @@ public final class CaptureGui implements Listener {
 
 
     private TemplateMeta copy(TemplateMeta meta, String structureType, List<String> tags, int floors,
-            boolean mirrorable, String intrusion, String door, String seal, List<Integer> rotations,
+            boolean rotatable, boolean mirrorable, String intrusion, String door, String seal,
             List<ModuleNode> nodes) {
-        return copy(meta, structureType, tags, floors, mirrorable, intrusion, door, seal,
-                rotations, nodes, meta.weight());
+        return copy(meta, structureType, tags, floors, rotatable, mirrorable, intrusion, door, seal,
+                nodes, meta.weight());
     }
 
     private TemplateMeta copy(TemplateMeta meta, String structureType, List<String> tags, int floors,
-            boolean mirrorable, String intrusion, String door, String seal, List<Integer> rotations,
+            boolean rotatable, boolean mirrorable, String intrusion, String door, String seal,
             List<ModuleNode> nodes, int weight) {
         return new TemplateMeta(meta.id(), meta.templateRef(), structureType, tags,
-                meta.sizeX(), meta.sizeY(), meta.sizeZ(), floors, meta.anchors(), rotations,
+                meta.sizeX(), meta.sizeY(), meta.sizeZ(), floors, meta.anchors(), rotatable,
                 mirrorable, intrusion, door, seal, nodes, meta.mask(), meta.entities(), meta.selection(),
                 weight);
     }
