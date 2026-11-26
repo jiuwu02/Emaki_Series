@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.15"
+version: "5.0.16"
 
 # tags: 日志/消息分类头文案; 由 CoreLib 统一定义, 各模块消息发送接口按枚举拼接
 tags:
@@ -55,6 +55,10 @@ console:
   database_ready: "<green>数据库已连接: <aqua>%server_id%</aqua>@<aqua>%database%</aqua></green>"
   # 控制台: 数据库初始化失败; 占位符: %error%
   database_init_failed: "<red>数据库初始化失败: <white>%error%</white></red>"
+  # 控制台: MySQL 协议族驱动未就位, 数据库后端不可用; 占位符: %error%
+  database_driver_missing: "<red>数据库驱动未就位, MySQL/MariaDB 后端不可用: <white>%error%</white></red>"
+  # 控制台: 驱动缺失且 startup_policy=fallback_file, 已降级为文件持久化
+  database_driver_missing_fallback: "<yellow>数据库驱动未就位, 已按 startup_policy 降级为文件持久化; 依赖数据库的跨服功能将不可用</yellow>"
   # 控制台: 玩家数据租约被强占接管; 占位符: %player%, %server_id%
   database_lease_takeover: "<yellow>玩家数据租约已强占接管: <aqua>%player%</aqua> -> <aqua>%server_id%</aqua></yellow>"
   # 控制台: 玩家数据租约丢失并停止续租; 占位符: %player%

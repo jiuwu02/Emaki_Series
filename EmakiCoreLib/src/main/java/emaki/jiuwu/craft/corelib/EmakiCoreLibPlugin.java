@@ -367,6 +367,18 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                 throw new IllegalStateException("database init failed", exception);
             }
             return null;
+        } catch (NoClassDefFoundError | ExceptionInInitializerError error) {
+            // MySQL 驱动与 HikariCP 自 5.0.16 起由 RuntimeLibraryLoader 运行期准备。
+            // 下载失败(离网/镜像不可达)时这里拿到的是 NoClassDefFoundError —— Error 而非
+            // Exception, 不单独捕获就会绕过 startup_policy, 炸掉 CoreLib 及其 18 个依赖方插件。
+            // 用精确的两类而非 LinkageError 超类: 后者会连真实的结构性链接错误一起吞掉。
+            messageService.severe(LogTag.STARTUP, "console.database_driver_missing", Map.of(
+                    "error", String.valueOf(error)));
+            if (!databaseConfig.fallbackFile()) {
+                throw new IllegalStateException("database driver unavailable", error);
+            }
+            messageService.warning(LogTag.STARTUP, "console.database_driver_missing_fallback");
+            return null;
         }
     }
 

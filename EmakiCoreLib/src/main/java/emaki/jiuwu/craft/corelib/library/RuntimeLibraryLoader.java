@@ -89,9 +89,12 @@ public final class RuntimeLibraryLoader {
                 if (library.classpath()) {
                     prepared.add(localFile);
                 }
-            } else {
+            } else if (library.required()) {
                 failed.add(library);
                 error(NamedTextColor.RED, library + " 下载失败");
+            } else {
+                // 可选库失败不阻断加载: 调用方按自身降级策略处理 (数据库驱动 -> startup_policy)
+                warn(NamedTextColor.YELLOW, library + " 下载失败, 已跳过 (可选库, 依赖它的功能将不可用)");
             }
         }
 
@@ -125,6 +128,12 @@ public final class RuntimeLibraryLoader {
                 RuntimeLibrary.maven("boosted-yaml", new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.8")),
                 RuntimeLibrary.maven("exp4j", new LibraryCoordinate("net.objecthunter", "exp4j", "0.4.8")),
                 RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.3.1")),
+                // MySQL 协议族与连接池: 5.0.16 起从 Jar 内 shade 改为运行期准备 (原 libs/mysql+libs/hikari
+                // 共 2.38 MB, 占原 Jar 48%). 两者是纯 Java, 无 native 解压风险; 标记为可选, 下载失败时
+                // 只失去数据库后端能力, 不阻断 CoreLib 及其 18 个依赖方插件加载, 由 startup_policy 决定去留。
+                RuntimeLibrary.optionalMaven("hikaricp", new LibraryCoordinate("com.zaxxer", "HikariCP", "7.1.0")),
+                RuntimeLibrary.optionalMaven("mysql-connector-j",
+                        new LibraryCoordinate("com.mysql", "mysql-connector-j", "8.4.0")),
                 RuntimeLibrary.maven("postgresql", new LibraryCoordinate("org.postgresql", "postgresql", "42.7.7")),
                 RuntimeLibrary.maven("sqlite-jdbc", new LibraryCoordinate("org.xerial", "sqlite-jdbc", "3.50.3.0")),
 
@@ -512,19 +521,28 @@ public final class RuntimeLibraryLoader {
     private record ChecksumSource(String suffix, String algorithm, String expected) {
     }
 
-    private record RuntimeLibrary(String id, LibraryCoordinate coordinate, List<String> repositories, boolean classpath, boolean release) {
+    private record RuntimeLibrary(String id, LibraryCoordinate coordinate, List<String> repositories, boolean classpath,
+            boolean release, boolean required) {
 
         static RuntimeLibrary maven(String id, LibraryCoordinate coordinate) {
-            return new RuntimeLibrary(id, coordinate, List.of(), true, false);
+            return new RuntimeLibrary(id, coordinate, List.of(), true, false, true);
+        }
+
+        /**
+         * 可选运行库: 准备失败只记录告警, 不进入 fail-fast 列表。
+         * 用于数据库驱动一类"缺失时仅降级单一功能"的库。
+         */
+        static RuntimeLibrary optionalMaven(String id, LibraryCoordinate coordinate) {
+            return new RuntimeLibrary(id, coordinate, List.of(), true, false, false);
         }
 
         static RuntimeLibrary release(String id, String groupId, String artifactId, List<String> repositories) {
-            return new RuntimeLibrary(id, new LibraryCoordinate(groupId, artifactId, ""), repositories, false, true);
+            return new RuntimeLibrary(id, new LibraryCoordinate(groupId, artifactId, ""), repositories, false, true, true);
         }
 
         RuntimeLibrary withVersion(String version) {
             return new RuntimeLibrary(id, new LibraryCoordinate(coordinate.groupId(), coordinate.artifactId(), version),
-                    repositories, classpath, release);
+                    repositories, classpath, release, required);
         }
 
         @Override

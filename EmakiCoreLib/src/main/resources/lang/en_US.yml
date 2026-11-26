@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "5.0.15"
+version: "5.0.16"
 
 # tags: log/message category head texts; defined centrally by CoreLib, composed by the tagged send interface
 tags:
@@ -55,6 +55,10 @@ console:
   database_ready: "<green>Database connected: <aqua>%server_id%</aqua>@<aqua>%database%</aqua></green>"
   # Console: database initialization failed; placeholders: %error%
   database_init_failed: "<red>Database initialization failed: <white>%error%</white></red>"
+  # Console: MySQL-family driver unavailable; placeholders: %error%
+  database_driver_missing: "<red>Database driver unavailable, the MySQL/MariaDB backend is disabled: <white>%error%</white></red>"
+  # Console: driver missing with startup_policy=fallback_file, degraded to file persistence
+  database_driver_missing_fallback: "<yellow>Database driver unavailable; degraded to file persistence per startup_policy. Cross-server features that need the database will be unavailable</yellow>"
   # Console: player data lease taken over; placeholders: %player%, %server_id%
   database_lease_takeover: "<yellow>Player data lease taken over: <aqua>%player%</aqua> -> <aqua>%server_id%</aqua></yellow>"
   # Console: player data lease lost, renewal stopped; placeholders: %player%

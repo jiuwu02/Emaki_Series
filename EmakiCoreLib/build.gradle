@@ -1,5 +1,5 @@
 // EmakiCoreLib (原 EmakiCoreLib/pom.xml)
-version = '5.0.15'
+version = '5.0.16'
 
 // libreforge 的类只在 classifier=all 的胖 Jar 中; libreforge.core 仅存在于私有仓库而
 // maven-public 返回 404, 整组排除 (胖 Jar 已自包含编译所需类), 与根 pom 一致
@@ -10,10 +10,12 @@ def libreforgeAll = "com.willfp.libreforge:libreforge:${libs.versions.libreforge
 
 dependencies {
     // 原 shade artifactSet 白名单 (bstats-base 由 bstats-bukkit 传递带入)
+    // HikariCP 与 mysql-connector-j 自 5.0.16 起改由 RuntimeLibraryLoader 运行期准备并缓存,
+    // 不再进插件 Jar: 两者合计 2.38 MB (占原 Jar 48%), 且均为纯 Java (native 库条目 0),
+    // 无 sqlite-jdbc 那类 native 解压风险, 与 pg/sqlite 走同一条下载校验链路。
+    // 代价: 首次启动需联网, 由 DatabaseService 的驱动缺失分支按 startup_policy 降级。
     shadeBundle project(':EmakiCoreLibApi')
     shadeBundle libs.bstats.bukkit
-    shadeBundle(libs.hikari.cp) { transitive = false }
-    shadeBundle(libs.mysql.connector.j) { transitive = false }
 
     // 原 compile 作用域
     api project(':EmakiCoreLibApi')
@@ -57,8 +59,9 @@ dependencies {
 
 tasks.named('shadowJar') {
     relocate 'org.bstats', 'emaki.jiuwu.craft.runtime.bstats'
-    relocate 'com.zaxxer.hikari', 'emaki.jiuwu.craft.corelib.libs.hikari'
-    relocate 'com.mysql', 'emaki.jiuwu.craft.corelib.libs.mysql'
+    // HikariCP / mysql-connector-j 已移出 shadeBundle, 对应 relocate 一并移除:
+    // 运行期由 RuntimeLibraryLoader 以独立 Jar 挂进类加载器, 保留上游原始包名,
+    // 因此 POM 里的 META-INF/services/java.sql.Driver 指向的类名重新成立。
     // bstats-bukkit 自带的 plugin.yml 不得覆盖本插件的 paper-plugin.yml
     exclude 'plugin.yml'
 }

@@ -6,6 +6,13 @@ import java.sql.SQLException;
 
 final class JdbcDrivers {
 
+    // MySQL 驱动与连接池自 5.0.16 起由 RuntimeLibraryLoader 在运行期准备, 不在插件 Jar 内。
+    // 这里一律用字符串类名 + Class.forName, 不用类字面量, 避免驱动缺席时在方法解析阶段
+    // 直接抛 NoClassDefFoundError (那是 Error 不是 Exception, 会绕过 startup_policy 的 try/catch)。
+    private static final String MYSQL_DRIVER = "com.mysql.cj.jdbc.Driver";
+    private static final String POSTGRES_DRIVER = "org.postgresql.Driver";
+    private static final String SQLITE_DRIVER = "org.sqlite.JDBC";
+
     private JdbcDrivers() {
     }
 
@@ -13,13 +20,18 @@ final class JdbcDrivers {
         switch (engine) {
             case MYSQL:
             case MARIADB:
-                DriverManager.registerDriver(new com.mysql.cj.jdbc.Driver());
+                Class<?> mysqlDriver = Class.forName(MYSQL_DRIVER);
+                try {
+                    DriverManager.registerDriver((java.sql.Driver) mysqlDriver.getDeclaredConstructor().newInstance());
+                } catch (ReflectiveOperationException exception) {
+                    throw new ClassNotFoundException("MySQL 驱动无法实例化: " + MYSQL_DRIVER, exception);
+                }
                 break;
             case POSTGRES:
-                Class.forName("org.postgresql.Driver");
+                Class.forName(POSTGRES_DRIVER);
                 break;
             default:
-                Class.forName("org.sqlite.JDBC");
+                Class.forName(SQLITE_DRIVER);
                 break;
         }
     }
@@ -27,11 +39,11 @@ final class JdbcDrivers {
     static String driverClassName(DbEngine engine) {
         switch (engine) {
             case POSTGRES:
-                return "org.postgresql.Driver";
+                return POSTGRES_DRIVER;
             case SQLITE:
-                return "org.sqlite.JDBC";
+                return SQLITE_DRIVER;
             default:
-                return com.mysql.cj.jdbc.Driver.class.getName();
+                return MYSQL_DRIVER;
         }
     }
 
