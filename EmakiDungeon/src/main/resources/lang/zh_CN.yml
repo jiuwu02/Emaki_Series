@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.43"
+version: "1.0.44"
 
 tags:
   challenge: "[ 挑战 ]"
@@ -763,7 +763,7 @@ random:
   create_no_dungeon: "<red>必须指定副本ID: /edungeon random create <副本ID></red>"
   region_created: "<green>已自动创建 <type> <id> | 方块 <blocks> | 在其选区内标记两点即可添加门</green>"
   region_type_invalid: "<red>区域类型非法: <type></red>"
-  region_overlap: "<red>新建区域与已存结构 <white><target></white> 重叠: 选区内不得包含任何已存房间/走廊</red>"
+  region_overlap: "<red>新建区域与已存结构 <white><target></white> 重叠: 选区内不得包含任何已存房间/走廊, 选区已清除, 请重新框选两个角点</red>"
   not_random_type: "<red>副本 <dungeon> 不是随机类型, 请在其 config.yml 设 type: random</red>"
   gui:
     title: "<dark_gray>区域采集</dark_gray> <gray>-</gray> <white><region></white>"

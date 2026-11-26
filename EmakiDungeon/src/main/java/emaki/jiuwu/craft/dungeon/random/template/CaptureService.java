@@ -169,7 +169,8 @@ public final class CaptureService {
         }
         String overlap = dungeonId.isBlank() ? null : overlapping(dungeonId, session.pos1, session.pos2);
         if (overlap != null) {
-            return Result.fail("random.template.region_overlap", Map.of("target", overlap));
+            clearSelection(session);
+            return Result.fail("random.region_overlap", Map.of("target", overlap));
         }
         return createRegion(player, session.structureType, config);
     }
@@ -747,6 +748,11 @@ public final class CaptureService {
             }
         }
         return prefix + "_" + (max + 1);
+    }
+
+    private void clearSelection(Session session) {
+        session.pos1 = null;
+        session.pos2 = null;
     }
 
     private void resetForNewRegion(Session session) {
