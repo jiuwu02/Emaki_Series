@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.dungeon.random.layout.Placement.Layout;
 public final class RandomInstance {
 
     private final String instanceId;
+    private final String dungeonId;
     private final long seed;
     private final Seeds seeds;
     private final String configHash;
@@ -25,9 +26,10 @@ public final class RandomInstance {
     private volatile DungeonInstance dungeonInstance;
     private volatile UUID testPlayer;
 
-    public RandomInstance(String instanceId, long seed, Seeds seeds, String configHash,
+    public RandomInstance(String instanceId, String dungeonId, long seed, Seeds seeds, String configHash,
             String topologyHash, int roomCount) {
         this.instanceId = instanceId;
+        this.dungeonId = dungeonId;
         this.seed = seed;
         this.seeds = seeds;
         this.configHash = configHash;
@@ -38,6 +40,11 @@ public final class RandomInstance {
 
     public String instanceId() {
         return instanceId;
+    }
+
+    /** 创建该实例的副本 ID, 用于回溯到 world/<副本ID>/config.yml 的 random 段。 */
+    public String dungeonId() {
+        return dungeonId;
     }
 
     public long seed() {

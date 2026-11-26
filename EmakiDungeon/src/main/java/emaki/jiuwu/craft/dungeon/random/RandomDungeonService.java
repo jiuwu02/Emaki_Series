@@ -92,7 +92,7 @@ public final class RandomDungeonService {
     private final Map<String, Map<String, TemplateMeta>> metasByDungeon = new ConcurrentHashMap<>();
     private final Map<String, Map<String, StructureNbt.StructureData>> templatesByDungeon = new ConcurrentHashMap<>();
 
-    private volatile RandomConfig config;
+    private final Map<String, RandomConfig> configs = new ConcurrentHashMap<>();
     private volatile List<String> configErrors = List.of();
     private volatile Function<String, emaki.jiuwu.craft.dungeon.config.DungeonConfig> configOf;
     private TaskToken sweepTask = TaskToken.UNAVAILABLE;
@@ -134,19 +134,55 @@ public final class RandomDungeonService {
         }
     }
 
+    /**
+     * 逐个副本读取它自己 world/<副本ID>/config.yml 里的 random 段。
+     * 任何一个副本配置非法都只影响该副本, 不再整份拒绝。
+     */
     public void reloadConfig() {
-        File file = new File(dataFolder, "config.yml");
+        configs.clear();
+        List<String> errors = new ArrayList<>();
+        for (String dungeonId : dungeonIds()) {
+            File file = new File(new File(new File(dataFolder, "world"), dungeonId), "config.yml");
+            YamlSection root = YamlFiles.load(file);
+            if (root == null || root.getSection(RandomConfig.SECTION) == null) {
+                errors.add(dungeonId + ": " + RandomConfig.SECTION + " 段缺失");
+                messages.warning(LogTag.CONFIG, "console.random_config_section_missing",
+                        Map.of("dungeon", dungeonId));
+                continue;
+            }
+            RandomConfig.Loaded loaded = RandomConfig.parse(root);
+            if (loaded.valid()) {
+                configs.put(dungeonId, loaded.config());
+            } else {
+                for (String error : loaded.errors()) {
+                    errors.add(dungeonId + ": " + error);
+                }
+            }
+        }
+        configErrors = List.copyOf(errors);
+    }
+
+    /** 取指定副本的随机生成配置; null 表示该副本未配置或配置非法。 */
+    public RandomConfig configFor(String dungeonId) {
+        return dungeonId == null ? null : configs.get(dungeonId);
+    }
+
+    /** 只重载单个副本的随机配置 (编辑世界保存模板后调用)。 */
+    public void reloadConfigFor(String dungeonId) {
+        if (dungeonId == null || dungeonId.isBlank()) {
+            return;
+        }
+        File file = new File(new File(new File(dataFolder, "world"), dungeonId), "config.yml");
         YamlSection root = YamlFiles.load(file);
-        if (root.getSection("random-dungeon") == null) {
-            root = YamlFiles.loadResource(plugin, "config.yml");
-            messages.warning(LogTag.CONFIG, "console.random_config_section_missing", Map.of());
+        if (root == null || root.getSection(RandomConfig.SECTION) == null) {
+            configs.remove(dungeonId);
+            return;
         }
         RandomConfig.Loaded loaded = RandomConfig.parse(root);
         if (loaded.valid()) {
-            config = loaded.config();
-            configErrors = List.of();
+            configs.put(dungeonId, loaded.config());
         } else {
-            configErrors = List.copyOf(loaded.errors());
+            configs.remove(dungeonId);
         }
     }
 
@@ -179,10 +215,6 @@ public final class RandomDungeonService {
             metasByDungeon.put(dungeonId, dungeonMetas);
             templatesByDungeon.put(dungeonId, dungeonTemplates);
         }
-    }
-
-    public RandomConfig config() {
-        return config;
     }
 
     public List<String> configErrors() {
@@ -250,12 +282,13 @@ public final class RandomDungeonService {
     }
 
     private Result create(String dungeonId, int players, Long seedOverride, UUID testPlayer) {
-        if (config == null) {
-            return Result.fail("random.config_invalid", Map.of("errors",
-                    String.join("; ", configErrors)));
-        }
         if (dungeonId == null || dungeonId.isBlank()) {
             return Result.fail("random.create_no_dungeon", Map.of());
+        }
+        RandomConfig config = configFor(dungeonId);
+        if (config == null) {
+            return Result.fail("random.config_invalid", Map.of("errors",
+                    dungeonId + ": " + RandomConfig.SECTION + " 段缺失或非法"));
         }
         var dungeonConfig = configOf == null ? null : configOf.apply(dungeonId);
         if (dungeonConfig == null || !emaki.jiuwu.craft.dungeon.type.DungeonTypeRegistry.RANDOM
@@ -282,7 +315,7 @@ public final class RandomDungeonService {
         long seed = seedOverride != null ? seedOverride
                 : ("fixed".equals(config.seed.source()) ? config.seed.fixedValue()
                         : java.util.concurrent.ThreadLocalRandom.current().nextLong());
-        List<Assigner.TemplateOption> options = templateOptions(metas);
+        List<Assigner.TemplateOption> options = templateOptions(metas, config);
         List<String> candidateIds = new ArrayList<>(options.size());
         for (Assigner.TemplateOption option : options) {
             candidateIds.add(option.typeId());
@@ -299,7 +332,7 @@ public final class RandomDungeonService {
             Seeds seeds = Seeds.derive(seed + allocation);
             Topology topology = new TopologyGenerator().generate(seeds.topology(), roomCount);
             Assigner.Result assignment = new Assigner().assign(seeds.assignment(), topology,
-                    options, mandatoryRules());
+                    options, mandatoryRules(config));
             if (assignment.nodeTemplate().isEmpty()) {
                 continue;
             }
@@ -319,7 +352,7 @@ public final class RandomDungeonService {
             }
             Bake.Result baked = Bake.bake(layoutResult.layout(), metas);
             String instanceId = worldNames.next("rnd");
-            instance = new RandomInstance(instanceId, seed, seeds, config.configHash,
+            instance = new RandomInstance(instanceId, dungeonId, seed, seeds, config.configHash,
                     topology.hash(), roomCount);
             instance.testPlayer(testPlayer);
             instance.layout(layoutResult.layout());
@@ -327,7 +360,7 @@ public final class RandomDungeonService {
             instance.forceState(RandomInstanceState.GENERATING);
             instances.put(instanceId, instance);
             instanceStore.save(instance);
-            buildWorld(instance, baked, metas, templates);
+            buildWorld(instance, baked, metas, templates, config);
             return Result.ok("random.create_started", Map.of(
                     "instance", instanceId,
                     "seed", String.valueOf(seed),
@@ -341,12 +374,14 @@ public final class RandomDungeonService {
      * 只造方块结构, 不建 flow、不注册实例、不生成出生点。
      */
     public Result preview(String dungeonId, int count, Long seedOverride, int spacingBlocks) {
-        if (config == null) {
-            return Result.fail("random.config_invalid", Map.of("errors",
-                    String.join("; ", configErrors)));
-        }
         if (dungeonId == null || dungeonId.isBlank()) {
             return Result.fail("random.create_no_dungeon", Map.of());
+        }
+        RandomConfig config = configFor(dungeonId);
+        if (config == null) {
+            return Result.fail("random.config_invalid", Map.of("errors", configErrors.isEmpty()
+                    ? dungeonId + ": " + RandomConfig.SECTION + " 段缺失"
+                    : String.join("; ", configErrors)));
         }
         Map<String, TemplateMeta> metas = metasOf(dungeonId);
         Map<String, StructureNbt.StructureData> templates = templatesOf(dungeonId);
@@ -354,7 +389,7 @@ public final class RandomDungeonService {
             return Result.fail("random.no_templates", Map.of());
         }
         int roomCount = config.roomCountFor(1);
-        List<Assigner.TemplateOption> options = templateOptions(metas);
+        List<Assigner.TemplateOption> options = templateOptions(metas, config);
         List<String> candidateIds = new ArrayList<>(options.size());
         for (Assigner.TemplateOption option : options) {
             candidateIds.add(option.typeId());
@@ -371,7 +406,7 @@ public final class RandomDungeonService {
                 return Result.fail(verdict.reasonKey(), verdict.params());
             }
             Assigner.Result assignment = new Assigner().assign(seeds.assignment(), topology,
-                    options, mandatoryRules());
+                    options, mandatoryRules(config));
             if (assignment.nodeTemplate().isEmpty()) {
                 return Result.fail("random.preview_allocation_failed", Map.of("index", String.valueOf(index + 1)));
             }
@@ -394,7 +429,7 @@ public final class RandomDungeonService {
             } catch (RuntimeException exception) {
                 return;
             }
-            String corridorTypeId = corridorTypeIdOf(metas);
+            String corridorTypeId = corridorTypeIdOf(metas, config);
             List<BuildPipeline.PlannedBlock> merged = new ArrayList<>();
             int cursorX = 0;
             for (Layout layout : layouts) {
@@ -437,7 +472,7 @@ public final class RandomDungeonService {
     }
 
     /** 房间候选: 只含 structure-type=room 的模板, 走廊模板不参与房间抽样。 */
-    private List<Assigner.TemplateOption> templateOptions(Map<String, TemplateMeta> metas) {
+    private List<Assigner.TemplateOption> templateOptions(Map<String, TemplateMeta> metas, RandomConfig config) {
         List<Assigner.TemplateOption> options = new ArrayList<>();
         for (Map.Entry<String, TemplateMeta> entry : metas.entrySet()) {
             if (!TemplateModel.TYPE_ROOM.equals(entry.getValue().structureType())) {
@@ -458,7 +493,7 @@ public final class RandomDungeonService {
     /**
      * 走廊模板 id: 显式配置优先且必须存在; 未配置时取唯一一个合格的直走廊模板, 多个合格则不启用。
      */
-    private String corridorTypeIdOf(Map<String, TemplateMeta> metas) {
+    private String corridorTypeIdOf(Map<String, TemplateMeta> metas, RandomConfig config) {
         String configured = config.corridor.templateRef();
         if (configured != null && !configured.isBlank()) {
             TemplateMeta meta = metas.get(configured);
@@ -478,7 +513,7 @@ public final class RandomDungeonService {
         return found;
     }
 
-    private List<Assigner.MandatoryRule> mandatoryRules() {
+    private List<Assigner.MandatoryRule> mandatoryRules(RandomConfig config) {
         List<Assigner.MandatoryRule> rules = new ArrayList<>();
         for (RandomConfig.MandatoryRule rule : config.mandatory.values()) {
             rules.add(new Assigner.MandatoryRule(rule.tag(), rule.minCount(), rule.maxCount(),
@@ -488,7 +523,8 @@ public final class RandomDungeonService {
     }
 
     private void buildWorld(RandomInstance instance, Bake.Result baked,
-            Map<String, TemplateMeta> metas, Map<String, StructureNbt.StructureData> templates) {
+            Map<String, TemplateMeta> metas, Map<String, StructureNbt.StructureData> templates,
+            RandomConfig config) {
         dispatcher.runGlobal(plugin, () -> {
             World world;
             try {
@@ -506,7 +542,7 @@ public final class RandomDungeonService {
                 failInstance(instance, "flow_write_failed");
                 return;
             }
-            String corridorTypeId = corridorTypeIdOf(metas);
+            String corridorTypeId = corridorTypeIdOf(metas, config);
             BuildPipeline.Plan plan = BuildPipeline.plan(instance.layout(),
                     List.of(), metas, templates, config.corridor.floorBlock(), "stone_bricks",
                     corridorTypeId, corridorTypeId == null ? null : metas.get(corridorTypeId),
@@ -526,7 +562,9 @@ public final class RandomDungeonService {
             return;
         }
         int[] spawn = spawnOf(instance);
-        BuildPipeline.prewarm(world, spawn[0], spawn[2], config.world.prewarmRadiusChunks());
+        RandomConfig config = configFor(instance.dungeonId());
+        BuildPipeline.prewarm(world, spawn[0], spawn[2],
+                config == null ? 2 : config.world.prewarmRadiusChunks());
         spawnCapturedEntities(world, instance);
         DungeonInstance dungeonInstance = new DungeonInstance(instance.instanceId(), "random",
                 new WorldCommandQueue(total -> messages.warning(null, "console.world_command_deferred",
@@ -656,7 +694,8 @@ public final class RandomDungeonService {
     }
 
     private void giveMap(Player player, RandomInstance instance) {
-        if (!config.treasureMap.enabled() || instance.layout() == null) {
+        RandomConfig config = configFor(instance.dungeonId());
+        if (config == null || !config.treasureMap.enabled() || instance.layout() == null) {
             return;
         }
         List<TreasureMapService.RoomCell> cells = new ArrayList<>();
@@ -754,8 +793,10 @@ public final class RandomDungeonService {
         if (record == null) {
             return Result.fail("random.record_missing", Map.of("record", String.valueOf(recordName)));
         }
+        RandomConfig config = configFor(record.dungeonId());
         if (config == null) {
-            return Result.fail("random.config_invalid", Map.of("errors", String.join("; ", configErrors)));
+            return Result.fail("random.replay_config_missing", Map.of("record", recordName,
+                    "dungeon", String.valueOf(record.dungeonId())));
         }
         if (!record.configHash().equals(config.configHash)) {
             return Result.fail("random.replay_config_mismatch", Map.of(

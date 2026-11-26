@@ -509,7 +509,7 @@ public final class EditorModuleMarkers {
 
     private Color colorOf(String type) {
         return switch (type) {
-            case "spawn" -> Color.LIME;
+            case "mob_spawn" -> Color.LIME;
             case "room" -> Color.AQUA;
             case "gate" -> Color.YELLOW;
             case "option" -> Color.FUCHSIA;

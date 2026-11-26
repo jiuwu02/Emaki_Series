@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.47"
+version: "1.0.48"
 
 tags:
   challenge: "[ 挑战 ]"
@@ -359,7 +359,7 @@ editor:
   pos_set: "<green>角点<which> 已记录: <coord></green>"
   pos_missing: "<red>缺少角点<which>, 请用 /edungeon editor pos<which> 记录</red>"
   pos_auto: "<gray>已自动记录角点1, 站到区域另一角用 /edungeon editor pos2 记录后重试</gray>"
-  mark_usage: "<red>用法: /edungeon editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|option|tip|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
+  mark_usage: "<red>用法: /edungeon editor mark <entry|room|checkpoint|respawn|exit|gate|mob_spawn|trigger|block|chest|option|tip|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
   mark_unknown_type: "<red>未知标记类型: <type></red>"
   mark_ok: "<green>已暂存标记 <type> -> <id> (<coord>), 保存后写入流程 YAML</green>"
   mark_dup: "<red>已存在同名模块: <id></red>"
@@ -379,7 +379,7 @@ editor:
   help_mark: |
     <gray>===== 标记速查 (共 21 类) =====</gray>
     <white>用法: /edungeon editor mark 类型 [id] (类型用 Tab 补全, 或看主面板"全部模块")</white>
-    <white>单点(视线方块): entry/exit/spawn/block/chest/option/tip/item/fx/respawn</white>
+    <white>单点(视线方块): entry/exit/mob_spawn/block/chest/option/tip/item/fx/respawn</white>
     <white>区域(两点, 仅随机副本): room/gate/trigger/teleport/boundary/effect/mechanism/room_timer/checkpoint</white>
     <white>无坐标: kill_target/temp_item (在编辑世界任意处即可标记)</white>
     <white>角点: /edungeon editor pos1 与 /edungeon editor pos2 (仅随机副本)</white>
@@ -393,7 +393,7 @@ editor:
     label_node: "<white>%module%</white> <gray>%id%</gray>"
     label_door: "<white>door</white> <gray>%id%</gray>"
     label_door_selection: "<white>door</white> <gray>→ %target%</gray>"
-    spawn: "刷怪点"
+    mob_spawn: "刷怪点"
     room: "房间"
     gate: "门禁"
     option: "分支选项"
@@ -604,8 +604,8 @@ console:
   action_dispatch_failed: "Action 段派发失败 | 段=%segment% | 错误=%error%"
   instance_crashed: "实例循环异常终止 | 实例=%instance% | 错误=%error%"
   flow_file_failed: "流程 YAML 创建失败 | 副本=%dungeon% | 错误=%error%"
-  random_config_legacy_ignored: "<yellow>检测到已下线的独立配置文件 random-dungeon.yml, 已忽略; 随机地牢配置请改到 config.yml 的 random-dungeon 段</yellow>"
-  random_config_section_missing: "<yellow>config.yml 缺少 random-dungeon 段, 本次按插件内置默认值运行; 请把旧的 random-dungeon.yml 内容搬进 config.yml</yellow>"
+  random_config_legacy_ignored: "<yellow>检测到已下线的独立配置文件 random-dungeon.yml, 已忽略; 随机地牢配置请改到各副本 world/<副本ID>/config.yml 的 random 段</yellow>"
+  random_config_section_missing: "<yellow>副本 <dungeon> 的 world/<副本ID>/config.yml 缺少 random 段, 该副本无法进行随机生成; 插件顶层 config.yml 不再承载随机段</yellow>"
   flow_load_failed: "流程 YAML 加载失败, 使用空定义 | 实例=%instance% | 错误=%error%"
   editor_worlds_swept: "启动清扫编辑世界残留 | 数量=%count%"
   editor_template_saved: "编辑模板已回写 | 副本=%dungeon% | 世代=%generation%"
@@ -720,6 +720,7 @@ random:
   left: "<green>已离开随机地牢 <instance></green>"
   stopped: "<green>实例 <instance> 已销毁</green>"
   record_missing: "<red>实例记录不存在: <record></red>"
+  replay_config_missing: "<red>回放拒绝: 记录 <record> 所属副本 <dungeon> 的 random 段缺失或非法</red>"
   replay_config_mismatch: "<red>回放拒绝: config_hash 不一致 | 记录 <expected> 当前 <actual></red>"
   replay_topology_mismatch: "<red>回放拒绝: 拓扑哈希不一致 | 记录 <expected> 当前 <actual></red>"
   replay_ok: "<green>回放校验通过 | 记录 <record> 拓扑 <topology-hash></green>"

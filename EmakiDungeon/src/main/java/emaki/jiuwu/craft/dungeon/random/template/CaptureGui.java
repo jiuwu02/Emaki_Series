@@ -30,7 +30,7 @@ import emaki.jiuwu.craft.dungeon.random.model.TemplateModel.ModuleNode;
 public final class CaptureGui implements Listener {
 
     static final List<String> NODE_MODULES = List.of(
-            "spawn_point", "spawn_points", "respawn_points", "check_points", "exit_points", "block_points",
+            "spawn_point", "mob_spawn_points", "respawn_points", "check_points", "exit_points", "block_points",
             "reward_points", "option_points", "tip_points", "teleport_zones", "boundary_zones",
             "effect_zones", "mechanism_zones", "room_timer_zones", "item_points", "fx_points",
             "temp_items", "kill_targets");
@@ -107,7 +107,7 @@ public final class CaptureGui implements Listener {
     private final CaptureService captures;
     private final MessageService messages;
     private final ChatInputService chatInput;
-    private java.util.function.Supplier<RandomConfig> configSupplier;
+    private java.util.function.Function<String, RandomConfig> configSupplier;
     private volatile java.util.function.Consumer<java.util.UUID> editorRefresh;
     private volatile emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader templates;
 
@@ -118,8 +118,18 @@ public final class CaptureGui implements Listener {
         this.chatInput = chatInput;
     }
 
-    public void bindConfigSupplier(java.util.function.Supplier<RandomConfig> configSupplier) {
+    /** 按副本 ID 取该副本 world config 的 random 段配置。 */
+    public void bindConfigSupplier(java.util.function.Function<String, RandomConfig> configSupplier) {
         this.configSupplier = configSupplier;
+    }
+
+    private RandomConfig configOf(CaptureService.Session session) {
+        if (configSupplier == null || session == null || session.worldName == null
+                || !session.worldName.startsWith(CaptureService.EDIT_WORLD_PREFIX)) {
+            return null;
+        }
+        return configSupplier.apply(
+                session.worldName.substring(CaptureService.EDIT_WORLD_PREFIX.length()));
     }
 
     public void bindEditorRefresh(java.util.function.Consumer<java.util.UUID> editorRefresh) {
@@ -479,11 +489,11 @@ public final class CaptureGui implements Listener {
     private void handleMain(Player player, CaptureService.Session session, int slot) {
         switch (slot) {
             case SLOT_POS1 -> {
-                report(player, captures.pos(player, 1, configSupplier == null ? null : configSupplier.get()));
+                report(player, captures.pos(player, 1, configOf(session)));
                 reopen(player, new Holder(Panel.MAIN, new String[0], 0));
             }
             case SLOT_POS2 -> {
-                report(player, captures.pos(player, 2, configSupplier == null ? null : configSupplier.get()));
+                report(player, captures.pos(player, 2, configOf(session)));
                 reopen(player, new Holder(Panel.MAIN, new String[0], 0));
             }
             case SLOT_META -> open(player, new Holder(Panel.META, new String[0], 0));

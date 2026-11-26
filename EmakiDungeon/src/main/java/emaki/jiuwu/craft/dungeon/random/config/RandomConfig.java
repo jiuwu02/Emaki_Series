@@ -85,15 +85,23 @@ public final class RandomConfig {
 
     public static final String[] ICON_KEYS = {"star", "skull", "chest", "flag", "dot", "gate", "stairs", "ring"};
 
+    /** 副本世界 config.yml 中承载随机生成参数的段名。 */
+    public static final String SECTION = "random";
+
+    /**
+     * 从**副本世界** config.yml 解析随机生成配置。
+     *
+     * <p>该段随副本下放, 每个副本独立配置, 不再从插件顶层 config.yml 读取。
+     */
     public static Loaded parse(YamlSection root) {
         List<String> errors = new ArrayList<>();
         if (root == null || root.isEmpty()) {
             errors.add("root: 配置为空");
             return new Loaded(null, errors);
         }
-        YamlSection section = root.getSection("random-dungeon");
+        YamlSection section = root.getSection(SECTION);
         if (section == null || section.isEmpty()) {
-            errors.add("random-dungeon: 配置段缺失");
+            errors.add(SECTION + ": 配置段缺失");
             return new Loaded(null, errors);
         }
         RoomCount roomCount = parseRoomCount(section, errors);

@@ -149,7 +149,7 @@ public final class FlowLoader {
     }
 
     private void parseSpawnPoints(YamlSection root, FlowDefinition definition) {
-        for (Map.Entry<String, YamlSection> entry : moduleSections(root, "spawn_points").entrySet()) {
+        for (Map.Entry<String, YamlSection> entry : moduleSections(root, "mob_spawn_points").entrySet()) {
             YamlSection section = entry.getValue();
             List<WaveDef> waves = new ArrayList<>();
             List<?> rawWaves = section.getList("waves");

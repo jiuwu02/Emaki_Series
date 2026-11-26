@@ -87,10 +87,10 @@ final class EditorGuiDelegate {
     void renderWave(Inventory inventory, EditorSession session, EditorGui.EditorHolder holder) {
         String spawnId = holder.path[0];
         YamlTextDocument view = session.flowDoc().view();
-        Object interval = view.value("spawn_points", spawnId, "waves", holder.path[1], "interval");
+        Object interval = view.value("mob_spawn_points", spawnId, "waves", holder.path[1], "interval");
         boolean drop = !Boolean.FALSE.equals(
-                view.value("spawn_points", spawnId, "waves", holder.path[1], "drop_loot"));
-        int mobs = ownerRef.sequenceSize(view, "spawn_points", spawnId, "waves", holder.path[1], "mobs");
+                view.value("mob_spawn_points", spawnId, "waves", holder.path[1], "drop_loot"));
+        int mobs = ownerRef.sequenceSize(view, "mob_spawn_points", spawnId, "waves", holder.path[1], "mobs");
         inventory.setItem(10, ownerRef.item(Material.CLOCK, "editor.gui.field.interval",
                 List.of(ownerRef.valueLine(interval == null ? "2s" : String.valueOf(interval)))));
         inventory.setItem(12, ownerRef.navItem(drop ? Material.LIME_CONCRETE : Material.RED_CONCRETE,
@@ -336,11 +336,11 @@ final class EditorGuiDelegate {
             return;
         }
         if (slot == EditorGui.SLOT_ACTION) {
-            ownerRef.service.mark(player, "spawn", null);
+            ownerRef.service.mark(player, "mob_spawn", null);
             ownerRef.reopen(player, holder);
             return;
         }
-        List<String> ids = ownerRef.mapKeys(session.flowDoc().view(), "spawn_points");
+        List<String> ids = ownerRef.mapKeys(session.flowDoc().view(), "mob_spawn_points");
         int[] range = ownerRef.pageRange(holder.page, ids.size(), EditorGui.LIST_PAGE_SIZE);
         int index = range[0] + slot;
         if (slot >= 0 && slot < EditorGui.CONTENT_SLOTS && index < range[1]) {
@@ -359,11 +359,11 @@ final class EditorGuiDelegate {
                 wave.put("interval", "2s");
                 wave.put("drop_loot", true);
                 wave.put("mobs", new ArrayList<>());
-                doc.appendListItem(wave, "spawn_points", spawnId, "waves");
+                doc.appendListItem(wave, "mob_spawn_points", spawnId, "waves");
             }, "field.add_wave", "1");
             return;
         }
-        List<Object> waves = ownerRef.sequence(session.flowDoc().view(), "spawn_points", spawnId, "waves");
+        List<Object> waves = ownerRef.sequence(session.flowDoc().view(), "mob_spawn_points", spawnId, "waves");
         int[] range = ownerRef.pageRange(holder.page, waves.size(), EditorGui.LIST_PAGE_SIZE);
         int index = range[0] + slot;
         if (slot >= 0 && slot < EditorGui.CONTENT_SLOTS && index < range[1]) {

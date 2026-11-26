@@ -126,11 +126,11 @@ public final class RandomCommands {
                 }
                 service.reloadConfig();
                 service.reloadTemplates();
-                if (service.config() == null) {
+                if (service.configErrors().isEmpty()) {
+                    messages.send(player, "random.reloaded", Map.of());
+                } else {
                     messages.send(player, "random.config_invalid", Map.of(
                             "errors", String.join("; ", service.configErrors())));
-                } else {
-                    messages.send(player, "random.reloaded", Map.of());
                 }
             }
             default -> messages.send(player, "random.usage", Map.of());
@@ -169,7 +169,18 @@ public final class RandomCommands {
         if (!ensureRegionSession(player)) {
             return;
         }
-        report(player, service.captures().pos(player, which, service.config()));
+        report(player, service.captures().pos(player, which, configOfSession(player)));
+    }
+
+    /** 采集会话所在副本的随机生成配置 (world/<副本ID>/config.yml 的 random 段)。 */
+    private emaki.jiuwu.craft.dungeon.random.config.RandomConfig configOfSession(Player player) {
+        var session = service.captures().sessionOf(player.getUniqueId());
+        if (session == null || session.worldName == null
+                || !session.worldName.startsWith(CaptureService.EDIT_WORLD_PREFIX)) {
+            return null;
+        }
+        return service.configFor(
+                session.worldName.substring(CaptureService.EDIT_WORLD_PREFIX.length()));
     }
 
     public void regionPosClear(Player player) {

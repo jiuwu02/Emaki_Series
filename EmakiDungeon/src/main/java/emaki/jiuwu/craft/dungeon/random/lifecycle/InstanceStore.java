@@ -26,6 +26,7 @@ public final class InstanceStore {
     public void save(RandomInstance instance) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("instance-world", instance.instanceId());
+        map.put("dungeon-id", instance.dungeonId());
         map.put("state", instance.state().name());
         map.put("seed", instance.seed());
         Map<String, Object> sub = new LinkedHashMap<>();
@@ -70,6 +71,7 @@ public final class InstanceStore {
                 sub == null ? 0L : longValue(sub, "link", 0L));
         RandomInstance instance = new RandomInstance(
                 instanceWorld,
+                section.getString("dungeon-id", ""),
                 longValue(section, "seed", 0L),
                 seeds,
                 section.getString("config-hash", ""),

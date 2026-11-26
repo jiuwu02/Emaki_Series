@@ -662,7 +662,7 @@ public final class EditorService implements Listener {
         node.put("id", id);
         node.put("enabled", true);
         switch (spec.type()) {
-            case "spawn" -> {
+            case "mob_spawn" -> {
                 node.put("location", locationMap(point));
                 Map<String, Object> trigger = new LinkedHashMap<>();
                 trigger.put("range", 8);
@@ -1003,6 +1003,10 @@ public final class EditorService implements Listener {
                 loaded = loaded.withType(resolved.id());
             }
             configCache.put(dungeonId, loaded);
+            var service = randomServiceOf == null ? null : randomServiceOf.get();
+            if (service != null) {
+                service.reloadConfigFor(dungeonId);
+            }
         } catch (RuntimeException exception) {
             messages.warning(null, "console.dungeon_config_invalid", Map.of(
                     "dungeon", dungeonId,

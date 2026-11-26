@@ -236,11 +236,11 @@ public final class EditorGui implements Listener {
     void renderMeta(Inventory inventory, EditorSession session, EditorHolder holder) { new EditorGuiDelegate(this).renderMeta(inventory, session, holder); }
 
     void renderSpawnList(Inventory inventory, EditorSession session, EditorHolder holder) {
-        List<String> ids = mapKeys(session.flowDoc().view(), "spawn_points");
+        List<String> ids = mapKeys(session.flowDoc().view(), "mob_spawn_points");
         int[] range = pageRange(holder.page, ids.size(), LIST_PAGE_SIZE);
         for (int index = range[0]; index < range[1]; index++) {
             String id = ids.get(index);
-            int waves = sequenceSize(session.flowDoc().view(), "spawn_points", id, "waves");
+            int waves = sequenceSize(session.flowDoc().view(), "mob_spawn_points", id, "waves");
             inventory.setItem(index - range[0], item(Material.SPAWNER, id,
                     List.of(valueLine(messages.message("editor.gui.wave_count",
                             Map.of("count", String.valueOf(waves)))))));
@@ -253,7 +253,7 @@ public final class EditorGui implements Listener {
     void renderSpawnWaves(Inventory inventory, EditorSession session, EditorHolder holder) {
         String spawnId = holder.path[0];
         YamlTextDocument view = session.flowDoc().view();
-        List<Object> waves = sequence(view, "spawn_points", spawnId, "waves");
+        List<Object> waves = sequence(view, "mob_spawn_points", spawnId, "waves");
         int[] range = pageRange(holder.page, waves.size(), LIST_PAGE_SIZE);
         for (int index = range[0]; index < range[1]; index++) {
             Object wave = waves.get(index);
@@ -546,7 +546,7 @@ public final class EditorGui implements Listener {
         }
         String spawnId = holder.path[0];
         String waveIndex = holder.path[1];
-        String[] wavePath = { "spawn_points", spawnId, "waves", waveIndex };
+        String[] wavePath = { "mob_spawn_points", spawnId, "waves", waveIndex };
         switch (slot) {
             case 10 -> prompt(player, holder, "interval", text -> {
                 String value = Texts.trim(text);

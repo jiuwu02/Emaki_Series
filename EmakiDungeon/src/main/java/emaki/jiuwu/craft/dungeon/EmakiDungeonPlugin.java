@@ -697,7 +697,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         this.randomService = randomService;
         var captureGui = new emaki.jiuwu.craft.dungeon.random.template.CaptureGui(
                 this, randomService.captures(), messageService, chatInputService);
-        captureGui.bindConfigSupplier(randomService::config);
+        captureGui.bindConfigSupplier(randomService::configFor);
         captureGui.bindEditorRefresh(editorService::refreshMarkersOf);
         captureGui.bindTemplates(guiTemplates);
         var captureMarkers = new emaki.jiuwu.craft.dungeon.random.template.CaptureMarkers(

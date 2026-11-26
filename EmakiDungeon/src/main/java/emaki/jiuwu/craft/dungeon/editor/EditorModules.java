@@ -42,7 +42,7 @@ public final class EditorModules {
                     List.of(field("gate_id", Kind.TEXT, "gate_id"),
                             field("logic", Kind.TEXT, "logic"),
                             field("open_mode", Kind.TEXT, "open_mode"))),
-            new ModuleSpec("spawn", "spawn_points", "spawn", false, Coord.POINT,
+            new ModuleSpec("mob_spawn", "mob_spawn_points", "mob_spawn", false, Coord.POINT,
                     List.of(field("spawn_id", Kind.TEXT, "spawn_id"),
                             field("range", Kind.NUMBER, "trigger", "range"),
                             field("min_players", Kind.NUMBER, "trigger", "min_players"),

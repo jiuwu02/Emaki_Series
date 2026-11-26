@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.47"
+version: "1.0.48"
 
 tags:
   challenge: "[ challenge ]"
@@ -359,7 +359,7 @@ editor:
   pos_set: "<green>Corner <which> recorded: <coord></green>"
   pos_missing: "<red>Corner <which> is missing, record it with /edungeon editor pos<which></red>"
   pos_auto: "<gray>Corner 1 recorded automatically, stand at the other corner, record it with /edungeon editor pos2 and retry</gray>"
-  mark_usage: "<red>Usage: /edungeon editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|option|tip|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
+  mark_usage: "<red>Usage: /edungeon editor mark <entry|room|checkpoint|respawn|exit|gate|mob_spawn|trigger|block|chest|option|tip|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
   mark_unknown_type: "<red>Unknown mark type: <type></red>"
   mark_ok: "<green>Staged mark <type> -> <id> (<coord>), written to the flow YAML on save</green>"
   mark_dup: "<red>A module with this id already exists: <id></red>"
@@ -379,7 +379,7 @@ editor:
   help_mark: |
     <gray>===== Mark reference (21 types) =====</gray>
     <white>Usage: /edungeon editor mark type [id] (Tab-complete the type, or use the "All modules" panel)</white>
-    <white>Single point (block in sight): entry/exit/spawn/block/chest/option/tip/item/fx/respawn</white>
+    <white>Single point (block in sight): entry/exit/mob_spawn/block/chest/option/tip/item/fx/respawn</white>
     <white>Region (two corners, random dungeons only): room/gate/trigger/teleport/boundary/effect/mechanism/room_timer/checkpoint</white>
     <white>No coordinates: kill_target/temp_item (mark from anywhere in the edit world)</white>
     <white>Corners: /edungeon editor pos1 and /edungeon editor pos2 (random dungeons only)</white>
@@ -393,7 +393,7 @@ editor:
     label_node: "<white>%module%</white> <gray>%id%</gray>"
     label_door: "<white>door</white> <gray>%id%</gray>"
     label_door_selection: "<white>door</white> <gray>-> %target%</gray>"
-    spawn: "Spawn point"
+    mob_spawn: "Spawn point"
     room: "Room"
     gate: "Gate"
     option: "Branch option"
@@ -604,8 +604,8 @@ console:
   action_dispatch_failed: "Action segment dispatch failed | segment=%segment% | error=%error%"
   instance_crashed: "Instance loop crashed | instance=%instance% | error=%error%"
   flow_file_failed: "Failed to create flow YAML | dungeon=%dungeon% | error=%error%"
-  random_config_legacy_ignored: "<yellow>Found the retired standalone file random-dungeon.yml and ignored it; move the random dungeon settings into the random-dungeon section of config.yml</yellow>"
-  random_config_section_missing: "<yellow>config.yml has no random-dungeon section; running on the bundled defaults this time. Move the old random-dungeon.yml content into config.yml</yellow>"
+  random_config_legacy_ignored: "<yellow>Found the retired standalone file random-dungeon.yml and ignored it; move the random dungeon settings into the random section of each dungeon's world/<dungeonId>/config.yml</yellow>"
+  random_config_section_missing: "<yellow>Dungeon <dungeon> has no random section in world/<dungeonId>/config.yml, so random generation is unavailable for it; the plugin-level config.yml no longer carries random settings</yellow>"
   flow_load_failed: "Failed to load flow YAML, empty definition used | instance=%instance% | error=%error%"
   editor_worlds_swept: "Startup sweep removed leftover edit worlds | count=%count%"
   editor_template_saved: "Edit template written back | dungeon=%dungeon% | generation=%generation%"
@@ -720,6 +720,7 @@ random:
   left: "<green>Left random dungeon <instance></green>"
   stopped: "<green>Instance <instance> destroyed</green>"
   record_missing: "<red>Instance record not found: <record></red>"
+  replay_config_missing: "<red>Replay rejected: dungeon <dungeon> of record <record> has a missing or invalid random section</red>"
   replay_config_mismatch: "<red>Replay rejected: config_hash mismatch | record <expected> current <actual></red>"
   replay_topology_mismatch: "<red>Replay rejected: topology hash mismatch | record <expected> current <actual></red>"
   replay_ok: "<green>Replay verified | record <record> topology <topology-hash></green>"
