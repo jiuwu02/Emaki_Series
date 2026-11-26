@@ -1,0 +1,81 @@
+# ============================================================
+# EmakiDungeon GUI - 分支详情
+# ============================================================
+# 布局与图标由本文件定义, 动态数据由插件渲染时填入
+# 槽位 key 即点击语义, 插件按 key 分发
+# ============================================================
+id: "editor_case"
+
+gui_type: CHEST
+title: "<dark_gray>副本编辑</dark_gray> <gray>-</gray> <white>%dungeon%</white>"
+
+rows: 6
+
+slots:
+  field_case_label:
+    type: "field_case_label"
+    slots: [10]
+    item:
+      source: "minecraft-name_tag"
+      components:
+        custom_name: "<white>标签: <gray>%value%</gray></white>"
+  field_case_value:
+    type: "field_case_value"
+    slots: [12]
+    item:
+      source: "minecraft-paper"
+      components:
+        custom_name: "<white>分支值: <gray>%value%</gray></white>"
+  field_case_ending:
+    type: "field_case_ending"
+    slots: [14]
+    item:
+      source: "minecraft-ender_eye"
+      components:
+        custom_name: "<white>结局: <gray>%value%</gray></white>"
+  field_seal_regions:
+    type: "field_seal_regions"
+    slots: [16]
+    item:
+      source: "minecraft-barrier"
+      components:
+        custom_name: "<white>封闭区域</white>"
+        lore:
+          - "<gray>数量: <white>%count%</white></gray>"
+  region_remove:
+    type: "region_remove"
+    slots: [18]
+    item:
+      source: "minecraft-barrier"
+      components:
+        custom_name: "<red>移除最后一个区域</red>"
+  region_add:
+    type: "region_add"
+    slots: [46]
+    item:
+      source: "minecraft-lime_dye"
+      components:
+        custom_name: "<green>用当前选区添加区域</green>"
+  back:
+    type: "back"
+    slots: [49]
+    item:
+      source: "minecraft-oak_door"
+      components:
+        custom_name: "<yellow>返回分支选项</yellow>"
+  close:
+    type: "close"
+    slots: [53]
+    item:
+      source: "minecraft-barrier"
+      components:
+        custom_name: "<red>关闭</red>"
+  border:
+    type: "filler"
+    slots: [0,1,2,3,4,5,6,7,8,9,11,13,15,17,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,47,48,50,51,52]
+    item:
+      source: "minecraft-gray_stained_glass_pane"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true

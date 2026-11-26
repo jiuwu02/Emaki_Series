@@ -54,7 +54,7 @@ public final class DungeonCommandRouter {
     private static final List<String> PARTY_SUBS = List.of(
             "create", "invite", "accept", "deny", "kick", "leave", "disband", "chat"
     );
-    private static final List<String> EDITOR_SUBS = List.of("menu", "save", "exit", "pos1", "pos2", "door", "status", "mark", "marks", "test", "fill");
+    private static final List<String> EDITOR_SUBS = List.of("menu", "save", "exit", "pos1", "pos2", "clearpos", "door", "status", "mark", "marks", "test", "fill");
     private static final List<String> RECRUIT_SUBS = List.of("open", "close", "list", "join");
     private static final List<String> MATCH_SUBS = List.of("join", "leave");
     private static final List<String> SPECTATE_SUBS = List.of("next", "prev");
@@ -654,6 +654,13 @@ public final class DungeonCommandRouter {
                         editor.markPos(player, 2);
                     }
                 }
+                case "clearpos" -> {
+                    if (randomDungeon(player)) {
+                        routeRegionCommand(player, args, "clearpos");
+                    } else {
+                        editor.clearPos(player);
+                    }
+                }
                 case "mark" -> {
                     if (args.length < 3 || Texts.isBlank(args[2])) {
                         messages.send(player, "editor.mark_usage", Map.of());
@@ -718,9 +725,10 @@ public final class DungeonCommandRouter {
             return;
         }
         switch (sub) {
-            case "menu" -> randomCommands.regionMenu(player);
+            case "menu" -> randomCommands.regionMenu(player, args.length >= 3 ? args[2] : null);
             case "pos1" -> randomCommands.regionPos(player, 1);
             case "pos2" -> randomCommands.regionPos(player, 2);
+            case "clearpos" -> randomCommands.regionPosClear(player);
             case "door" -> randomCommands.regionDoor(player, args);
             default -> randomCommands.regionStatus(player);
         }
@@ -823,6 +831,12 @@ public final class DungeonCommandRouter {
             }
             if (args.length == 3 && "door".equals(Texts.lower(args[1]))) {
                 return List.of("remove", "list");
+            }
+            if (args.length == 3 && "menu".equals(Texts.lower(args[1]))
+                    && editor != null && sender instanceof Player player
+                    && emaki.jiuwu.craft.dungeon.type.DungeonTypeRegistry.RANDOM
+                            .equals(editor.dungeonTypeOf(player.getUniqueId()))) {
+                return randomCommands == null ? List.of() : randomCommands.structureIds(player);
             }
         }
         if ("recruit".equals(root)) {
@@ -1055,6 +1069,7 @@ public final class DungeonCommandRouter {
         sendHelpLines(sender, root, "command.help_editor_header",
                 "command.help_editor_entry_dungeon", "command.help_editor_entry_exit",
                 "command.help_editor_entry_pos_one", "command.help_editor_entry_pos_two",
+                "command.help_editor_entry_clearpos",
                 "command.help_editor_entry_door", "command.help_editor_entry_status",
                 "command.help_editor_entry_mark", "command.help_editor_entry_marks",
                 "command.help_editor_entry_test", "command.help_editor_entry_fill");

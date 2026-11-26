@@ -1,0 +1,84 @@
+# ============================================================
+# EmakiDungeon GUI - 区域采集主面板
+# ============================================================
+# 布局与图标由本文件定义, 动态数据 (名称/数量/坐标) 由插件渲染时填入
+# 槽位 key 即点击语义, 插件按 key 分发, 不依赖硬编码槽位号
+# ============================================================
+id: "capture_main"
+
+gui_type: CHEST
+title: "<dark_gray>区域采集</dark_gray> <gray>-</gray> <white>%region%</white>"
+
+rows: 6
+
+slots:
+  pos1:
+    type: "pos1"
+    slots: [10]
+    item:
+      source: "minecraft-lime_terracotta"
+      components:
+        custom_name: "<white>角点1: <gray>%coord%</gray></white>"
+        lore:
+          - "<dark_gray>点击记录视线方块为角点1</dark_gray>"
+  pos2:
+    type: "pos2"
+    slots: [11]
+    item:
+      source: "minecraft-lime_terracotta"
+      components:
+        custom_name: "<white>角点2: <gray>%coord%</gray></white>"
+        lore:
+          - "<dark_gray>点击记录视线方块为角点2</dark_gray>"
+  meta:
+    type: "meta"
+    slots: [12]
+    item:
+      source: "minecraft-book"
+      components:
+        custom_name: "<white>元数据</white>"
+  anchors:
+    type: "anchors"
+    slots: [13]
+    item:
+      source: "minecraft-iron_door"
+      components:
+        custom_name: "<white>门</white>"
+        lore:
+          - "<gray>数量: <white>%count%</white></gray>"
+  nodes:
+    type: "nodes"
+    slots: [14]
+    item:
+      source: "minecraft-chest"
+      components:
+        custom_name: "<white>功能模块点位</white>"
+        lore:
+          - "<gray>数量: <white>%count%</white></gray>"
+  create_region:
+    type: "create_region"
+    slots: [16]
+    item:
+      source: "minecraft-lime_concrete"
+      components:
+        custom_name: "<green>创建区域</green>"
+        lore:
+          - "<dark_gray>按当前角点选区落库</dark_gray>"
+  status:
+    type: "status"
+    slots: [22]
+    item:
+      source: "minecraft-ender_eye"
+      components:
+        custom_name: "<white>采集状态</white>"
+        lore:
+          - "<gray>类型: <white>%type%</white></gray>"
+          - "<gray>标签: <white>%tags%</white></gray>"
+          - "<gray>角点齐备: <white>%ready%</white></gray>"
+  close:
+    type: "close"
+    slots: [53]
+    item:
+      source: "minecraft-barrier"
+      components:
+        custom_name: "<red>关闭</red>"

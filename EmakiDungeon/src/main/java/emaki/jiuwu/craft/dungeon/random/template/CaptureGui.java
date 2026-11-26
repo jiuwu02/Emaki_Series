@@ -74,6 +74,8 @@ public final class CaptureGui implements Listener {
         Map<String, String> args = new java.util.LinkedHashMap<>();
         String region = switch (holder.panel) {
             case STRUCTURE -> holder.path.length > 0 ? holder.path[0] : "";
+            case PLACE -> holder.path.length > 0 && !holder.path[0].isBlank()
+                    ? holder.path[0] : captures.targetOf(session);
             case NODE -> holder.path.length > 1 && !holder.path[0].isBlank()
                     ? holder.path[0] : captures.targetOf(session);
             default -> captures.targetOf(session);
@@ -99,7 +101,6 @@ public final class CaptureGui implements Listener {
     private static final int SLOT_NODES = 14;
     private static final int SLOT_SAVE = 16;
     private static final int SLOT_STATUS = 22;
-    private static final int SLOT_DISCARD = 40;
     private static final int SLOT_DELETE = 48;
 
     private final Plugin plugin;
@@ -107,6 +108,8 @@ public final class CaptureGui implements Listener {
     private final MessageService messages;
     private final ChatInputService chatInput;
     private java.util.function.Supplier<RandomConfig> configSupplier;
+    private volatile java.util.function.Consumer<java.util.UUID> editorRefresh;
+    private volatile emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader templates;
 
     public CaptureGui(Plugin plugin, CaptureService captures, MessageService messages, ChatInputService chatInput) {
         this.plugin = plugin;
@@ -117,6 +120,48 @@ public final class CaptureGui implements Listener {
 
     public void bindConfigSupplier(java.util.function.Supplier<RandomConfig> configSupplier) {
         this.configSupplier = configSupplier;
+    }
+
+    public void bindEditorRefresh(java.util.function.Consumer<java.util.UUID> editorRefresh) {
+        this.editorRefresh = editorRefresh;
+    }
+
+    public void bindTemplates(emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader templates) {
+        this.templates = templates;
+    }
+
+    private String templateIdOf(Panel panel) {
+        return switch (panel) {
+            case MAIN -> "capture_main";
+            case META -> "capture_meta";
+            case ANCHORS -> "capture_anchors";
+            case NODES -> "capture_nodes";
+            case NODE -> "capture_node";
+            case PLACE -> "capture_place";
+            case STRUCTURE -> "capture_structure";
+            case CREATE -> "capture_create";
+        };
+    }
+
+    emaki.jiuwu.craft.corelib.gui.GuiTemplate templateOf(Panel panel) {
+        emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader loader = templates;
+        return loader == null ? null : loader.get(templateIdOf(panel));
+    }
+
+    int slotOf(Panel panel, String key, int fallback) {
+        emaki.jiuwu.craft.corelib.gui.GuiTemplate template = templateOf(panel);
+        emaki.jiuwu.craft.corelib.gui.GuiSlot slot = template == null ? null : template.slot(key);
+        if (slot == null || slot.slots().isEmpty()) {
+            return fallback;
+        }
+        return slot.slots().get(0);
+    }
+
+    private void refreshEditorMarkers(CaptureService.Session session) {
+        java.util.function.Consumer<java.util.UUID> hook = editorRefresh;
+        if (hook != null && session != null && session.playerId != null) {
+            hook.accept(session.playerId);
+        }
     }
 
     public void openMain(Player player) {
@@ -145,6 +190,9 @@ public final class CaptureGui implements Listener {
             return;
         }
         session.pendingBlock = block;
+        if (templateId != null && !templateId.isBlank()) {
+            session.targetId = templateId;
+        }
         open(player, new Holder(Panel.PLACE, new String[] {templateId == null ? "" : templateId}, 0));
     }
 
@@ -153,14 +201,21 @@ public final class CaptureGui implements Listener {
         if (session == null) {
             return;
         }
-        String title = messages.message(titleKey(holder.panel), titleArgs(session, holder));
-        Inventory inventory = plugin.getServer().createInventory(holder, 54, MiniMessages.parse(title));
+        Map<String, String> args = titleArgs(session, holder);
+        emaki.jiuwu.craft.corelib.gui.GuiTemplate template = templateOf(holder.panel);
+        String title = template == null
+                ? messages.message(titleKey(holder.panel), args)
+                : template.title().replace("%region%", args.getOrDefault("region", ""))
+                        .replace("%id%", args.getOrDefault("id", ""));
+        int rows = template == null || !template.supportsRows() ? 6 : template.rows();
+        Inventory inventory = plugin.getServer().createInventory(holder, rows * 9,
+                MiniMessages.parse(title));
         render(inventory, session, holder);
         player.openInventory(inventory);
     }
 
     private void render(Inventory inventory, CaptureService.Session session, Holder holder) {
-        for (int slot = 0; slot < 54; slot++) {
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
             inventory.setItem(slot, null);
         }
         switch (holder.panel) {
@@ -176,21 +231,27 @@ public final class CaptureGui implements Listener {
     }
 
     private void renderMain(Inventory inventory, CaptureService.Session session) {
-        inventory.setItem(SLOT_POS1, item(Material.LIME_TERRACOTTA, "random.gui.pos1",
-                List.of(coordLine(session.pos1))));
-        inventory.setItem(SLOT_POS2, item(Material.LIME_TERRACOTTA, "random.gui.pos2",
-                List.of(coordLine(session.pos2))));
-        inventory.setItem(SLOT_META, item(Material.BOOK, "random.gui.meta", List.of()));
-        inventory.setItem(SLOT_ANCHORS, item(Material.IRON_DOOR, "random.gui.anchors",
-                List.of(String.valueOf(captures.doorsOf(session).size()))));
-        inventory.setItem(SLOT_NODES, item(Material.CHEST, "random.gui.nodes",
-                List.of(String.valueOf(session.nodes.size()))));
-        inventory.setItem(SLOT_SAVE, item(Material.LIME_CONCRETE, "random.gui.create_region", List.of()));
-        inventory.setItem(SLOT_DISCARD, item(Material.ORANGE_CONCRETE, "random.gui.discard", List.of()));
-        inventory.setItem(SLOT_STATUS, item(Material.ENDER_EYE, "random.gui.status",
-                List.of(session.structureType, String.join(",", session.tags),
-                        String.valueOf(session.pos1 != null && session.pos2 != null))));
-        inventory.setItem(SLOT_CLOSE, item(Material.BARRIER, "random.gui.close", List.of()));
+        emaki.jiuwu.craft.corelib.gui.GuiTemplate template = templateOf(Panel.MAIN);
+        inventory.setItem(slotOf(Panel.MAIN, "pos1", SLOT_POS1), item(Material.LIME_TERRACOTTA,
+                "random.gui.pos1", List.of(coordLine(session.pos1))));
+        inventory.setItem(slotOf(Panel.MAIN, "pos2", SLOT_POS2), item(Material.LIME_TERRACOTTA,
+                "random.gui.pos2", List.of(coordLine(session.pos2))));
+        inventory.setItem(slotOf(Panel.MAIN, "meta", SLOT_META),
+                item(Material.BOOK, "random.gui.meta", List.of()));
+        inventory.setItem(slotOf(Panel.MAIN, "anchors", SLOT_ANCHORS),
+                item(Material.IRON_DOOR, "random.gui.anchors",
+                        List.of(String.valueOf(captures.doorsOf(session).size()))));
+        inventory.setItem(slotOf(Panel.MAIN, "nodes", SLOT_NODES),
+                item(Material.CHEST, "random.gui.nodes",
+                        List.of(String.valueOf(session.nodes.size()))));
+        inventory.setItem(slotOf(Panel.MAIN, "create_region", SLOT_SAVE),
+                item(Material.LIME_CONCRETE, "random.gui.create_region", List.of()));
+        inventory.setItem(slotOf(Panel.MAIN, "status", SLOT_STATUS),
+                item(Material.ENDER_EYE, "random.gui.status",
+                        List.of(session.structureType, String.join(",", session.tags),
+                                String.valueOf(session.pos1 != null && session.pos2 != null))));
+        inventory.setItem(slotOf(Panel.MAIN, "close", SLOT_CLOSE),
+                item(Material.BARRIER, "random.gui.close", List.of()));
     }
 
     private void renderMeta(Inventory inventory, CaptureService.Session session) {
@@ -429,10 +490,6 @@ public final class CaptureGui implements Listener {
             case SLOT_ANCHORS -> open(player, new Holder(Panel.ANCHORS, new String[0], 0));
             case SLOT_NODES -> open(player, new Holder(Panel.NODES, new String[0], 0));
             case SLOT_SAVE -> open(player, new Holder(Panel.CREATE, new String[0], 0));
-            case SLOT_DISCARD -> {
-                captures.discard(player);
-                player.closeInventory();
-            }
             case SLOT_CLOSE -> player.closeInventory();
             default -> {
             }
@@ -534,10 +591,12 @@ public final class CaptureGui implements Listener {
             if (templateId.isBlank()) {
                 captures.deleteNode(session, nodeId);
                 messages.send(player, "editor.module_deleted", Map.of("type", "node", "id", nodeId));
+                captures.fireRefresh(session.playerId);
                 open(player, new Holder(Panel.NODES, new String[0], 0));
             } else {
                 if (captures.deleteStructureNode(session, templateId, nodeId)) {
                     messages.send(player, "editor.module_deleted", Map.of("type", "node", "id", nodeId));
+                    captures.fireRefresh(session.playerId);
                 }
                 open(player, new Holder(Panel.STRUCTURE, new String[] {templateId}, 0));
             }
@@ -631,10 +690,9 @@ public final class CaptureGui implements Listener {
             case 10 -> {
                 String next = TemplateModel.TYPE_ROOM.equals(meta.structureType())
                         ? TemplateModel.TYPE_CORRIDOR : TemplateModel.TYPE_ROOM;
-                saveStructure(player, templateId, copy(meta, next, meta.tags(), meta.floors(),
-                        meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(), meta.sealBlock(),
-                        meta.rotations(), meta.nodes()));
-                reopen(player, holder);
+                report(player, captures.retypeStructure(player, templateId, next));
+                refreshEditorMarkers(session);
+                open(player, new Holder(Panel.MAIN, new String[0], 0));
             }
             case 11 -> promptClose(player, "tags", text -> {
                 List<String> tags = new ArrayList<>();
@@ -758,6 +816,7 @@ public final class CaptureGui implements Listener {
         } else {
             messages.send(player, "random.gui.structure_save_failed", Map.of("id", templateId));
         }
+        refreshEditorMarkers(session);
         captures.fireRefresh(session.playerId);
     }
 
@@ -768,6 +827,7 @@ public final class CaptureGui implements Listener {
         }
         captures.deleteStructure(session, templateId);
         messages.send(player, "random.gui.structure_deleted", Map.of("id", templateId));
+        refreshEditorMarkers(session);
         captures.fireRefresh(session.playerId);
     }
 

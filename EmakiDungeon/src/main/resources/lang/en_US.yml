@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.44"
+version: "1.0.45"
 
 tags:
   challenge: "[ challenge ]"
@@ -54,6 +54,7 @@ command:
   help_editor_entry_exit: "- <hover:show_text:'<gray>exit</gray> <dark_gray>·</dark_gray> <gray>Leave the editor session</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Only inside an editor session</gray>'><gray>exit</gray></hover> <click:run_command:'%root% editor exit'><green>[ ✦ Run ]</green></click>"
   help_editor_entry_pos_one: "- <hover:show_text:'<gray>pos1</gray> <dark_gray>·</dark_gray> <gray>Record region corner 1</gray><newline><newline><dark_gray>▸</dark_gray> <gray>With pos2 it bounds a region for region modules and fill</gray>'><gray>pos1</gray></hover> <click:run_command:'%root% editor pos1'><green>[ ✦ Run ]</green></click>"
   help_editor_entry_pos_two: "- <hover:show_text:'<gray>pos2</gray> <dark_gray>·</dark_gray> <gray>Record region corner 2</gray><newline><newline><dark_gray>▸</dark_gray> <gray>With pos1 it bounds a region for region modules and fill</gray>'><gray>pos2</gray></hover> <click:run_command:'%root% editor pos2'><green>[ ✦ Run ]</green></click>"
+  help_editor_entry_clearpos: "- <hover:show_text:'<gray>clearpos</gray> <dark_gray>·</dark_gray> <gray>Clear the current corner selection</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Use it when a corner was marked by mistake; created rooms and corridors stay untouched</gray>'><gray>clearpos</gray></hover> <click:run_command:'%root% editor clearpos'><green>[ ✦ Run ]</green></click>"
   help_editor_entry_door: "- <hover:show_text:'<gray>door</gray> <dark_gray>·</dark_gray> <gray>Door management (random-type only)</gray>'><gray>door</gray></hover> <click:run_command:'%root% help editor door'><hover:show_text:'<gray>Optional arguments</gray><newline><gray>remove</gray> <dark_gray>·</dark_gray> <gray>remove a door</gray><newline><gray>list</gray> <dark_gray>·</dark_gray> <gray>list doors</gray>'><gray>[ ✦ Args ]</gray></click>"
   help_editor_entry_status: "- <hover:show_text:'<gray>status</gray> <dark_gray>·</dark_gray> <gray>Show region editing status (random-type only)</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Shows structure type, tags, door points, nodes and floors</gray>'><gray>status</gray></hover> <click:run_command:'%root% editor status'><green>[ ✦ Run ]</green></click>"
   help_editor_entry_mark: "- <hover:show_text:'<gray>mark</gray> <dark_gray>·</dark_gray> <gray>Mark a module node</gray><newline><newline><dark_gray>▸</dark_gray> <gray>Arguments: type [id], click the type to see available values</gray><newline><dark_gray>▸</dark_gray> <gray>Point modules use the targeted block, region modules use pos1/pos2, coordinate free modules work anywhere</gray><newline><dark_gray>▸</dark_gray> <gray>id is optional and auto numbered</gray>'><gray>mark</gray></hover> <click:run_command:'%root% help editor mark'><yellow>[ ✦ Show values ]</yellow></click>"
@@ -320,7 +321,7 @@ globalchat:
 
 editor:
   usage: "<red>Usage: /edungeon editor <dungeonId></red>"
-  usage_session: "<gray>Session subcommands: menu | save | exit | pos1 | pos2 | door remove|list | status | mark <type> [id] | marks | fill <block> | test</gray>"
+  usage_session: "<gray>Session subcommands: menu | save | exit | pos1 | pos2 | clearpos | door remove|list | status | mark <type> [id] | marks | fill <block> | test</gray>"
   anchor_usage: "<red>Usage: /edungeon editor door remove <door ID> | /edungeon editor door list (doors are created from two pos1/pos2 points inside a room/corridor selection)</red>"
   door_usage: "<red>Usage: /edungeon editor door remove <door ID> | /edungeon editor door list (doors are created from two pos1/pos2 points inside a room/corridor selection)</red>"
   random_only: "<red>This command only works in the edit world of a random-type dungeon (type: random)</red>"
@@ -347,6 +348,7 @@ editor:
   pos_set: "<green>Corner <which> recorded: <coord></green>"
   pos_missing: "<red>Corner <which> is missing, record it with /edungeon editor pos<which></red>"
   pos_auto: "<gray>Corner 1 recorded automatically, stand at the other corner, record it with /edungeon editor pos2 and retry</gray>"
+  pos_cleared: "<green>Selection corners cleared</green>"
   mark_usage: "<red>Usage: /edungeon editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|option|tip|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
   mark_unknown_type: "<red>Unknown mark type: <type></red>"
   mark_ok: "<green>Staged mark <type> -> <id> (<coord>), written to the flow YAML on save</green>"
@@ -722,6 +724,7 @@ random:
     no_target: "<red>No target block in sight</red>"
     pos_set: "<green>Corner <which> set: <coord></green>"
     pos_missing: "<red>Selection corners missing</red>"
+    pos_cleared: "<green>Capture corners cleared, you can mark again</green>"
     meta_set: "<green>Metadata <key> = <value></green>"
     meta_invalid: "<red>Invalid metadata value: <key> = <value></red>"
     meta_unknown: "<red>Unknown metadata key: <key></red>"
@@ -763,6 +766,7 @@ random:
   create_no_dungeon: "<red>A dungeonId is required: /edungeon random create <dungeonId></red>"
   region_created: "<green>Auto-created <type> <id> | blocks <blocks> | mark two points inside its selection to add a door</green>"
   region_type_invalid: "<red>Invalid region type: <type></red>"
+  region_retyped: "<green>Structure <white><id></white> changed to <type></green>"
   region_overlap: "<red>New region overlaps existing structure <white><target></white>: a selection may not contain any existing room/corridor; the selection was cleared, please mark both corners again</red>"
   not_random_type: "<red>Dungeon <dungeon> is not a random type; set type: random in its config.yml</red>"
   gui:

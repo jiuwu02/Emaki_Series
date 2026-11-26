@@ -175,6 +175,20 @@ public final class CaptureService {
         return createRegion(player, session.structureType, config);
     }
 
+    public Result posClear(Player player) {
+        try {
+            Session session = sessions.get(player.getUniqueId());
+            if (session == null) {
+                return Result.fail("random.template.no_session", Map.of());
+            }
+            clearSelection(session);
+            session.pendingBlock = null;
+            return Result.ok("random.template.pos_cleared", Map.of());
+        } finally {
+            fireRefresh(player.getUniqueId());
+        }
+    }
+
     public Result meta(Player player, String key, String value) {
         try {
             return metaInner(player, key, value);
@@ -735,6 +749,52 @@ public final class CaptureService {
         return Result.ok("random.region_created", params);
     }
 
+    public Result retypeStructure(Player player, String templateId, String nextType) {
+        try {
+            Session session = sessions.get(player.getUniqueId());
+            if (session == null) {
+                return Result.fail("random.template.no_session", Map.of());
+            }
+            String normalizedType = nextType == null ? "" : nextType.trim().toLowerCase(Locale.ROOT);
+            if (!TemplateModel.TYPE_ROOM.equals(normalizedType)
+                    && !TemplateModel.TYPE_CORRIDOR.equals(normalizedType)) {
+                return Result.fail("random.region_type_invalid", Map.of("type", String.valueOf(nextType)));
+            }
+            TemplateMeta meta = structure(session, templateId);
+            if (meta == null) {
+                return Result.fail("random.gui.structure_missing", Map.of("id", templateId));
+            }
+            if (normalizedType.equals(meta.structureType())) {
+                return Result.ok("random.gui.structure_saved", Map.of("id", templateId));
+            }
+            String dungeonId = dungeonOf(session);
+            if (dungeonId.isBlank()) {
+                return Result.fail("random.template.world_forbidden", Map.of());
+            }
+            String renamedId = nextRegionId(dungeonId, normalizedType);
+            TemplateMeta renamed = new TemplateMeta(renamedId, renamedId, normalizedType, meta.tags(),
+                    meta.sizeX(), meta.sizeY(), meta.sizeZ(), meta.floors(), meta.anchors(),
+                    meta.rotations(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                    meta.sealBlock(), meta.nodes(), meta.mask(), meta.entities(), meta.selection(),
+                    meta.weight());
+            TemplateStore store = storeProvider.apply(dungeonId);
+            StructureNbt.StructureData data = store.loadTemplate(templateId);
+            if (data == null) {
+                return Result.fail("random.gui.structure_save_failed", Map.of("id", templateId));
+            }
+            try {
+                store.save(renamedId, renamed, data);
+            } catch (IOException exception) {
+                return Result.fail("random.gui.structure_save_failed", Map.of("id", renamedId));
+            }
+            deleteStructure(session, templateId);
+            session.targetId = renamedId;
+            return Result.ok("random.region_retyped", Map.of("id", renamedId, "type", normalizedType));
+        } finally {
+            fireRefresh(player.getUniqueId());
+        }
+    }
+
     private String nextRegionId(String dungeonId, String prefix) {
         TemplateStore store = storeProvider.apply(dungeonId);
         int max = 0;
@@ -1010,18 +1070,17 @@ public final class CaptureService {
 
     public Result discard(Player player) {
         Session removed = sessions.remove(player.getUniqueId());
-        if (removed != null) {
-            emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers renderer = markerRenderer;
-            if (renderer != null) {
-                renderer.removeAll(removed.markers);
-                renderer.clearLabels(emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers
-                        .captureLabelGroup(removed.playerId));
-            } else {
-                emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers.removeAllNow(removed.markers);
-            }
+        if (removed == null) {
+            return Result.fail("random.template.no_session", Map.of());
         }
-        return removed == null
-                ? Result.fail("random.template.no_session", Map.of())
-                : Result.ok("random.template.discarded", Map.of());
+        emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers renderer = markerRenderer;
+        if (renderer != null) {
+            renderer.removeAll(removed.markers);
+            renderer.clearLabels(emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers
+                    .captureLabelGroup(removed.playerId));
+        } else {
+            emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers.removeAllNow(removed.markers);
+        }
+        return Result.ok("random.template.discarded", Map.of());
     }
 }

@@ -106,6 +106,41 @@ public final class EditorGui implements Listener {
     final EditorService service;
     final MessageService messages;
     private final ChatInputService chatInput;
+    private volatile java.util.function.Supplier<emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader> templates;
+
+    public void bindTemplates(java.util.function.Supplier<emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader> templates) {
+        this.templates = templates;
+    }
+
+    String templateIdOf(Panel panel) {
+        return switch (panel) {
+            case MAIN -> "editor_main";
+            case META -> "editor_meta";
+            case WAVES, GATES, BRANCHES, EXITS -> "editor_list";
+            case SPAWN -> "editor_list";
+            case WAVE -> "editor_wave";
+            case GATE -> "editor_gate";
+            case OPTION -> "editor_option";
+            case CASE -> "editor_case";
+            case MODULES -> "editor_modules";
+            case MODULE_FIELDS -> "editor_module_fields";
+        };
+    }
+
+    emaki.jiuwu.craft.corelib.gui.GuiTemplate templateOf(Panel panel) {
+        java.util.function.Supplier<emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader> supplier = templates;
+        emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader loader = supplier == null ? null : supplier.get();
+        return loader == null ? null : loader.get(templateIdOf(panel));
+    }
+
+    int slotOf(Panel panel, String key, int fallback) {
+        emaki.jiuwu.craft.corelib.gui.GuiTemplate template = templateOf(panel);
+        emaki.jiuwu.craft.corelib.gui.GuiSlot slot = template == null ? null : template.slot(key);
+        if (slot == null || slot.slots().isEmpty()) {
+            return fallback;
+        }
+        return slot.slots().get(0);
+    }
 
     public EditorGui(Plugin plugin,
             EditorService service,

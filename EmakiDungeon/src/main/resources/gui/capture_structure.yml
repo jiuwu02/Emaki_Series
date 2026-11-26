@@ -1,0 +1,100 @@
+# ============================================================
+# EmakiDungeon GUI - 结构编辑
+# ============================================================
+# 布局与图标由本文件定义, 动态数据 (名称/数量/坐标) 由插件渲染时填入
+# 槽位 key 即点击语义, 插件按 key 分发, 不依赖硬编码槽位号
+# ============================================================
+id: "capture_structure"
+
+gui_type: CHEST
+title: "<dark_gray>结构编辑</dark_gray> <gray>-</gray> <white>%region%</white>"
+
+rows: 6
+
+slots:
+  meta_type:
+    type: "meta_type"
+    slots: [10]
+    item:
+      source: "minecraft-paper"
+      components:
+        custom_name: "<white>结构类型: <gray>%value%</gray></white>"
+        lore:
+          - "<dark_gray>点击切换类型, 同步重命名 id</dark_gray>"
+  meta_tags:
+    type: "meta_tags"
+    slots: [11]
+    item:
+      source: "minecraft-name_tag"
+      components:
+        custom_name: "<white>标签: <gray>%value%</gray></white>"
+  meta_floors:
+    type: "meta_floors"
+    slots: [12]
+    item:
+      source: "minecraft-ladder"
+      components:
+        custom_name: "<white>楼层: <gray>%value%</gray></white>"
+  meta_mirrorable:
+    type: "meta_mirrorable"
+    slots: [13]
+    item:
+      source: "minecraft-glass_pane"
+      components:
+        custom_name: "<white>可镜像: <gray>%value%</gray></white>"
+  meta_rotations:
+    type: "meta_rotations"
+    slots: [14]
+    item:
+      source: "minecraft-compass"
+      components:
+        custom_name: "<white>旋转: <gray>%value%</gray></white>"
+  meta_intrusion:
+    type: "meta_intrusion"
+    slots: [15]
+    item:
+      source: "minecraft-shield"
+      components:
+        custom_name: "<white>侵入策略: <gray>%value%</gray></white>"
+  meta_door:
+    type: "meta_door"
+    slots: [16]
+    item:
+      source: "minecraft-oak_door"
+      components:
+        custom_name: "<white>门策略: <gray>%value%</gray></white>"
+  meta_seal:
+    type: "meta_seal"
+    slots: [17]
+    item:
+      source: "minecraft-bricks"
+      components:
+        custom_name: "<white>封闭方块: <gray>%value%</gray></white>"
+  meta_weight:
+    type: "meta_weight"
+    slots: [18]
+    item:
+      source: "minecraft-gold_ingot"
+      components:
+        custom_name: "<white>权重: <gray>%value%</gray></white>"
+  delete:
+    type: "structure_delete"
+    slots: [48]
+    item:
+      source: "minecraft-red_concrete"
+      components:
+        custom_name: "<red>删除该结构</red>"
+  back:
+    type: "back"
+    slots: [49]
+    item:
+      source: "minecraft-oak_door"
+      components:
+        custom_name: "<yellow>返回</yellow>"
+  close:
+    type: "close"
+    slots: [53]
+    item:
+      source: "minecraft-barrier"
+      components:
+        custom_name: "<red>关闭</red>"

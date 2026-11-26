@@ -153,6 +153,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private TeleportGuard teleportGuard;
     private ChatInputService chatInputService;
     private GuiService guiService;
+    private emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader guiTemplates;
     private DungeonCommandRouter router;
     private RegionTracker regionTracker;
     private PlayerStateService stateService;
@@ -192,6 +193,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         LogTags.registerTags(this, DungeonLogTag.values());
         shutdownStarted.set(false);
         languageLoader = new LanguageLoader(this);
+        languageLoader.load();
         messageService = new MessageService(this, DEFAULT_PREFIX,
                 languageLoader::getMessage,
                 (key, replacements) -> {
@@ -580,6 +582,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
         guiService = new GuiService(this, dispatcher, coreLib.asyncTaskScheduler(),
                 coreLib.performanceMonitor(), coreLib.guiBackend());
+        emaki.jiuwu.craft.dungeon.editor.GuiResourceReleaser.release(this);
+        guiTemplates = new emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader(this);
+        guiTemplates.load();
         chatInputService = new ChatInputService(this, dispatcher);
         editorService = new emaki.jiuwu.craft.dungeon.editor.EditorService(this, dispatcher, messageService,
                 chatInputService, cloner, disposer, templates, editorStates, worldContainer, getDataFolder());
@@ -589,6 +594,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         EditorGui editorGui =
                 new emaki.jiuwu.craft.dungeon.editor.EditorGui(this, editorService, messageService,
                         chatInputService);
+        editorGui.bindTemplates(() -> guiTemplates);
         editorService.bindGui(editorGui);
         var moduleMarkers = new emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers(
                 this, dispatcher, messageService,
@@ -689,8 +695,11 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         var captureGui = new emaki.jiuwu.craft.dungeon.random.template.CaptureGui(
                 this, randomService.captures(), messageService, chatInputService);
         captureGui.bindConfigSupplier(randomService::config);
+        captureGui.bindEditorRefresh(editorService::refreshMarkersOf);
+        captureGui.bindTemplates(guiTemplates);
         var captureMarkers = new emaki.jiuwu.craft.dungeon.random.template.CaptureMarkers(
                 this, dispatcher, moduleMarkers, randomService::storeOf);
+        captureMarkers.bindDebug(debugLogger());
         randomService.captures().bindRefreshHook(captureMarkers::refresh);
         randomService.captures().bindMarkerRenderer(moduleMarkers);
         moduleMarkers.bindStoreProvider(randomService::storeOf);
@@ -755,7 +764,12 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     private void reloadTemplates(TemplateRepository templates,
             Map<String, DungeonConfig> configCache) {
+        languageLoader.load();
         appConfigLoader.load();
+        emaki.jiuwu.craft.dungeon.editor.GuiResourceReleaser.release(this);
+        if (guiTemplates != null) {
+            guiTemplates.load();
+        }
         templates.ensureDefaultConfigs();
         for (String dungeonId : templates.discoverDungeons()) {
             try {

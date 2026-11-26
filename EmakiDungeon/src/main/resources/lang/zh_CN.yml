@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.44"
+version: "1.0.45"
 
 tags:
   challenge: "[ 挑战 ]"
@@ -54,6 +54,7 @@ command:
   help_editor_entry_exit: "- <hover:show_text:'<gray>exit</gray> <dark_gray>·</dark_gray> <gray>退出编辑会话</gray><newline><newline><dark_gray>▸</dark_gray> <gray>仅编辑会话中可用</gray>'><gray>exit</gray></hover> <click:run_command:'%root% editor exit'><green>[ ✦ 点击执行 ]</green></click>"
   help_editor_entry_pos_one: "- <hover:show_text:'<gray>pos1</gray> <dark_gray>·</dark_gray> <gray>记录区域角点 1</gray><newline><newline><dark_gray>▸</dark_gray> <gray>与 pos2 圈定区域后可标记区域模块或填充</gray>'><gray>pos1</gray></hover> <click:run_command:'%root% editor pos1'><green>[ ✦ 点击执行 ]</green></click>"
   help_editor_entry_pos_two: "- <hover:show_text:'<gray>pos2</gray> <dark_gray>·</dark_gray> <gray>记录区域角点 2</gray><newline><newline><dark_gray>▸</dark_gray> <gray>与 pos1 圈定区域后可标记区域模块或填充</gray>'><gray>pos2</gray></hover> <click:run_command:'%root% editor pos2'><green>[ ✦ 点击执行 ]</green></click>"
+  help_editor_entry_clearpos: "- <hover:show_text:'<gray>clearpos</gray> <dark_gray>·</dark_gray> <gray>清空当前角点选区</gray><newline><newline><dark_gray>▸</dark_gray> <gray>框错角点时用它归零, 不影响已创建的房间与走廊</gray>'><gray>clearpos</gray></hover> <click:run_command:'%root% editor clearpos'><green>[ ✦ 点击执行 ]</green></click>"
   help_editor_entry_door: "- <hover:show_text:'<gray>door</gray> <dark_gray>·</dark_gray> <gray>门管理(仅随机类型)</gray>'><gray>door</gray></hover> <click:run_command:'%root% help editor door'><hover:show_text:'<gray>可选参数</gray><newline><gray>remove</gray> <dark_gray>·</dark_gray> <gray>移除门</gray><newline><gray>list</gray> <dark_gray>·</dark_gray> <gray>列出门</gray>'><gray>[ ✦ 参数 ]</gray></click>"
   help_editor_entry_status: "- <hover:show_text:'<gray>status</gray> <dark_gray>·</dark_gray> <gray>查看区域编辑状态(仅随机类型)</gray><newline><newline><dark_gray>▸</dark_gray> <gray>含结构类型、标签、门点位数、节点数与楼层数</gray>'><gray>status</gray></hover> <click:run_command:'%root% editor status'><green>[ ✦ 点击执行 ]</green></click>"
   help_editor_entry_mark: "- <hover:show_text:'<gray>mark</gray> <dark_gray>·</dark_gray> <gray>标记一个模块节点</gray><newline><newline><dark_gray>▸</dark_gray> <gray>参数:类型 [id], 类型点击查看可选值</gray><newline><dark_gray>▸</dark_gray> <gray>单点类取准星方块, 区域类用 pos1/pos2, 无坐标类任意处可标</gray><newline><dark_gray>▸</dark_gray> <gray>id 可省略, 自动编号</gray>'><gray>mark</gray></hover> <click:run_command:'%root% help editor mark'><yellow>[ ✦ 查看可选值 ]</yellow></click>"
@@ -320,7 +321,7 @@ globalchat:
 
 editor:
   usage: "<red>用法: /edungeon editor <副本ID></red>"
-  usage_session: "<gray>会话子命令: menu | save | exit | pos1 | pos2 | door remove|list | status | mark <类型> [id] | marks | fill <方块> | test</gray>"
+  usage_session: "<gray>会话子命令: menu | save | exit | pos1 | pos2 | clearpos | door remove|list | status | mark <类型> [id] | marks | fill <方块> | test</gray>"
   anchor_usage: "<red>用法: /edungeon editor door remove <门ID> | /edungeon editor door list (门在房间/走廊选区内用 pos1/pos2 两点自动创建)</red>"
   door_usage: "<red>用法: /edungeon editor door remove <门ID> | /edungeon editor door list (门在房间/走廊选区内用 pos1/pos2 两点自动创建)</red>"
   random_only: "<red>该命令只能在随机类型地牢 (type: random) 的编辑世界使用</red>"
@@ -347,6 +348,7 @@ editor:
   pos_set: "<green>角点<which> 已记录: <coord></green>"
   pos_missing: "<red>缺少角点<which>, 请用 /edungeon editor pos<which> 记录</red>"
   pos_auto: "<gray>已自动记录角点1, 站到区域另一角用 /edungeon editor pos2 记录后重试</gray>"
+  pos_cleared: "<green>已清空角点选区</green>"
   mark_usage: "<red>用法: /edungeon editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|option|tip|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
   mark_unknown_type: "<red>未知标记类型: <type></red>"
   mark_ok: "<green>已暂存标记 <type> -> <id> (<coord>), 保存后写入流程 YAML</green>"
@@ -722,6 +724,7 @@ random:
     no_target: "<red>视线内没有目标方块</red>"
     pos_set: "<green>角点 <which> 已设置: <coord></green>"
     pos_missing: "<red>缺少角点选区</red>"
+    pos_cleared: "<green>采集角点已清空, 可重新框选</green>"
     meta_set: "<green>元数据 <key> = <value></green>"
     meta_invalid: "<red>元数据取值非法: <key> = <value></red>"
     meta_unknown: "<red>未知元数据键: <key></red>"
@@ -763,6 +766,7 @@ random:
   create_no_dungeon: "<red>必须指定副本ID: /edungeon random create <副本ID></red>"
   region_created: "<green>已自动创建 <type> <id> | 方块 <blocks> | 在其选区内标记两点即可添加门</green>"
   region_type_invalid: "<red>区域类型非法: <type></red>"
+  region_retyped: "<green>结构 <white><id></white> 已切换为 <type></green>"
   region_overlap: "<red>新建区域与已存结构 <white><target></white> 重叠: 选区内不得包含任何已存房间/走廊, 选区已清除, 请重新框选两个角点</red>"
   not_random_type: "<red>副本 <dungeon> 不是随机类型, 请在其 config.yml 设 type: random</red>"
   gui:

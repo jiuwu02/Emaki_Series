@@ -1,0 +1,53 @@
+# ============================================================
+# EmakiDungeon GUI - 创建区域
+# ============================================================
+# 布局与图标由本文件定义, 动态数据 (名称/数量/坐标) 由插件渲染时填入
+# 槽位 key 即点击语义, 插件按 key 分发, 不依赖硬编码槽位号
+# ============================================================
+id: "capture_create"
+
+gui_type: CHEST
+title: "<dark_gray>创建区域</dark_gray> <gray>-</gray> <white>%region%</white>"
+
+rows: 6
+
+slots:
+  create_room:
+    type: "create_room"
+    slots: [10]
+    item:
+      source: "minecraft-light_blue_concrete"
+      components:
+        custom_name: "<white>房间</white>"
+        lore:
+          - "<gray>当前选中: <white>%selected%</white></gray>"
+  create_corridor:
+    type: "create_corridor"
+    slots: [11]
+    item:
+      source: "minecraft-orange_concrete"
+      components:
+        custom_name: "<white>走廊</white>"
+        lore:
+          - "<gray>当前选中: <white>%selected%</white></gray>"
+  info:
+    type: "create_hint"
+    slots: [50]
+    item:
+      source: "minecraft-paper"
+      components:
+        custom_name: "<gray>标记两点后自动落库为对应类型</gray>"
+  back:
+    type: "back"
+    slots: [49]
+    item:
+      source: "minecraft-oak_door"
+      components:
+        custom_name: "<yellow>返回</yellow>"
+  close:
+    type: "close"
+    slots: [53]
+    item:
+      source: "minecraft-barrier"
+      components:
+        custom_name: "<red>关闭</red>"

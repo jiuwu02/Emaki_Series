@@ -122,11 +122,29 @@ public final class RandomCommands {
     }
 
     public void regionMenu(Player player) {
+        regionMenu(player, null);
+    }
+
+    public void regionMenu(Player player, String templateId) {
         if (!ensureRegionSession(player)) {
             return;
         }
+        if (templateId != null && !templateId.isBlank()) {
+            CaptureService captures = service.captures();
+            var session = captures.sessionOf(player.getUniqueId());
+            if (captures.structure(session, templateId) == null) {
+                messages.send(player, "random.gui.structure_missing", Map.of("id", templateId));
+                return;
+            }
+            session.targetId = templateId;
+        }
         sendTarget(player);
-        if (gui != null) {
+        if (gui == null) {
+            return;
+        }
+        if (templateId != null && !templateId.isBlank()) {
+            gui.openStructure(player, templateId);
+        } else {
             gui.openMain(player);
         }
     }
@@ -136,6 +154,13 @@ public final class RandomCommands {
             return;
         }
         report(player, service.captures().pos(player, which, service.config()));
+    }
+
+    public void regionPosClear(Player player) {
+        if (!ensureRegionSession(player)) {
+            return;
+        }
+        report(player, service.captures().posClear(player));
     }
 
     public void regionStatus(Player player) {
@@ -249,6 +274,15 @@ public final class RandomCommands {
         String prefix = args.length == 0 ? "" : args[args.length - 1].toLowerCase(java.util.Locale.ROOT);
         candidates.removeIf(candidate -> !candidate.toLowerCase(java.util.Locale.ROOT).startsWith(prefix));
         return candidates;
+    }
+
+    public List<String> structureIds(Player player) {
+        var session = service.captures().sessionOf(player.getUniqueId());
+        if (session == null) {
+            return List.of();
+        }
+        return new ArrayList<>(service.storeOf(session.worldName.startsWith(CaptureService.EDIT_WORLD_PREFIX)
+                ? session.worldName.substring(CaptureService.EDIT_WORLD_PREFIX.length()) : "").ids());
     }
 
     public List<String> instanceIds() {

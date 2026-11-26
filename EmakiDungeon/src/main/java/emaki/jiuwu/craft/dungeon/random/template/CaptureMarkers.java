@@ -30,6 +30,7 @@ public final class CaptureMarkers {
     private final ExecutionDispatcher dispatcher;
     private final EditorModuleMarkers renderer;
     private final Function<String, TemplateStore> storeProvider;
+    private volatile emaki.jiuwu.craft.corelib.debug.DebugLogger debug;
 
     public CaptureMarkers(Plugin plugin, ExecutionDispatcher dispatcher,
             EditorModuleMarkers renderer, Function<String, TemplateStore> storeProvider) {
@@ -39,14 +40,20 @@ public final class CaptureMarkers {
         this.storeProvider = storeProvider;
     }
 
+    public void bindDebug(emaki.jiuwu.craft.corelib.debug.DebugLogger debug) {
+        this.debug = debug;
+    }
+
     public void refresh(CaptureService.Session session) {
         renderer.removeAll(session.markers);
         renderer.clearLabels(EditorModuleMarkers.captureLabelGroup(session.playerId));
         if (session.worldName == null || session.worldName.isBlank()) {
+            debugAnchor("refresh_skip_world_blank", Map.of());
             return;
         }
         World world = Bukkit.getWorld(session.worldName);
         if (world == null) {
+            debugAnchor("refresh_skip_world_unloaded", Map.of("world", session.worldName));
             return;
         }
         String dungeonId = session.worldName.startsWith(CaptureService.EDIT_WORLD_PREFIX)
@@ -56,11 +63,25 @@ public final class CaptureMarkers {
         Location anchor = world.getSpawnLocation();
         dispatcher.runAtLocation(plugin, anchor, () -> {
             List<Entity> out = session.markers;
+            StringBuilder rendered = new StringBuilder();
+            int structs = 0;
             if (!dungeonId.isBlank()) {
                 for (Map.Entry<String, TemplateMeta> entry : storeProvider.apply(dungeonId).loadAll().entrySet()) {
                     renderStructure(world, ownerId, entry.getKey(), entry.getValue(), out);
+                    structs++;
+                    if (rendered.length() > 0) {
+                        rendered.append(',');
+                    }
+                    rendered.append(entry.getValue().structureType()).append(':').append(entry.getKey())
+                            .append('@').append(entry.getValue().selection().size());
                 }
             }
+            debugAnchor("refresh_rendered", Map.of(
+                    "world", world.getName(),
+                    "structures", String.valueOf(structs),
+                    "types", rendered.toString(),
+                    "doors", String.valueOf(session.anchors.size()),
+                    "nodes", String.valueOf(session.nodes.size())));
             renderSessionDoors(world, ownerId, session, out);
             renderSelection(world, ownerId, session, dungeonId, out);
             renderNodes(world, ownerId, session, out);
@@ -72,16 +93,37 @@ public final class CaptureMarkers {
         });
     }
 
+    private void debugAnchor(String step, Map<String, String> fields) {
+        emaki.jiuwu.craft.corelib.debug.DebugLogger logger = debug;
+        if (logger == null) {
+            return;
+        }
+        StringBuilder builder = new StringBuilder("[DEBUG:capture:render] ").append(step);
+        for (Map.Entry<String, String> entry : fields.entrySet()) {
+            builder.append(" | ").append(entry.getKey()).append('=').append(entry.getValue());
+        }
+        logger.logRaw("dungeon", (UUID) null, builder.toString());
+    }
+
     private void renderStructure(World world, UUID ownerId, String templateId, TemplateMeta meta, List<Entity> out) {
         List<Integer> sel = meta.selection();
         if (sel.size() != 6) {
+            debugAnchor("render_structure_skip_selection", Map.of(
+                    "id", templateId, "size", String.valueOf(sel.size())));
             return;
         }
         EditorModuleMarkers.Box box = new EditorModuleMarkers.Box(
                 Math.min(sel.get(0), sel.get(3)), Math.min(sel.get(1), sel.get(4)), Math.min(sel.get(2), sel.get(5)),
                 Math.max(sel.get(0), sel.get(3)), Math.max(sel.get(1), sel.get(4)), Math.max(sel.get(2), sel.get(5)));
         Color color = TemplateModel.TYPE_CORRIDOR.equals(meta.structureType()) ? COLOR_CORRIDOR : COLOR_ROOM;
-        out.addAll(renderer.spawnEdges(world, ownerId, box, color));
+        List<Entity> edges = renderer.spawnEdges(world, ownerId, box, color);
+        out.addAll(edges);
+        debugAnchor("render_structure", Map.of(
+                "id", templateId, "type", meta.structureType(), "color", color.asRGB() + "",
+                "box", box.minX() + "," + box.minY() + "," + box.minZ() + " -> "
+                        + box.maxX() + "," + box.maxY() + "," + box.maxZ(),
+                "edges", String.valueOf(edges.size()),
+                "world", world.getName()));
         renderer.spawnTag(world, ownerId, EditorModuleMarkers.captureLabelGroup(ownerId),
                 "struct:" + templateId, box,
                 renderer.structureLabel(meta.structureType(), templateId, meta.tags(), meta.weight()));

@@ -118,6 +118,13 @@ public final class EditorService implements Listener {
 
     public void refreshMarkers(EditorSession session) { new EditorServiceDelegate(this).refreshMarkers(session); }
 
+    public void refreshMarkersOf(UUID playerId) {
+        EditorSession session = playerId == null ? null : sessions.get(playerId);
+        if (session != null) {
+            refreshMarkers(session);
+        }
+    }
+
     public boolean hasSession(UUID playerId) { return new EditorServiceDelegate(this).hasSession(playerId); }
 
     public EditorSession sessionOf(UUID playerId) { return new EditorServiceDelegate(this).sessionOf(playerId); }
@@ -260,6 +267,17 @@ public final class EditorService implements Listener {
     }
 
     public void markPos(Player player, int which) { new EditorServiceDelegate(this).markPos(player, which); }
+
+    public void clearPos(Player player) {
+        EditorSession session = requireReady(player);
+        if (session == null) {
+            return;
+        }
+        session.pos1(null);
+        session.pos2(null);
+        refreshMarkers(session);
+        messages.send(player, "editor.pos_cleared", Map.of());
+    }
 
     public void mark(Player player, String rawType, String rawId) {
         mark(player, rawType, rawId, null);

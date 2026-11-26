@@ -36,7 +36,6 @@ public final class EditorModuleMarkers {
 
     private static final float VIEW_RANGE = 128.0f;
     private static final float LINE_THICKNESS = 0.02f;
-    private static final double POINT_HALF = 0.75D;
     private static final Quaternionf ROT_Z = new Quaternionf().rotationZ((float) (Math.PI / 2.0D));
     private static final Quaternionf ROT_Y = new Quaternionf().rotationY((float) (-Math.PI / 2.0D));
 
@@ -257,8 +256,7 @@ public final class EditorModuleMarkers {
             if (x == null || y == null || z == null) {
                 return null;
             }
-            return new Box(x - POINT_HALF, y - POINT_HALF, z - POINT_HALF,
-                    x + POINT_HALF, y + POINT_HALF, z + POINT_HALF);
+            return new Box(Math.floor(x), y, Math.floor(z), Math.floor(x), y, Math.floor(z));
         }
         return null;
     }
