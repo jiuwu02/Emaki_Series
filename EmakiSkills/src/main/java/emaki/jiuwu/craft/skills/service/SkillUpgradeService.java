@@ -15,7 +15,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
-import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
+import emaki.jiuwu.craft.corelib.condition.ConditionResolution;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.cost.CostReceipt;
 import emaki.jiuwu.craft.corelib.cost.CostTransaction;
@@ -204,22 +205,17 @@ public final class SkillUpgradeService {
                     "currentLevel", currentLevel,
                     "targetLevel", targetLevel,
                     "maxLevel", maxLevel));
-            boolean conditionsPassed = ConditionEvaluator.evaluate(
-                    definition.conditions(),
-                    text -> PlaceholderRenderer.renderPapi(player, text, null, "skill_upgrade"),
-                    true,
-                    conditionContext
-            );
-            if (!conditionsPassed) {
-                String failMessage = ConditionEvaluator.firstFailureMessage(
-                        definition.conditions(),
-                        text -> PlaceholderRenderer.renderPapi(player, text, null, "skill_upgrade"),
-                        true,
-                        conditionContext);
-                if (Texts.isNotBlank(failMessage)) {
+            ConditionResolution resolution = new ConditionBlock(definition.conditions(), true,
+                    List.of(), List.of(), false, "")
+                    .resolve(
+                            text -> PlaceholderRenderer.renderPapi(player, text, null, "skill_upgrade"),
+                            conditionContext);
+            if (!resolution.passed()) {
+                if (!resolution.messages().isEmpty()) {
                     Map<String, Object> custom = new LinkedHashMap<>(
                             basePlaceholders(player, definition, currentLevel, targetLevel, maxLevel, preview == null ? 100D : preview.successRate()));
-                    custom.put("message", PlaceholderRenderer.renderPapi(player, failMessage, null, "skill_upgrade"));
+                    custom.put("message", PlaceholderRenderer.renderPapi(
+                            player, String.join("\n", resolution.messages()), null, "skill_upgrade"));
                     return UpgradeResult.fail("upgrade.condition_not_met_custom", custom, preview);
                 }
                 return UpgradeResult.fail("upgrade.condition_not_met",

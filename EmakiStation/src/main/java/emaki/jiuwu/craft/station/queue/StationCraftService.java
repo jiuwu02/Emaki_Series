@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
-import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.condition.ConditionResolution;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -174,11 +174,13 @@ public final class StationCraftService {
         if (recipe.hasPermission() && !player.hasPermission(recipe.permission())) {
             return EmakiResult.rejected("station.recipe_no_permission");
         }
-        if (recipe.condition().configured()
-                && !ConditionEvaluator.evaluate(recipe.condition(),
-                        text -> resolvePlaceholders(player, text),
-                        ConditionContext.of(player))) {
-            return EmakiResult.rejected("station.recipe_condition_failed");
+        if (recipe.condition().configured()) {
+            ConditionResolution resolution = recipe.condition().resolve(
+                    text -> resolvePlaceholders(player, text),
+                    ConditionContext.of(player));
+            if (!resolution.passed()) {
+                return EmakiResult.rejected("station.recipe_condition_failed");
+            }
         }
         PlayerQueues queues = queueService.cached(player.getUniqueId());
         if (queues == null) {

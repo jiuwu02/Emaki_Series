@@ -4,6 +4,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
@@ -22,6 +23,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.condition.CoreCondition;
+import emaki.jiuwu.craft.dungeon.flow.DungeonConditions;
+import emaki.jiuwu.craft.corelib.api.condition.CoreConditionRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
 import emaki.jiuwu.craft.corelib.api.data.PlayerDataLease;
 import emaki.jiuwu.craft.corelib.api.data.PlayerDomainRepository;
@@ -137,6 +141,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     private final AtomicBoolean shutdownStarted = new AtomicBoolean(false);
 
+    private final List<CoreConditionRegistration> conditionRegistrations = new CopyOnWriteArrayList<>();
+
     YamlConfigLoader<AppConfig> appConfigLoader;
     MessageService messageService;
     LanguageLoader languageLoader;
@@ -219,6 +225,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         bootstrapInstanceRuntime();
         registerCommandHandler();
         installPublicApi();
+        registerDungeonConditions();
         ensureBetterHudBridge();
         metrics = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         runtimeInitialized = true;
@@ -226,11 +233,32 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         messageService.info(LogTag.STARTUP, "console.plugin_started");
     }
 
+    private void registerDungeonConditions() {
+        for (CoreCondition condition : DungeonConditions.all()) {
+            CoreConditionRegistration registration = EmakiCoreLibApi.registerCondition(this, condition);
+            if (registration.successful()) {
+                conditionRegistrations.add(registration);
+            } else {
+                messageService.warning(null,
+                        "console.condition_registration_failed",
+                        Map.of("id", condition.id(), "reason", registration.reasonKey()));
+            }
+        }
+    }
+
+    private void revokeDungeonConditions() {
+        for (CoreConditionRegistration registration : conditionRegistrations) {
+            registration.close();
+        }
+        conditionRegistrations.clear();
+    }
+
     @Override
     public void onDisable() {
         if (!shutdownStarted.compareAndSet(false, true)) {
             return;
         }
+        revokeDungeonConditions();
         AtomicInteger shutdownFailures = new AtomicInteger();
         CompletableFuture<Boolean> rewardBoxDrain = rewardBox == null
                 ? CompletableFuture.completedFuture(Boolean.TRUE)

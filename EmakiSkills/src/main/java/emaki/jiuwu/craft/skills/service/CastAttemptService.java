@@ -15,7 +15,8 @@ import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
-import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
+import emaki.jiuwu.craft.corelib.condition.ConditionResolution;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
@@ -303,21 +304,17 @@ public final class CastAttemptService {
             ConditionContext conditionContext = ConditionContext.of(player, null, Map.of(
                     "skillId", definition.id(),
                     "triggerId", Texts.toStringSafe(plan.triggerId())));
-            boolean conditionsPassed = ConditionEvaluator.evaluate(
-                    definition.conditions(),
-                    text -> PlaceholderRenderer.renderPapi(player, text, null, "skill_cast"),
-                    true,
-                    conditionContext);
-            if (!conditionsPassed) {
-                String failMessage = ConditionEvaluator.firstFailureMessage(
-                        definition.conditions(),
-                        text -> PlaceholderRenderer.renderPapi(player, text, null, "skill_cast"),
-                        true,
-                        conditionContext);
-                if (Texts.isNotBlank(failMessage)) {
+            ConditionResolution resolution = new ConditionBlock(definition.conditions(), true,
+                    List.of(), List.of(), false, "")
+                    .resolve(
+                            text -> PlaceholderRenderer.renderPapi(player, text, null, "skill_cast"),
+                            conditionContext);
+            if (!resolution.passed()) {
+                if (!resolution.messages().isEmpty()) {
                     return completedFailure(FailureReason.RESOURCE_INSUFFICIENT,
                             "cast.condition_not_met_custom",
-                            Map.of("message", PlaceholderRenderer.renderPapi(player, failMessage, null, "skill_cast")));
+                            Map.of("message", PlaceholderRenderer.renderPapi(
+                                    player, String.join("\n", resolution.messages()), null, "skill_cast")));
                 }
                 return completedFailure(FailureReason.RESOURCE_INSUFFICIENT, "cast.condition_not_met");
             }

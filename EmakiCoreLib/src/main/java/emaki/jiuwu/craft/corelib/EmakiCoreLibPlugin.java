@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.condition.ConditionTypeRegistry;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -203,6 +205,11 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
     final ModuleReadinessRegistry moduleReadinessRegistry = new ModuleReadinessRegistry();
 
     final TargetConditionRegistry targetConditionRegistry = new TargetConditionRegistry();
+    final ConditionTypeRegistry conditionTypeRegistry = new ConditionTypeRegistry();
+
+    {
+        ConditionEvaluator.installRegistry(conditionTypeRegistry);
+    }
     final TargetIdentityRegistry targetIdentityRegistry =
             new TargetIdentityRegistry(this::reportTargetIdentityFailure);
 
@@ -310,6 +317,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         stageRebuildListeners.clear();
         capabilityRegistry.clear();
         targetConditionRegistry.clear();
+        conditionTypeRegistry.clear();
         targetIdentityRegistry.clear();
         markModuleAbsent(getName());
         moduleReadinessRegistry.clear();
@@ -418,6 +426,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                     animationPlaybackService.revokeOwner(owner);
                     animationRegistry.revokeAll(owner);
                     targetConditionRegistry.revokeAll(owner);
+                    conditionTypeRegistry.revokeAll(owner);
                     targetIdentityRegistry.revokeAll(owner);
                     stageRebuildListeners.remove(owner);
                 }
@@ -669,6 +678,8 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
     public ModuleReadinessRegistry moduleReadinessRegistry() { return new EmakiCoreLibPluginDelegate(this).moduleReadinessRegistry(); }
 
     public TargetConditionRegistry targetConditionRegistry() { return new EmakiCoreLibPluginDelegate(this).targetConditionRegistry(); }
+
+    public ConditionTypeRegistry conditionTypeRegistry() { return new EmakiCoreLibPluginDelegate(this).conditionTypeRegistry(); }
 
     public TargetIdentityRegistry targetIdentityRegistry() { return new EmakiCoreLibPluginDelegate(this).targetIdentityRegistry(); }
 

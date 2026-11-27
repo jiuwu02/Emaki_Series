@@ -25,7 +25,6 @@ import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.math.CraftRollEngine;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
-import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.craft.CraftOperationJournal;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
@@ -307,9 +306,11 @@ final class EnhancementAttemptServiceDelegate {
         }
         Map<String, Object> values = variables == null ? Map.of() : variables.toMap();
         try {
-            boolean passed = ConditionEvaluator.evaluate(recipe.conditions(),
-                    text -> PlaceholderRenderer.renderPapi(player, text, null, "strengthen_enhancement"),
-                    ConditionContext.of(player, target, values));
+            boolean passed = recipe.conditions()
+                    .resolve(
+                            text -> PlaceholderRenderer.renderPapi(player, text, null, "strengthen_enhancement"),
+                            ConditionContext.of(player, target, values))
+                    .passed();
             if (!passed) {
                 ownerRef.debug(player, "debug.attempt.condition_rejected", Map.of(
                         "recipe", recipe.id(),

@@ -1,9 +1,11 @@
 package emaki.jiuwu.craft.dungeon.flow;
 
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+
+import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 
 public final class ConditionEvaluator {
 
@@ -38,105 +40,29 @@ public final class ConditionEvaluator {
         if (condition == null) {
             return true;
         }
-        if (condition.composite()) {
-            return evaluateComposite(condition, context);
-        }
-        return evaluateLeaf(condition, context);
+        return evaluateAll(List.of(condition), "AND", context);
     }
 
     public boolean evaluateAll(List<ConditionDef> conditions, String logic, EvalContext context) {
         if (conditions == null || conditions.isEmpty()) {
             return true;
         }
-        boolean or = "OR".equalsIgnoreCase(logic);
-        for (ConditionDef condition : conditions) {
-            boolean result = evaluate(condition, context);
-            if (or && result) {
-                return true;
-            }
-            if (!or && !result) {
-                return false;
-            }
-        }
-        return or;
+        return emaki.jiuwu.craft.corelib.condition.ConditionEvaluator.evaluate(
+                ConditionDef.asGroup(conditions, logic),
+                null,
+                true,
+                toConditionContext(context)
+        );
     }
 
-    private boolean evaluateComposite(ConditionDef condition, EvalContext context) {
-        return evaluateAll(condition.children(), condition.logic(), context);
-    }
-
-    private boolean evaluateLeaf(ConditionDef condition, EvalContext context) {
-        String type = condition.type().toLowerCase(Locale.ROOT);
-        switch (type) {
-            case "range" -> {
-                int required = condition.paramInt("min_players", 1);
-                String target = condition.param("target", "player");
-                int actual = "mob".equals(target)
-                        ? context.factInt(Facts.RANGE_MOBS, 0)
-                        : context.factInt(Facts.RANGE_PLAYERS, 0);
-                return actual >= required;
-            }
-            case "region" -> {
-                String direction = condition.param("direction", "enter");
-                return "leave".equals(direction)
-                        ? context.factFlag(Facts.REGION_LEFT)
-                        : context.factFlag(Facts.REGION_ENTERED);
-            }
-            case "block_interact" -> {
-                String expected = condition.param("click", "right");
-                return expected.equalsIgnoreCase(String.valueOf(context.fact(Facts.CLICK)));
-            }
-            case "block_activate" -> {
-                return context.factFlag(Facts.BLOCK_ACTIVATE);
-            }
-            case "redstone" -> {
-                String expected = condition.param("level", "change");
-                String actual = String.valueOf(context.fact(Facts.REDSTONE_LEVEL));
-                if ("change".equals(expected)) {
-                    return !actual.isEmpty() && !"null".equals(actual);
-                }
-                return expected.equalsIgnoreCase(actual);
-            }
-            case "clear" -> {
-                return context.factFlag(Facts.waveCleared(condition.param("spawn", "")));
-            }
-            case "boss_kill" -> {
-                return context.factFlag(Facts.bossKilled(condition.param("boss_id", "")));
-            }
-            case "kill_count" -> {
-                int required = condition.paramInt("count", 1);
-                return context.factInt(Facts.killCount(condition.param("target", "")), 0) >= required;
-            }
-            case "timer" -> {
-                return context.factFlag(Facts.timerMark(condition.param("module", "")));
-            }
-            case "item" -> {
-                return context.factFlag(Facts.ITEM_INTERACTED);
-            }
-            case "command" -> {
-                String expected = condition.param("expected", "true");
-                return expected.equalsIgnoreCase(String.valueOf(context.fact(Facts.COMMAND_RESULT)));
-            }
-            case "player_state" -> {
-                String expected = condition.param("state", "dead");
-                int remainingRequired = condition.paramInt("remaining_lives", -1);
-                if (remainingRequired >= 0
-                        && context.factInt(Facts.REMAINING_LIVES, Integer.MAX_VALUE) > remainingRequired) {
-                    return false;
-                }
-                String actual = String.valueOf(context.fact(Facts.PLAYER_STATE));
-                if (actual.isEmpty() || "null".equals(actual)) {
-                    return false;
-                }
-                return expected.equalsIgnoreCase(actual);
-            }
-            case "script" -> {
-                Object result = context.fact(Facts.SCRIPT_RESULT);
-                return result == null || Boolean.TRUE.equals(result);
-            }
-            default -> {
-                return false;
-            }
+    static ConditionContext toConditionContext(EvalContext context) {
+        if (context == null || context.facts() == null || context.facts().isEmpty()) {
+            return ConditionContext.EMPTY;
         }
+        Map<String, Object> variables = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : context.facts().entrySet()) {
+            variables.put(DungeonConditions.FACT_PREFIX + entry.getKey(), entry.getValue());
+        }
+        return ConditionContext.of(null, null, variables);
     }
 }

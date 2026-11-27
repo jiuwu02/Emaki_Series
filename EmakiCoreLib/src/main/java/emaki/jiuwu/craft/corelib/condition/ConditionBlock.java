@@ -1,7 +1,10 @@
 package emaki.jiuwu.craft.corelib.condition;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
+import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
@@ -78,6 +81,38 @@ public record ConditionBlock(ConditionGroup group,
                 section.getBoolean("on_fail.block_output", defaultBlockOutput),
                 section.getString("on_fail.message", "")
         );
+    }
+
+    public ConditionResolution resolve(Function<String, String> placeholderReplacer) {
+        return resolve(placeholderReplacer, ConditionContext.EMPTY);
+    }
+
+    public ConditionResolution resolve(Function<String, String> placeholderReplacer, ConditionContext context) {
+        if (!configured()) {
+            return ConditionResolution.pass();
+        }
+        boolean passed = ConditionEvaluator.evaluate(this, placeholderReplacer, context);
+        if (passed) {
+            return ConditionResolution.pass();
+        }
+        List<ConditionFailure> failures = ConditionEvaluator.failures(group, placeholderReplacer, invalidAsFailure, context);
+        List<String> messages = new ArrayList<>();
+        List<String> actions = new ArrayList<>();
+        boolean blocked = blockOutput;
+        for (ConditionFailure failure : failures) {
+            if (Texts.isNotBlank(failure.message())) {
+                messages.add(failure.message());
+            }
+            actions.addAll(failure.actions());
+            blocked = blocked || failure.blockOutput();
+        }
+        if (messages.isEmpty() && Texts.isNotBlank(failMessage)) {
+            messages.add(failMessage);
+        }
+        if (actions.isEmpty()) {
+            actions.addAll(failActions);
+        }
+        return ConditionResolution.fail(messages, actions, blocked);
     }
 
     private static List<String> normalizeActions(List<String> values) {

@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 
 import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
@@ -151,6 +152,10 @@ public final class AppConfig extends BaseAppConfig {
 
         public static ConditionConfig defaults() {
             return new ConditionConfig(ConditionGroup.empty(), "all_of", 0, true);
+        }
+
+        public ConditionBlock block() {
+            return new ConditionBlock(conditions, invalidAsFailure, List.of(), List.of(), false, "");
         }
     }
 }

@@ -1,7 +1,11 @@
 package emaki.jiuwu.craft.dungeon.flow;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
+import emaki.jiuwu.craft.corelib.condition.ConditionNode;
 
 public record ConditionDef(
         String type,
@@ -19,6 +23,27 @@ public record ConditionDef(
 
     public boolean composite() {
         return !children.isEmpty();
+    }
+
+    public static ConditionGroup asGroup(List<ConditionDef> conditions, String logic) {
+        if (conditions == null || conditions.isEmpty()) {
+            return ConditionGroup.empty();
+        }
+        List<ConditionNode> nodes = new ArrayList<>();
+        for (ConditionDef condition : conditions) {
+            if (condition == null) {
+                continue;
+            }
+            nodes.add(condition.asNode());
+        }
+        return new ConditionGroup("OR".equalsIgnoreCase(logic) ? "any_of" : "all_of", 0, nodes);
+    }
+
+    public ConditionNode asNode() {
+        if (composite()) {
+            return ConditionNode.group(asGroup(children, logic), params);
+        }
+        return new ConditionNode(type, "", null, params);
     }
 
     public String param(String key, String fallback) {

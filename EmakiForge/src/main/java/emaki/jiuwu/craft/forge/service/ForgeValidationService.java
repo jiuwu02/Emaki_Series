@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
-import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -53,13 +53,13 @@ final class ForgeValidationService {
             return ValidationResult.fail("forge.error.permission_denied");
         }
         if (!recipe.conditions().emptyGroup()) {
-            boolean conditionsPassed = ConditionEvaluator.evaluate(
-                    recipe.conditions(),
+            var conditionBlock = new ConditionBlock(recipe.conditions(), config.invalidAsFailure(),
+                    List.of(), List.of(), false, "");
+            boolean conditionsPassed = conditionBlock.resolve(
                     text -> replacePlaceholders(player, text),
-                    config.invalidAsFailure(),
                     ConditionContext.of(player, guiItems == null ? null : guiItems.targetItem(),
                             Map.of("recipeId", recipe.id()))
-            );
+            ).passed();
             if (!conditionsPassed) {
                 return ValidationResult.fail("forge.error.condition_not_met");
             }

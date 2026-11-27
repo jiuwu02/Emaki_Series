@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.condition;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
@@ -25,6 +26,21 @@ public record ConditionNode(String type,
         return group == null ? null : new ConditionNode("group", "", group, Map.of());
     }
 
+    public static ConditionNode group(ConditionGroup group, Map<String, Object> data) {
+        return group == null ? null : new ConditionNode("group", "", group, groupData(data));
+    }
+
+    private static Map<String, Object> groupData(Map<String, Object> data) {
+        if (data == null || data.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> filtered = new LinkedHashMap<>(data);
+        filtered.remove("type");
+        filtered.remove("entries");
+        filtered.remove("required_count");
+        return filtered;
+    }
+
     public static ConditionNode fromConfig(Object raw) {
         if (raw == null) {
             return null;
@@ -41,7 +57,7 @@ public record ConditionNode(String type,
         }
         String type = section.getString("type", "expression");
         if ("group".equals(Texts.lower(type)) || section.contains("entries")) {
-            return group(ConditionGroup.fromConfig(section));
+            return group(ConditionGroup.fromConfig(section), ConfigNodes.entries(section));
         }
         String expression = section.getString("expression", "");
         Map<String, Object> data = ConfigNodes.entries(section);

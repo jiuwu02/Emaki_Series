@@ -7,7 +7,7 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
-import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.condition.ConditionResolution;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -41,18 +41,20 @@ public final class EmakiItemConditionChecker {
         if (conditions == null || !conditions.configured()) {
             return true;
         }
-        boolean passes = evaluateSilently(player, definition, trigger, itemStack);
-        if (passes) {
+        ConditionResolution resolution = resolve(player, definition, trigger, itemStack);
+        if (resolution.passed()) {
             if (!conditions.passActions().isEmpty()) {
                 actionService.executeLines(player, definition, "condition_pass", conditions.passActions(), Map.of(), itemStack);
             }
         } else {
-            if (Texts.isNotBlank(conditions.denyMessage())) {
-                player.sendMessage(MiniMessages.parse(conditions.denyMessage()));
+            for (String message : resolution.messages()) {
+                player.sendMessage(MiniMessages.parse(message));
             }
-            actionService.executeLines(player, definition, "condition_fail", conditions.failActions(), Map.of(), itemStack);
+            if (!resolution.actions().isEmpty()) {
+                actionService.executeLines(player, definition, "condition_fail", resolution.actions(), Map.of(), itemStack);
+            }
         }
-        return passes;
+        return resolution.passed();
     }
 
     public boolean evaluateSilently(Player player,
@@ -66,9 +68,19 @@ public final class EmakiItemConditionChecker {
         if (conditions == null || !conditions.configured()) {
             return true;
         }
+        return resolve(player, definition, trigger, itemStack).passed();
+    }
+
+    private ConditionResolution resolve(Player player,
+            EmakiItemDefinition definition,
+            String trigger,
+            ItemStack itemStack) {
+        ItemConditions conditions = definition.conditions();
+        if (conditions == null || !conditions.configured()) {
+            return ConditionResolution.pass();
+        }
         ActionContext context = actionService.context(player, definition, trigger, Map.of(), itemStack);
-        return ConditionEvaluator.evaluate(
-                conditions.block(),
+        return conditions.block().resolve(
                 text -> placeholderRegistry.resolve(context, text),
                 ConditionContext.of(player, itemStack, Map.of("trigger", Texts.toStringSafe(trigger)))
         );

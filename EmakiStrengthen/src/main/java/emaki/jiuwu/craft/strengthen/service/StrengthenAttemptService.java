@@ -24,7 +24,7 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
-import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.craft.CraftOperationJournal;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
@@ -247,18 +247,18 @@ public final class StrengthenAttemptService {
 
         StrengthenRecipe recipe = preview.recipe();
         if (recipe != null && !recipe.conditions().emptyGroup()) {
-            boolean conditionsPassed = ConditionEvaluator.evaluate(
-                    toCoreConditionGroup(recipe.conditions()),
-                    text -> PlaceholderRenderer.renderPapi(player, text, null, "strengthen_attempt"),
-                    true,
-                    ConditionContext.of(player, context.targetItem(),
-                            Map.of(
-                                    "operationId", operationId,
-                                    "recipeId", recipe.id(),
-                                    "currentStar", preview.currentStar(),
-                                    "targetStar", preview.targetStar(),
-                                    "successRate", preview.successRate()))
-            );
+            boolean conditionsPassed = new ConditionBlock(toCoreConditionGroup(recipe.conditions()),
+                    true, List.of(), List.of(), false, "")
+                    .resolve(
+                            text -> PlaceholderRenderer.renderPapi(player, text, null, "strengthen_attempt"),
+                            ConditionContext.of(player, context.targetItem(),
+                                    Map.of(
+                                            "operationId", operationId,
+                                            "recipeId", recipe.id(),
+                                            "currentStar", preview.currentStar(),
+                                            "targetStar", preview.targetStar(),
+                                            "successRate", preview.successRate())))
+                    .passed();
             if (!conditionsPassed) {
                 return finishAttempt(player, AttemptResult.failure("strengthen.error.condition_not_met", preview,
                         replacements(preview, preview.currentStar()), operationId));

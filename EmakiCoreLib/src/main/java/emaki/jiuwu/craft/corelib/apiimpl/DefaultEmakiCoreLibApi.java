@@ -13,6 +13,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.condition.CoreCondition;
+import emaki.jiuwu.craft.corelib.api.condition.CoreConditionRegistration;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegisteredTrigger;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
@@ -244,6 +246,11 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     @Override
     public CoreTargetRegistration registerTargetCondition(Plugin owner, CoreTargetCondition condition) {
         return plugin.targetConditionRegistry().register(owner, condition);
+    }
+
+    @Override
+    public CoreConditionRegistration registerCondition(Plugin owner, CoreCondition condition) {
+        return plugin.conditionTypeRegistry().register(owner, condition);
     }
 
     @Override

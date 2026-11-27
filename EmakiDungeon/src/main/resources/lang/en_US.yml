@@ -583,6 +583,7 @@ player:
 
 console:
   plugin_starting: "<gray>Starting...</gray>"
+  condition_registration_failed: "Failed to register a CoreLib condition type | condition=%id% | reason=%reason%"
   plugin_started: "<green>Started</green>"
   plugin_stopping: "<gray>Shutting down...</gray>"
   plugin_stopped: "<yellow>Stopped</yellow>"

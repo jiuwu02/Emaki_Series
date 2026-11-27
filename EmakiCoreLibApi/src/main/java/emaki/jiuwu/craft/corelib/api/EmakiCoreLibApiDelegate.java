@@ -27,6 +27,8 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerDispatch;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerRegistration;
 import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionStageDescriptor;
+import emaki.jiuwu.craft.corelib.api.condition.CoreCondition;
+import emaki.jiuwu.craft.corelib.api.condition.CoreConditionRegistration;
 import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionTriggerDescriptor;
 import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionContext;
 import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionResult;
@@ -233,6 +235,14 @@ final class EmakiCoreLibApiDelegate {
                 ? CoreTargetRegistration.unavailable(condition == null ? "" : condition.id(),
                         "action.register.runtime_unsupported")
                 : resolved.registerTargetCondition(owner, condition);
+    }
+
+    static @NotNull CoreConditionRegistration registerCondition(@Nullable Plugin owner, @Nullable CoreCondition condition) {
+        EmakiCoreLibApi.Bridge resolved = EmakiCoreLibApi.bridge.get();
+        return resolved == null
+                ? CoreConditionRegistration.unavailable(condition == null ? "" : condition.id(),
+                        "condition.register.runtime_unsupported")
+                : resolved.registerCondition(owner, condition);
     }
 
     static @NotNull CoreTargetRegistration registerTargetIdentityProvider(@Nullable Plugin owner, @Nullable CoreTargetIdentityProvider provider) {

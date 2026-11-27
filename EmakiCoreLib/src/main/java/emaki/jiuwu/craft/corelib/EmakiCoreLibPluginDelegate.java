@@ -22,6 +22,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.action.builtin.BuiltinStages;
+import emaki.jiuwu.craft.corelib.condition.ConditionTypeRegistry;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.action.pipeline.PipelineBatchRunner;
@@ -426,6 +427,10 @@ final class EmakiCoreLibPluginDelegate {
 
     ModuleReadinessRegistry moduleReadinessRegistry() {
         return ownerRef.moduleReadinessRegistry;
+    }
+
+    ConditionTypeRegistry conditionTypeRegistry() {
+        return ownerRef.conditionTypeRegistry;
     }
 
     TargetConditionRegistry targetConditionRegistry() {

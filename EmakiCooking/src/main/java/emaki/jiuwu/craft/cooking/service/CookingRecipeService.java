@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.condition.ConditionResolution;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
@@ -391,6 +392,24 @@ public final class CookingRecipeService {
         return passed ? condition.passActions() : condition.failActions();
     }
 
+    public ConditionResolution completionConditionResolution(RecipeDocument recipe, Player player) {
+        if (recipe == null) {
+            return ConditionResolution.pass();
+        }
+        YamlSection section = recipe.configuration().getSection("condition");
+        if (section == null || section.isEmpty()) {
+            return ConditionResolution.pass();
+        }
+        ConditionBlock condition = ConditionBlock.fromConfig(section, true, false);
+        if (!condition.configured() || player == null) {
+            return ConditionResolution.pass();
+        }
+        return condition.resolve(
+                text -> resolvePlaceholders(player, text),
+                ConditionContext.of(player, null, Map.of("recipeId", recipe.id()))
+        );
+    }
+
     public boolean completionConditionBlocksOutput(RecipeDocument recipe) {
         if (recipe == null) {
             return false;
@@ -400,6 +419,13 @@ public final class CookingRecipeService {
             return false;
         }
         return ConditionBlock.fromConfig(section, true, false).blockOutput();
+    }
+
+    public boolean completionConditionBlocksOutput(RecipeDocument recipe, Player player) {
+        if (recipe == null) {
+            return false;
+        }
+        return completionConditionResolution(recipe, player).blockOutput();
     }
 
     public boolean canAcceptWokIngredientPrefix(List<WokIngredientInput> actualIngredients, Player player, int heatLevel) {

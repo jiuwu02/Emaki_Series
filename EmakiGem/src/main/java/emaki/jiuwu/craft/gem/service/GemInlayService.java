@@ -19,7 +19,6 @@ import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
-import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
@@ -572,11 +571,10 @@ public final class GemInlayService {
         if (config.conditions().emptyGroup()) {
             return true;
         }
-        return ConditionEvaluator.evaluate(
-                config.conditions(),
-                text -> PlaceholderRenderer.renderPapi(player, text, null, "gem_inlay"),
-                config.invalidAsFailure(),
-                ConditionContext.of(player)
-        );
+        return config.block()
+                .resolve(
+                        text -> PlaceholderRenderer.renderPapi(player, text, null, "gem_inlay"),
+                        ConditionContext.of(player))
+                .passed();
     }
 }

@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.condition.ConditionResolution;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
@@ -130,10 +131,14 @@ public final class CookingRewardService {
         int sequence = 0;
 
         if (recipe != null && recipeService != null && recipeService.hasCompletionCondition(recipe)) {
-            boolean conditionPassed = conditionOutcome != null
-                    ? conditionOutcome.passed()
-                    : recipeService.completionConditionPasses(recipe, player);
-            List<String> branchActions = recipeService.completionConditionActions(recipe, conditionPassed);
+            ConditionResolution resolution = conditionOutcome != null
+                    ? (conditionOutcome.passed()
+                            ? ConditionResolution.pass()
+                            : recipeService.completionConditionResolution(recipe, player))
+                    : recipeService.completionConditionResolution(recipe, player);
+            List<String> branchActions = resolution.passed()
+                    ? recipeService.completionConditionActions(recipe, true)
+                    : resolution.actions();
             if (!branchActions.isEmpty()) {
                 units.add(freezeActionUnit(
                         stableOperationId,
@@ -145,7 +150,7 @@ public final class CookingRewardService {
                         basePlaceholders
                 ));
             }
-            if (!conditionPassed && recipeService.completionConditionBlocksOutput(recipe)) {
+            if (!resolution.passed() && resolution.blockOutput()) {
                 return new PreparedReward(units);
             }
         }
@@ -316,12 +321,12 @@ public final class CookingRewardService {
         if (recipe == null || recipeService == null || !recipeService.hasCompletionCondition(recipe)) {
             return ConditionGate.OPEN;
         }
-        boolean passed = recipeService.completionConditionPasses(recipe, player);
-        boolean blocked = !passed && recipeService.completionConditionBlocksOutput(recipe);
+        ConditionResolution resolution = recipeService.completionConditionResolution(recipe, player);
+        boolean blocked = !resolution.passed() && resolution.blockOutput();
         return new ConditionGate(
-                CookingCompletionRequest.ConditionOutcome.of(passed),
+                CookingCompletionRequest.ConditionOutcome.of(resolution.passed()),
                 blocked,
-                blocked ? recipeService.completionConditionActions(recipe, false) : List.of()
+                resolution.passed() ? List.of() : resolution.actions()
         );
     }
 

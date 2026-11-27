@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
+import emaki.jiuwu.craft.corelib.api.condition.CoreConditionOutcome;
 
 public final class ConditionEvaluator {
 
@@ -125,47 +126,87 @@ public final class ConditionEvaluator {
         return evaluate(group, placeholderReplacer, invalidAsFailure, context);
     }
 
-    public static String firstFailureMessage(ConditionGroup group,
+    public static List<ConditionFailure> failures(ConditionGroup group,
             Function<String, String> placeholderReplacer,
             boolean invalidAsFailure,
             ConditionContext context) {
         if (group == null || group.emptyGroup()) {
-            return "";
+            return List.of();
         }
         ConditionContext safeContext = context == null ? ConditionContext.EMPTY : context;
+        if (evaluate(group, placeholderReplacer, invalidAsFailure, safeContext)) {
+            return List.of();
+        }
+        List<ConditionFailure> collected = new ArrayList<>();
+        collectFailures(group, placeholderReplacer, invalidAsFailure, safeContext, collected);
+        return List.copyOf(collected);
+    }
+
+    private static void collectFailures(ConditionGroup group,
+            Function<String, String> placeholderReplacer,
+            boolean invalidAsFailure,
+            ConditionContext context,
+            List<ConditionFailure> collected) {
+        if (group == null || group.emptyGroup()) {
+            return;
+        }
+        boolean noneOf = ConditionCombineMode.fromString(group.conditionType()) == ConditionCombineMode.NONE_OF;
         for (ConditionNode condition : group.conditions()) {
-            Boolean result = evaluateNode(condition, placeholderReplacer, invalidAsFailure, safeContext);
-            boolean failed = result == null ? invalidAsFailure : !result;
+            if (condition == null) {
+                continue;
+            }
+            Boolean result = evaluateNode(condition, placeholderReplacer, invalidAsFailure, context);
+            boolean failed = result == null ? invalidAsFailure : (noneOf ? result : !result);
             if (!failed) {
                 continue;
             }
-            String message = failureMessageOf(condition);
-            if (Texts.isNotBlank(message)) {
-                return message;
+            ConditionFailure own = failureOf(condition);
+            if (!own.silent()) {
+                collected.add(own);
+            }
+            if (condition.groupNode()) {
+                collectFailures(condition.group(), placeholderReplacer, invalidAsFailure, context, collected);
             }
         }
-        return "";
     }
 
-    private static String failureMessageOf(ConditionNode condition) {
-        if (condition == null) {
-            return "";
-        }
-        if (condition.groupNode()) {
-            for (ConditionNode nested : condition.group().conditions()) {
-                String message = failureMessageOf(nested);
-                if (Texts.isNotBlank(message)) {
-                    return message;
-                }
-            }
-            return "";
-        }
+    private static ConditionFailure failureOf(ConditionNode condition) {
         Object onFail = condition.data().get("on_fail");
         if (onFail == null) {
-            return "";
+            return ConditionFailure.of("", List.of(), false);
         }
-        return Texts.toStringSafe(ConfigNodes.get(onFail, "message")).trim();
+        String message = Texts.toStringSafe(ConfigNodes.get(onFail, "message")).trim();
+        List<String> actions = actionLines(ConfigNodes.get(onFail, "actions"));
+        boolean blockOutput = ConfigNodes.bool(onFail, "block_output", false);
+        return ConditionFailure.of(message, actions, blockOutput);
     }
+
+    private static List<String> actionLines(Object raw) {
+        if (raw == null) {
+            return List.of();
+        }
+        if (raw instanceof String single) {
+            return Texts.isBlank(single) ? List.of() : List.of(single);
+        }
+        if (raw instanceof Iterable<?> iterable) {
+            List<String> lines = new ArrayList<>();
+            for (Object entry : iterable) {
+                String line = Texts.toStringSafe(entry);
+                if (Texts.isNotBlank(line)) {
+                    lines.add(line);
+                }
+            }
+            return List.copyOf(lines);
+        }
+        String fallback = Texts.toStringSafe(raw);
+        return Texts.isBlank(fallback) ? List.of() : List.of(fallback);
+    }
+
+    public static void installRegistry(ConditionTypeRegistry registry) {
+        REGISTRY = registry;
+    }
+
+    private static volatile ConditionTypeRegistry REGISTRY;
 
     private static Boolean evaluateNode(ConditionNode condition,
             Function<String, String> placeholderReplacer,
@@ -180,10 +221,30 @@ public final class ConditionEvaluator {
         if (condition.expressionNode() || Objects.equals(condition.type(), "expression")) {
             return evaluateSingle(condition.expression(), placeholderReplacer);
         }
+        Boolean typed = evaluateTyped(condition, context);
+        if (typed != null) {
+            return typed;
+        }
         if (Texts.isNotBlank(condition.expression())) {
             return evaluateSingle(condition.expression(), placeholderReplacer);
         }
         return null;
+    }
+
+    private static Boolean evaluateTyped(ConditionNode condition, ConditionContext context) {
+        ConditionTypeRegistry registry = REGISTRY;
+        if (registry == null || Texts.isBlank(condition.type())) {
+            return null;
+        }
+        if (registry.find(condition.type()) == null) {
+            return null;
+        }
+        CoreConditionOutcome outcome = registry.test(condition.type(), condition.data(), context);
+        return switch (outcome) {
+            case PASS -> Boolean.TRUE;
+            case FAIL -> Boolean.FALSE;
+            case UNKNOWN -> null;
+        };
     }
 
     private static boolean combine(List<Boolean> results, String conditionType, int requiredCount) {

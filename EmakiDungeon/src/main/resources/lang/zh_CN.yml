@@ -583,6 +583,7 @@ player:
 
 console:
   plugin_starting: "<gray>正在启动...</gray>"
+  condition_registration_failed: "注册 CoreLib 条件类型失败 | 条件=%id% | 原因=%reason%"
   plugin_started: "<green>启动完成</green>"
   plugin_stopping: "<gray>正在关闭...</gray>"
   plugin_stopped: "<yellow>已关闭</yellow>"

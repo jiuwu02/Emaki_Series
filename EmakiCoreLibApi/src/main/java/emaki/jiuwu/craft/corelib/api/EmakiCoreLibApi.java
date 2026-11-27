@@ -26,6 +26,8 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetCondition;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetIdentityProvider;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRegistration;
+import emaki.jiuwu.craft.corelib.api.condition.CoreCondition;
+import emaki.jiuwu.craft.corelib.api.condition.CoreConditionRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerDispatch;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerRegistration;
 import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionStageDescriptor;
@@ -282,6 +284,15 @@ public final class EmakiCoreLibApi {
      */
     public static @NotNull CoreTargetRegistration registerTargetIdentityProvider(@Nullable Plugin owner,
             @Nullable CoreTargetIdentityProvider provider) { return EmakiCoreLibApiDelegate.registerTargetIdentityProvider(owner, provider); }
+
+    /** Registers one typed condition usable inside any {@code condition} block, including nested groups.
+     * <p>This is the general condition counterpart of {@link #registerTargetCondition(Plugin, CoreTargetCondition)}: a node written as {@code type: <id>} resolves against the registered conditions after CoreLib's own expression and group nodes. The same lifecycle rules apply — close the handle on disable, duplicate ids are rejected, and the registration survives an EmakiCoreLib reload.</p>
+     * @param owner     plugin that owns the condition lifecycle
+     * @param condition the condition implementation
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable
+     */
+    public static @NotNull CoreConditionRegistration registerCondition(@Nullable Plugin owner,
+            @Nullable CoreCondition condition) { return EmakiCoreLibApiDelegate.registerCondition(owner, condition); }
 
     /** Publishes currently callable optional capabilities. Publication is all-or-nothing on ownership conflict. Close the handle before uninstalling the provider bridge; it is inactive when unavailable.
      */
@@ -564,6 +575,18 @@ public final class EmakiCoreLibApi {
                 @Nullable CoreTargetIdentityProvider provider) {
             return CoreTargetRegistration.unavailable(provider == null ? "" : provider.systemId(),
                     "action.register.runtime_unsupported");
+        }
+
+        /** Backs {@link EmakiCoreLibApi#registerCondition(Plugin, CoreCondition)} by delegating to the runtime condition type registry. An older runtime bridge returns an inactive handle instead of throwing.
+         * @param owner     plugin that owns the condition lifecycle
+         * @param condition the condition implementation
+         * @return a revocable handle
+         */
+        @NotNull
+        default CoreConditionRegistration registerCondition(@Nullable Plugin owner,
+                @Nullable CoreCondition condition) {
+            return CoreConditionRegistration.unavailable(condition == null ? "" : condition.id(),
+                    "condition.register.runtime_unsupported");
         }
 
         /** Backs {@link EmakiCoreLibApi#publishCapabilities(Plugin, Set)} by delegating to the runtime capability registry. Publication is all-or-nothing: a capability already owned by another plugin fails the whole batch and names the first owner through

@@ -514,6 +514,10 @@ public final class Recipe {
         return conditions;
     }
 
+    public ConditionBlock conditionBlock() {
+        return new ConditionBlock(conditions, true, List.of(), List.of(), false, "");
+    }
+
     public QualityConfig quality() {
         return quality;
     }
