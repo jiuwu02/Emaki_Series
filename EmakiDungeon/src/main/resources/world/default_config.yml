@@ -224,7 +224,29 @@ random:
     chain-chance: 50
     max-loops-percent: 15
 
-  # 8. 藏宝图: enabled 且 granularity=room 时 room-count.max 必须不大于 64
+  # 8. 三维约束生成 (仅 topology.style: constraint 时生效)
+  #    mode: floors(明确楼层) | free(自由三维生长)
+  #    floor-count: 楼层总数 1-16
+  #    floor-spacing: 相邻楼层间距 3-128
+  #    floor-max-slope: 同层允许的最大高差 0..floor-spacing-1
+  #    template-connections / procedural-connections: 是否启用模板连接(楼梯间/电梯井)与程序连接(楼梯)
+  #    loop-chance / vertical-chance: 环路与竖向扩展概率 0-100
+  #    horizontal-margin / vertical-margin: 非连接面的间隔距离
+  #    max-search-states: 搜索状态上限, 触及即明确失败, 防止坏模板池无限搜索
+  spatial:
+    mode: floors
+    floor-count: 3
+    floor-spacing: 12
+    floor-max-slope: 2
+    template-connections: true
+    procedural-connections: true
+    loop-chance: 20
+    vertical-chance: 30
+    horizontal-margin: 1
+    vertical-margin: 1
+    max-search-states: 50000
+
+  # 9. 藏宝图: enabled 且 granularity=room 时 room-count.max 必须不大于 64
   #    target-icons: 自定义标签 -> 内置图标键(star/skull/chest/flag/dot/gate/stairs/ring), 未映射标签不显示目标图标
   treasure-map:
     enabled: true
@@ -235,7 +257,7 @@ random:
     floor-markers: true
     target-icons: {}
 
-  # 9. 种子策略: source auto | fixed | replay
+  # 10. 种子策略: source auto | fixed | replay
   #    replay 须提供目标实例记录标识, config_hash 不一致拒绝并报差异字段
   #    persist-config-fingerprint 固定 true, 配 false 非法
   seed:
@@ -243,20 +265,20 @@ random:
     fixed-value: 0
     persist-config-fingerprint: true
 
-  # 10. 随机实例世界: 启动随机副本时新建实例世界的生成类型 (air=空岛/normal=主世界/nether=下界/end=末地)
+  # 11. 随机实例世界: 启动随机副本时新建实例世界的生成类型 (air=空岛/normal=主世界/nether=下界/end=末地)
   #    编辑世界与普通副本实例不看此项, 始终跟随原始地图自身的生成设置
   world:
     type: air
     prewarm-radius-chunks: 2
     simulation-distance: 6
 
-  # 11. 编辑器(模板采集)
+  # 12. 编辑器(模板采集)
   editor:
     max-template-bytes: 4194304
     allow-entity-capture: false
     overwrite-policy: reject
 
-  # 12. 性能上限: blocks-per-tick 与既有实例写队列预算一致
+  # 13. 性能上限: blocks-per-tick 与既有实例写队列预算一致
   limits:
     blocks-per-tick: 8192
     compute-budget-ms: 50

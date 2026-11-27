@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.dungeon.random.layout;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import emaki.jiuwu.craft.dungeon.random.model.TemplateMeta;
 import emaki.jiuwu.craft.dungeon.random.model.TemplateModel.DoorAnchor;
@@ -39,6 +41,15 @@ public final class Placement {
             return Transforms.transformFacing(variant, anchor.facing());
         }
 
+        public List<int[]> anchorCells(DoorAnchor anchor) {
+            List<int[]> result = new ArrayList<>();
+            for (int[] cell : AnchorGeometry.openingCells(anchor)) {
+                int[] local = Transforms.transform(meta, variant, cell[0], cell[1], cell[2]);
+                result.add(new int[] {originX + local[0], originY + local[1], originZ + local[2]});
+            }
+            return result;
+        }
+
         public boolean boxIntersects(RoomPlacement other) {
             return intersectsBox(other);
         }
@@ -53,7 +64,7 @@ public final class Placement {
                     && originZ <= otherMaxZ && thisMaxZ >= other.originZ;
         }
 
-        public boolean sharedFaceOnly(RoomPlacement other) {
+        public boolean sharesBoundary(RoomPlacement other) {
             int thisMaxX = originX + Transforms.footprintX(meta, variant) - 1;
             int thisMaxZ = originZ + Transforms.footprintZ(meta, variant) - 1;
             int otherMaxX = other.originX + Transforms.footprintX(other.meta, other.variant) - 1;
@@ -64,7 +75,10 @@ public final class Placement {
                     && originY <= other.originY + other.meta.sizeY() - 1;
             boolean xOverlap = originX <= otherMaxX && thisMaxX >= other.originX;
             boolean zOverlap = originZ <= otherMaxZ && thisMaxZ >= other.originZ;
-            return (xTouch && yOverlap && zOverlap) || (zTouch && yOverlap && xOverlap);
+            boolean yTouch = originY + meta.sizeY() == other.originY
+                || other.originY + other.meta.sizeY() == originY;
+        return (xTouch && yOverlap && zOverlap) || (zTouch && yOverlap && xOverlap)
+                || (yTouch && xOverlap && zOverlap);
         }
     }
 
@@ -79,11 +93,26 @@ public final class Placement {
     }
 
     public record UnconnectedAnchor(int nodeId, String typeId, String anchorId, String policy,
-            int[] worldPos, String facing, int width, int height) {
+            int[] worldPos, String facing, int width, int height, String connectionKind) {
+
+        public UnconnectedAnchor(int nodeId, String typeId, String anchorId, String policy,
+                int[] worldPos, String facing, int width, int height) {
+            this(nodeId, typeId, anchorId, policy, worldPos, facing, width, height, "walkway");
+        }
     }
 
     public record Layout(List<RoomPlacement> rooms, List<CorridorRun> corridors,
-            List<LinkRecord> links, List<UnconnectedAnchor> unconnected, int attempts) {
+            List<LinkRecord> links, List<UnconnectedAnchor> unconnected, int attempts,
+            Map<Integer, Integer> logicalFloors) {
+
+        public Layout(List<RoomPlacement> rooms, List<CorridorRun> corridors,
+                List<LinkRecord> links, List<UnconnectedAnchor> unconnected, int attempts) {
+            this(rooms, corridors, links, unconnected, attempts, Map.of());
+        }
+
+        public int floorOf(int nodeId) {
+            return logicalFloors.getOrDefault(nodeId, 1);
+        }
     }
 
     private Placement() {

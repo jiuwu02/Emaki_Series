@@ -36,13 +36,17 @@ import emaki.jiuwu.craft.dungeon.random.build.BuildValidator;
 import emaki.jiuwu.craft.dungeon.random.build.WorldBootstrap;
 import emaki.jiuwu.craft.dungeon.random.config.RandomConfig;
 import emaki.jiuwu.craft.dungeon.random.gen.Assigner;
+import emaki.jiuwu.craft.dungeon.random.gen.GenerationFingerprint;
 import emaki.jiuwu.craft.dungeon.random.gen.Seeds;
 import emaki.jiuwu.craft.dungeon.random.gen.Topology;
+import emaki.jiuwu.craft.dungeon.random.gen.TopologyFactory;
 import emaki.jiuwu.craft.dungeon.random.gen.TopologyGenerator;
 import emaki.jiuwu.craft.dungeon.random.layout.Bake;
+import emaki.jiuwu.craft.dungeon.random.layout.ConstraintLayoutEngine;
 import emaki.jiuwu.craft.dungeon.random.layout.Feasibility;
 import emaki.jiuwu.craft.dungeon.random.layout.LayoutEngine;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement;
+import emaki.jiuwu.craft.dungeon.random.layout.Transforms;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement.Layout;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement.RoomPlacement;
 import emaki.jiuwu.craft.dungeon.random.lifecycle.InstanceStore;
@@ -71,7 +75,13 @@ public final class RandomDungeonService {
         }
     }
 
-    private static final int ALLOCATION_LIMIT = 3;
+    public static final String GENERATOR_ID = "constraint";
+    public static final int GENERATOR_VERSION = 1;
+    private static final int ALLOCATION_LIMIT = 16;
+
+    public record Generated(Layout layout, Topology topology,
+            String layoutHash, String templatePoolHash, String generatorId, int algorithmVersion) {
+    }
 
     /** 预览时每份副本最多尝试的种子数; 实际几何通过率远高于此, 触及上限说明配置本身有硬缺口。 */
     private static final int PREVIEW_SEED_RETRIES = 64;
@@ -318,6 +328,7 @@ public final class RandomDungeonService {
         long seed = seedOverride != null ? seedOverride
                 : ("fixed".equals(config.seed.source()) ? config.seed.fixedValue()
                         : java.util.concurrent.ThreadLocalRandom.current().nextLong());
+        String templateHash = GenerationFingerprint.templatePool(metas, templates);
         List<Assigner.TemplateOption> options = templateOptions(metas, config);
         List<String> candidateIds = new ArrayList<>(options.size());
         for (Assigner.TemplateOption option : options) {
@@ -328,6 +339,27 @@ public final class RandomDungeonService {
         Feasibility.Verdict lastVerdict = null;
         for (int allocation = 0; allocation < ALLOCATION_LIMIT; allocation++) {
             Seeds seeds = Seeds.derive(seed + allocation);
+            if (config.topology.constraintDriven()) {
+                Generated generated = generateSpatial(seed + allocation, roomCount, metas, templates, config);
+                if (generated == null) {
+                    lastDiagnostic = "constraint-search";
+                    continue;
+                }
+                Bake.Result baked = Bake.bake(generated.layout(), metas);
+                String id = worldNames.next("rnd");
+                instance = new RandomInstance(id, dungeonId, seed + allocation,
+                        Seeds.derive(seed + allocation), config.configHash, generated.topology().hash(), roomCount,
+                        generated.generatorId(), generated.algorithmVersion(), generated.layoutHash(), templateHash);
+                instance.testPlayer(testPlayer);
+                instance.layout(generated.layout());
+                instance.record("generated constraint states=" + generated.layout().attempts());
+                instance.forceState(RandomInstanceState.GENERATING);
+                instances.put(id, instance);
+                instanceStore.save(instance);
+                buildWorld(instance, baked, metas, templates, config);
+                return Result.ok("random.create_started", Map.of("instance", id,
+                        "seed", String.valueOf(seed + allocation), "rooms", String.valueOf(roomCount)));
+            }
             Topology topology = new TopologyGenerator().generate(seeds.topology(), roomCount,
                     config.topology.style(), config.topology.chainChance(),
                     config.topology.maxLoopsPercent());
@@ -379,6 +411,20 @@ public final class RandomDungeonService {
         return Result.fail("random.allocation_failed", Map.of("limit", String.valueOf(ALLOCATION_LIMIT)));
     }
 
+    public Generated generateSpatial(long seed, int roomCount, Map<String, TemplateMeta> metas,
+            Map<String, StructureNbt.StructureData> templates, RandomConfig config) {
+        Seeds seeds = Seeds.derive(seed);
+        List<Assigner.TemplateOption> options = templateOptions(metas, config);
+        ConstraintLayoutEngine.Result result = new ConstraintLayoutEngine().generate(seeds.layout(),
+                roomCount, metas, options, mandatoryRules(config), config, 64);
+        if (result.layout() == null) {
+            return null;
+        }
+        return new Generated(result.layout(), TopologyFactory.fromLayout(result.layout()),
+                GenerationFingerprint.layout(result.layout()), GenerationFingerprint.templatePool(metas, templates),
+                GENERATOR_ID, GENERATOR_VERSION);
+    }
+
     /**
      * 预览: 在同一个临时世界里并排生成 count 份完整副本, 每份间隔约一个区块。
      * 只造方块结构, 不建 flow、不注册实例、不生成出生点。
@@ -414,6 +460,15 @@ public final class RandomDungeonService {
         int maxAttempts = count * PREVIEW_SEED_RETRIES;
         while (layouts.size() < count && cursor < maxAttempts) {
             long seed = baseSeed + cursor++;
+            if (config.topology.constraintDriven()) {
+                Generated generated = generateSpatial(seed, roomCount, metas, templates, config);
+                if (generated == null) {
+                    lastDiagnostic = "constraint-search";
+                    continue;
+                }
+                layouts.add(generated.layout());
+                continue;
+            }
             Seeds seeds = Seeds.derive(seed);
             Topology topology = new TopologyGenerator().generate(seeds.topology(), roomCount,
                     config.topology.style(), config.topology.chainChance(),
@@ -466,7 +521,7 @@ public final class RandomDungeonService {
                 int minX = Integer.MAX_VALUE;
                 int maxX = Integer.MIN_VALUE;
                 for (RoomPlacement room : layout.rooms()) {
-                    int footprint = emaki.jiuwu.craft.dungeon.random.layout.Transforms
+                    int footprint = Transforms
                             .footprintX(room.meta(), room.variant());
                     minX = Math.min(minX, room.originX());
                     maxX = Math.max(maxX, room.originX() + footprint);
@@ -500,7 +555,7 @@ public final class RandomDungeonService {
     private List<Assigner.TemplateOption> templateOptions(Map<String, TemplateMeta> metas, RandomConfig config) {
         List<Assigner.TemplateOption> options = new ArrayList<>();
         for (Map.Entry<String, TemplateMeta> entry : metas.entrySet()) {
-            if (!TemplateModel.TYPE_ROOM.equals(entry.getValue().structureType())) {
+            if (TemplateModel.TYPE_CORRIDOR.equals(entry.getValue().structureType())) {
                 continue;
             }
             RandomConfig.RoomType type = config.roomTypes.get(entry.getKey());
@@ -656,7 +711,7 @@ public final class RandomDungeonService {
                     double lx = entry.get("x") instanceof Number number ? number.doubleValue() : 0.0D;
                     double ly = entry.get("y") instanceof Number number ? number.doubleValue() : 0.0D;
                     double lz = entry.get("z") instanceof Number number ? number.doubleValue() : 0.0D;
-                    double[] local = emaki.jiuwu.craft.dungeon.random.layout.Transforms.transformExact(
+                    double[] local = Transforms.transformExact(
                             room.meta(), room.variant(), lx, ly, lz);
                     float yaw = (float) (entry.get("yaw") instanceof Number number ? number.doubleValue() : 0.0D)
                             + room.variant().rotations();
@@ -724,12 +779,25 @@ public final class RandomDungeonService {
             return;
         }
         List<TreasureMapService.RoomCell> cells = new ArrayList<>();
+        List<RoomPlacement> placed = instance.layout().rooms();
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (RoomPlacement room : placed) {
+            int x = room.originX() + Transforms
+                    .footprintX(room.meta(), room.variant()) / 2;
+            int z = room.originZ() + Transforms.footprintZ(room.meta(), room.variant()) / 2;
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            minZ = Math.min(minZ, z);
+            maxZ = Math.max(maxZ, z);
+        }
+        double scale = Math.min(1.0D, Math.min(60.0D / Math.max(1, maxX - minX),
+                60.0D / Math.max(1, maxZ - minZ)));
         int floors = 1;
-        for (RoomPlacement room : instance.layout().rooms()) {
-            int floor = 1;
-            if (!room.meta().anchors().isEmpty()) {
-                floor = room.meta().anchors().get(0).floor();
-            }
+        for (RoomPlacement room : placed) {
+            int floor = instance.layout().floorOf(room.nodeId());
             floors = Math.max(floors, floor);
             String icon = null;
             for (String tag : room.meta().tags()) {
@@ -739,9 +807,12 @@ public final class RandomDungeonService {
                     break;
                 }
             }
+            int centerX = room.originX() + Transforms
+                    .footprintX(room.meta(), room.variant()) / 2;
+            int centerZ = room.originZ() + Transforms.footprintZ(room.meta(), room.variant()) / 2;
             cells.add(new TreasureMapService.RoomCell(room.nodeId(),
-                    Math.max(0, Math.min(63, 32 + room.nodeId() % 32)),
-                    Math.max(0, Math.min(63, 32 + (room.nodeId() / 32) * 4)),
+                    Math.max(0, Math.min(63, 2 + (int) Math.round((centerX - minX) * scale))),
+                    Math.max(0, Math.min(63, 2 + (int) Math.round((centerZ - minZ) * scale))),
                     floor, icon));
         }
         List<int[]> links = new ArrayList<>();
@@ -823,6 +894,22 @@ public final class RandomDungeonService {
             return Result.fail("random.replay_config_missing", Map.of("record", recordName,
                     "dungeon", String.valueOf(record.dungeonId())));
         }
+        if (GENERATOR_ID.equals(record.generatorId())) {
+            if (record.algorithmVersion() != GENERATOR_VERSION || record.layoutHash().isBlank()
+                    || record.templatePoolHash().isBlank()) {
+                return Result.fail("random.replay_unsupported", Map.of("record", recordName));
+            }
+            Generated generated = generateSpatial(record.seed(), record.roomCount(), metasOf(record.dungeonId()),
+                    templatesOf(record.dungeonId()), config);
+            if (generated == null || !generated.layoutHash().equals(record.layoutHash())
+                    || !generated.templatePoolHash().equals(record.templatePoolHash())) {
+                return Result.fail("random.replay_layout_mismatch", Map.of("record", recordName,
+                        "expected", record.layoutHash(),
+                        "actual", generated == null ? "unavailable" : generated.layoutHash()));
+            }
+            return Result.ok("random.replay_ok", Map.of("record", recordName,
+                    "topology-hash", generated.topology().hash()));
+        }
         if (!record.configHash().equals(config.configHash)) {
             return Result.fail("random.replay_config_mismatch", Map.of(
                     "record", recordName,
@@ -859,10 +946,12 @@ public final class RandomDungeonService {
             for (Player player : world.getPlayers()) {
                 Location location = player.getLocation();
                 for (RoomPlacement room : instance.layout().rooms()) {
-                    if (location.getX() < room.originX()
-                            || location.getX() > room.originX() + 1
+                    if (location.getX() < room.originX() || location.getY() < room.originY()
                             || location.getZ() < room.originZ()
-                            || location.getZ() > room.originZ() + 1) {
+                            || location.getX() > room.originX() + Transforms
+                                    .footprintX(room.meta(), room.variant())
+                            || location.getY() > room.originY() + room.meta().sizeY()
+                            || location.getZ() > room.originZ() + Transforms.footprintZ(room.meta(), room.variant())) {
                         continue;
                     }
                     mapService.explore(instance.instanceId(), room.nodeId());

@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.dungeon.random.layout.Placement.Layout;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement.RoomPlacement;
 import emaki.jiuwu.craft.dungeon.random.layout.Transforms;
 import emaki.jiuwu.craft.dungeon.random.model.TemplateMeta;
+import emaki.jiuwu.craft.dungeon.random.layout.AnchorGeometry;
 import emaki.jiuwu.craft.dungeon.random.model.TemplateModel;
 import emaki.jiuwu.craft.dungeon.random.model.TemplateModel.DoorAnchor;
 import emaki.jiuwu.craft.dungeon.random.nbt.StructureNbt;
@@ -83,7 +84,8 @@ public final class BuildPipeline {
                 for (PlannedBlock block : CorridorAssembler.assemble(run, corridorMeta, corridorData,
                         corridorPalette, tileGap)) {
                     templateBlocks.add(block);
-                    tiled.add(block.x() + ":" + block.z());
+                    tiled.add(TemplateModel.packCell(
+                            block.x(), block.y(), block.z()) + "");
                 }
             }
             // 先清空走廊净空, 再铺地板与模板, 否则模板墙体会被后续 AIR 覆盖挖穿
@@ -93,7 +95,8 @@ public final class BuildPipeline {
                 connections.add(new PlannedBlock(cell.x(), cell.y() + 3, cell.z(), Material.AIR.createBlockData()));
             }
             for (var cell : run.cells()) {
-                if (!tiled.contains(cell.x() + ":" + cell.z())) {
+                if (!tiled.contains(TemplateModel.packCell(
+                        cell.x(), cell.y(), cell.z()) + "")) {
                     connections.add(new PlannedBlock(cell.x(), cell.y(), cell.z(), floor));
                 }
             }
@@ -112,16 +115,29 @@ public final class BuildPipeline {
                             ? meta.sealBlock()
                             : defaultSealBlock);
             BlockData sealData = blockData(sealName, Material.STONE_BRICKS.createBlockData());
-            int pdx = TemplateModel.facingDx(unconnected.facing()) == 0 ? 1 : 0;
-            int pdz = TemplateModel.facingDz(unconnected.facing()) == 0 ? 1 : 0;
-            for (int k = 0; k < unconnected.width(); k++) {
-                for (int y = unconnected.worldPos()[1]; y < unconnected.worldPos()[1] + unconnected.height(); y++) {
-                    seals.add(new PlannedBlock(
-                            unconnected.worldPos()[0] + pdx * k,
-                            y,
-                            unconnected.worldPos()[2] + pdz * k,
-                            sealData));
+            if (TemplateModel.CONNECTION_LADDER.equals(unconnected.connectionKind())) {
+                for (int k = 0; k < unconnected.width(); k++) {
+                    for (int y = 0; y < unconnected.height(); y++) {
+                        seals.add(new PlannedBlock(unconnected.worldPos()[0], unconnected.worldPos()[1] + y,
+                                unconnected.worldPos()[2], blockData("minecraft:ladder", Material.LADDER.createBlockData())));
+                    }
                 }
+                continue;
+            }
+            if (TemplateModel.CONNECTION_ELEVATOR.equals(unconnected.connectionKind())) {
+                for (int k = 0; k < unconnected.width(); k++) {
+                    for (int y = 0; y < unconnected.height(); y++) {
+                        seals.add(new PlannedBlock(unconnected.worldPos()[0], unconnected.worldPos()[1] + y,
+                                unconnected.worldPos()[2], blockData("minecraft:bubble_column", Material.BUBBLE_COLUMN.createBlockData())));
+                    }
+                }
+                continue;
+            }
+            for (int[] cell : AnchorGeometry.openingCells(
+                    new DoorAnchor(unconnected.anchorId(), unconnected.worldPos()[0], unconnected.worldPos()[1],
+                            unconnected.worldPos()[2], unconnected.facing(), unconnected.width(), unconnected.height(),
+                            unconnected.worldPos()[1], 1, unconnected.policy(), ""))) {
+                seals.add(new PlannedBlock(cell[0], cell[1], cell[2], sealData));
             }
         }
         int total = rooms.size() + connections.size() + seals.size();

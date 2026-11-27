@@ -35,6 +35,15 @@ public final class RandomConfig {
      * @param maxLoopsPercent 环路数上限占房量的百分比; 0 关闭环路, 回到纯树
      */
     public record Topology(String style, int chainChance, int maxLoopsPercent) {
+
+        public boolean constraintDriven() {
+            return "constraint".equals(style);
+        }
+    }
+
+    public record Spatial(String mode, int floorCount, int floorSpacing, int floorMaxSlope,
+            boolean templateConnections, boolean proceduralConnections, int loopChance,
+            int verticalChance, int horizontalMargin, int verticalMargin, int maxSearchStates) {
     }
 
     public record TreasureMap(boolean enabled, String granularity, int pixelsPerRoom,
@@ -68,6 +77,7 @@ public final class RandomConfig {
     public final Corridor corridor;
     public final Orientation orientation;
     public final Topology topology;
+    public final Spatial spatial;
     public final TreasureMap treasureMap;
     public final SeedPolicy seed;
     public final WorldPolicy world;
@@ -78,20 +88,21 @@ public final class RandomConfig {
 
     private RandomConfig(RoomCount roomCount, Map<String, MandatoryRule> mandatory,
             Map<String, RoomType> roomTypes, Corridor corridor, Orientation orientation,
-            Topology topology, TreasureMap treasureMap, SeedPolicy seed, WorldPolicy world,
-            EditorPolicy editor, Limits limits) {
+            Topology topology, Spatial spatial, TreasureMap treasureMap, SeedPolicy seed, WorldPolicy world,
+            EditorPolicy editor, Limits limits, String canonical) {
         this.roomCount = roomCount;
         this.mandatory = mandatory;
         this.roomTypes = roomTypes;
         this.corridor = corridor;
         this.orientation = orientation;
         this.topology = topology;
+        this.spatial = spatial;
         this.treasureMap = treasureMap;
         this.seed = seed;
         this.world = world;
         this.editor = editor;
         this.limits = limits;
-        this.canonical = buildCanonical();
+        this.canonical = canonical;
         this.configHash = emaki.jiuwu.craft.dungeon.random.gen.Seeds.configHash(canonical);
     }
 
@@ -122,6 +133,7 @@ public final class RandomConfig {
         Corridor corridor = parseCorridor(section, errors);
         Orientation orientation = parseOrientation(section, errors);
         Topology topology = parseTopology(section, errors);
+        Spatial spatial = parseSpatial(section, errors);
         TreasureMap treasureMap = parseTreasureMap(section, errors);
         SeedPolicy seed = parseSeed(section, errors);
         WorldPolicy world = parseWorld(section, errors);
@@ -143,7 +155,7 @@ public final class RandomConfig {
             return new Loaded(null, errors);
         }
         return new Loaded(new RandomConfig(roomCount, mandatory, roomTypes, corridor, orientation,
-                topology, treasureMap, seed, world, editor, limits), errors);
+                topology, spatial, treasureMap, seed, world, editor, limits, canonicalSection(section)), errors);
     }
 
     private static RoomCount parseRoomCount(YamlSection section, List<String> errors) {
@@ -224,7 +236,8 @@ public final class RandomConfig {
     private static Topology parseTopology(YamlSection section, List<String> errors) {
         YamlSection node = section.getSection("topology");
         String style = node == null ? "branch" : node.getString("style", "branch").toLowerCase(Locale.ROOT);
-        if (!"branch".equals(style) && !"chain".equals(style) && !"mixed".equals(style)) {
+        if (!"constraint".equals(style) && !"branch".equals(style)
+                && !"chain".equals(style) && !"mixed".equals(style)) {
             errors.add("topology.style: 非法值 " + style);
         }
         int chainChance = node == null ? 50 : node.getInt("chain-chance", 50);
@@ -236,6 +249,45 @@ public final class RandomConfig {
             errors.add("topology.max-loops-percent: 必须落在 0-100, 当前 " + maxLoopsPercent);
         }
         return new Topology(style, chainChance, maxLoopsPercent);
+    }
+
+    private static Spatial parseSpatial(YamlSection section, List<String> errors) {
+        YamlSection node = section.getSection("spatial");
+        String mode = node == null ? "floors" : node.getString("mode", "floors").toLowerCase(Locale.ROOT);
+        if (!"floors".equals(mode) && !"free".equals(mode)) {
+            errors.add("spatial.mode: 合法值 floors/free");
+        }
+        int floorCount = node == null ? 3 : node.getInt("floor-count", 3);
+        int floorSpacing = node == null ? 12 : node.getInt("floor-spacing", 12);
+        int floorMaxSlope = node == null ? 2 : node.getInt("floor-max-slope", 2);
+        int loopChance = node == null ? 20 : node.getInt("loop-chance", 20);
+        int verticalChance = node == null ? 30 : node.getInt("vertical-chance", 30);
+        int horizontalMargin = node == null ? 1 : node.getInt("horizontal-margin", 1);
+        int verticalMargin = node == null ? 1 : node.getInt("vertical-margin", 1);
+        int maxSearchStates = node == null ? 50000 : node.getInt("max-search-states", 50000);
+        if (floorCount < 1 || floorCount > 16) {
+            errors.add("spatial.floor-count: 必须落在 1-16");
+        }
+        if (floorSpacing < 3 || floorSpacing > 128) {
+            errors.add("spatial.floor-spacing: 必须落在 3-128");
+        }
+        if (floorMaxSlope < 0 || floorMaxSlope > floorSpacing - 1) {
+            errors.add("spatial.floor-max-slope: 必须落在 0..floor-spacing-1");
+        }
+        if (loopChance < 0 || loopChance > 100 || verticalChance < 0 || verticalChance > 100) {
+            errors.add("spatial.loop-chance/vertical-chance: 必须落在 0-100");
+        }
+        if (horizontalMargin < 0 || horizontalMargin > 32
+                || verticalMargin < 0 || verticalMargin > floorSpacing - 1) {
+            errors.add("spatial.horizontal-margin/vertical-margin: 超出合法范围");
+        }
+        if (maxSearchStates < 1 || maxSearchStates > 1000000) {
+            errors.add("spatial.max-search-states: 必须落在 1-1000000");
+        }
+        return new Spatial(mode, floorCount, floorSpacing, floorMaxSlope,
+                node == null || node.getBoolean("template-connections", true),
+                node == null || node.getBoolean("procedural-connections", true),
+                loopChance, verticalChance, horizontalMargin, verticalMargin, maxSearchStates);
     }
 
     private static Corridor parseCorridor(YamlSection section, List<String> errors) {
@@ -398,40 +450,16 @@ public final class RandomConfig {
         return Math.max(roomCount.min(), Math.min(roomCount.max(), value));
     }
 
-    private String buildCanonical() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("room-count=").append(roomCount.base()).append(',')
-                .append(roomCount.min()).append(',').append(roomCount.max()).append(',')
-                .append(roomCount.growthPerPlayer()).append(';');
-        for (MandatoryRule rule : mandatory.values()) {
-            builder.append("mandatory.").append(rule.tag()).append('=')
-                    .append(rule.minCount()).append(',').append(rule.maxCount()).append(',')
-                    .append(rule.placementRule()).append(',').append(rule.percentile()).append(';');
+    private static String canonicalSection(YamlSection section) {
+        StringBuilder builder = new StringBuilder("random-config/v2\n");
+        for (String key : new java.util.TreeSet<>(section.getKeys(true))) {
+            Object value = section.get(key);
+            if (!(value instanceof YamlSection)) {
+                builder.append(key).append('=');
+                emaki.jiuwu.craft.dungeon.random.gen.GenerationFingerprint.write(builder, value);
+                builder.append(';');
+            }
         }
-        for (RoomType type : roomTypes.values()) {
-            builder.append("room-types.").append(type.typeId()).append('=')
-                    .append(type.weight()).append(',').append(type.minCount()).append(',')
-                    .append(type.maxCount()).append(';');
-        }
-        builder.append("corridor=").append(corridor.linkMode()).append(',').append(corridor.templateRef()).append(',')
-                .append(corridor.width()).append('x').append(corridor.height()).append(',')
-                .append(corridor.lengthMin()).append('-').append(corridor.lengthMax()).append(',')
-                .append(corridor.maxTurns()).append(',').append(corridor.maxHeightDiff()).append(',')
-                .append(corridor.tileGap()).append(';');
-        builder.append("orientation=").append(orientation.rotatable()).append(',')
-                .append(orientation.mirrorAxis()).append(';');
-        builder.append("topology=").append(topology.style()).append(',')
-                .append(topology.chainChance()).append(',').append(topology.maxLoopsPercent()).append(';');
-        builder.append("treasure-map=").append(treasureMap.enabled()).append(',')
-                .append(treasureMap.granularity()).append(',').append(treasureMap.pixelsPerRoom()).append(',')
-                .append(treasureMap.updateIntervalTicks()).append(',').append(treasureMap.showUnexploredOutline()).append(',')
-                .append(treasureMap.floorMarkers()).append(',').append(treasureMap.targetIcons()).append(';');
-        builder.append("seed=").append(seed.source()).append(',').append(seed.fixedValue()).append(';');
-        builder.append("world=").append(world.type()).append(',').append(world.prewarmRadiusChunks()).append(',')
-                .append(world.simulationDistance()).append(';');
-        builder.append("limits=").append(limits.blocksPerTick()).append(',').append(limits.computeBudgetMs()).append(',')
-                .append(limits.buildBudgetTicks()).append(',').append(limits.maxTemplateBlocks()).append(',')
-                .append(limits.maxLayoutBacktracks()).append(',').append(limits.concurrentInstances());
         return builder.toString();
     }
 }

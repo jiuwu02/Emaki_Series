@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.53"
+version: "1.0.54"
 
 tags:
   challenge: "[ 挑战 ]"
@@ -725,6 +725,8 @@ random:
   replay_config_missing: "<red>回放拒绝: 记录 <record> 所属副本 <dungeon> 的 random 段缺失或非法</red>"
   replay_config_mismatch: "<red>回放拒绝: config_hash 不一致 | 记录 <expected> 当前 <actual></red>"
   replay_topology_mismatch: "<red>回放拒绝: 拓扑哈希不一致 | 记录 <expected> 当前 <actual></red>"
+  replay_unsupported: "<red>回放拒绝: 记录 <record> 缺少完整生成身份, 请用当前版本重新生成</red>"
+  replay_layout_mismatch: "<red>回放拒绝: 完整布局指纹不一致 | 记录 <expected> 当前 <actual></red>"
   replay_ok: "<green>回放校验通过 | 记录 <record> 拓扑 <topology-hash></green>"
   list_header: "<gray>随机地牢实例:</gray>"
   list_entry: "<gray>- </gray><white><instance></white> <gray><state> 房量 <rooms> 种子 <seed></gray>"
@@ -804,6 +806,7 @@ random:
     create_region: "<green>创建区域</green>"
     create_room: "<green>新区域类型 · 房间</green>"
     create_corridor: "<green>新区域类型 · 走廊</green>"
+    create_transition: "<green>新区域类型 · 跨层连接 (楼梯间/电梯井)</green>"
     create_hint: "<gray>选好类型后关闭界面, 用 pos1/pos2 标记两点即自动创建</gray>"
     discard: "<red>丢弃会话</red>"
     status: "<white>采集状态</white>"

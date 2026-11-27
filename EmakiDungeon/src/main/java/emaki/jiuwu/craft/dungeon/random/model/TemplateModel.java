@@ -11,6 +11,7 @@ public final class TemplateModel {
 
     public static final String TYPE_ROOM = "room";
     public static final String TYPE_CORRIDOR = "corridor";
+    public static final String TYPE_TRANSITION = "transition";
     /** 采集面板里 entry 模块落库的 module 名, 在模板内代表副本入口出生点。 */
     public static final String TYPE_ENTRY = "spawn_point";
 
@@ -18,6 +19,14 @@ public final class TemplateModel {
     public static final String FACING_E = "east";
     public static final String FACING_S = "south";
     public static final String FACING_W = "west";
+    public static final String FACING_UP = "up";
+    public static final String FACING_DOWN = "down";
+
+    public static final String CONNECTION_WALKWAY = "walkway";
+    public static final String CONNECTION_STAIRCASE = "staircase";
+    public static final String CONNECTION_VERTICAL = "vertical";
+    public static final String CONNECTION_LADDER = "ladder";
+    public static final String CONNECTION_ELEVATOR = "elevator";
 
     public static final String POLICY_SEAL = "seal";
     public static final String POLICY_KEEP = "keep";
@@ -27,11 +36,19 @@ public final class TemplateModel {
     public static final String INTRUSION_REJECT = "reject";
 
     public record DoorAnchor(String id, int x, int y, int z, String facing, int width, int height,
-            int baseY, int floor, String policy, String sealBlock) {
+            int baseY, int floor, String policy, String sealBlock, String connectionKind,
+            Integer floorDelta, Integer verticalDelta) {
 
         public DoorAnchor {
             facing = normalizeFacing(facing);
             policy = policy == null || policy.isBlank() ? "" : normalizePolicy(policy);
+            connectionKind = normalizeConnectionKind(connectionKind, facing);
+        }
+
+        public DoorAnchor(String id, int x, int y, int z, String facing, int width, int height,
+                int baseY, int floor, String policy, String sealBlock) {
+            this(id, x, y, z, facing, width, height, baseY, floor, policy, sealBlock,
+                    isVertical(facing) ? CONNECTION_VERTICAL : CONNECTION_WALKWAY, null, null);
         }
 
         public String policyOrDefault(String fallback) {
@@ -58,7 +75,34 @@ public final class TemplateModel {
             case "east" -> FACING_E;
             case "south" -> FACING_S;
             case "west" -> FACING_W;
+            case "up" -> FACING_UP;
+            case "down" -> FACING_DOWN;
             default -> FACING_N;
+        };
+    }
+
+    public static String normalizeConnectionKind(String raw, String facing) {
+        String fallback = isVertical(facing) ? CONNECTION_VERTICAL : CONNECTION_WALKWAY;
+        if (raw == null || raw.isBlank()) {
+            return fallback;
+        }
+        String value = raw.trim().toLowerCase(Locale.ROOT);
+        return switch (value) {
+            case CONNECTION_WALKWAY, CONNECTION_STAIRCASE, CONNECTION_VERTICAL,
+                    CONNECTION_LADDER, CONNECTION_ELEVATOR -> value;
+            default -> fallback;
+        };
+    }
+
+    public static boolean isVertical(String facing) {
+        return FACING_UP.equals(facing) || FACING_DOWN.equals(facing);
+    }
+
+    public static int facingDy(String facing) {
+        return switch (normalizeFacing(facing)) {
+            case FACING_UP -> 1;
+            case FACING_DOWN -> -1;
+            default -> 0;
         };
     }
 
@@ -97,17 +141,33 @@ public final class TemplateModel {
         };
     }
 
+    public static String facingOf(int dx, int dz) {
+        if (dx > 0) {
+            return FACING_E;
+        }
+        if (dx < 0) {
+            return FACING_W;
+        }
+        return dz >= 0 ? FACING_S : FACING_N;
+    }
+
     public static String oppositeFacing(String facing) {
         return switch (normalizeFacing(facing)) {
             case FACING_N -> FACING_S;
             case FACING_S -> FACING_N;
             case FACING_E -> FACING_W;
+            case FACING_W -> FACING_E;
+            case FACING_UP -> FACING_DOWN;
+            case FACING_DOWN -> FACING_UP;
             default -> FACING_E;
         };
     }
 
     public static String rotateFacing(String facing, int rotations) {
         String current = normalizeFacing(facing);
+        if (isVertical(current)) {
+            return current;
+        }
         int steps = Math.floorMod(rotations, 4);
         for (int i = 0; i < steps; i++) {
             current = switch (current) {
@@ -158,6 +218,13 @@ public final class TemplateModel {
         map.put("height", anchor.height());
         map.put("base-y", anchor.baseY());
         map.put("floor", anchor.floor());
+        map.put("connection-kind", anchor.connectionKind());
+        if (anchor.floorDelta() != null) {
+            map.put("floor-delta", anchor.floorDelta());
+        }
+        if (anchor.verticalDelta() != null) {
+            map.put("vertical-delta", anchor.verticalDelta());
+        }
         if (anchor.policy() != null && !anchor.policy().isBlank()) {
             map.put("policy", anchor.policy());
         }

@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.53"
+version: "1.0.54"
 
 tags:
   challenge: "[ challenge ]"
@@ -725,6 +725,8 @@ random:
   replay_config_missing: "<red>Replay rejected: dungeon <dungeon> of record <record> has a missing or invalid random section</red>"
   replay_config_mismatch: "<red>Replay rejected: config_hash mismatch | record <expected> current <actual></red>"
   replay_topology_mismatch: "<red>Replay rejected: topology hash mismatch | record <expected> current <actual></red>"
+  replay_unsupported: "<red>Replay rejected: record <record> has no complete generation identity, regenerate with the current version</red>"
+  replay_layout_mismatch: "<red>Replay rejected: full layout fingerprint mismatch | record <expected> current <actual></red>"
   replay_ok: "<green>Replay verified | record <record> topology <topology-hash></green>"
   list_header: "<gray>Random dungeon instances:</gray>"
   list_entry: "<gray>- </gray><white><instance></white> <gray><state> rooms <rooms> seed <seed></gray>"
@@ -804,6 +806,7 @@ random:
     create_region: "<green>Create region</green>"
     create_room: "<green>New region type · room</green>"
     create_corridor: "<green>New region type · corridor</green>"
+    create_transition: "<green>New region type · transition (stairwell / elevator shaft)</green>"
     create_hint: "<gray>Pick a type, close the GUI, then mark two points with pos1/pos2 to auto-create</gray>"
     discard: "<red>Discard session</red>"
     status: "<white>Capture status</white>"

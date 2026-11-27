@@ -112,6 +112,13 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
             entry.put("height", anchor.height());
             entry.put("base-y", anchor.baseY());
             entry.put("floor", anchor.floor());
+            entry.put("connection-kind", anchor.connectionKind());
+            if (anchor.floorDelta() != null) {
+                entry.put("floor-delta", anchor.floorDelta());
+            }
+            if (anchor.verticalDelta() != null) {
+                entry.put("vertical-delta", anchor.verticalDelta());
+            }
             if (anchor.policy() != null && !anchor.policy().isBlank()) {
                 entry.put("policy", anchor.policy());
             }
@@ -207,7 +214,10 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
                         baseY,
                         intValue(typed, "floor", 1),
                         typed.get("policy") == null ? "" : String.valueOf(typed.get("policy")),
-                        typed.get("seal-block") == null ? "" : String.valueOf(typed.get("seal-block"))));
+                        typed.get("seal-block") == null ? "" : String.valueOf(typed.get("seal-block")),
+                        typed.get("connection-kind") == null ? "" : String.valueOf(typed.get("connection-kind")),
+                        typed.get("floor-delta") instanceof Number number ? number.intValue() : null,
+                        typed.get("vertical-delta") instanceof Number number ? number.intValue() : null));
             }
         }
         boolean rotatable = root.get("rotatable") instanceof Boolean flag

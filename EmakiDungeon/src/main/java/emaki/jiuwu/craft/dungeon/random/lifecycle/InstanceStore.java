@@ -39,6 +39,10 @@ public final class InstanceStore {
         map.put("config-hash", instance.configHash());
         map.put("topology-hash", instance.topologyHash());
         map.put("room-count", instance.roomCount());
+        map.put("generator-id", instance.generatorId());
+        map.put("algorithm-version", instance.algorithmVersion());
+        map.put("layout-hash", instance.layoutHash());
+        map.put("template-pool-hash", instance.templatePoolHash());
         map.put("created-at", instance.createdAt());
         map.put("events", new ArrayList<>(instance.events()));
         try {
@@ -76,7 +80,11 @@ public final class InstanceStore {
                 seeds,
                 section.getString("config-hash", ""),
                 section.getString("topology-hash", ""),
-                section.getInt("room-count", 0));
+                section.getInt("room-count", 0),
+                section.getString("generator-id", "legacy"),
+                section.getInt("algorithm-version", 1),
+                section.getString("layout-hash", ""),
+                section.getString("template-pool-hash", ""));
         try {
             instance.forceState(RandomInstanceState.valueOf(
                     section.getString("state", "CREATED")));

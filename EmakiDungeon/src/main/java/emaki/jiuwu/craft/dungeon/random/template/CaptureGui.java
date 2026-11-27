@@ -36,7 +36,7 @@ public final class CaptureGui implements Listener {
             "temp_items", "kill_targets");
 
     private enum Panel {
-        MAIN, META, ANCHORS, NODES, NODE, PLACE, STRUCTURE, CREATE
+        MAIN, META, ANCHORS, DOOR, NODES, NODE, PLACE, STRUCTURE, CREATE
     }
 
     private static final class Holder implements org.bukkit.inventory.InventoryHolder {
@@ -62,6 +62,7 @@ public final class CaptureGui implements Listener {
             case MAIN -> "random.gui.title_main";
             case META -> "random.gui.title_meta";
             case ANCHORS -> "random.gui.title_anchors";
+            case DOOR -> "random.gui.title_anchors";
             case NODES -> "random.gui.title_nodes";
             case NODE -> "random.gui.title_node";
             case PLACE -> "random.gui.title_place";
@@ -144,7 +145,7 @@ public final class CaptureGui implements Listener {
         return switch (panel) {
             case MAIN -> "capture_main";
             case META -> "capture_meta";
-            case ANCHORS -> "capture_anchors";
+            case ANCHORS, DOOR -> "capture_anchors";
             case NODES -> "capture_nodes";
             case NODE -> "capture_node";
             case PLACE -> "capture_place";
@@ -232,6 +233,7 @@ public final class CaptureGui implements Listener {
             case MAIN -> renderMain(inventory, session);
             case META -> renderMeta(inventory, session);
             case ANCHORS -> renderAnchors(inventory, session, holder);
+            case DOOR -> renderDoor(inventory, session, holder);
             case NODES -> renderNodes(inventory, session, holder);
             case NODE -> renderNode(inventory, session, holder);
             case PLACE -> renderPlace(inventory, holder);
@@ -289,7 +291,9 @@ public final class CaptureGui implements Listener {
             DoorAnchor anchor = doors.get(start + index);
             inventory.setItem(index, itemRaw(Material.IRON_DOOR,
                     "<white>" + plain(anchor.id()) + "</white>",
-                    List.of(anchor.facing(), anchor.width() + "x" + anchor.height())));
+                    List.of(anchor.facing() + " / " + anchor.connectionKind(),
+                            anchor.width() + "x" + anchor.height(),
+                            "floor-delta=" + anchor.floorDelta() + ", vertical-delta=" + anchor.verticalDelta())));
         }
         renderNav(inventory, holder, doors.size(), Material.LIME_DYE, "random.gui.door_add");
         inventory.setItem(SLOT_BACK, item(Material.OAK_DOOR, "random.gui.back", List.of()));
@@ -409,6 +413,8 @@ public final class CaptureGui implements Listener {
                 List.of(TemplateModel.TYPE_ROOM.equals(session.structureType) ? "*" : "")));
         inventory.setItem(11, item(Material.ORANGE_CONCRETE, "random.gui.create_corridor",
                 List.of(TemplateModel.TYPE_CORRIDOR.equals(session.structureType) ? "*" : "")));
+        inventory.setItem(12, item(Material.LADDER, "random.gui.create_transition",
+                List.of(TemplateModel.TYPE_TRANSITION.equals(session.structureType) ? "*" : "")));
         inventory.setItem(SLOT_INFO, item(Material.PAPER, "random.gui.create_hint", List.of()));
         inventory.setItem(SLOT_BACK, item(Material.OAK_DOOR, "random.gui.back", List.of()));
     }
@@ -478,6 +484,7 @@ public final class CaptureGui implements Listener {
             case MAIN -> handleMain(player, session, slot);
             case META -> handleMeta(player, holder, session, slot);
             case ANCHORS -> handleAnchors(player, holder, session, slot);
+            case DOOR -> handleDoor(player, holder, session, slot);
             case NODES -> handleNodes(player, holder, session, slot);
             case NODE -> handleNode(player, holder, session, slot);
             case PLACE -> handlePlace(player, session, holder, slot);
@@ -509,8 +516,11 @@ public final class CaptureGui implements Listener {
     private void handleMeta(Player player, Holder holder, CaptureService.Session session, int slot) {
         switch (slot) {
             case 10 -> {
-                String next = TemplateModel.TYPE_ROOM.equals(session.structureType)
-                        ? TemplateModel.TYPE_CORRIDOR : TemplateModel.TYPE_ROOM;
+                String next = switch (session.structureType) {
+                    case TemplateModel.TYPE_ROOM -> TemplateModel.TYPE_CORRIDOR;
+                    case TemplateModel.TYPE_CORRIDOR -> TemplateModel.TYPE_TRANSITION;
+                    default -> TemplateModel.TYPE_ROOM;
+                };
                 report(player, captures.meta(player, "type", next));
                 reopen(player, holder);
             }
@@ -550,6 +560,76 @@ public final class CaptureGui implements Listener {
         }
     }
 
+    private void handleDoor(Player player, Holder holder, CaptureService.Session session, int slot) {
+        if (slot == SLOT_BACK) {
+            open(player, new Holder(Panel.ANCHORS, new String[0], 0));
+            return;
+        }
+        if (slot == SLOT_DELETE) {
+            report(player, captures.doorRemove(player, holder.path[1]));
+            open(player, new Holder(Panel.ANCHORS, new String[0], 0));
+            return;
+        }
+        DoorAnchor anchor = doorOf(session, holder.path[0], holder.path[1]);
+        if (anchor == null) {
+            open(player, new Holder(Panel.ANCHORS, new String[0], 0));
+            return;
+        }
+        if (slot == 10) {
+            String next = switch (anchor.connectionKind()) {
+                case TemplateModel.CONNECTION_WALKWAY -> TemplateModel.CONNECTION_STAIRCASE;
+                case TemplateModel.CONNECTION_STAIRCASE -> TemplateModel.CONNECTION_VERTICAL;
+                case TemplateModel.CONNECTION_VERTICAL -> TemplateModel.CONNECTION_LADDER;
+                case TemplateModel.CONNECTION_LADDER -> TemplateModel.CONNECTION_ELEVATOR;
+                default -> TemplateModel.CONNECTION_WALKWAY;
+            };
+            CaptureService.DoorSettings settings = new CaptureService.DoorSettings(next,
+                    anchor.floorDelta(), anchor.verticalDelta());
+            if (holder.path[0].isBlank()) {
+                captures.pendingDoorSettings(session, settings);
+            } else {
+                captures.updateDoor(session, holder.path[0], anchor.id(), settings);
+            }
+            reopen(player, holder);
+        } else if (slot == 11 || slot == 12) {
+            boolean floor = slot == 11;
+            prompt(player, holder, floor ? "floor_delta" : "vertical_delta", text -> {
+                String value = text.trim();
+                Integer parsed = value.isBlank() || "-".equals(value) ? null : parseInt(value, 0);
+                CaptureService.DoorSettings settings = new CaptureService.DoorSettings(anchor.connectionKind(),
+                        floor ? parsed : anchor.floorDelta(), floor ? anchor.verticalDelta() : parsed);
+                if (holder.path[0].isBlank()) {
+                    captures.pendingDoorSettings(session, settings);
+                } else {
+                    captures.updateDoor(session, holder.path[0], anchor.id(), settings);
+                }
+                reopen(player, holder);
+            });
+        }
+    }
+
+    private DoorAnchor doorOf(CaptureService.Session session, String templateId, String doorId) {
+        for (DoorAnchor anchor : captures.doorsOf(session)) {
+            if (anchor.id().equals(doorId)) {
+                return anchor;
+            }
+        }
+        return null;
+    }
+
+    private void renderDoor(Inventory inventory, CaptureService.Session session, Holder holder) {
+        DoorAnchor anchor = doorOf(session, holder.path[0], holder.path[1]);
+        if (anchor == null) {
+            inventory.setItem(SLOT_INFO, item(Material.BARRIER, "random.gui.structure_missing", List.of()));
+        } else {
+            inventory.setItem(10, itemRaw(Material.IRON_DOOR, anchor.connectionKind(), List.of()));
+            inventory.setItem(11, itemRaw(Material.LADDER, "floor-delta=" + anchor.floorDelta(), List.of()));
+            inventory.setItem(12, itemRaw(Material.SCAFFOLDING, "vertical-delta=" + anchor.verticalDelta(), List.of()));
+        }
+        inventory.setItem(SLOT_DELETE, item(Material.RED_CONCRETE, "random.gui.node_delete", List.of()));
+        inventory.setItem(SLOT_BACK, item(Material.OAK_DOOR, "random.gui.back", List.of()));
+    }
+
     private void handleAnchors(Player player, Holder holder, CaptureService.Session session, int slot) {
         List<DoorAnchor> doors = captures.doorsOf(session);
         if (handleNav(player, holder, doors.size(), slot, Panel.ANCHORS)) {
@@ -563,7 +643,7 @@ public final class CaptureGui implements Listener {
         int start = holder.page * 36;
         if (slot >= 0 && slot < 36 && start + slot < doors.size()) {
             String id = doors.get(start + slot).id();
-            report(player, captures.doorRemove(player, id));
+            open(player, new Holder(Panel.DOOR, new String[] {captures.targetOf(session), id}, 0));
             reopen(player, holder);
             return;
         }
@@ -679,7 +759,8 @@ public final class CaptureGui implements Listener {
             open(player, new Holder(Panel.MAIN, new String[0], 0));
             return;
         }
-        String type = slot == 10 ? TemplateModel.TYPE_ROOM : slot == 11 ? TemplateModel.TYPE_CORRIDOR : null;
+        String type = slot == 10 ? TemplateModel.TYPE_ROOM : slot == 11 ? TemplateModel.TYPE_CORRIDOR
+                : slot == 12 ? TemplateModel.TYPE_TRANSITION : null;
         if (type == null) {
             return;
         }
@@ -698,8 +779,11 @@ public final class CaptureGui implements Listener {
         }
         switch (slot) {
             case 10 -> {
-                String next = TemplateModel.TYPE_ROOM.equals(meta.structureType())
-                        ? TemplateModel.TYPE_CORRIDOR : TemplateModel.TYPE_ROOM;
+                String next = switch (meta.structureType()) {
+                    case TemplateModel.TYPE_ROOM -> TemplateModel.TYPE_CORRIDOR;
+                    case TemplateModel.TYPE_CORRIDOR -> TemplateModel.TYPE_TRANSITION;
+                    default -> TemplateModel.TYPE_ROOM;
+                };
                 report(player, captures.retypeStructure(player, templateId, next));
                 refreshEditorMarkers(session);
                 open(player, new Holder(Panel.MAIN, new String[0], 0));

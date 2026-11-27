@@ -559,7 +559,7 @@ public final class LayoutEngine {
             if (candidate.overlapsReal(room)) {
                 return true;
             }
-            if (candidate.boxIntersects(room) && !candidate.sharedFaceOnly(room)
+            if (candidate.boxIntersects(room) && !candidate.sharesBoundary(room)
                     && (TemplateModel.INTRUSION_REJECT.equals(candidate.meta().intrusionPolicy())
                             || TemplateModel.INTRUSION_REJECT.equals(room.meta().intrusionPolicy()))) {
                 return true;

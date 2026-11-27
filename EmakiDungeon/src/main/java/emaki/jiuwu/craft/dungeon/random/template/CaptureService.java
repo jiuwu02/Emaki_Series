@@ -16,6 +16,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.dungeon.random.config.RandomConfig;
+import emaki.jiuwu.craft.dungeon.random.layout.AnchorGeometry;
 import emaki.jiuwu.craft.dungeon.random.model.Mask;
 import emaki.jiuwu.craft.dungeon.random.model.TemplateMeta;
 import emaki.jiuwu.craft.dungeon.random.model.TemplateModel;
@@ -62,6 +63,9 @@ public final class CaptureService {
         public String intrusionPolicy = TemplateModel.INTRUSION_ALLOW;
         public String doorPolicy = TemplateModel.POLICY_KEEP;
         public String sealBlock = "";
+        public String pendingConnectionKind = "";
+        public Integer pendingFloorDelta;
+        public Integer pendingVerticalDelta;
         public final List<DoorAnchor> anchors = new ArrayList<>();
         public final List<ModuleNode> nodes = new ArrayList<>();
     }
@@ -74,6 +78,15 @@ public final class CaptureService {
 
         public static Result ok(String key, Map<String, String> params) {
             return new Result(true, key, params);
+        }
+    }
+
+    public record DoorSettings(String kind, Integer floorDelta, Integer verticalDelta) {
+
+        public DoorAnchor apply(DoorAnchor anchor) {
+            return new DoorAnchor(anchor.id(), anchor.x(), anchor.y(), anchor.z(), anchor.facing(),
+                    anchor.width(), anchor.height(), anchor.baseY(), anchor.floor(), anchor.policy(),
+                    anchor.sealBlock(), kind, floorDelta, verticalDelta);
         }
     }
 
@@ -206,7 +219,8 @@ public final class CaptureService {
         try {
             switch (normalized) {
                 case "type" -> {
-                    if (!TemplateModel.TYPE_ROOM.equals(value) && !TemplateModel.TYPE_CORRIDOR.equals(value)) {
+                    if (!TemplateModel.TYPE_ROOM.equals(value) && !TemplateModel.TYPE_CORRIDOR.equals(value)
+                            && !TemplateModel.TYPE_TRANSITION.equals(value)) {
                         return Result.fail("random.template.meta_invalid", Map.of("key", key, "value", value));
                     }
                     session.structureType = value;
@@ -302,6 +316,31 @@ public final class CaptureService {
             return session.targetId;
         }
         return null;
+    }
+
+    public DoorSettings pendingDoorSettings(Session session) {
+        return new DoorSettings(session.pendingConnectionKind, session.pendingFloorDelta,
+                session.pendingVerticalDelta);
+    }
+
+    public void pendingDoorSettings(Session session, DoorSettings settings) {
+        session.pendingConnectionKind = settings.kind();
+        session.pendingFloorDelta = settings.floorDelta();
+        session.pendingVerticalDelta = settings.verticalDelta();
+    }
+
+    public boolean updateDoor(Session session, String templateId, String doorId, DoorSettings settings) {
+        TemplateMeta meta = structure(session, templateId);
+        if (meta == null) {
+            return false;
+        }
+        List<DoorAnchor> anchors = new ArrayList<>();
+        boolean found = false;
+        for (DoorAnchor anchor : meta.anchors()) {
+            anchors.add(anchor.id().equals(doorId) ? settings.apply(anchor) : anchor);
+            found |= anchor.id().equals(doorId);
+        }
+        return found && saveStructure(session, meta.withAnchors(anchors));
     }
 
     public List<DoorAnchor> doorsOf(Session session) {
@@ -422,12 +461,19 @@ public final class CaptureService {
             doorX = lowX;
             doorZ = lowZ;
             width = highX - lowX + 1;
+        } else if (lowY == highY && (lowY == minY || lowY == maxY)) {
+            facing = lowY == maxY ? TemplateModel.FACING_UP : TemplateModel.FACING_DOWN;
+            doorX = lowX;
+            doorZ = lowZ;
+            width = highX - lowX + 1;
+            height = highZ - lowZ + 1;
         } else {
             return Result.fail("random.template.door_not_surface", Map.of("target", targetId));
         }
+        DoorSettings settings = pendingDoorSettings(session);
         String id = nextDoorId(meta);
-        DoorAnchor worldAnchor = new DoorAnchor(id, doorX, doorY, doorZ, facing, width, height, doorY,
-                meta.anchors().size() + 1, "", meta.sealBlock());
+        DoorAnchor worldAnchor = settings.apply(new DoorAnchor(id, doorX, doorY, doorZ, facing,
+                width, height, doorY, 1, "", meta.sealBlock()));
         Result check = validateAnchor(worldAnchor, minX, minY, minZ, maxX, maxY, maxZ,
                 meta.doorPolicy(), meta.sealBlock());
         if (check != null) {
@@ -438,8 +484,8 @@ public final class CaptureService {
             clearSelection(session);
             return Result.fail("random.template.door_overlap", Map.of("id", doorOverlap));
         }
-        DoorAnchor anchor = new DoorAnchor(id, doorX - minX, doorY - minY, doorZ - minZ, facing,
-                width, height, doorY - minY, meta.anchors().size() + 1, "", meta.sealBlock());
+        DoorAnchor anchor = settings.apply(new DoorAnchor(id, doorX - minX, doorY - minY, doorZ - minZ,
+                facing, width, height, doorY - minY, 1, "", meta.sealBlock()));
         List<DoorAnchor> anchors = new ArrayList<>(meta.anchors());
         anchors.add(anchor);
         if (!saveStructure(session, meta.withAnchors(anchors))) {
@@ -448,6 +494,9 @@ public final class CaptureService {
         session.targetId = targetId;
         session.pos1 = null;
         session.pos2 = null;
+        session.pendingConnectionKind = "";
+        session.pendingFloorDelta = null;
+        session.pendingVerticalDelta = null;
         return Result.ok("random.template.door_created", Map.of("id", id, "target", targetId,
                 "facing", facing, "width", String.valueOf(width), "height", String.valueOf(height)));
     }
@@ -483,25 +532,13 @@ public final class CaptureService {
         int[] min = meta.selectionMin();
         return new DoorAnchor(anchor.id(), min[0] + anchor.x(), min[1] + anchor.y(), min[2] + anchor.z(),
                 anchor.facing(), anchor.width(), anchor.height(), min[1] + anchor.baseY(),
-                anchor.floor(), anchor.policy(), anchor.sealBlock());
+                anchor.floor(), anchor.policy(), anchor.sealBlock(), anchor.connectionKind(),
+                anchor.floorDelta(), anchor.verticalDelta());
     }
 
     /** 门占据的格子集合: 沿门宽方向铺开, 沿 Y 方向堆叠。 */
     private List<int[]> doorCells(DoorAnchor worldAnchor) {
-        List<int[]> cells = new ArrayList<>();
-        int width = Math.max(1, worldAnchor.width());
-        int height = Math.max(1, worldAnchor.height());
-        int pdx = TemplateModel.facingDx(worldAnchor.facing()) == 0 ? 1 : 0;
-        int pdz = TemplateModel.facingDz(worldAnchor.facing()) == 0 ? 1 : 0;
-        for (int k = 0; k < width; k++) {
-            for (int y = 0; y < height; y++) {
-                cells.add(new int[] {
-                        worldAnchor.x() + pdx * k,
-                        worldAnchor.baseY() + y,
-                        worldAnchor.z() + pdz * k});
-            }
-        }
-        return cells;
+        return new ArrayList<>(AnchorGeometry.openingCells(worldAnchor));
     }
 
     private String nextDoorId(TemplateMeta meta) {
@@ -764,7 +801,8 @@ public final class CaptureService {
         for (DoorAnchor anchor : session.anchors) {
             localAnchors.add(new DoorAnchor(anchor.id(), anchor.x() - minX, anchor.y() - minY, anchor.z() - minZ,
                     anchor.facing(), anchor.width(), anchor.height(), anchor.baseY() - minY,
-                    anchor.floor(), anchor.policy(), anchor.sealBlock()));
+                    anchor.floor(), anchor.policy(), anchor.sealBlock(), anchor.connectionKind(),
+                    anchor.floorDelta(), anchor.verticalDelta()));
         }
         List<ModuleNode> localNodes = new ArrayList<>(session.nodes.size());
         for (ModuleNode node : session.nodes) {
@@ -802,7 +840,8 @@ public final class CaptureService {
             return Result.fail("random.template.no_session", Map.of());
         }
         String normalizedType = structureType == null ? "" : structureType.trim().toLowerCase(Locale.ROOT);
-        if (!TemplateModel.TYPE_ROOM.equals(normalizedType) && !TemplateModel.TYPE_CORRIDOR.equals(normalizedType)) {
+        if (!TemplateModel.TYPE_ROOM.equals(normalizedType) && !TemplateModel.TYPE_CORRIDOR.equals(normalizedType)
+                && !TemplateModel.TYPE_TRANSITION.equals(normalizedType)) {
             return Result.fail("random.region_type_invalid", Map.of("type", String.valueOf(structureType)));
         }
         World world = player.getWorld();
@@ -831,7 +870,8 @@ public final class CaptureService {
             }
             String normalizedType = nextType == null ? "" : nextType.trim().toLowerCase(Locale.ROOT);
             if (!TemplateModel.TYPE_ROOM.equals(normalizedType)
-                    && !TemplateModel.TYPE_CORRIDOR.equals(normalizedType)) {
+                    && !TemplateModel.TYPE_CORRIDOR.equals(normalizedType)
+                    && !TemplateModel.TYPE_TRANSITION.equals(normalizedType)) {
                 return Result.fail("random.region_type_invalid", Map.of("type", String.valueOf(nextType)));
             }
             TemplateMeta meta = structure(session, templateId);
@@ -915,21 +955,17 @@ public final class CaptureService {
             return Result.fail("random.template.anchor_not_surface", Map.of("id", anchor.id()));
         }
         int frontX = anchor.x() + TemplateModel.facingDx(anchor.facing());
+        int frontY = anchor.y() + TemplateModel.facingDy(anchor.facing());
         int frontZ = anchor.z() + TemplateModel.facingDz(anchor.facing());
-        boolean pointsOut = frontX < minX || frontX > maxX || frontZ < minZ || frontZ > maxZ;
+        boolean pointsOut = frontX < minX || frontX > maxX || frontY < minY || frontY > maxY
+                || frontZ < minZ || frontZ > maxZ;
         if (!pointsOut) {
             return Result.fail("random.template.anchor_facing_in", Map.of("id", anchor.id()));
         }
-        int pdx = TemplateModel.facingDx(anchor.facing()) == 0 ? 1 : 0;
-        int pdz = TemplateModel.facingDz(anchor.facing()) == 0 ? 1 : 0;
-        for (int k = 0; k < anchor.width(); k++) {
-            for (int y = 0; y < anchor.height(); y++) {
-                int x = anchor.x() + pdx * k;
-                int z = anchor.z() + pdz * k;
-                int yy = anchor.baseY() + y;
-                if (x < minX || x > maxX || yy < minY || yy > maxY || z < minZ || z > maxZ) {
-                    return Result.fail("random.template.anchor_section_out", Map.of("id", anchor.id()));
-                }
+        for (int[] cell : AnchorGeometry.openingCells(anchor)) {
+            if (cell[0] < minX || cell[0] > maxX || cell[1] < minY || cell[1] > maxY
+                    || cell[2] < minZ || cell[2] > maxZ) {
+                return Result.fail("random.template.anchor_section_out", Map.of("id", anchor.id()));
             }
         }
         boolean seal = TemplateModel.POLICY_SEAL.equals(anchor.policyOrDefault(doorPolicy));

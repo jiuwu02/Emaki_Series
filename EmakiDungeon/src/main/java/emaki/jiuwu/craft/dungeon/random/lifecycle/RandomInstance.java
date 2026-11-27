@@ -18,6 +18,10 @@ public final class RandomInstance {
     private final String configHash;
     private final String topologyHash;
     private final int roomCount;
+    private final String generatorId;
+    private final int algorithmVersion;
+    private final String layoutHash;
+    private final String templatePoolHash;
     private final long createdAt;
     private final AtomicReference<RandomInstanceState> state =
             new AtomicReference<>(RandomInstanceState.CREATED);
@@ -28,6 +32,17 @@ public final class RandomInstance {
 
     public RandomInstance(String instanceId, String dungeonId, long seed, Seeds seeds, String configHash,
             String topologyHash, int roomCount) {
+        this(instanceId, dungeonId, seed, seeds, configHash, topologyHash, roomCount,
+                "legacy", 1, "", "");
+    }
+
+    public RandomInstance(String instanceId, String dungeonId, long seed, Seeds seeds, String configHash,
+            String topologyHash, int roomCount, String generatorId, int algorithmVersion,
+            String layoutHash, String templatePoolHash) {
+        this.generatorId = generatorId;
+        this.algorithmVersion = algorithmVersion;
+        this.layoutHash = layoutHash;
+        this.templatePoolHash = templatePoolHash;
         this.instanceId = instanceId;
         this.dungeonId = dungeonId;
         this.seed = seed;
@@ -65,6 +80,22 @@ public final class RandomInstance {
 
     public int roomCount() {
         return roomCount;
+    }
+
+    public String generatorId() {
+        return generatorId;
+    }
+
+    public int algorithmVersion() {
+        return algorithmVersion;
+    }
+
+    public String layoutHash() {
+        return layoutHash;
+    }
+
+    public String templatePoolHash() {
+        return templatePoolHash;
     }
 
     public long createdAt() {

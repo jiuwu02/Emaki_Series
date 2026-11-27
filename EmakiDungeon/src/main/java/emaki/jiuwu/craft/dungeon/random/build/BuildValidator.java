@@ -12,6 +12,8 @@ import org.bukkit.block.data.BlockData;
 
 import emaki.jiuwu.craft.dungeon.random.build.BuildPipeline.Plan;
 import emaki.jiuwu.craft.dungeon.random.build.BuildPipeline.PlannedBlock;
+import emaki.jiuwu.craft.dungeon.random.layout.AnchorGeometry;
+import emaki.jiuwu.craft.dungeon.random.layout.Placement;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement.Layout;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement.LinkRecord;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement.RoomPlacement;
@@ -72,20 +74,22 @@ public final class BuildValidator {
             }
             int[] start = from.anchorWorld(fromAnchor);
             int[] goal = to.anchorWorld(toAnchor);
-            for (int k = 0; k < fromAnchor.width(); k++) {
-                int pdx = TemplateModel.facingDx(fromAnchor.facing()) == 0 ? 1 : 0;
-                int pdz = TemplateModel.facingDz(fromAnchor.facing()) == 0 ? 1 : 0;
-                for (int y = 0; y < fromAnchor.height(); y++) {
-                    Block block = world.getBlockAt(start[0] + pdx * k, start[1] + y, start[2] + pdz * k);
-                    if (!block.getType().isAir() && !block.isPassable()) {
-                        failures.add("docking: 父锚点开口被阻塞 " + link.parentAnchorId());
-                        k = fromAnchor.width();
-                        break;
-                    }
+            for (int[] cell : from.anchorCells(fromAnchor)) {
+                Block block = world.getBlockAt(cell[0], cell[1], cell[2]);
+                if (!block.getType().isAir() && !block.isPassable()) {
+                    failures.add("docking: 父锚点开口被阻塞 " + link.parentAnchorId());
+                    break;
+                }
+            }
+            for (int[] cell : to.anchorCells(toAnchor)) {
+                Block block = world.getBlockAt(cell[0], cell[1], cell[2]);
+                if (!block.getType().isAir() && !block.isPassable()) {
+                    failures.add("docking: 子锚点开口被阻塞 " + link.childAnchorId());
+                    break;
                 }
             }
             if ("direct".equals(link.form())) {
-                if (Math.abs(start[1] - goal[1]) != 0
+                if (Math.abs(start[1] - goal[1]) > (TemplateModel.isVertical(from.anchorFacing(fromAnchor)) ? 1 : 0)
                         || start[0] + TemplateModel.facingDx(from.anchorFacing(fromAnchor)) != goal[0]
                         || start[2] + TemplateModel.facingDz(from.anchorFacing(fromAnchor)) != goal[2]) {
                     failures.add("docking: 直连对未对齐 " + link.parentAnchorId() + "->" + link.childAnchorId());
@@ -99,36 +103,40 @@ public final class BuildValidator {
 
     private void checkSeals(World world, Layout layout, List<String> failures) {
         for (var unconnected : layout.unconnected()) {
-            int pdx = TemplateModel.facingDx(unconnected.facing()) == 0 ? 1 : 0;
-            int pdz = TemplateModel.facingDz(unconnected.facing()) == 0 ? 1 : 0;
-            if (TemplateModel.POLICY_SEAL.equals(unconnected.policy())) {
-                for (int k = 0; k < unconnected.width(); k++) {
-                    for (int y = 0; y < unconnected.height(); y++) {
-                        Block block = world.getBlockAt(
-                                unconnected.worldPos()[0] + pdx * k,
-                                unconnected.worldPos()[1] + y,
-                                unconnected.worldPos()[2] + pdz * k);
-                        if (block.getType().isAir() || block.isPassable()) {
-                            failures.add("seal: 封堵缺口 " + unconnected.anchorId());
-                            k = unconnected.width();
-                            break;
-                        }
+            boolean climbable = "ladder".equals(unconnected.connectionKind())
+                    || "elevator".equals(unconnected.connectionKind());
+            if (climbable) {
+                for (int[] cell : unconnectedCells(unconnected)) {
+                    Block block = world.getBlockAt(cell[0], cell[1], cell[2]);
+                    if (!block.getType().isAir() && !block.isPassable()
+                            && block.getType() != org.bukkit.Material.LADDER
+                            && block.getType() != org.bukkit.Material.BUBBLE_COLUMN) {
+                        failures.add("seal: 垂直连接不可攀爬 " + unconnected.anchorId());
                     }
                 }
-            } else if (TemplateModel.POLICY_KEEP.equals(unconnected.policy())) {
-                for (int k = 0; k < unconnected.width(); k++) {
-                    for (int y = 0; y < unconnected.height(); y++) {
-                        Block block = world.getBlockAt(
-                                unconnected.worldPos()[0] + pdx * k,
-                                unconnected.worldPos()[1] + y,
-                                unconnected.worldPos()[2] + pdz * k);
-                        if (!block.getType().isAir() && !block.isPassable()) {
-                            failures.add("seal: keep 门洞被占用 " + unconnected.anchorId());
-                            k = unconnected.width();
-                            break;
-                        }
-                    }
-                }
+                continue;
+            }
+            checkSealCells(world, unconnected, failures, unconnectedCells(unconnected));
+        }
+    }
+
+    private List<int[]> unconnectedCells(Placement.UnconnectedAnchor anchor) {
+        return AnchorGeometry.openingCells(
+                new DoorAnchor(anchor.anchorId(), anchor.worldPos()[0], anchor.worldPos()[1], anchor.worldPos()[2],
+                        anchor.facing(), anchor.width(), anchor.height(), anchor.worldPos()[1], 1,
+                        anchor.policy(), ""));
+    }
+
+    private void checkSealCells(World world, Placement.UnconnectedAnchor unconnected,
+            List<String> failures, List<int[]> cells) {
+        for (int[] cell : cells) {
+            Block block = world.getBlockAt(cell[0], cell[1], cell[2]);
+            if (TemplateModel.POLICY_SEAL.equals(unconnected.policy())
+                    && (block.getType().isAir() || block.isPassable())
+                    || TemplateModel.POLICY_KEEP.equals(unconnected.policy())
+                    && !block.getType().isAir() && !block.isPassable()) {
+                failures.add("seal: 门格状态错误 " + unconnected.anchorId());
+                return;
             }
         }
     }

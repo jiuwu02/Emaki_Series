@@ -393,21 +393,21 @@ public final class EditorModuleMarkers {
             originY = min[1];
             originZ = min[2];
         }
-        int width = Math.max(1, anchor.width());
-        int height = Math.max(1, anchor.height());
-        int x1 = originX + anchor.x();
-        int x2 = x1;
-        int z1 = originZ + anchor.z();
-        int z2 = z1;
-        if (emaki.jiuwu.craft.dungeon.random.model.TemplateModel.facingDx(anchor.facing()) == 0) {
-            x2 = x1 + width - 1;
-        } else {
-            z2 = z1 + width - 1;
+        int x1 = Integer.MAX_VALUE;
+        int y1 = Integer.MAX_VALUE;
+        int z1 = Integer.MAX_VALUE;
+        int x2 = Integer.MIN_VALUE;
+        int y2 = Integer.MIN_VALUE;
+        int z2 = Integer.MIN_VALUE;
+        for (int[] cell : emaki.jiuwu.craft.dungeon.random.layout.AnchorGeometry.openingCells(anchor)) {
+            x1 = Math.min(x1, originX + cell[0]);
+            y1 = Math.min(y1, originY + cell[1]);
+            z1 = Math.min(z1, originZ + cell[2]);
+            x2 = Math.max(x2, originX + cell[0]);
+            y2 = Math.max(y2, originY + cell[1]);
+            z2 = Math.max(z2, originZ + cell[2]);
         }
-        int y1 = originY + anchor.baseY();
-        int y2 = y1 + height - 1;
-        return new Box(Math.min(x1, x2), Math.min(y1, y2), Math.min(z1, z2),
-                Math.max(x1, x2), Math.max(y1, y2), Math.max(z1, z2));
+        return new Box(x1, y1, z1, x2, y2, z2);
     }
 
     public String nodeLabel(String moduleType, String nodeId) {
