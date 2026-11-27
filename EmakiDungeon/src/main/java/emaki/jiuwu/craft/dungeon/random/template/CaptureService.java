@@ -426,13 +426,20 @@ public final class CaptureService {
             return Result.fail("random.template.door_not_surface", Map.of("target", targetId));
         }
         String id = nextDoorId(meta);
-        DoorAnchor anchor = new DoorAnchor(id, doorX, doorY, doorZ, facing, width, height, doorY,
+        DoorAnchor worldAnchor = new DoorAnchor(id, doorX, doorY, doorZ, facing, width, height, doorY,
                 meta.anchors().size() + 1, "", meta.sealBlock());
-        Result check = validateAnchor(anchor, minX, minY, minZ, maxX, maxY, maxZ,
+        Result check = validateAnchor(worldAnchor, minX, minY, minZ, maxX, maxY, maxZ,
                 meta.doorPolicy(), meta.sealBlock());
         if (check != null) {
             return check;
         }
+        String doorOverlap = overlappingDoor(meta, id, worldAnchor);
+        if (doorOverlap != null) {
+            clearSelection(session);
+            return Result.fail("random.template.door_overlap", Map.of("id", doorOverlap));
+        }
+        DoorAnchor anchor = new DoorAnchor(id, doorX - minX, doorY - minY, doorZ - minZ, facing,
+                width, height, doorY - minY, meta.anchors().size() + 1, "", meta.sealBlock());
         List<DoorAnchor> anchors = new ArrayList<>(meta.anchors());
         anchors.add(anchor);
         if (!saveStructure(session, meta.withAnchors(anchors))) {
@@ -443,6 +450,58 @@ public final class CaptureService {
         session.pos2 = null;
         return Result.ok("random.template.door_created", Map.of("id", id, "target", targetId,
                 "facing", facing, "width", String.valueOf(width), "height", String.valueOf(height)));
+    }
+
+    /**
+     * 新门与已存门的格位重叠检测。
+     *
+     * <p>门是贴在选区侧面的平面开口, 按 facing 展开成宽 x 高的格子集合后逐格比较,
+     * 任一格位重叠即拒绝。与房间/走廊的 AABB 重叠口径一致: 选区不得包含任何已存门结构。
+     *
+     * @return 冲突的已存门 id, 无冲突时返回 null
+     */
+    private String overlappingDoor(TemplateMeta meta, String selfId, DoorAnchor worldAnchor) {
+        List<int[]> cells = doorCells(worldAnchor);
+        for (DoorAnchor existing : meta.anchors()) {
+            if (existing.id().equals(selfId)) {
+                continue;
+            }
+            List<int[]> occupied = doorCells(absoluteAnchor(meta, existing));
+            for (int[] cell : cells) {
+                for (int[] taken : occupied) {
+                    if (cell[0] == taken[0] && cell[1] == taken[1] && cell[2] == taken[2]) {
+                        return existing.id();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /** 模板局部锚点换算为编辑世界绝对坐标。 */
+    private DoorAnchor absoluteAnchor(TemplateMeta meta, DoorAnchor anchor) {
+        int[] min = meta.selectionMin();
+        return new DoorAnchor(anchor.id(), min[0] + anchor.x(), min[1] + anchor.y(), min[2] + anchor.z(),
+                anchor.facing(), anchor.width(), anchor.height(), min[1] + anchor.baseY(),
+                anchor.floor(), anchor.policy(), anchor.sealBlock());
+    }
+
+    /** 门占据的格子集合: 沿门宽方向铺开, 沿 Y 方向堆叠。 */
+    private List<int[]> doorCells(DoorAnchor worldAnchor) {
+        List<int[]> cells = new ArrayList<>();
+        int width = Math.max(1, worldAnchor.width());
+        int height = Math.max(1, worldAnchor.height());
+        int pdx = TemplateModel.facingDx(worldAnchor.facing()) == 0 ? 1 : 0;
+        int pdz = TemplateModel.facingDz(worldAnchor.facing()) == 0 ? 1 : 0;
+        for (int k = 0; k < width; k++) {
+            for (int y = 0; y < height; y++) {
+                cells.add(new int[] {
+                        worldAnchor.x() + pdx * k,
+                        worldAnchor.baseY() + y,
+                        worldAnchor.z() + pdz * k});
+            }
+        }
+        return cells;
     }
 
     private String nextDoorId(TemplateMeta meta) {

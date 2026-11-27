@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.49"
+version: "1.0.51"
 
 tags:
   challenge: "[ 挑战 ]"
@@ -335,7 +335,7 @@ editor:
   usage_session: "<gray>会话子命令: menu | save | exit | pos1 | pos2 | clearpos | door remove|list | status | mark <类型> [id] | marks | test</gray>"
   usage_session_normal: "<gray>会话子命令: save | exit | mark <类型> [id] | marks | test</gray>"
   anchor_usage: "<red>用法: /edungeon editor door remove <门ID> | /edungeon editor door list (门在房间/走廊选区内用 pos1/pos2 两点自动创建)</red>"
-  door_usage: "<red>用法: /edungeon editor door remove <门ID> | /edungeon editor door list (门在房间/走廊选区内用 pos1/pos2 两点自动创建)</red>"
+  door_usage: "<red>用法: /edungeon editor door remove <门ID> | /edungeon editor door list (门在房间/走廊选区内用 pos1/pos2 两点自动创建, 不得与已存门格位重叠)</red>"
   random_only: "<red>该命令只能在随机类型地牢 (type: random) 的编辑世界使用</red>"
   unknown_dungeon: "<red>副本不存在或配置无效: <dungeon></red>"
   locked: "<yellow>副本 <dungeon> 已有编辑会话, 同一模板同时只允许一个</yellow>"
@@ -749,6 +749,7 @@ random:
     door_created: "<green>这是在创建门（不是新建房间/走廊）| 门 <id> 已创建 @ <target> | <facing> <width>x<height></green>"
     door_not_surface: "<red>门创建失败: 两点需贴在 <target> 选区的一个侧面（东/南/西/北）</red>"
     door_no_target: "<red>门只能在指定选区中创建: 请在某个房间/走廊的选区内标记 pos1 与 pos2</red>"
+    door_overlap: "<red>门创建失败: 与已存门 <white><id></white> 格位重叠, 同一选区内的门不得占据同一格; 选区已清除, 请重新框选两点</red>"
     door_removed: "<green>门 <id> 已移除 | 所属 <target></green>"
     door_unknown: "<red>未找到门: <id></red>"
     door_list_header: "<gray>门列表:</gray>"

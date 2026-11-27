@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.49"
+version: "1.0.51"
 
 tags:
   challenge: "[ challenge ]"
@@ -335,7 +335,7 @@ editor:
   usage_session: "<gray>Session subcommands: menu | save | exit | pos1 | pos2 | clearpos | door remove|list | status | mark <type> [id] | marks | test</gray>"
   usage_session_normal: "<gray>Session subcommands: save | exit | mark <type> [id] | marks | test</gray>"
   anchor_usage: "<red>Usage: /edungeon editor door remove <door ID> | /edungeon editor door list (doors are created from two pos1/pos2 points inside a room/corridor selection)</red>"
-  door_usage: "<red>Usage: /edungeon editor door remove <door ID> | /edungeon editor door list (doors are created from two pos1/pos2 points inside a room/corridor selection)</red>"
+  door_usage: "<red>Usage: /edungeon editor door remove <door ID> | /edungeon editor door list (doors are created from two pos1/pos2 points inside a room/corridor selection; a door may not overlap an existing door)</red>"
   random_only: "<red>This command only works in the edit world of a random-type dungeon (type: random)</red>"
   unknown_dungeon: "<red>Dungeon does not exist or config is invalid: <dungeon></red>"
   locked: "<yellow>Dungeon <dungeon> already has an editor session, only one session per template at a time</yellow>"
@@ -749,6 +749,7 @@ random:
     door_created: "<green>Creating a DOOR (not a new room/corridor) | door <id> created @ <target> | <facing> <width>x<height></green>"
     door_not_surface: "<red>Door failed: both points must sit on one side face (north/south/east/west) of <target></red>"
     door_no_target: "<red>Doors can only be created inside a selection: mark pos1 and pos2 inside a room/corridor selection</red>"
+    door_overlap: "<red>Door failed: overlaps existing door <white><id></white> on a shared cell; doors in one selection may not occupy the same cell. The selection was cleared, please mark both points again</red>"
     door_removed: "<green>Door <id> removed | owner <target></green>"
     door_unknown: "<red>Unknown door: <id></red>"
     door_list_header: "<gray>Doors:</gray>"
