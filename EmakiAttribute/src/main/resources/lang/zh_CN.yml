@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.12"
+version: "5.0.13"
 
 tags:
   combat: '[ 战斗 ]'
@@ -716,7 +716,7 @@ integration:
   skip_mythic_mob_attribute_unregistered_attribute: "已跳过 Mythic 生物属性: source=%source%, attribute=%attribute%, reason=unregistered_attribute"
   skip_mythic_mob_attribute_blank_attribute_or_value: "已跳过 Mythic 生物属性: source=%source%, entry=%entry%, reason=blank_attribute_or_value"
   skip_mythic_mob_attribute_missing_separator: "已跳过 Mythic 生物属性: source=%source%, entry=%entry%, reason=missing_separator"
-  mythic_damage_failed: "Mythic 伤害结算失败: mechanic=%mechanic%target=%target%"
+  mythic_damage_failed: "Mythic 伤害结算失败: mechanic=%mechanic% target=%target% reason=%error%"
 registry:
   attribute_slot_provider_failed: "属性槽位提供器 '%slot%' 执行失败; 跳过该槽位"
   item_contribution_gate_failed: "物品属性贡献门控 '%id%' 执行失败; 按物品有效处理"
@@ -740,4 +740,4 @@ temporary_attribute:
   cleanup_expired_failed: "[temporary_attribute] 临时属性清理失败: trackedEntities=%count%, operation=cleanup_expired, cause=%error%"
 skip:
 action:
-  attribute_damage_failed: "属性伤害结算失败: stage=%stage%target=%target%"
+  attribute_damage_failed: "属性伤害结算失败: stage=%stage% target=%target% reason=%error%"

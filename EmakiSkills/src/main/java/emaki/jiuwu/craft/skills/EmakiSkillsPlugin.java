@@ -363,7 +363,8 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
             return;
         }
         placeholderExpansion = new SkillsPlaceholderExpansion(
-                this, playerSkillDataStore, skillRegistryService, localResourceDefinitionLoader);
+                this, playerSkillDataStore, skillRegistryService, localResourceDefinitionLoader,
+                skillLevelService);
         placeholderExpansion.register();
         messageService.info(LogTag.INTEGRATION, "console.papi_registered");
     }

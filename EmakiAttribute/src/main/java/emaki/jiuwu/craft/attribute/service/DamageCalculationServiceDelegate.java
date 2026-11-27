@@ -540,6 +540,19 @@ final class DamageCalculationServiceDelegate {
     }
 
     <T> CompletableFuture<T> callEntityOwner(UUID entityId, Function<LivingEntity, T> operation) {
+        return dispatchToEntityOwner(entityId, operation, null, true);
+    }
+
+    <T> CompletableFuture<T> callEntityOwnerOrElse(UUID entityId,
+            Function<LivingEntity, T> operation,
+            T unavailable) {
+        return dispatchToEntityOwner(entityId, operation, unavailable, false);
+    }
+
+    private <T> CompletableFuture<T> dispatchToEntityOwner(UUID entityId,
+            Function<LivingEntity, T> operation,
+            T unavailable,
+            boolean failWhenUnavailable) {
         if (entityId == null || operation == null || ownerRef.service.plugin() == null) {
             return CompletableFuture.failedFuture(new IllegalStateException("实体所有者分派不可用."));
         }
@@ -552,7 +565,7 @@ final class DamageCalculationServiceDelegate {
             sched.runGlobal(ownerRef.service.plugin(), () -> {
                 Entity entity = Bukkit.getEntity(entityId);
                 if (!(entity instanceof LivingEntity livingEntity) || !livingEntity.isValid()) {
-                    result.completeExceptionally(new IllegalStateException("实体已不可用: " + entityId));
+                    finishUnavailable(result, unavailable, failWhenUnavailable, entityId, "实体已不可用");
                     return;
                 }
                 try {
@@ -566,8 +579,8 @@ final class DamageCalculationServiceDelegate {
                                     result.completeExceptionally(throwable);
                                 }
                             },
-                            () -> result.completeExceptionally(new IllegalStateException(
-                                    "实体在所有者操作前已退役: " + entityId))
+                            () -> finishUnavailable(result, unavailable, failWhenUnavailable, entityId,
+                                    "实体在所有者操作前已退役")
                     );
                 } catch (Throwable throwable) {
                     result.completeExceptionally(throwable);
@@ -577,6 +590,18 @@ final class DamageCalculationServiceDelegate {
             result.completeExceptionally(throwable);
         }
         return result;
+    }
+
+    private static <T> void finishUnavailable(CompletableFuture<T> result,
+            T unavailable,
+            boolean failWhenUnavailable,
+            UUID entityId,
+            String reason) {
+        if (!failWhenUnavailable) {
+            result.complete(unavailable);
+            return;
+        }
+        result.completeExceptionally(new IllegalStateException(reason + ": " + entityId));
     }
 
     EmakiScheduling scheduling() {

@@ -125,6 +125,48 @@ public final class ConditionEvaluator {
         return evaluate(group, placeholderReplacer, invalidAsFailure, context);
     }
 
+    public static String firstFailureMessage(ConditionGroup group,
+            Function<String, String> placeholderReplacer,
+            boolean invalidAsFailure,
+            ConditionContext context) {
+        if (group == null || group.emptyGroup()) {
+            return "";
+        }
+        ConditionContext safeContext = context == null ? ConditionContext.EMPTY : context;
+        for (ConditionNode condition : group.conditions()) {
+            Boolean result = evaluateNode(condition, placeholderReplacer, invalidAsFailure, safeContext);
+            boolean failed = result == null ? invalidAsFailure : !result;
+            if (!failed) {
+                continue;
+            }
+            String message = failureMessageOf(condition);
+            if (Texts.isNotBlank(message)) {
+                return message;
+            }
+        }
+        return "";
+    }
+
+    private static String failureMessageOf(ConditionNode condition) {
+        if (condition == null) {
+            return "";
+        }
+        if (condition.groupNode()) {
+            for (ConditionNode nested : condition.group().conditions()) {
+                String message = failureMessageOf(nested);
+                if (Texts.isNotBlank(message)) {
+                    return message;
+                }
+            }
+            return "";
+        }
+        Object onFail = condition.data().get("on_fail");
+        if (onFail == null) {
+            return "";
+        }
+        return Texts.toStringSafe(ConfigNodes.get(onFail, "message")).trim();
+    }
+
     private static Boolean evaluateNode(ConditionNode condition,
             Function<String, String> placeholderReplacer,
             boolean invalidAsFailure,

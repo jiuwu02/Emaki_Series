@@ -51,9 +51,11 @@ final class MythicCastExecutor {
             }
         }
         boolean executed = skill.get().executeIfUsable(metadata, SkillTriggers.API);
-        return executed
-                ? new MythicBridge.CastResult(MythicBridge.CastStatus.SUCCESS, "")
-                : new MythicBridge.CastResult(MythicBridge.CastStatus.CONDITIONS_UNMET, conditionSummary(skill.get()));
+        if (executed) {
+            return new MythicBridge.CastResult(MythicBridge.CastStatus.SUCCESS, "");
+        }
+        return new MythicBridge.CastResult(MythicBridge.CastStatus.CONDITIONS_UNMET,
+                conditionSummary(skill.get(), metadata));
     }
 
     private static SkillMetadata buildMetadata(BukkitAPIHelper apiHelper,
@@ -97,7 +99,7 @@ final class MythicCastExecutor {
         return new GenericCaster(BukkitAdapter.adapt(caster));
     }
 
-    private static String conditionSummary(Skill skill) {
+    private static String conditionSummary(Skill skill, SkillMetadata metadata) {
         if (!(skill instanceof AbstractSkill abstractSkill)) {
             return "";
         }
@@ -105,7 +107,31 @@ final class MythicCastExecutor {
         appendConditions(builder, "Conditions", abstractSkill.getConditions());
         appendConditions(builder, "TargetConditions", abstractSkill.getConditionsTarget());
         appendConditions(builder, "TriggerConditions", abstractSkill.getConditionsTrigger());
+        builder.append("; Targets=").append(describeTargets(metadata));
         return builder.toString();
+    }
+
+    private static String describeTargets(SkillMetadata metadata) {
+        if (metadata == null) {
+            return "none";
+        }
+        List<String> labels = new ArrayList<>();
+        if (metadata.getEntityTargets() != null) {
+            for (AbstractEntity target : metadata.getEntityTargets()) {
+                if (target != null) {
+                    labels.add(String.valueOf(target.getBukkitEntity().getType()) + "@"
+                            + shorten(target.getUniqueId() == null ? "" : target.getUniqueId().toString()));
+                }
+            }
+        }
+        if (labels.isEmpty()) {
+            return "none";
+        }
+        return String.join(",", labels);
+    }
+
+    private static String shorten(String value) {
+        return value.length() <= 8 ? value : value.substring(0, 8);
     }
 
     private static void appendConditions(StringBuilder builder, String group, List<SkillCondition> conditions) {
@@ -115,13 +141,11 @@ final class MythicCastExecutor {
         if (!builder.isEmpty()) {
             builder.append("; ");
         }
-        builder.append(group).append("=[");
-        for (int index = 0; index < conditions.size(); index++) {
-            if (index > 0) {
-                builder.append(", ");
-            }
-            builder.append(conditions.get(index).getTypeName());
+        builder.append(group).append('=');
+        List<String> names = new ArrayList<>();
+        for (SkillCondition condition : conditions) {
+            names.add(condition.getTypeName());
         }
-        builder.append("]");
+        builder.append(names);
     }
 }

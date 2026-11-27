@@ -5,8 +5,10 @@ import static emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeveri
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
@@ -16,6 +18,9 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckResult;
 import emaki.jiuwu.craft.corelib.config.precheck.ItemRequirementSchemaValidator;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.loader.SkillDefinitionLoader;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
@@ -33,16 +38,18 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
     @Override
     public ConfigPrecheckResult check(CoreLibConfig config, ConfigPrecheckContext context) {
         List<ConfigPrecheckIssue> issues = new ArrayList<>();
+        File skillsDirectory = new File(plugin.getDataFolder(), "skills");
+        File resourcesDirectory = new File(plugin.getDataFolder(), "resources");
         checkFile(new File(plugin.getDataFolder(), "config.yml"), "config.yml", issues);
-        checkDirectory(new File(plugin.getDataFolder(), "skills"), "skills", issues);
-        checkDirectory(new File(plugin.getDataFolder(), "resources"), "resources", issues);
+        checkDirectory(skillsDirectory, "skills", issues);
+        checkDirectory(resourcesDirectory, "resources", issues);
         checkDirectory(new File(plugin.getDataFolder(), "gui"), "gui", issues);
         addLoaderIssues("skills", plugin.skillDefinitionLoader() == null ? null : plugin.skillDefinitionLoader().issues(), issues);
         addLoaderIssues("resources", plugin.localResourceDefinitionLoader() == null ? null : plugin.localResourceDefinitionLoader().issues(), issues);
-        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
-                new File(plugin.getDataFolder(), "skills"), "skills"));
-        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
-                new File(plugin.getDataFolder(), "resources"), "resources"));
+        Set<String> unreadable = unreadableYamlNames(skillsDirectory, resourcesDirectory);
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(), skillsDirectory, "skills", unreadable));
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(), resourcesDirectory, "resources", unreadable));
+        checkConditionExpressions(issues);
         AppConfig.SkillSourceSettings skillSources = plugin.appConfig().skillSources();
         if (!skillSources.readLoreSkills() && !skillSources.readPdcSkills()) {
             addMessageIssue("config.yml:skill_sources", WARN, "skill_sources_disabled", issues);
@@ -55,6 +62,47 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
             addMessageIssue("config.yml", INFO, "passed", issues);
         }
         return new ConfigPrecheckResult(module(), issues);
+    }
+
+    private Set<String> unreadableYamlNames(File... directories) {
+        Set<String> names = new LinkedHashSet<>();
+        for (File directory : directories) {
+            if (directory == null || !directory.isDirectory()) {
+                continue;
+            }
+            for (File file : YamlDirectoryLoader.collectYamlFiles(directory)) {
+                try {
+                    YamlFiles.load(file);
+                } catch (RuntimeException exception) {
+                    names.add(file.getName());
+                }
+            }
+        }
+        return names;
+    }
+
+    private void checkConditionExpressions(List<ConfigPrecheckIssue> issues) {
+        SkillDefinitionLoader loader = plugin.skillDefinitionLoader();
+        if (loader == null) {
+            return;
+        }
+        for (SkillDefinition definition : loader.all().values()) {
+            if (definition == null || definition.conditions() == null || definition.conditions().emptyGroup()) {
+                continue;
+            }
+            for (String line : definition.conditions().expressionLines()) {
+                if (line.indexOf('%') >= 0) {
+                    continue;
+                }
+                if (ExpressionEngine.evaluateBoolean(line) != null) {
+                    continue;
+                }
+                addMessageIssue("skills/" + definition.id() + ".yml:condition.entries", WARN,
+                        "condition_expression_unparsable", Map.of(
+                                "skill", definition.id(),
+                                "expression", line), issues);
+            }
+        }
     }
 
     private void checkSkillScripts(List<ConfigPrecheckIssue> issues) {

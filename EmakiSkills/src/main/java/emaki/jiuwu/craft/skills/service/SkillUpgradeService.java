@@ -199,17 +199,29 @@ public final class SkillUpgradeService {
         UpgradePreview preview = preview(player, definition);
 
         if (!definition.conditions().emptyGroup()) {
+            ConditionContext conditionContext = ConditionContext.of(player, null, Map.of(
+                    "skillId", definition.id(),
+                    "currentLevel", currentLevel,
+                    "targetLevel", targetLevel,
+                    "maxLevel", maxLevel));
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     definition.conditions(),
                     text -> PlaceholderRenderer.renderPapi(player, text, null, "skill_upgrade"),
                     true,
-                    ConditionContext.of(player, null, Map.of(
-                            "skillId", definition.id(),
-                            "currentLevel", currentLevel,
-                            "targetLevel", targetLevel,
-                            "maxLevel", maxLevel))
+                    conditionContext
             );
             if (!conditionsPassed) {
+                String failMessage = ConditionEvaluator.firstFailureMessage(
+                        definition.conditions(),
+                        text -> PlaceholderRenderer.renderPapi(player, text, null, "skill_upgrade"),
+                        true,
+                        conditionContext);
+                if (Texts.isNotBlank(failMessage)) {
+                    Map<String, Object> custom = new LinkedHashMap<>(
+                            basePlaceholders(player, definition, currentLevel, targetLevel, maxLevel, preview == null ? 100D : preview.successRate()));
+                    custom.put("message", PlaceholderRenderer.renderPapi(player, failMessage, null, "skill_upgrade"));
+                    return UpgradeResult.fail("upgrade.condition_not_met_custom", custom, preview);
+                }
                 return UpgradeResult.fail("upgrade.condition_not_met",
                         basePlaceholders(player, definition, currentLevel, targetLevel, maxLevel, preview == null ? 100D : preview.successRate()), preview);
             }

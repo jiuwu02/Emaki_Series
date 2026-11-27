@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
@@ -143,8 +144,21 @@ public final class ItemRequirementSchemaValidator {
     }
 
     public static List<ConfigPrecheckIssue> validateDirectory(String module, File directory, String path) {
+        return validateDirectory(module, directory, path, Set.of());
+    }
+
+    public static List<ConfigPrecheckIssue> validateDirectory(String module,
+            File directory,
+            String path,
+            Set<String> skippedFiles) {
         List<ConfigPrecheckIssue> issues = new ArrayList<>();
+        if (directory == null) {
+            return List.of();
+        }
         for (File file : YamlDirectoryLoader.collectYamlFiles(directory)) {
+            if (skippedFiles != null && skippedFiles.contains(file.getName())) {
+                continue;
+            }
             String relative = directory.toPath().relativize(file.toPath()).toString().replace('\\', '/');
             issues.addAll(validateFile(module, file, path + "/" + relative));
         }

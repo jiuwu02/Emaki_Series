@@ -100,20 +100,29 @@ public final class CastAttemptService {
         if (player == null || Texts.isBlank(triggerId)) {
             return completedFailure(FailureReason.NO_BINDING, "cast.invalid_input");
         }
-        return onCaster(player, () -> CompletableFuture.completedFuture(prepareBoundAttempt(player, triggerId, null)))
+        return onCaster(player, () -> CompletableFuture.completedFuture(
+                        prepareBoundAttempt(player, triggerId, null, null)))
                 .thenCompose(this::executePlan);
     }
 
     public CompletableFuture<CastAttemptResult> attemptCast(Player player,
             String triggerId,
             SkillSlotBinding binding) {
+        return attemptCast(player, triggerId, binding, null);
+    }
+
+    public CompletableFuture<CastAttemptResult> attemptCast(Player player,
+            String triggerId,
+            SkillSlotBinding binding,
+            TriggerInvocation invocation) {
         if (player == null || Texts.isBlank(triggerId)) {
             return completedFailure(FailureReason.NO_BINDING, "cast.invalid_input");
         }
         if (binding == null || binding.isEmpty()) {
             return completedFailure(FailureReason.NO_BINDING, "cast.no_binding");
         }
-        return onCaster(player, () -> CompletableFuture.completedFuture(prepareBoundAttempt(player, triggerId, binding)))
+        return onCaster(player, () -> CompletableFuture.completedFuture(
+                        prepareBoundAttempt(player, triggerId, binding, invocation)))
                 .thenCompose(this::executePlan);
     }
 
@@ -175,7 +184,10 @@ public final class CastAttemptService {
         return false;
     }
 
-    private AttemptPlan prepareBoundAttempt(Player player, String triggerId, SkillSlotBinding suppliedBinding) {
+    private AttemptPlan prepareBoundAttempt(Player player,
+            String triggerId,
+            SkillSlotBinding suppliedBinding,
+            TriggerInvocation invocation) {
         if (!castModeService.isCastModeEnabled(player)) {
             return AttemptPlan.failure(player, FailureReason.NOT_IN_CAST_MODE, "cast.not_in_cast_mode");
         }
@@ -196,7 +208,7 @@ public final class CastAttemptService {
         if (!inPool) {
             return AttemptPlan.failure(player, FailureReason.SOURCE_LOST, "skill.source_lost");
         }
-        return AttemptPlan.ready(player, definition, triggerId, null);
+        return AttemptPlan.ready(player, definition, triggerId, invocation);
     }
 
     private AttemptPlan prepareDefinitionAttempt(Player player,
@@ -288,14 +300,25 @@ public final class CastAttemptService {
         }
 
         if (!definition.conditions().emptyGroup()) {
+            ConditionContext conditionContext = ConditionContext.of(player, null, Map.of(
+                    "skillId", definition.id(),
+                    "triggerId", Texts.toStringSafe(plan.triggerId())));
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     definition.conditions(),
                     text -> PlaceholderRenderer.renderPapi(player, text, null, "skill_cast"),
                     true,
-                    ConditionContext.of(player, null, Map.of(
-                            "skillId", definition.id(),
-                            "triggerId", Texts.toStringSafe(plan.triggerId()))));
+                    conditionContext);
             if (!conditionsPassed) {
+                String failMessage = ConditionEvaluator.firstFailureMessage(
+                        definition.conditions(),
+                        text -> PlaceholderRenderer.renderPapi(player, text, null, "skill_cast"),
+                        true,
+                        conditionContext);
+                if (Texts.isNotBlank(failMessage)) {
+                    return completedFailure(FailureReason.RESOURCE_INSUFFICIENT,
+                            "cast.condition_not_met_custom",
+                            Map.of("message", PlaceholderRenderer.renderPapi(player, failMessage, null, "skill_cast")));
+                }
                 return completedFailure(FailureReason.RESOURCE_INSUFFICIENT, "cast.condition_not_met");
             }
         }

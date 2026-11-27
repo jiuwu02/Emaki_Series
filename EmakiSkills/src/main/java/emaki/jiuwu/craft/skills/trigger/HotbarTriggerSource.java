@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.skills.trigger;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -12,6 +13,8 @@ import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
 import emaki.jiuwu.craft.corelib.trigger.TriggerSource;
 
 public final class HotbarTriggerSource implements TriggerSource {
+
+    private static final int LOOK_TARGET_DISTANCE = 32;
 
     @Override
     public String id() {
@@ -31,13 +34,17 @@ public final class HotbarTriggerSource implements TriggerSource {
                 Player player = event.getPlayer();
                 String triggerId = "hotbar_" + (event.getNewSlot() + 1);
 
+                Entity target = LookTargetResolver.resolve(player, LOOK_TARGET_DISTANCE);
                 TriggerInvocation invocation = new TriggerInvocation(
                         player,
                         triggerId,
                         event,
                         player.isSneaking(),
                         false,
-                        System.currentTimeMillis()
+                        System.currentTimeMillis(),
+                        target,
+                        target == null ? null : target.getLocation(),
+                        null
                 );
                 dispatcher.dispatch(invocation);
 

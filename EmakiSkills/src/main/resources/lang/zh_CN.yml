@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "3.0.9"
+version: "3.0.10"
 
 tags:
   actionbar: "[ 动作栏 ]"
@@ -52,6 +52,7 @@ console:
       script_action_unknown: "技能 %skill% 第 %line% 行使用了不存在的动作 '%action%'"
       script_syntax_error: "技能 %skill% 第 %line% 行脚本语法错误: %detail%"
       script_argument_missing: "技能 %skill% 第 %line% 行动作 '%action%' 缺少必填参数 '%argument%'"
+      condition_expression_unparsable: "技能 %skill% 的条件表达式无法解析, 该条件会被判为不满足: %expression%"
   reload_loading_files: "<gray>正在加载配置文件...</gray>"
   reload_loading_configs: "<gray>正在读取配置...</gray>"
   reload_applying: "<gray>正在应用配置...</gray>"
@@ -191,6 +192,8 @@ cast:
   skill_cooldown: "<red>技能 <white>%skill%</white> 冷却中, 剩余 %remaining%s</red>"
   resource_insufficient: "<red>%message%</red>"
   condition_not_met: "<red>技能条件未满足</red>"
+  # 分类: 条件条目 on_fail.message 自定义失败文案; 占位符: %message%
+  condition_not_met_custom: "<red>%message%</red>"
   cancelled: "<yellow>技能释放已取消</yellow>"
   skill_execute_failed: "<red>技能执行失败</red>"
   script_action_not_found: "<red>技能 <white>%skill%</white> 的脚本使用了不存在的动作, 请检查配置</red>"
@@ -368,6 +371,8 @@ upgrade:
   max_level: "<yellow>技能 <white>%skill%</white> 已达到最高等级
     <gold>%max_level%</gold>.</yellow>"
   condition_not_met: "<red>技能 <white>%skill%</white> 的升级条件未满足</red>"
+  # 分类: 升级条件条目 on_fail.message 自定义失败文案; 占位符: %message%
+  condition_not_met_custom: "<red>%message%</red>"
   economy_unavailable: "<red>经济服务不可用, 无法扣除 %cost%</red>"
   commit_failed: "<red>技能升级状态提交失败, 已尝试补偿全部消耗. 原因: %reason%</red>"
   insufficient_funds: "<red>金币不足, 需要 %cost%</red>"

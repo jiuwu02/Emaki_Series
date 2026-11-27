@@ -123,13 +123,14 @@ final class DamageCalculationService {
     public boolean applyDamage(DamageContext damageContext) { return new DamageCalculationServiceDelegate(this).applyDamage(damageContext); }
 
     public CompletableFuture<Boolean> applyDamageAsync(DamageContext damageContext) {
-        if (damageContext == null || damageContext.target() == null) {
+        if (!isResolvableDamageContext(damageContext)) {
             return CompletableFuture.completedFuture(false);
         }
         if (scheduling().ownsEntity(damageContext.target())) {
             return CompletableFuture.completedFuture(applyDamage(damageContext));
         }
-        return callEntityOwner(damageContext.target().getUniqueId(), target -> applyDamage(damageContext));
+        return callEntityOwnerOrElse(damageContext.target().getUniqueId(),
+                target -> applyDamage(damageContext), false);
     }
 
     public boolean applyDamage(LivingEntity attacker,
@@ -317,13 +318,13 @@ final class DamageCalculationService {
             return CompletableFuture.completedFuture(false);
         }
         UUID targetId = resolvedDamage.damageContext().target().getUniqueId();
-        return callEntityOwner(targetId, target -> applyTargetSideEffects(
+        return callEntityOwnerOrElse(targetId, target -> applyTargetSideEffects(
                 resolvedDamage,
                 target,
                 alreadyAppliedDamage,
                 true,
                 visualSource
-        )).thenCompose(this::applyAttackerSideEffects);
+        ), TargetApplicationResult.failed()).thenCompose(this::applyAttackerSideEffects);
     }
 
     public CompletableFuture<Boolean> applyDamageSideEffectsAsync(ResolvedDamage resolvedDamage) {
@@ -332,13 +333,13 @@ final class DamageCalculationService {
             return CompletableFuture.completedFuture(false);
         }
         UUID targetId = resolvedDamage.damageContext().target().getUniqueId();
-        return callEntityOwner(targetId, target -> applyTargetSideEffects(
+        return callEntityOwnerOrElse(targetId, target -> applyTargetSideEffects(
                 resolvedDamage,
                 target,
                 resolvedDamage.finalDamage(),
                 false,
                 null
-        )).thenCompose(this::applyAttackerSideEffects);
+        ), TargetApplicationResult.failed()).thenCompose(this::applyAttackerSideEffects);
     }
 
     TargetApplicationResult applyTargetSideEffects(ResolvedDamage resolvedDamage,
@@ -596,6 +597,10 @@ final class DamageCalculationService {
             double finalDamage) { new DamageCalculationServiceDelegate(this).notifyDamageMessages(damageContext, damageType, result, finalDamage); }
 
     <T> CompletableFuture<T> callEntityOwner(UUID entityId, Function<LivingEntity, T> operation) { return new DamageCalculationServiceDelegate(this).callEntityOwner(entityId, operation); }
+
+    <T> CompletableFuture<T> callEntityOwnerOrElse(UUID entityId,
+            Function<LivingEntity, T> operation,
+            T unavailable) { return new DamageCalculationServiceDelegate(this).callEntityOwnerOrElse(entityId, operation, unavailable); }
 
     EmakiScheduling scheduling() { return new DamageCalculationServiceDelegate(this).scheduling(); }
 

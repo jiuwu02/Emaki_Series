@@ -101,7 +101,7 @@ public final class AttributeDamageStage implements CoreActionStage {
                     if (throwable == null || attributeService.plugin() == null) {
                         return;
                     }
-                    LogTags.send(attributeService.plugin(), LogTag.ACTION, Level.WARNING, "action.attribute_damage_failed", Map.of("stage", id(), "target", target.getUniqueId()), throwable);
+                    LogTags.send(attributeService.plugin(), LogTag.ACTION, Level.FINE, "action.attribute_damage_failed", Map.of("stage", id(), "target", target.getUniqueId(), "error", throwable.getMessage() == null ? throwable.getClass().getSimpleName() : throwable.getMessage()));
                 });
         return CoreActionOutcome.success(Map.of("damage_type", damageTypeId));
     }

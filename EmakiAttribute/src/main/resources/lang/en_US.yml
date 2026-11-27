@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "5.0.12"
+version: "5.0.13"
 
 tags:
   combat: '[ combat ]'
@@ -761,7 +761,7 @@ integration:
   skip_mythic_mob_attribute_unregistered_attribute: "Skipped Mythic mob attribute: source=%source%, attribute=%attribute%, reason=unregistered_attribute"
   skip_mythic_mob_attribute_blank_attribute_or_value: "Skipped Mythic mob attribute: source=%source%, entry=%entry%, reason=blank_attribute_or_value"
   skip_mythic_mob_attribute_missing_separator: "Skipped Mythic mob attribute: source=%source%, entry=%entry%, reason=missing_separator"
-  mythic_damage_failed: "Mythic damage resolution failed: mechanic=%mechanic% target=%target%"
+  mythic_damage_failed: "Mythic damage resolution failed: mechanic=%mechanic% target=%target% reason=%error%"
 registry:
   attribute_slot_provider_failed: "Attribute slot provider '%slot%' failed; skipping that slot"
   item_contribution_gate_failed: "Item contribution gate '%id%' failed; treating the item as valid"
@@ -785,4 +785,4 @@ temporary_attribute:
   cleanup_expired_failed: "[temporary_attribute] Temporary attribute cleanup failed: trackedEntities=%count%, operation=cleanup_expired, cause=%error%"
 skip:
 action:
-  attribute_damage_failed: "Attribute damage resolution failed: stage=%stage% target=%target%"
+  attribute_damage_failed: "Attribute damage resolution failed: stage=%stage% target=%target% reason=%error%"

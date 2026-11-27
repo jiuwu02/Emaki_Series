@@ -272,7 +272,7 @@ public final class MythicBridge implements Listener {
                         if (throwable == null || attributeService.plugin() == null) {
                             return;
                         }
-                        LogTags.send(attributeService.plugin(), LogTag.INTEGRATION, Level.WARNING, "integration.mythic_damage_failed", Map.of("mechanic", getTypeName(), "target", livingTarget.getUniqueId()), throwable);
+                        LogTags.send(attributeService.plugin(), LogTag.INTEGRATION, Level.FINE, "integration.mythic_damage_failed", Map.of("mechanic", getTypeName(), "target", livingTarget.getUniqueId(), "error", throwable.getMessage() == null ? throwable.getClass().getSimpleName() : throwable.getMessage()));
                     });
             return SkillResult.SUCCESS;
         }

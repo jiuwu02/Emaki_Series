@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
 import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
+import emaki.jiuwu.craft.skills.service.SkillLevelService;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
 
 public final class SkillsPlaceholderExpansion extends AbstractEmakiPlaceholderExpansion {
@@ -28,15 +29,18 @@ public final class SkillsPlaceholderExpansion extends AbstractEmakiPlaceholderEx
     private final PlayerSkillDataStore dataStore;
     private final SkillRegistryService registryService;
     private final LocalResourceDefinitionLoader resourceLoader;
+    private final SkillLevelService levelService;
 
     public SkillsPlaceholderExpansion(EmakiSkillsPlugin plugin,
             PlayerSkillDataStore dataStore,
             SkillRegistryService registryService,
-            LocalResourceDefinitionLoader resourceLoader) {
+            LocalResourceDefinitionLoader resourceLoader,
+            SkillLevelService levelService) {
         super(plugin);
         this.dataStore = dataStore;
         this.registryService = registryService;
         this.resourceLoader = resourceLoader;
+        this.levelService = levelService;
     }
 
     @Override
@@ -74,13 +78,11 @@ public final class SkillsPlaceholderExpansion extends AbstractEmakiPlaceholderEx
         }
 
         if ("level_total".equals(normalized)) {
-            return String.valueOf(totalLevels(profile));
+            return String.valueOf(totalLevels(player));
         }
 
         if (normalized.startsWith("level_")) {
-            String skillId = normalized.substring("level_".length());
-            PlayerSkillLevelState levelState = profile.skillLevels().get(skillId);
-            return String.valueOf(levelState != null ? levelState.level() : 0);
+            return skillLevelPlaceholder(player, normalized.substring("level_".length()));
         }
 
         if (normalized.startsWith("slot_")) {
@@ -100,6 +102,14 @@ public final class SkillsPlaceholderExpansion extends AbstractEmakiPlaceholderEx
         }
 
         return "";
+    }
+
+    private String skillLevelPlaceholder(Player player, String rawSkillId) {
+        SkillDefinition definition = registryService.getDefinition(rawSkillId);
+        if (definition == null || levelService == null) {
+            return "";
+        }
+        return String.valueOf(levelService.currentLevel(player, definition));
     }
 
     private String slotPlaceholder(PlayerSkillProfile profile, String remainder) {
@@ -187,12 +197,13 @@ public final class SkillsPlaceholderExpansion extends AbstractEmakiPlaceholderEx
         return unlocked.size();
     }
 
-    private int totalLevels(PlayerSkillProfile profile) {
+    private int totalLevels(Player player) {
         int total = 0;
-        for (PlayerSkillLevelState levelState : profile.skillLevels().values()) {
-            if (levelState != null) {
-                total += levelState.level();
+        for (SkillDefinition definition : registryService.allDefinitions().values()) {
+            if (definition == null || definition.id().isBlank() || levelService == null) {
+                continue;
             }
+            total += levelService.currentLevel(player, definition);
         }
         return total;
     }

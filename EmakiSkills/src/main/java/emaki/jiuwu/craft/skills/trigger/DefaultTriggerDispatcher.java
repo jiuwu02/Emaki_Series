@@ -79,7 +79,7 @@ public final class DefaultTriggerDispatcher implements TriggerDispatcher {
         invocation.setCancelOriginalAction(true);
         CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
         if (binding != null) {
-            chain = chain.thenCompose(_ -> castAttemptService.attemptCast(player, triggerId, binding))
+            chain = chain.thenCompose(_ -> castAttemptService.attemptCast(player, triggerId, binding, invocation))
                     .thenCompose(result -> reportFailureAsync(player, result));
         }
         for (BoundSkillTrigger directBinding : directBindings) {
