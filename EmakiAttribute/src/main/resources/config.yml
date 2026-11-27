@@ -1,6 +1,6 @@
 # EmakiAttribute 主配置
 
-version: "5.0.11"
+version: "5.0.12"
 
 # 对应 lang/<language>.yml
 language: "zh_CN"
@@ -18,8 +18,6 @@ attribute_sources:
   read_lore_attributes: true
   read_pdc_attributes: true
   require_lore_pdc_match: false
-
-hard_lock_damage: true
 
 # 未指定时使用的伤害类型 ID
 default_damage_type: physical

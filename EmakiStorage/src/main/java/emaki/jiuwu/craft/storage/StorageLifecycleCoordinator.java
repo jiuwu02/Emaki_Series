@@ -108,13 +108,13 @@ final class StorageLifecycleCoordinator
         }
 
         StorageCapacityService capacityService = new StorageCapacityService(config);
-        StorageTransactionService transactionService = new StorageTransactionService(
-                coreLib.itemSourceService(), capacityService, textIndexer, operationLog, config,
-                plugin::debugLogger);
-        StorageSearchService searchService = new StorageSearchService();
-        StorageSortService sortService = new StorageSortService();
         StorageOverflowService overflowService =
                 new StorageOverflowService(operationLog, textIndexer, capacityService, config);
+        StorageTransactionService transactionService = new StorageTransactionService(
+                coreLib.itemSourceService(), capacityService, textIndexer, operationLog, overflowService,
+                config, plugin::debugLogger);
+        StorageSearchService searchService = new StorageSearchService();
+        StorageSortService sortService = new StorageSortService();
         UnlockCostConfig costConfig = loadCostConfig(plugin, config, false);
         StorageUnlockService unlockService = new StorageUnlockService(coreLib.economyManager(),
                 coreLib.itemSourceService(), capacityService, operationLog, config, costConfig);

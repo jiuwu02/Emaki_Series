@@ -45,11 +45,6 @@ public final class GemLoader extends YamlDirectoryLoader<GemDefinition> {
         Object rawItemSource = configuration.get("item_sources");
         ItemSourceRef itemSource = ItemRequirement.parseSources(rawItemSource).stream().findFirst().orElse(null);
         if (itemSource == null) {
-            issue("loader.gem_missing_item_source", Map.of(
-                    "file", file.getName(),
-                    "id", id,
-                    "item_sources", String.valueOf(rawItemSource)
-            ));
             return null;
         }
         GemDefinition definition = GemDefinition.fromConfig(configuration);

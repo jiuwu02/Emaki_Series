@@ -450,7 +450,7 @@ public final class GemInlayService {
         }
         int level = instance.level();
         if ("downgrade".equalsIgnoreCase(mode)
-                && ThreadLocalRandom.current().nextDouble() < gemDefinition.extractReturn().degradedChance()) {
+                && ThreadLocalRandom.current().nextDouble() >= gemDefinition.extractReturn().degradedChance()) {
             level -= gemDefinition.extractReturn().downgradeLevels();
             if (level <= 0) {
                 return null;

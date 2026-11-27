@@ -16,7 +16,7 @@ rules:
       - 50
     light_level_max: 7 # 光照等级不超过此值才触发
     replacement_chance: 0.08 # 8% 概率将原版生物替换为精英僵尸
-    max_nearby: 3 # 32 格内同 id 生物不超过此数量; 0 = 不限
+    max_nearby: 3 # 64 格内同 id 生物不超过此数量; 0 = 不限
     count:
       min: 1
       max: 1

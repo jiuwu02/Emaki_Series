@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "2.0.7"
+version: "2.0.8"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
@@ -73,6 +73,7 @@ gui:
     filtered: "<red>该物品被存入过滤规则拒绝</red>"
     unique_rejected: "<red>服务器不允许存入带唯一标记的物品</red>"
     no_free_slot: "<red>没有空闲槽位可容纳新的物品种类</red>"
+    overflow_locked: "<red>该物品因槽位超限已被锁定为只读, 需扩容后才能继续存入</red>"
     slot_full: "<red>该槽位已达单槽上限</red>"
     inventory_conflict: "<red>背包内容发生变化, 本次存入已取消</red>"
     search_blocked: "<red>搜索状态下展示区禁止存入, 请使用投入口</red>"

@@ -111,11 +111,13 @@ public final class ThreatTableManager implements Listener {
         UuidDoubleMap table = tables.get(entity.getUniqueId());
         if (table == null || table.isEmpty()) return null;
         UUID[] topUid = new UUID[1];
-        double[] topValue = new double[1];
+        double[] topValue = { Double.NEGATIVE_INFINITY };
         table.forEach((most, least, value) -> {
-            if (value > topValue[0]) {
+            UUID candidate = new UUID(most, least);
+            if (value > topValue[0] || (value == topValue[0]
+                    && topUid[0] != null && candidate.compareTo(topUid[0]) < 0)) {
                 topValue[0] = value;
-                topUid[0] = new UUID(most, least);
+                topUid[0] = candidate;
             }
         });
         return topUid[0] != null ? Bukkit.getPlayer(topUid[0]) : null;

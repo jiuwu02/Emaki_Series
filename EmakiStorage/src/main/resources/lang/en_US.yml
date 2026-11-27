@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "2.0.7"
+version: "2.0.8"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
@@ -73,6 +73,7 @@ gui:
     filtered: "<red>That item is rejected by the deposit filter</red>"
     unique_rejected: "<red>This server does not allow storing uniquely marked items</red>"
     no_free_slot: "<red>No free slot is available for a new item kind</red>"
+    overflow_locked: "<red>This item is locked read-only because capacity is exceeded; unlock more slots to deposit</red>"
     slot_full: "<red>That slot has reached its per-slot limit</red>"
     inventory_conflict: "<red>Your inventory changed; the deposit was cancelled</red>"
     search_blocked: "<red>While searching the display area rejects deposits. Use the deposit port</red>"

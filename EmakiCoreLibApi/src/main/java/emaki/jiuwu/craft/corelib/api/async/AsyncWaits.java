@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.api.async;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -19,11 +20,13 @@ public final class AsyncWaits {
     /**
      * Blocks the calling thread until the future completes or the deadline passes.
      *
-     * @param future future to wait for; {@code null} is not accepted by any current caller
+     * @param future future to wait for; must not be {@code null}
      * @param deadlineNanos absolute {@link System#nanoTime()} instant at which waiting stops
      * @return {@code true} when the future is done, {@code false} on deadline expiry or interruption
+     * @throws NullPointerException when {@code future} is {@code null}
      */
     public static boolean awaitUntil(CompletableFuture<?> future, long deadlineNanos) {
+        Objects.requireNonNull(future, "future");
         if (future.isDone()) {
             return true;
         }

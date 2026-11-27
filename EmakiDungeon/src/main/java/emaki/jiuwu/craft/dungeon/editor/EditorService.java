@@ -185,7 +185,7 @@ public final class EditorService implements Listener {
         }
         cloner.cloneAsync(templateDir, worldName).whenComplete((ignored, error) -> {
             if (error != null) {
-                failOpen(session, String.valueOf(error.getMessage()));
+                failOpen(session, String.valueOf(error.getMessage()), error);
                 return;
             }
             dispatcher.runGlobal(plugin, () -> mount(session));
@@ -193,6 +193,10 @@ public final class EditorService implements Listener {
     }
 
     private void failOpen(EditorSession session, String reason) {
+        failOpen(session, reason, null);
+    }
+
+    private void failOpen(EditorSession session, String reason, Throwable cause) {
         sessions.remove(session.playerId());
         states.release(session.dungeonId());
         dispatcher.runAsync(plugin, () -> {
@@ -202,8 +206,15 @@ public final class EditorService implements Listener {
             }
         });
         Player player = Bukkit.getPlayer(session.playerId());
+        String detail = reason;
+        if (cause != null) {
+            detail = cause.getClass().getName()
+                    + (cause.getMessage() == null ? "" : ": " + cause.getMessage());
+            plugin.getLogger().log(java.util.logging.Level.WARNING,
+                    messages.message("editor.open_failed", Map.of("error", detail)), cause);
+        }
         if (player != null) {
-            messages.send(player, "editor.open_failed", Map.of("error", reason));
+            messages.send(player, "editor.open_failed", Map.of("error", detail));
         }
     }
 
@@ -227,7 +238,7 @@ public final class EditorService implements Listener {
             world.setDifficulty(Difficulty.PEACEFUL);
             world.setGameRule(GameRules.SPAWN_MOBS, Boolean.FALSE);
         } catch (Throwable throwable) {
-            failOpen(session, String.valueOf(throwable.getMessage()));
+            failOpen(session, String.valueOf(throwable.getMessage()), throwable);
             return;
         }
         session.editWorld(world);

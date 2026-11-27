@@ -76,6 +76,16 @@ public final class StorageOverflowService {
         };
     }
 
+    public boolean lockedForDeposit(PlayerStorage storage, StorageKey key, StorageCapacity capacity) {
+        if (storage == null || key == null || capacity == null || !capacity.overflowing()) {
+            return false;
+        }
+        if (storage.entry(key) == null) {
+            return false;
+        }
+        return overflowKeys(storage, capacity).contains(key);
+    }
+
     private Set<StorageKey> overflowKeys(PlayerStorage storage, StorageCapacity capacity) {
         List<StorageKey> order = storage.entryOrder();
         int effective = Math.max(0, capacity.effectiveSlots());

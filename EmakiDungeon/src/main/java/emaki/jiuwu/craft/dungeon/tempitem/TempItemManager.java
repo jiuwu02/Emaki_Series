@@ -44,7 +44,7 @@ public final class TempItemManager {
                 "amount", String.valueOf(amount)
         ));
         if (!leftover.isEmpty()) {
-            messages.send(player, "flow.temp_item_full", Map.of("item", itemId));
+            messages.send(player, "flow.temp_item.full", Map.of("item", itemId));
         }
     }
 

@@ -48,14 +48,6 @@ public final class ItemEditorMenus {
     public static final List<String> UPDATE_TRIGGERS = List.of(
             "join", "held_change", "inventory_click", "inventory_drag", "pickup", "interact", "command");
 
-    public static final List<String> ACTION_TRIGGERS = List.of(
-            "give", "interact", "damage_dealt", "left_click_air", "right_click_air", "right_click_block",
-            "left_click_entity", "consume", "break_block", "place_block", "attack", "damaged",
-            "damaged_by_entity", "death", "kill_entity", "kill_player", "shoot_bow", "arrow_hit",
-            "arrow_land", "shoot_trident", "trident_hit", "trident_land", "drop_item", "shift_drop_item",
-            "swap_items", "shift_swap_items", "login", "sneak", "teleport", "timer", "combo_attack",
-            "left_click", "right_click", "shift_left_click", "shift_right_click", "drop_q");
-
     private record MenuMeta(String titleKey, String parent, String template, boolean paginated) {
     }
 

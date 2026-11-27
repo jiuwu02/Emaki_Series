@@ -334,6 +334,7 @@ public final class StorageGuiHandler implements GuiSessionHandler {
             case "filtered" -> "gui.deposit.filtered";
             case "unique_rejected" -> "gui.deposit.unique_rejected";
             case "no_free_slot" -> "gui.deposit.no_free_slot";
+            case "overflow_locked" -> "gui.deposit.overflow_locked";
             case "slot_full" -> "gui.deposit.slot_full";
             case "inventory_conflict" -> "gui.deposit.inventory_conflict";
             default -> "gui.deposit.failed";

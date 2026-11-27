@@ -17,7 +17,6 @@ public record AttributeConfig(String language,
         boolean readLoreAttributes,
         boolean readPdcAttributes,
         boolean requireLorePdcMatch,
-        boolean hardLockDamage,
         String defaultDamageType,
         String projectileDamageType,
         boolean vanillaEventDamageEnabled,
@@ -57,7 +56,6 @@ public record AttributeConfig(String language,
                 true,
                 true,
                 false,
-                true,
                 "physical",
                 "projectile",
                 true,
@@ -93,7 +91,6 @@ public record AttributeConfig(String language,
         boolean readLoreAttributes = Boolean.TRUE.equals(configuration.getBoolean("attribute_sources.read_lore_attributes", true));
         boolean readPdcAttributes = Boolean.TRUE.equals(configuration.getBoolean("attribute_sources.read_pdc_attributes", true));
         boolean requireLorePdcMatch = Boolean.TRUE.equals(configuration.getBoolean("attribute_sources.require_lore_pdc_match", false));
-        boolean hardLockDamage = Boolean.TRUE.equals(configuration.getBoolean("hard_lock_damage", true));
         String defaultDamageType = ConfigNodes.string(configuration, "default_damage_type", "physical");
         String projectileDamageType = ConfigNodes.string(configuration, "projectile_damage_type", "projectile");
         boolean vanillaEventDamageEnabled = Boolean.TRUE.equals(configuration.getBoolean("vanilla_event_damage.enabled", true));
@@ -144,7 +141,6 @@ public record AttributeConfig(String language,
                 readLoreAttributes,
                 readPdcAttributes,
                 requireLorePdcMatch,
-                hardLockDamage,
                 defaultDamageType,
                 projectileDamageType,
                 vanillaEventDamageEnabled,

@@ -54,6 +54,9 @@ public final class DungeonCommandRouter {
             "create", "invite", "accept", "deny", "kick", "leave", "disband", "chat"
     );
     private static final List<String> EDITOR_SUBS = List.of("menu", "save", "exit", "pos1", "pos2", "clearpos", "door", "status", "mark", "marks", "test");
+
+    private static final List<String> EDITOR_SUBS_RANDOM_ONLY =
+            List.of("menu", "pos1", "pos2", "clearpos", "door", "status");
     private static final List<String> RECRUIT_SUBS = List.of("open", "close", "list", "join");
     private static final List<String> MATCH_SUBS = List.of("join", "leave");
     private static final List<String> SPECTATE_SUBS = List.of("next", "prev");
@@ -682,7 +685,9 @@ public final class DungeonCommandRouter {
                     }
                     editor.startTest(player);
                 }
-                default -> messages.send(player, "editor.usage_session", Map.of());
+                default -> messages.send(player,
+                        randomDungeon(player) ? "editor.usage_session" : "editor.usage_session_normal",
+                        Map.of());
             }
             return;
         }
@@ -710,6 +715,19 @@ public final class DungeonCommandRouter {
     private boolean randomDungeon(Player player) {
         return editor != null
                 && emaki.jiuwu.craft.dungeon.type.DungeonTypeRegistry.RANDOM.equals(editor.dungeonTypeOf(player.getUniqueId()));
+    }
+
+    private List<String> editorSubsFor(Player player) {
+        if (randomDungeon(player)) {
+            return EDITOR_SUBS;
+        }
+        List<String> visible = new java.util.ArrayList<>(EDITOR_SUBS.size());
+        for (String sub : EDITOR_SUBS) {
+            if (!EDITOR_SUBS_RANDOM_ONLY.contains(sub)) {
+                visible.add(sub);
+            }
+        }
+        return List.copyOf(visible);
     }
 
     private void routeRegionCommand(Player player, String[] args, String sub) {
@@ -812,7 +830,7 @@ public final class DungeonCommandRouter {
             if (args.length == 2) {
                 if (editor != null && sender instanceof Player player
                         && editor.hasSession(player.getUniqueId())) {
-                    return EDITOR_SUBS;
+                    return editorSubsFor(player);
                 }
                 return templates.discoverDungeons();
             }
@@ -1066,13 +1084,21 @@ public final class DungeonCommandRouter {
                 return;
             }
         }
-        sendHelpLines(sender, root, "command.help_editor_header",
-                "command.help_editor_entry_dungeon", "command.help_editor_entry_exit",
-                "command.help_editor_entry_pos_one", "command.help_editor_entry_pos_two",
-                "command.help_editor_entry_clearpos",
-                "command.help_editor_entry_door", "command.help_editor_entry_status",
-                "command.help_editor_entry_mark", "command.help_editor_entry_marks",
-                "command.help_editor_entry_test");
+        boolean random = sender instanceof Player player && randomDungeon(player);
+        if (random) {
+            sendHelpLines(sender, root, "command.help_editor_header",
+                    "command.help_editor_entry_dungeon", "command.help_editor_entry_exit",
+                    "command.help_editor_entry_pos_one", "command.help_editor_entry_pos_two",
+                    "command.help_editor_entry_clearpos",
+                    "command.help_editor_entry_door", "command.help_editor_entry_status",
+                    "command.help_editor_entry_mark", "command.help_editor_entry_marks",
+                    "command.help_editor_entry_test");
+        } else {
+            sendHelpLines(sender, root, "command.help_editor_header",
+                    "command.help_editor_entry_dungeon", "command.help_editor_entry_exit",
+                    "command.help_editor_entry_mark", "command.help_editor_entry_marks",
+                    "command.help_editor_entry_test");
+        }
         sendHelpFooter(sender);
     }
 

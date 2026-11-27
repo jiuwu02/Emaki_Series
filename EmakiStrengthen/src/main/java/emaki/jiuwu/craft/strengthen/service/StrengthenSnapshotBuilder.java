@@ -6,10 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
-import emaki.jiuwu.craft.corelib.api.assembly.EmakiLoreSectionContribution;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiStatContribution;
-import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
@@ -84,108 +81,4 @@ public final class StrengthenSnapshotBuilder {
     }
 
     private static final double FRACTURE_PENALTY_RATE = 0.05D;
-
-    private List<EmakiLoreSectionContribution> buildStatSections(StrengthenRecipe recipe,
-            Map<String, Double> stats,
-            Map<String, Object> variables) {
-        Map<SectionTarget, List<String>> statSectionLines = new LinkedHashMap<>();
-        for (Map.Entry<String, Double> entry : stats.entrySet()) {
-            if (Math.abs(entry.getValue()) <= 1.0E-9D) {
-                continue;
-            }
-            String statId = Texts.lower(entry.getKey());
-            StrengthenRecipe.StatLineDefinition definition = recipe.statLines().get(statId);
-            String renderedLine = renderStatLine(definition, statId, entry.getValue(), variables);
-            if (Texts.isBlank(renderedLine)) {
-                continue;
-            }
-            SectionTarget sectionTarget = resolveStatSection(definition);
-            statSectionLines.computeIfAbsent(sectionTarget, ignored -> new ArrayList<>()).add(renderedLine);
-        }
-        List<EmakiLoreSectionContribution> sections = new ArrayList<>();
-        statSectionLines.entrySet().stream()
-                .sorted(Map.Entry.<SectionTarget, List<String>>comparingByKey())
-                .forEach(entry -> addSection(sections, entry.getKey().sectionId(), entry.getKey().order(), entry.getValue()));
-        return sections;
-    }
-
-    private SectionTarget resolveStatSection(StrengthenRecipe.StatLineDefinition definition) {
-        if (definition != null && Texts.isNotBlank(definition.sectionId())) {
-            int order = definition.sectionOrder() > 0
-                    ? definition.sectionOrder()
-                    : Texts.lower(definition.sectionId()).contains("primary") ? STATS_PRIMARY_ORDER : STATS_SECONDARY_ORDER;
-            return new SectionTarget(definition.sectionId(), order);
-        }
-        return new SectionTarget(
-                "strengthen.stats.secondary",
-                STATS_SECONDARY_ORDER
-        );
-    }
-
-    private Map<String, Object> buildVariables(StrengthenRecipe recipe,
-            StrengthenState state,
-            Map<String, Double> stats) {
-        Map<String, Object> variables = new LinkedHashMap<>();
-        if (stats != null) {
-            variables.putAll(stats);
-        }
-        variables.put("star", state.currentStar());
-        variables.put("temper", state.temperLevel());
-        variables.put("max_temper", recipe.limits().maxTemper());
-        variables.put("temper_color", state.temperLevel() > 0 ? "<red>" : "<green>");
-        return variables;
-    }
-
-    private String renderStatLine(StrengthenRecipe.StatLineDefinition definition,
-            String statId,
-            double value,
-            Map<String, Object> variables) {
-        Map<String, Object> renderVariables = new LinkedHashMap<>(variables);
-        renderVariables.put("id", statId);
-        renderVariables.put("sign", value >= 0D ? "+" : "-");
-        renderVariables.put("value", Numbers.formatNumber(Math.abs(value), "0.##"));
-        if (definition == null || Texts.isBlank(definition.template())) {
-            return "<gray>" + humanize(statId) + ": <gold>"
-                    + renderVariables.get("sign")
-                    + renderVariables.get("value")
-                    + "</gold></gray>";
-        }
-        return renderTemplate(definition.template(), renderVariables);
-    }
-
-    private String renderTemplate(String template, Map<String, Object> variables) {
-        return ExpressionEngine.evaluateStringConfig(template, variables == null ? Map.of() : variables);
-    }
-
-    private String humanize(String statId) {
-        String text = Texts.toStringSafe(statId).replace('_', ' ');
-        return text.isBlank() ? "属性" : text;
-    }
-
-    private void addSection(List<EmakiLoreSectionContribution> sections,
-            String sectionId,
-            int order,
-            List<String> lines) {
-        if (sections == null || Texts.isBlank(sectionId) || lines == null || lines.isEmpty()) {
-            return;
-        }
-        sections.add(new EmakiLoreSectionContribution(sectionId, order, List.copyOf(lines), NAMESPACE_ID));
-    }
-
-    private record SectionTarget(String sectionId, int order) implements Comparable<SectionTarget> {
-
-        private SectionTarget {
-            sectionId = Texts.isBlank(sectionId) ? "strengthen.stats.secondary" : sectionId;
-            order = Math.max(0, order);
-        }
-
-        @Override
-        public int compareTo(SectionTarget other) {
-            if (other == null) {
-                return -1;
-            }
-            int orderCompare = Integer.compare(order, other.order);
-            return orderCompare != 0 ? orderCompare : sectionId.compareTo(other.sectionId);
-        }
-    }
 }

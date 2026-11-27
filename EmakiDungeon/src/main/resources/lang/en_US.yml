@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.48"
+version: "1.0.49"
 
 tags:
   challenge: "[ challenge ]"
@@ -333,6 +333,7 @@ globalchat:
 editor:
   usage: "<red>Usage: /edungeon editor <dungeonId></red>"
   usage_session: "<gray>Session subcommands: menu | save | exit | pos1 | pos2 | clearpos | door remove|list | status | mark <type> [id] | marks | test</gray>"
+  usage_session_normal: "<gray>Session subcommands: save | exit | mark <type> [id] | marks | test</gray>"
   anchor_usage: "<red>Usage: /edungeon editor door remove <door ID> | /edungeon editor door list (doors are created from two pos1/pos2 points inside a room/corridor selection)</red>"
   door_usage: "<red>Usage: /edungeon editor door remove <door ID> | /edungeon editor door list (doors are created from two pos1/pos2 points inside a room/corridor selection)</red>"
   random_only: "<red>This command only works in the edit world of a random-type dungeon (type: random)</red>"
@@ -784,7 +785,6 @@ random:
   region_overlap: "<red>New region overlaps existing structure <white><target></white>: a selection may not contain any existing room/corridor; the selection was cleared, please mark both corners again</red>"
   not_random_type: "<red>Dungeon <dungeon> is not a random type; set type: random in its config.yml</red>"
   gui:
-    title: "<dark_gray>Region capture</dark_gray> <gray>-</gray> <white><region></white>"
     title_main: "<dark_gray>Region capture</dark_gray> <gray>-</gray> <white><region></white>"
     title_meta: "<dark_gray>Region capture · structure metadata</dark_gray> <gray>-</gray> <white><region></white>"
     title_anchors: "<dark_gray>Region capture · doors</dark_gray> <gray>-</gray> <white><region></white>"

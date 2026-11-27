@@ -306,8 +306,12 @@ public final class WorldPool {
                             continue;
                         }
                     } catch (Throwable throwable) {
+                        plugin.getLogger().log(Level.WARNING,
+                                "reserve remount failed for " + worldName + " (" + dungeonId + ")",
+                                throwable);
                         writeInspectFail(dungeonId, worldName, false,
-                                directory.isDirectory(), String.valueOf(throwable.getMessage()));
+                                directory.isDirectory(), throwable.getClass().getName()
+                                        + (throwable.getMessage() == null ? "" : ": " + throwable.getMessage()));
                         invalidateReserve(dungeonId, worldName);
                         healthy = false;
                         continue;

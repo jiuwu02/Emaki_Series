@@ -53,6 +53,7 @@ public final class StorageTransactionService {
     private final StorageCapacityService capacityService;
     private final StorageTextIndexer textIndexer;
     private final StorageOperationLog operationLog;
+    private final StorageOverflowService overflowService;
     private final Supplier<DebugLogger> debugLoggerSupplier;
 
     private volatile AppConfig config;
@@ -61,12 +62,14 @@ public final class StorageTransactionService {
             StorageCapacityService capacityService,
             StorageTextIndexer textIndexer,
             StorageOperationLog operationLog,
+            StorageOverflowService overflowService,
             AppConfig config,
             Supplier<DebugLogger> debugLoggerSupplier) {
         this.itemSourceService = itemSourceService;
         this.capacityService = capacityService;
         this.textIndexer = textIndexer;
         this.operationLog = operationLog;
+        this.overflowService = overflowService;
         this.config = config;
         this.debugLoggerSupplier = debugLoggerSupplier;
     }
@@ -510,6 +513,9 @@ public final class StorageTransactionService {
             if (!passesFilter(template, active.behavior().depositFilter())) {
                 return new BatchRejection(index, "filtered");
             }
+            if (overflowService != null && overflowService.lockedForDeposit(storage, key, capacity)) {
+                return new BatchRejection(index, "overflow_locked");
+            }
             if (entry == null && !active.behavior().allowUniqueItems() && isUnique(template)) {
                 return new BatchRejection(index, "unique_rejected");
             }
@@ -600,6 +606,9 @@ public final class StorageTransactionService {
         ItemStack template = key.toItemStack();
         if (!passesFilter(template, active.behavior().depositFilter())) {
             return new PreCheck(0L, 0L, null, "filtered");
+        }
+        if (overflowService != null && overflowService.lockedForDeposit(storage, key, capacity)) {
+            return new PreCheck(0L, 0L, null, "overflow_locked");
         }
         StorageEntry entry = storage.entry(key);
         if (entry == null) {

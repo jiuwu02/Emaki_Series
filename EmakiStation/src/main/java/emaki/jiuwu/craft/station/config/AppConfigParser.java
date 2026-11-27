@@ -57,14 +57,9 @@ public final class AppConfigParser {
         if (section == null) {
             return defaults;
         }
-        Object rawBatchMax = section.get("batch_multiplier_max");
-        long batchMax = rawBatchMax instanceof Number number
-                ? number.longValue()
-                : defaults.batchMultiplierMax();
         return new LimitSettings(
                 section.getInt("max_pending_claim", defaults.maxPendingClaim()),
-                section.getInt("warn_material_types", defaults.warnMaterialTypes()),
-                batchMax);
+                section.getInt("warn_material_types", defaults.warnMaterialTypes()));
     }
 
     private static StorageSettings parseStorage(YamlSection section, StorageSettings defaults) {

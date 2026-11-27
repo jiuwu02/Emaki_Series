@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "3.0.5"
+version: "3.0.6"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -76,8 +76,6 @@ loader:
   duplicate_id: "<red>%type% file %file% has duplicate ID: %id%</red>"
   load_failed: "<red>Failed to load %type% file %file%: %error%</red>"
   invalid_config: "<red>%type% file %file% has invalid config, skipped loading</red>"
-  gem_missing_item_source: "<red>Gem file %file% has missing or invalid
-    item_sources; loading rejected: %id%, current value: %item_sources%</red>"
   gem_relationship_self_reference: "<red>Gem file %file% references itself in required_gems or conflicting_gems; loading rejected: %id%</red>"
   gem_relationship_conflict: "<red>Gem file %file% declares %related_gem% as both a dependency and a conflict; loading rejected: %id%</red>"
 

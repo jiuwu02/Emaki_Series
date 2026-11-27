@@ -62,9 +62,11 @@ public final class ItemTriggerListener implements Listener {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
+        boolean airAction = event.getAction() == Action.RIGHT_CLICK_AIR
+                || event.getAction() == Action.LEFT_CLICK_AIR;
         if (event.useInteractedBlock() == Event.Result.DENY
                 && (event.getHand() == EquipmentSlot.OFF_HAND
-                        || event.getAction() != Action.RIGHT_CLICK_AIR
+                        || !airAction
                         || event.useItemInHand() == Event.Result.DENY)) {
             return;
         }

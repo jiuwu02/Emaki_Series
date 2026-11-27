@@ -234,9 +234,6 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
             if (state == null) {
                 return EmakiResult.notFound("attribute.resource_state_not_found");
             }
-            if (state.currentValue() < amount) {
-                return EmakiResult.rejected("attribute.resource_insufficient");
-            }
             PlayerResourceConsumeEvent consumeEvent = new PlayerResourceConsumeEvent(
                     player, normalizedId, amount, state.currentValue(), state.currentMax());
             Bukkit.getPluginManager().callEvent(consumeEvent);
@@ -246,9 +243,6 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
             double resolvedAmount = consumeEvent.getAmount();
             if (!Double.isFinite(resolvedAmount) || resolvedAmount < 0D) {
                 return EmakiResult.invalidInput("attribute.resource_consume_event_amount_invalid");
-            }
-            if (state.currentValue() < resolvedAmount) {
-                return EmakiResult.rejected("attribute.resource_insufficient");
             }
             AttributeSnapshot snapshot = attributeService.collectPlayerCombatSnapshot(player);
             attributeService.syncResource(player,
