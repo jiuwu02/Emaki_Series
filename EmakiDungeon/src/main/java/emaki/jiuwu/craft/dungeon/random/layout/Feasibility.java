@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.dungeon.random.layout;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -94,15 +93,7 @@ public final class Feasibility {
     }
 
     public static Map<Integer, Integer> degreesOf(Topology topology) {
-        Map<Integer, Integer> degrees = new HashMap<>();
-        for (Topology.Node node : topology.nodes()) {
-            degrees.put(node.id(), 0);
-        }
-        for (Topology.Edge edge : topology.edges()) {
-            degrees.merge(edge.a(), 1, Integer::sum);
-            degrees.merge(edge.b(), 1, Integer::sum);
-        }
-        return degrees;
+        return topology.degrees();
     }
 
     private static int legalVariantCount(TemplateMeta meta, RandomConfig config) {

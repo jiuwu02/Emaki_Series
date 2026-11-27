@@ -26,6 +26,19 @@ public record Topology(List<Node> nodes, List<Edge> edges, int root, int deepest
         }
     }
 
+    /** 每个节点的度数 (= 该节点需要接出的连接数)。 */
+    public Map<Integer, Integer> degrees() {
+        Map<Integer, Integer> degrees = new HashMap<>();
+        for (Node node : nodes) {
+            degrees.put(node.id(), 0);
+        }
+        for (Edge edge : edges) {
+            degrees.merge(edge.a(), 1, Integer::sum);
+            degrees.merge(edge.b(), 1, Integer::sum);
+        }
+        return degrees;
+    }
+
     public Map<Integer, Integer> depths() {
         Map<Integer, List<Integer>> adjacency = new HashMap<>();
         for (Edge edge : edges) {

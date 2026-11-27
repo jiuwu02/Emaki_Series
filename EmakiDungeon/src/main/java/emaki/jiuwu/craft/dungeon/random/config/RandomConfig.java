@@ -27,6 +27,16 @@ public final class RandomConfig {
     public record Orientation(boolean rotatable, String mirrorAxis) {
     }
 
+    /**
+     * 拓扑形状策略。
+     *
+     * @param style           branch(枝杈状随机树) | chain(蛇形/环状链) | mixed(按 seed 比例混合)
+     * @param chainChance     mixed 时产出 chain 的概率百分比 0-100
+     * @param maxLoopsPercent 环路数上限占房量的百分比; 0 关闭环路, 回到纯树
+     */
+    public record Topology(String style, int chainChance, int maxLoopsPercent) {
+    }
+
     public record TreasureMap(boolean enabled, String granularity, int pixelsPerRoom,
             int updateIntervalTicks, boolean showUnexploredOutline, boolean floorMarkers,
             Map<String, String> targetIcons) {
@@ -57,6 +67,7 @@ public final class RandomConfig {
     public final Map<String, RoomType> roomTypes;
     public final Corridor corridor;
     public final Orientation orientation;
+    public final Topology topology;
     public final TreasureMap treasureMap;
     public final SeedPolicy seed;
     public final WorldPolicy world;
@@ -67,13 +78,14 @@ public final class RandomConfig {
 
     private RandomConfig(RoomCount roomCount, Map<String, MandatoryRule> mandatory,
             Map<String, RoomType> roomTypes, Corridor corridor, Orientation orientation,
-            TreasureMap treasureMap, SeedPolicy seed, WorldPolicy world, EditorPolicy editor,
-            Limits limits) {
+            Topology topology, TreasureMap treasureMap, SeedPolicy seed, WorldPolicy world,
+            EditorPolicy editor, Limits limits) {
         this.roomCount = roomCount;
         this.mandatory = mandatory;
         this.roomTypes = roomTypes;
         this.corridor = corridor;
         this.orientation = orientation;
+        this.topology = topology;
         this.treasureMap = treasureMap;
         this.seed = seed;
         this.world = world;
@@ -109,6 +121,7 @@ public final class RandomConfig {
         Map<String, RoomType> roomTypes = parseRoomTypes(section, errors);
         Corridor corridor = parseCorridor(section, errors);
         Orientation orientation = parseOrientation(section, errors);
+        Topology topology = parseTopology(section, errors);
         TreasureMap treasureMap = parseTreasureMap(section, errors);
         SeedPolicy seed = parseSeed(section, errors);
         WorldPolicy world = parseWorld(section, errors);
@@ -130,7 +143,7 @@ public final class RandomConfig {
             return new Loaded(null, errors);
         }
         return new Loaded(new RandomConfig(roomCount, mandatory, roomTypes, corridor, orientation,
-                treasureMap, seed, world, editor, limits), errors);
+                topology, treasureMap, seed, world, editor, limits), errors);
     }
 
     private static RoomCount parseRoomCount(YamlSection section, List<String> errors) {
@@ -206,6 +219,23 @@ public final class RandomConfig {
             types.put(typeId, new RoomType(typeId, weight, minCount, maxCount));
         }
         return types;
+    }
+
+    private static Topology parseTopology(YamlSection section, List<String> errors) {
+        YamlSection node = section.getSection("topology");
+        String style = node == null ? "branch" : node.getString("style", "branch").toLowerCase(Locale.ROOT);
+        if (!"branch".equals(style) && !"chain".equals(style) && !"mixed".equals(style)) {
+            errors.add("topology.style: 非法值 " + style);
+        }
+        int chainChance = node == null ? 50 : node.getInt("chain-chance", 50);
+        if (chainChance < 0 || chainChance > 100) {
+            errors.add("topology.chain-chance: 必须落在 0-100, 当前 " + chainChance);
+        }
+        int maxLoopsPercent = node == null ? 15 : node.getInt("max-loops-percent", 15);
+        if (maxLoopsPercent < 0 || maxLoopsPercent > 100) {
+            errors.add("topology.max-loops-percent: 必须落在 0-100, 当前 " + maxLoopsPercent);
+        }
+        return new Topology(style, chainChance, maxLoopsPercent);
     }
 
     private static Corridor parseCorridor(YamlSection section, List<String> errors) {
@@ -390,6 +420,8 @@ public final class RandomConfig {
                 .append(corridor.tileGap()).append(';');
         builder.append("orientation=").append(orientation.rotatable()).append(',')
                 .append(orientation.mirrorAxis()).append(';');
+        builder.append("topology=").append(topology.style()).append(',')
+                .append(topology.chainChance()).append(',').append(topology.maxLoopsPercent()).append(';');
         builder.append("treasure-map=").append(treasureMap.enabled()).append(',')
                 .append(treasureMap.granularity()).append(',').append(treasureMap.pixelsPerRoom()).append(',')
                 .append(treasureMap.updateIntervalTicks()).append(',').append(treasureMap.showUnexploredOutline()).append(',')

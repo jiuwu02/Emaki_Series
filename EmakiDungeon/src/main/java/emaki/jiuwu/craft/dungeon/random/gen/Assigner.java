@@ -11,7 +11,8 @@ import emaki.jiuwu.craft.dungeon.random.gen.Topology.Node;
 
 public final class Assigner {
 
-    public record TemplateOption(String typeId, List<String> tags, int weight, int minCount, int maxCount) {
+    public record TemplateOption(String typeId, List<String> tags, int weight, int minCount, int maxCount,
+            int anchorCount) {
 
         public TemplateOption {
             tags = tags == null ? List.of() : List.copyOf(tags);
@@ -19,6 +20,11 @@ public final class Assigner {
 
         public boolean carries(String tag) {
             return tags.contains(tag);
+        }
+
+        /** 该模板的门锚点数是否够接出 degree 条连接。 */
+        public boolean affords(int degree) {
+            return anchorCount >= degree;
         }
     }
 
@@ -79,6 +85,7 @@ public final class Assigner {
                 continue;
             }
             // 主动保证 room-types 的 min-count: 先按模板固定占用座位, 再走加权抽样
+            Map<Integer, Integer> degrees = topology.degrees();
             List<Node> unassigned = new ArrayList<>();
             for (Node node : topology.nodes()) {
                 if (!assignment.containsKey(node.id())) {
@@ -94,7 +101,7 @@ public final class Assigner {
                     need = Math.min(need, option.maxCount() - placed.getOrDefault(option.typeId(), 0));
                 }
                 while (need > 0 && !unassigned.isEmpty()) {
-                    Node seat = unassigned.remove(random.nextInt(unassigned.size()));
+                    Node seat = takeSeat(unassigned, degrees, option, random);
                     assignment.put(seat.id(), option.typeId());
                     placed.merge(option.typeId(), 1, Integer::sum);
                     need--;
@@ -107,7 +114,15 @@ public final class Assigner {
             if (!ok) {
                 continue;
             }
-            for (Node node : unassigned) {
+            while (!unassigned.isEmpty()) {
+                // 先处理度数最高的节点: 它对门锚点要求最苛刻, 可选模板最少, 留到最后容易无解
+                unassigned.sort((left, right) -> {
+                    int degreeCompare = Integer.compare(
+                            degrees.getOrDefault(right.id(), 0), degrees.getOrDefault(left.id(), 0));
+                    return degreeCompare != 0 ? degreeCompare : Integer.compare(left.id(), right.id());
+                });
+                Node node = unassigned.remove(0);
+                int nodeDegree = degrees.getOrDefault(node.id(), 0);
                 List<TemplateOption> pool = new ArrayList<>();
                 int totalWeight = 0;
                 for (TemplateOption option : options) {
@@ -118,6 +133,9 @@ public final class Assigner {
                         continue;
                     }
                     if (ruleCapped(rules, placed, options, option)) {
+                        continue;
+                    }
+                    if (!option.affords(nodeDegree)) {
                         continue;
                     }
                     pool.add(option);
@@ -140,6 +158,9 @@ public final class Assigner {
                 placed.merge(picked.typeId(), 1, Integer::sum);
             }
             if (!ok) {
+                continue;
+            }
+            if (!fitsAnchors(assignment, degrees, options)) {
                 continue;
             }
             boolean intervalsOk = true;
@@ -170,6 +191,48 @@ public final class Assigner {
             }
         }
         return new Result(Map.of(), REALLOCATION_LIMIT);
+    }
+
+    /**
+     * 从剩余座位里挑一个给该模板: 门锚点够用的座位优先, 同档内随机。
+     *
+     * <p>门锚点少的模板 (例如只在墙上开一个门的出生房) 必须落在叶节点, 否则布局阶段接不出
+     * 第二条连接; 门锚点多的模板反之应该吃掉分叉节点。按度数择座能显著抬高中低门数的通过率。
+     */
+    private Node takeSeat(List<Node> unassigned, Map<Integer, Integer> degrees,
+            TemplateOption option, Random random) {
+        List<Node> fits = new ArrayList<>();
+        for (Node node : unassigned) {
+            if (option.affords(degrees.getOrDefault(node.id(), 0))) {
+                fits.add(node);
+            }
+        }
+        List<Node> pool = fits.isEmpty() ? unassigned : fits;
+        Node seat = pool.remove(random.nextInt(pool.size()));
+        unassigned.remove(seat);
+        return seat;
+    }
+
+    /** 座位全部定下后复核: 每个节点上的模板门锚点数必须够接出该节点的度数。 */
+    private boolean fitsAnchors(Map<Integer, String> assignment, Map<Integer, Integer> degrees,
+            List<TemplateOption> options) {
+        for (Map.Entry<Integer, String> entry : assignment.entrySet()) {
+            int degree = degrees.getOrDefault(entry.getKey(), 0);
+            TemplateOption option = optionOf(options, entry.getValue());
+            if (option != null && !option.affords(degree)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private TemplateOption optionOf(List<TemplateOption> options, String typeId) {
+        for (TemplateOption option : options) {
+            if (option.typeId().equals(typeId)) {
+                return option;
+            }
+        }
+        return null;
     }
 
     private boolean ruleCapped(List<MandatoryRule> rules, Map<String, Integer> placed,

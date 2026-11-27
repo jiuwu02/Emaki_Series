@@ -73,6 +73,9 @@ public final class RandomDungeonService {
 
     private static final int ALLOCATION_LIMIT = 3;
 
+    /** 预览时每份副本最多尝试的种子数; 实际几何通过率远高于此, 触及上限说明配置本身有硬缺口。 */
+    private static final int PREVIEW_SEED_RETRIES = 64;
+
     private final JavaPlugin plugin;
     private final ExecutionDispatcher dispatcher;
     private final MessageService messages;
@@ -320,17 +323,20 @@ public final class RandomDungeonService {
         for (Assigner.TemplateOption option : options) {
             candidateIds.add(option.typeId());
         }
-        Feasibility.Verdict verdict = Feasibility.check(
-                new TopologyGenerator().generate(Seeds.derive(seed).topology(), roomCount),
-                candidateIds, metas, config);
-        if (!verdict.feasible()) {
-            return Result.fail(verdict.reasonKey(), verdict.params());
-        }
         RandomInstance instance = null;
         String lastDiagnostic = "";
+        Feasibility.Verdict lastVerdict = null;
         for (int allocation = 0; allocation < ALLOCATION_LIMIT; allocation++) {
             Seeds seeds = Seeds.derive(seed + allocation);
-            Topology topology = new TopologyGenerator().generate(seeds.topology(), roomCount);
+            Topology topology = new TopologyGenerator().generate(seeds.topology(), roomCount,
+                    config.topology.style(), config.topology.chainChance(),
+                    config.topology.maxLoopsPercent());
+            // 拓扑逐种子不同, 度数分布也跟着变; 不可行的种子跳过换下一个, 而不是整轮否决
+            Feasibility.Verdict verdict = Feasibility.check(topology, candidateIds, metas, config);
+            if (!verdict.feasible()) {
+                lastVerdict = verdict;
+                continue;
+            }
             Assigner.Result assignment = new Assigner().assign(seeds.assignment(), topology,
                     options, mandatoryRules(config));
             if (assignment.nodeTemplate().isEmpty()) {
@@ -366,6 +372,10 @@ public final class RandomDungeonService {
                     "seed", String.valueOf(seed),
                     "rooms", String.valueOf(roomCount)));
         }
+        if (lastVerdict != null) {
+            // 全部种子都倒在预检: 报预检原因 (它比 allocation_failed 更能指向配置问题)
+            return Result.fail(lastVerdict.reasonKey(), lastVerdict.params());
+        }
         return Result.fail("random.allocation_failed", Map.of("limit", String.valueOf(ALLOCATION_LIMIT)));
     }
 
@@ -397,29 +407,44 @@ public final class RandomDungeonService {
         long baseSeed = seedOverride != null ? seedOverride
                 : java.util.concurrent.ThreadLocalRandom.current().nextLong();
         List<Layout> layouts = new ArrayList<>(count);
-        for (int index = 0; index < count; index++) {
-            long seed = baseSeed + index;
+        // 每份预览推进种子直到成功: 拓扑逐种子不同, 某个种子不可行不该让整次预览失败
+        Feasibility.Verdict lastVerdict = null;
+        String lastDiagnostic = "";
+        int cursor = 0;
+        int maxAttempts = count * PREVIEW_SEED_RETRIES;
+        while (layouts.size() < count && cursor < maxAttempts) {
+            long seed = baseSeed + cursor++;
             Seeds seeds = Seeds.derive(seed);
-            Topology topology = new TopologyGenerator().generate(seeds.topology(), roomCount);
+            Topology topology = new TopologyGenerator().generate(seeds.topology(), roomCount,
+                    config.topology.style(), config.topology.chainChance(),
+                    config.topology.maxLoopsPercent());
             Feasibility.Verdict verdict = Feasibility.check(topology, candidateIds, metas, config);
             if (!verdict.feasible()) {
-                return Result.fail(verdict.reasonKey(), verdict.params());
+                lastVerdict = verdict;
+                continue;
             }
             Assigner.Result assignment = new Assigner().assign(seeds.assignment(), topology,
                     options, mandatoryRules(config));
             if (assignment.nodeTemplate().isEmpty()) {
-                return Result.fail("random.preview_allocation_failed", Map.of("index", String.valueOf(index + 1)));
+                continue;
             }
             LayoutEngine.Result layoutResult = new LayoutEngine().layout(
                     seeds.layout(), seeds.orientation(), seeds.link(),
                     topology, assignment.nodeTemplate(), metas,
                     config, config.limits.maxLayoutBacktracks(), 64);
             if (layoutResult.layout() == null) {
-                return Result.fail("random.preview_layout_failed", Map.of(
-                        "index", String.valueOf(index + 1),
-                        "diagnostic", layoutResult.detail().isBlank() ? "-" : layoutResult.detail()));
+                lastDiagnostic = layoutResult.detail();
+                continue;
             }
             layouts.add(layoutResult.layout());
+        }
+        if (layouts.size() < count) {
+            if (lastVerdict != null && layouts.isEmpty()) {
+                return Result.fail(lastVerdict.reasonKey(), lastVerdict.params());
+            }
+            return Result.fail("random.preview_layout_failed", Map.of(
+                    "index", String.valueOf(layouts.size() + 1),
+                    "diagnostic", lastDiagnostic.isBlank() ? "-" : lastDiagnostic));
         }
         String worldName = worldNames.next("rndp");
         dispatcher.runGlobal(plugin, () -> {
@@ -484,7 +509,7 @@ public final class RandomDungeonService {
             int minCount = type == null ? 0 : type.minCount();
             int maxCount = type == null ? 0 : type.maxCount();
             options.add(new Assigner.TemplateOption(entry.getKey(), entry.getValue().tags(),
-                    weight, minCount, maxCount));
+                    weight, minCount, maxCount, entry.getValue().anchors().size()));
         }
         options.sort((left, right) -> left.typeId().compareTo(right.typeId()));
         return options;
@@ -804,7 +829,9 @@ public final class RandomDungeonService {
                     "expected", record.configHash(),
                     "actual", config.configHash));
         }
-        Topology topology = new TopologyGenerator().generate(record.seeds().topology(), record.roomCount());
+        Topology topology = new TopologyGenerator().generate(record.seeds().topology(), record.roomCount(),
+                config.topology.style(), config.topology.chainChance(),
+                config.topology.maxLoopsPercent());
         if (!topology.hash().equals(record.topologyHash())) {
             return Result.fail("random.replay_topology_mismatch", Map.of(
                     "record", recordName,

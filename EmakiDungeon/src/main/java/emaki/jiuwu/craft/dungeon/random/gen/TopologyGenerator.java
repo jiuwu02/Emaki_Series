@@ -16,7 +16,45 @@ public final class TopologyGenerator {
 
     private static final int[][] STEPS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
+    /** 默认环路比例, 与旧硬编码 floor(count * 0.15) 等价。 */
+    private static final int DEFAULT_MAX_LOOPS_PERCENT = 15;
+
+    /**
+     * 生成枝杈状随机树 (原行为)。
+     *
+     * <p>从原点向外随机挑前沿边生长, 结果必然出现分叉节点; 适合有多个门、需要多次分叉的房型。
+     */
     public Topology generate(long seed, int roomCount) {
+        return generateBranch(seed, roomCount, DEFAULT_MAX_LOOPS_PERCENT);
+    }
+
+    /** 兼容旧调用: 显式指定环路比例。 */
+    public Topology generate(long seed, int roomCount, int maxLoopsPercent) {
+        return generateBranch(seed, roomCount, maxLoopsPercent);
+    }
+
+    /**
+     * 按配置策略生成拓扑。
+     *
+     * @param style           branch | chain | mixed
+     * @param chainChance     mixed 时走 chain 的概率百分比
+     * @param maxLoopsPercent 环路数上限占房量百分比, 0 表示纯树
+     */
+    public Topology generate(long seed, int roomCount, String style, int chainChance,
+            int maxLoopsPercent) {
+        if ("chain".equals(style)) {
+            return generateChain(seed, roomCount, maxLoopsPercent);
+        }
+        if ("mixed".equals(style)) {
+            Random picker = new Random(seed ^ 0x5DEECE66DL);
+            if (picker.nextInt(100) < chainChance) {
+                return generateChain(seed, roomCount, maxLoopsPercent);
+            }
+        }
+        return generateBranch(seed, roomCount, maxLoopsPercent);
+    }
+
+    private Topology generateBranch(long seed, int roomCount, int maxLoopsPercent) {
         int count = Math.max(2, roomCount);
         Random random = new Random(seed);
         Map<Long, Integer> cellIndex = new HashMap<>();
@@ -62,7 +100,7 @@ public final class TopologyGenerator {
             }
         }
         Collections.shuffle(loops, random);
-        int maxLoops = (int) Math.floor(count * 0.15D);
+        int maxLoops = (int) Math.floor(count * (Math.max(0, maxLoopsPercent) / 100.0D));
         for (int i = 0; i < loops.size() && i < maxLoops; i++) {
             edges.add(loops.get(i));
         }
@@ -73,6 +111,59 @@ public final class TopologyGenerator {
         for (Map.Entry<Integer, Integer> entry : depths.entrySet()) {
             if (entry.getValue() > deepestDepth
                     || (entry.getValue() == deepestDepth && entry.getKey() < deepest)) {
+                deepest = entry.getKey();
+                deepestDepth = entry.getValue();
+            }
+        }
+        String hash = Topology.computeHash(nodes, edges);
+        return new Topology(List.copyOf(nodes), List.copyOf(edges), 0, deepest, hash);
+    }
+
+    /**
+     * 生成蛇形 (boustrophedon) 链状拓扑。
+     *
+     * <p>按行来回扫描铺满网格: 第 0 行从左到右, 第 1 行从右到左, 依此类推, 相邻行在端头用一格
+     * 竖直移动连接。这样全部节点串成一条不与自身相邻的链, 只有两个叶节点, 其余节点度数恰好 2。
+     * 门锚点少的房型 (例如只在墙上开一个门的出生房) 在这种拓扑下不会被要求接第三条连接。
+     *
+     * <p>环路只在链的两端之间追加一条边 (闭合), 不改变中间节点的度数。
+     */
+    private Topology generateChain(long seed, int roomCount, int maxLoopsPercent) {
+        int count = Math.max(2, roomCount);
+        Random random = new Random(seed);
+        int width = (int) Math.ceil(Math.sqrt(count));
+        if (width < 2) {
+            width = 2;
+        }
+        List<Node> nodes = new ArrayList<>(count);
+        Map<Long, Integer> cellIndex = new HashMap<>();
+        List<Edge> edges = new ArrayList<>();
+        int placed = 0;
+        int previousId = -1;
+        for (int row = 0; placed < count; row++) {
+            boolean leftToRight = (row % 2) == 0;
+            for (int column = 0; column < width && placed < count; column++) {
+                int gridX = leftToRight ? column : width - 1 - column;
+                int id = addNode(nodes, cellIndex, gridX, row);
+                if (previousId >= 0) {
+                    edges.add(new Edge(previousId, id, true));
+                }
+                previousId = id;
+                placed++;
+            }
+        }
+        // 链式拓扑默认保持开口 (两个叶节点): 只有 1 个门的房型必须有叶位可放。
+        // 首尾闭合会让两端从度 1 变成度 2, 叶节点归零, 因此仅在 max-loops-percent >= 100
+        // (显式要求成环) 时才闭合, 且不消耗默认的 15% 预算。
+        if (maxLoopsPercent >= 100 && nodes.size() >= 4) {
+            edges.add(new Edge(0, nodes.size() - 1, false));
+        }
+        Map<Integer, Integer> depths = new Topology(List.copyOf(nodes), List.copyOf(edges), 0, 0, "")
+                .depths();
+        int deepest = nodes.size() - 1;
+        int deepestDepth = -1;
+        for (Map.Entry<Integer, Integer> entry : depths.entrySet()) {
+            if (entry.getValue() > deepestDepth) {
                 deepest = entry.getKey();
                 deepestDepth = entry.getValue();
             }
