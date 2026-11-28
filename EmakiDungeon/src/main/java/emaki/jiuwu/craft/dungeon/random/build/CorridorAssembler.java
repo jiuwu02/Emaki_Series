@@ -147,14 +147,20 @@ public final class CorridorAssembler {
             int stepZ = Integer.signum(current.z() - previous.z());
             boolean sameY = current.y() == previous.y();
             boolean straight = sameY && (stepX != 0 || stepZ != 0);
-            if (straight && stepX == dirX && stepZ == dirZ) {
+            if (!straight) {
+                // 楼梯或断点: 当前 cell 不并入任何直线段, 直线段在此处收尾
+                if (start >= 0) {
+                    segments.add(new int[] {start, i, dirX, dirZ});
+                    start = -1;
+                }
                 continue;
             }
-            segments.add(new int[] {start, i, dirX, dirZ});
-            if (!straight) {
-                // 楼梯或断点: 当前 cell 不并入任何直线段
-                start = -1;
+            if (start >= 0 && stepX == dirX && stepZ == dirZ) {
                 continue;
+            }
+            // 转向, 或刚从楼梯段恢复到平走: 先收尾旧段, 再以当前 cell 起新段
+            if (start >= 0) {
+                segments.add(new int[] {start, i, dirX, dirZ});
             }
             start = i;
             dirX = stepX;

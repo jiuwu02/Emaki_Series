@@ -343,7 +343,7 @@ public final class RandomDungeonService {
                 lastDiagnostic = "constraint-search";
                 continue;
             }
-            Bake.Result baked = Bake.bake(generated.layout(), metas);
+            Bake.Result baked = Bake.bake(generated.layout(), metas, config.corridor.tileGap());
             String id = worldNames.next("rnd");
             instance = new RandomInstance(id, dungeonId, seed + allocation,
                     Seeds.derive(seed + allocation), config.configHash, generated.topology().hash(), roomCount,

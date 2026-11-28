@@ -21,6 +21,13 @@ public final class Bake {
     }
 
     public static Result bake(Layout layout, Map<String, TemplateMeta> metas) {
+        return bake(layout, metas, 0);
+    }
+
+    /**
+     * @param tileGap 走廊模板段之间的空块数; 必须与方块铺设使用同一个值, 否则节点会与实体错位
+     */
+    public static Result bake(Layout layout, Map<String, TemplateMeta> metas, int tileGap) {
         Map<String, Object> root = new LinkedHashMap<>();
         List<String> warnings = new ArrayList<>();
         Map<Integer, RoomPlacement> byNode = new LinkedHashMap<>();
@@ -84,7 +91,7 @@ public final class Bake {
                 sectionMap.put(id, body);
             }
         }
-        bakeCorridorNodes(layout, metas, sections, sectionCounter, warnings);
+        bakeCorridorNodes(layout, metas, sections, sectionCounter, warnings, tileGap);
         sections.forEach(root::put);
         return new Result(root, spawnPoint, warnings);
     }
@@ -98,13 +105,13 @@ public final class Bake {
      */
     private static void bakeCorridorNodes(Layout layout, Map<String, TemplateMeta> metas,
             Map<String, Map<String, Object>> sections, Map<String, Integer> sectionCounter,
-            List<String> warnings) {
+            List<String> warnings, int tileGap) {
         for (CorridorRun run : layout.corridors()) {
             TemplateMeta meta = run.templateId() == null ? null : metas.get(run.templateId());
             if (meta == null || meta.nodes().isEmpty()) {
                 continue;
             }
-            for (int[] tile : CorridorAssembler.tileOrigins(run, meta, 0)) {
+            for (int[] tile : CorridorAssembler.tileOrigins(run, meta, tileGap)) {
                 int originX = tile[1];
                 int originY = tile[2];
                 int originZ = tile[3];
