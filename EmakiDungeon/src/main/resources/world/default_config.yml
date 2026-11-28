@@ -184,16 +184,16 @@ random:
 
   # 5. 连接走廊规则
   #    link-mode: force(全走廊) | default(逐边 50%) | off(全直连, 高差非 0 候选非法)
-  #    template-ref: 指向 structure-type=corridor 的模板时, 走廊段按该模板 NBT 逐段平铺;
-  #                  留空则取唯一一个合格直走廊模板, 有多个合格模板时不启用
+  #    template-ref: 指向 structure-type=corridor 的模板时, 走廊段强制使用该模板并逐段平铺;
+  #                  留空则由 corridor-types 按权重抽样 (见第 5b 节), 无候选时回退程序化地板
   #    tile-gap: 相邻模板段之间留空块数 0-8
-  #    截面固定 1x3; slope 固定 1:1; overlap-policy 唯一值 reject
+  #    走廊截面宽高不在这里声明: 门锚点的宽高在采集期由框选实测得出, 走廊截面直接跟随
+  #    所用门的宽高, 因此 1x1、2x1 等不同尺寸的门可以同时存在, 各自生成对应截面的走廊。
+  #    slope 固定 1:1; overlap-policy 唯一值 reject
   #    含垂直段时水平投影上限 = length-max + 高差
   corridor:
     link-mode: default
     template-ref: ""
-    width: 1
-    height: 3
     length-min: 2
     length-max: 8
     max-turns: 1
@@ -202,6 +202,19 @@ random:
     overlap-policy: reject
     floor-block: stone
     tile-gap: 0
+
+  # 5b. 走廊模板登记(生成期权重)
+  #     与 room-types 同构; 走廊按权重抽样, 支持多个走廊模板共存。
+  #     未在此登记的走廊模板按其自带 weight 参与抽样; weight 为 0 时不参与随机。
+  #     走廊模板的采集方式与房间相同 (structure-type: corridor), 模块节点同样参与生成。
+  #     若 corridor.template-ref 非空, 则以该模板为准, 本节不生效。
+  #     示例:
+  #       corridor-types:
+  #         corridor_1:
+  #           weight: 2
+  #         corridor_2:
+  #           weight: 1
+  corridor-types: {}
 
   # 6. 朝向规则: 模板级 rotatable/mirrorable 与全局两层 AND
   #    rotatable: 全局旋转开关, false 时全部模板只保留原始朝向

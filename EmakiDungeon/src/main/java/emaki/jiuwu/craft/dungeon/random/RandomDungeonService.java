@@ -44,6 +44,7 @@ import emaki.jiuwu.craft.dungeon.random.layout.Bake;
 import emaki.jiuwu.craft.dungeon.random.layout.ConstraintLayoutEngine;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement;
 import emaki.jiuwu.craft.dungeon.random.layout.Transforms;
+import emaki.jiuwu.craft.dungeon.random.layout.Placement.CorridorRun;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement.Layout;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement.RoomPlacement;
 import emaki.jiuwu.craft.dungeon.random.lifecycle.InstanceStore;
@@ -418,16 +419,16 @@ public final class RandomDungeonService {
             } catch (RuntimeException exception) {
                 return;
             }
-            String corridorTypeId = corridorTypeIdOf(metas, config);
             List<BuildPipeline.PlannedBlock> merged = new ArrayList<>();
             int cursorX = 0;
             int entryX = Integer.MIN_VALUE;
             int entryY = Integer.MAX_VALUE;
             int entryZ = 0;
             for (Layout layout : layouts) {
+                String layoutCorridor = corridorTypeOf(layout);
                 BuildPipeline.Plan plan = BuildPipeline.plan(layout, List.of(), metas, templates,
                         config.corridor.floorBlock(), "stone_bricks",
-                        corridorTypeId, corridorTypeId == null ? null : metas.get(corridorTypeId),
+                        layoutCorridor, layoutCorridor == null ? null : metas.get(layoutCorridor),
                         config.corridor.tileGap());
                 // 按该份副本的真实包围盒平移, 保证相邻两份不重叠
                 int minX = Integer.MAX_VALUE;
@@ -535,27 +536,14 @@ public final class RandomDungeonService {
         return options;
     }
 
-    /**
-     * 走廊模板 id: 显式配置优先且必须存在; 未配置时取唯一一个合格的直走廊模板, 多个合格则不启用。
-     */
-    private String corridorTypeIdOf(Map<String, TemplateMeta> metas, RandomConfig config) {
-        String configured = config.corridor.templateRef();
-        if (configured != null && !configured.isBlank()) {
-            TemplateMeta meta = metas.get(configured);
-            return meta != null && TemplateModel.TYPE_CORRIDOR.equals(meta.structureType()) ? configured : null;
-        }
-        String found = null;
-        for (Map.Entry<String, TemplateMeta> entry : metas.entrySet()) {
-            TemplateMeta meta = entry.getValue();
-            if (!TemplateModel.TYPE_CORRIDOR.equals(meta.structureType())) {
-                continue;
+    /** 布局内已选定的走廊模板; 该布局没有可用走廊模板时返回 null (回退纯程序化地板)。 */
+    private String corridorTypeOf(Layout layout) {
+        for (CorridorRun run : layout.corridors()) {
+            if (run.templateId() != null && !run.templateId().isBlank()) {
+                return run.templateId();
             }
-            if (found != null) {
-                return null;
-            }
-            found = entry.getKey();
         }
-        return found;
+        return null;
     }
 
     private List<Assigner.MandatoryRule> mandatoryRules(RandomConfig config) {
@@ -587,7 +575,7 @@ public final class RandomDungeonService {
                 failInstance(instance, "flow_write_failed");
                 return;
             }
-            String corridorTypeId = corridorTypeIdOf(metas, config);
+            String corridorTypeId = corridorTypeOf(instance.layout());
             BuildPipeline.Plan plan = BuildPipeline.plan(instance.layout(),
                     List.of(), metas, templates, config.corridor.floorBlock(), "stone_bricks",
                     corridorTypeId, corridorTypeId == null ? null : metas.get(corridorTypeId),

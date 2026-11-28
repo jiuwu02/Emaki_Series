@@ -85,7 +85,20 @@ public final class Placement {
     public record CorridorCell(int x, int y, int z, boolean floorCell) {
     }
 
-    public record CorridorRun(int edgeIndex, List<CorridorCell> cells) {
+    /**
+     * 一段走廊。
+     *
+     * @param sectionWidth  通道净宽, 取自所用门锚点
+     * @param sectionHeight 通道净高, 取自所用门锚点; 不再由全局配置固定
+     * @param templateId    该段按哪个走廊模板平铺, null 表示纯程序化地板;
+     *                      该模板的模块节点与方块使用同一份模板, 保证位置一致
+     */
+    public record CorridorRun(int edgeIndex, List<CorridorCell> cells, int sectionWidth, int sectionHeight,
+            String templateId) {
+
+        public CorridorRun(int edgeIndex, List<CorridorCell> cells, int sectionWidth, int sectionHeight) {
+            this(edgeIndex, cells, sectionWidth, sectionHeight, null);
+        }
     }
 
     public record LinkRecord(int edgeIndex, int parentNodeId, int childNodeId,

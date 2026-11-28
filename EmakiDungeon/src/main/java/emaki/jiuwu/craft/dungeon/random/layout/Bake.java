@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.dungeon.random.build.CorridorAssembler;
+import emaki.jiuwu.craft.dungeon.random.layout.Placement.CorridorRun;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement.Layout;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement.LinkRecord;
 import emaki.jiuwu.craft.dungeon.random.layout.Placement.RoomPlacement;
@@ -82,8 +84,76 @@ public final class Bake {
                 sectionMap.put(id, body);
             }
         }
+        bakeCorridorNodes(layout, metas, sections, sectionCounter, warnings);
         sections.forEach(root::put);
         return new Result(root, spawnPoint, warnings);
+    }
+
+    /**
+     * 走廊模板的模块节点烘焙。
+     *
+     * <p>走廊段按 {@link CorridorAssembler#tileOrigins} 铺模板, 节点必须用同一份原点与旋转
+     * 换算, 否则会与模板实体错位。走廊没有房间那样的 RoomPlacement, 因此这里直接按
+     * 原点 + 旋转量算世界坐标。
+     */
+    private static void bakeCorridorNodes(Layout layout, Map<String, TemplateMeta> metas,
+            Map<String, Map<String, Object>> sections, Map<String, Integer> sectionCounter,
+            List<String> warnings) {
+        for (CorridorRun run : layout.corridors()) {
+            TemplateMeta meta = run.templateId() == null ? null : metas.get(run.templateId());
+            if (meta == null || meta.nodes().isEmpty()) {
+                continue;
+            }
+            for (int[] tile : CorridorAssembler.tileOrigins(run, meta, 0)) {
+                int originX = tile[1];
+                int originY = tile[2];
+                int originZ = tile[3];
+                int rotations = tile[4];
+                for (ModuleNode node : meta.nodes()) {
+                    String section = node.moduleType();
+                    if (section == null || section.isBlank()) {
+                        continue;
+                    }
+                    DoorAnchor anchor = node.anchorId().isBlank() ? null : meta.anchor(node.anchorId());
+                    int baseX = anchor == null ? 0 : anchor.x();
+                    int baseY = anchor == null ? 0 : anchor.y();
+                    int baseZ = anchor == null ? 0 : anchor.z();
+                    int localX = baseX + (int) Math.round(node.dx());
+                    int localY = baseY + (int) Math.round(node.dy());
+                    int localZ = baseZ + (int) Math.round(node.dz());
+                    int[] rotated = rotateOffset(rotations, localX, localZ);
+                    int worldX = originX + rotated[0];
+                    int worldY = originY + localY;
+                    int worldZ = originZ + rotated[1];
+                    int yaw = (int) node.yaw() + rotations;
+                    String id = node.nodeId() == null || node.nodeId().isBlank()
+                            ? section + "_" + sectionCounter.merge(section, 1, Integer::sum)
+                            : node.nodeId();
+                    Map<String, Object> body = new LinkedHashMap<>();
+                    body.put("id", id);
+                    body.put("enabled", true);
+                    body.put("location", pointMap(worldX, worldY, worldZ, yaw));
+                    body.putAll(node.params());
+                    Map<String, Object> sectionMap = sections.computeIfAbsent(section,
+                            key -> new LinkedHashMap<>());
+                    if (sectionMap.containsKey(id)) {
+                        warnings.add("节点 id 冲突已改写: " + section + "." + id);
+                        id = id + "_" + sectionCounter.merge(section, 1, Integer::sum);
+                        body.put("id", id);
+                    }
+                    sectionMap.put(id, body);
+                }
+            }
+        }
+    }
+
+    private static int[] rotateOffset(int rotations, int dx, int dz) {
+        return switch (Math.floorMod(Math.floorDiv(rotations, 90), 4)) {
+            case 1 -> new int[] {-dz, dx};
+            case 2 -> new int[] {-dx, -dz};
+            case 3 -> new int[] {dz, -dx};
+            default -> new int[] {dx, dz};
+        };
     }
 
     /** 模板内的 spawn_point 节点 (采集面板里的 entry 模块), 作为副本真正的玩家入口。 */

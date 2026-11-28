@@ -19,7 +19,17 @@ public final class RandomConfig {
     public record RoomType(String typeId, Integer weight, int minCount, int maxCount) {
     }
 
-    public record Corridor(String linkMode, String templateRef, int width, int height,
+    /** 走廊模板登记项, 与 RoomType 同构; 走廊按权重抽样, 支持多个模板共存。 */
+    public record CorridorType(String typeId, Integer weight) {
+    }
+
+    /**
+     * 走廊规则。
+     *
+     * <p>截面宽高不再由配置声明: 门锚点的宽高在采集期由框选实测得出, 走廊截面一律跟随
+     * 所用门锚点, 因此 1x1 与 2x1 等不同尺寸的门可以共存于同一份配置。
+     */
+    public record Corridor(String linkMode, String templateRef,
             int lengthMin, int lengthMax, int maxTurns, int maxHeightDiff, String overlapPolicy,
             String floorBlock, int tileGap) {
     }
@@ -76,6 +86,7 @@ public final class RandomConfig {
     public final RoomCount roomCount;
     public final Map<String, MandatoryRule> mandatory;
     public final Map<String, RoomType> roomTypes;
+    public final Map<String, CorridorType> corridorTypes;
     public final Corridor corridor;
     public final Orientation orientation;
     public final Topology topology;
@@ -89,12 +100,14 @@ public final class RandomConfig {
     public final String configHash;
 
     private RandomConfig(RoomCount roomCount, Map<String, MandatoryRule> mandatory,
-            Map<String, RoomType> roomTypes, Corridor corridor, Orientation orientation,
+            Map<String, RoomType> roomTypes, Map<String, CorridorType> corridorTypes,
+            Corridor corridor, Orientation orientation,
             Topology topology, Spatial spatial, TreasureMap treasureMap, SeedPolicy seed, WorldPolicy world,
             EditorPolicy editor, Limits limits, String canonical) {
         this.roomCount = roomCount;
         this.mandatory = mandatory;
         this.roomTypes = roomTypes;
+        this.corridorTypes = corridorTypes;
         this.corridor = corridor;
         this.orientation = orientation;
         this.topology = topology;
@@ -132,6 +145,7 @@ public final class RandomConfig {
         RoomCount roomCount = parseRoomCount(section, errors);
         Map<String, MandatoryRule> mandatory = parseMandatory(section, errors);
         Map<String, RoomType> roomTypes = parseRoomTypes(section, errors);
+        Map<String, CorridorType> corridorTypes = parseCorridorTypes(section, errors);
         Corridor corridor = parseCorridor(section, errors);
         Orientation orientation = parseOrientation(section, errors);
         Topology topology = parseTopology(section, errors);
@@ -156,8 +170,9 @@ public final class RandomConfig {
         if (!errors.isEmpty()) {
             return new Loaded(null, errors);
         }
-        return new Loaded(new RandomConfig(roomCount, mandatory, roomTypes, corridor, orientation,
-                topology, spatial, treasureMap, seed, world, editor, limits, canonicalSection(section)), errors);
+        return new Loaded(new RandomConfig(roomCount, mandatory, roomTypes, corridorTypes, corridor,
+                orientation, topology, spatial, treasureMap, seed, world, editor, limits,
+                canonicalSection(section)), errors);
     }
 
     private static RoomCount parseRoomCount(YamlSection section, List<String> errors) {
@@ -235,6 +250,29 @@ public final class RandomConfig {
         return types;
     }
 
+    /**
+     * 走廊模板登记。缺省为空表示不显式登记, 此时走廊模板按其自带 weight 参与抽样。
+     */
+    private static Map<String, CorridorType> parseCorridorTypes(YamlSection section, List<String> errors) {
+        Map<String, CorridorType> types = new LinkedHashMap<>();
+        YamlSection node = section.getSection("corridor-types");
+        if (node == null) {
+            return types;
+        }
+        for (String typeId : node.getKeys(false)) {
+            YamlSection entry = node.getSection(typeId);
+            if (entry == null) {
+                continue;
+            }
+            Integer weight = entry.contains("weight") ? entry.getInt("weight", 1) : null;
+            if (weight != null && weight < 0) {
+                errors.add("corridor-types." + typeId + ".weight: 不得为负");
+            }
+            types.put(typeId, new CorridorType(typeId, weight));
+        }
+        return types;
+    }
+
     private static Topology parseTopology(YamlSection section, List<String> errors) {
         YamlSection node = section.getSection("topology");
         String raw = node == null ? Topology.CONSTRAINT
@@ -300,16 +338,11 @@ public final class RandomConfig {
         if (!"force".equals(linkMode) && !"default".equals(linkMode) && !"off".equals(linkMode)) {
             errors.add("corridor.link-mode: 非法值 " + linkMode);
         }
-        int width = node == null ? 1 : node.getInt("width", 1);
-        int height = node == null ? 3 : node.getInt("height", 3);
         int lengthMin = node == null ? 2 : node.getInt("length-min", 2);
         int lengthMax = node == null ? 8 : node.getInt("length-max", 8);
         int maxTurns = node == null ? 1 : node.getInt("max-turns", 1);
         int maxHeightDiff = node == null ? 8 : node.getInt("max-height-diff", 8);
         String overlapPolicy = node == null ? "reject" : node.getString("overlap-policy", "reject").toLowerCase(Locale.ROOT);
-        if (width != 1 || height != 3) {
-            errors.add("corridor.width/height: 本版仅支持 1x3 截面");
-        }
         if (lengthMin < 2 || lengthMax < lengthMin) {
             errors.add("corridor.length-min/length-max: 区间非法");
         }
@@ -332,7 +365,7 @@ public final class RandomConfig {
             errors.add("corridor.tile-gap: 必须落在 0-8");
         }
         return new Corridor(linkMode, node == null ? "" : node.getString("template-ref", ""),
-                width, height, lengthMin, lengthMax, maxTurns, maxHeightDiff, overlapPolicy,
+                lengthMin, lengthMax, maxTurns, maxHeightDiff, overlapPolicy,
                 floorBlock, tileGap);
     }
 

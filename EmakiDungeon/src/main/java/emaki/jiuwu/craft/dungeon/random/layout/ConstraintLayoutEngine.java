@@ -75,6 +75,8 @@ public final class ConstraintLayoutEngine {
         private final Set<String> linkedPairs = new HashSet<>();
         private final Map<String, Integer> counts = new HashMap<>();
         private final Map<Integer, Integer> floors = new LinkedHashMap<>();
+        /** 走廊模板候选 (id 与权重), 每段走廊按权重抽一个; 为空时走纯程序化地板。 */
+        private final List<Assigner.TemplateOption> corridorOptions = new ArrayList<>();
         private int searchStates;
         private int evaluations;
         private String failure = "";
@@ -95,6 +97,54 @@ public final class ConstraintLayoutEngine {
             for (Assigner.TemplateOption option : options) {
                 counts.put(option.typeId(), 0);
             }
+            collectCorridorOptions();
+        }
+
+        /** 收集合格直走廊模板: 显式 template-ref 优先, 否则按 corridor-types 或模板自带 weight。 */
+        private void collectCorridorOptions() {
+            String configured = config.corridor.templateRef();
+            if (configured != null && !configured.isBlank()) {
+                TemplateMeta meta = metas.get(configured);
+                if (meta != null && TemplateModel.TYPE_CORRIDOR.equals(meta.structureType())) {
+                    corridorOptions.add(new Assigner.TemplateOption(configured, meta.tags(),
+                            Math.max(1, meta.weight()), 0, 0, meta.anchors().size()));
+                }
+                return;
+            }
+            for (Map.Entry<String, TemplateMeta> entry : metas.entrySet()) {
+                TemplateMeta meta = entry.getValue();
+                if (!TemplateModel.TYPE_CORRIDOR.equals(meta.structureType())) {
+                    continue;
+                }
+                RandomConfig.CorridorType registered = config.corridorTypes.get(entry.getKey());
+                int weight = registered == null || registered.weight() == null
+                        ? meta.weight() : registered.weight();
+                if (weight <= 0) {
+                    continue;
+                }
+                corridorOptions.add(new Assigner.TemplateOption(entry.getKey(), meta.tags(),
+                        weight, 0, 0, meta.anchors().size()));
+            }
+            corridorOptions.sort((left, right) -> left.typeId().compareTo(right.typeId()));
+        }
+
+        /** 按权重抽一个走廊模板 id; 无候选返回 null。 */
+        private String pickCorridorTemplate() {
+            if (corridorOptions.isEmpty()) {
+                return null;
+            }
+            int total = 0;
+            for (Assigner.TemplateOption option : corridorOptions) {
+                total += Math.max(1, option.weight());
+            }
+            int roll = random.nextInt(total);
+            for (Assigner.TemplateOption option : corridorOptions) {
+                roll -= Math.max(1, option.weight());
+                if (roll < 0) {
+                    return option.typeId();
+                }
+            }
+            return corridorOptions.get(corridorOptions.size() - 1).typeId();
         }
 
         private Result run() {
@@ -464,12 +514,15 @@ public final class ConstraintLayoutEngine {
                         int[] target = {x + horizontal[0], y + 1, z + horizontal[1]};
                         RoomPlacement child = placeAt(rooms.size(), childMeta, variant, childAnchor, target);
                         if (child == null || !validRoom(child, parent, false)
-                                || !validPath(path, parent, child)) {
+                                || !validPath(path, parent, child, parentAnchor.height())) {
                             continue;
                         }
                         int floor = floorFor(parentFloor, 0, child.originY());
                         result.add(new Expansion(parent, parentAnchor, child, childAnchor,
-                                new CorridorRun(-1, List.copyOf(path)), "staircase",
+                                new CorridorRun(-1, List.copyOf(path),
+                                        parentAnchor.width(), parentAnchor.height(),
+                                        pickCorridorTemplate()),
+                                "staircase",
                                 target[1] - from[1], floor, false,
                                 transitionWeight(childMeta, weight, true)));
                     }
@@ -545,12 +598,16 @@ public final class ConstraintLayoutEngine {
                 return;
             }
             RoomPlacement child = placeAt(rooms.size(), childMeta, variant, childAnchor, target);
-            if (child == null || !validRoom(child, parent, false) || !validPath(path, parent, child)) {
+            if (child == null || !validRoom(child, parent, false)
+                    || !validPath(path, parent, child, parentAnchor.height())) {
                 return;
             }
             int floor = floorFor(parentFloor, declaredFloorDelta(parentAnchor, childAnchor, 0), child.originY());
             result.add(new Expansion(parent, parentAnchor, child, childAnchor,
-                    new CorridorRun(-1, List.copyOf(path)), stairs == 0 ? "corridor" : "staircase",
+                    new CorridorRun(-1, List.copyOf(path),
+                            parentAnchor.width(), parentAnchor.height(),
+                            pickCorridorTemplate()),
+                    stairs == 0 ? "corridor" : "staircase",
                     heightDiff, floor, false, transitionWeight(childMeta, weight, stairs != 0)));
         }
 
@@ -589,7 +646,8 @@ public final class ConstraintLayoutEngine {
                                 config.spatial.loopChance()));
                     }
                     if (corridorAllowed(parentAnchor)) {
-                        CorridorRun path = fixedCorridor(from, facing, to, otherFacing, parent, other);
+                        CorridorRun path = fixedCorridor(from, facing, to, otherFacing, parent, other,
+                                parentAnchor);
                         if (path != null) {
                             result.add(new Expansion(parent, parentAnchor, other, otherAnchor, path,
                                     "corridor", to[1] - from[1], floors.getOrDefault(other.nodeId(), 1), true,
@@ -601,7 +659,7 @@ public final class ConstraintLayoutEngine {
         }
 
         private CorridorRun fixedCorridor(int[] from, String fromFacing, int[] to, String toFacing,
-                RoomPlacement parent, RoomPlacement other) {
+                RoomPlacement parent, RoomPlacement other, DoorAnchor parentAnchor) {
             int[] start = {from[0] + TemplateModel.facingDx(fromFacing), from[1] - 1,
                     from[2] + TemplateModel.facingDz(fromFacing)};
             int[] end = {to[0] + TemplateModel.facingDx(toFacing), to[1] - 1,
@@ -666,10 +724,12 @@ public final class ConstraintLayoutEngine {
                     path.add(new CorridorCell(x, y, z, true));
                 }
             }
-            if (x != end[0] || y != end[1] || z != end[2] || !validPath(path, parent, other)) {
+            if (x != end[0] || y != end[1] || z != end[2]
+                    || !validPath(path, parent, other, parentAnchor.height())) {
                 return null;
             }
-            return new CorridorRun(-1, List.copyOf(path));
+            return new CorridorRun(-1, List.copyOf(path), parentAnchor.width(), parentAnchor.height(),
+                    pickCorridorTemplate());
         }
 
         private Undo apply(Expansion expansion) {
@@ -692,11 +752,13 @@ public final class ConstraintLayoutEngine {
             linkedPairs.add(pairKey(link.parentNodeId(), link.childNodeId()));
             CorridorRun corridor = expansion.corridor();
             if (corridor != null) {
-                corridor = new CorridorRun(corridors.size(), corridor.cells());
+                corridor = new CorridorRun(corridors.size(), corridor.cells(),
+                        corridor.sectionWidth(), corridor.sectionHeight(), corridor.templateId());
                 corridors.add(corridor);
             }
             List<Long> roomCells = expansion.loop() ? List.of() : occupy(expansion.child());
-            List<Long> pathCells = corridor == null ? List.of() : occupyPath(corridor);
+            List<Long> pathCells = corridor == null ? List.of()
+                    : occupyPath(corridor, corridor.sectionHeight());
             return new Undo(expansion.loop() ? null : expansion.child(), link, corridor,
                     firstPort, secondPort, addedFirstPort, addedSecondPort,
                     expansion.child().typeId(), oldCount, roomCells, pathCells, oldFloor);
@@ -747,10 +809,10 @@ public final class ConstraintLayoutEngine {
             return added;
         }
 
-        private List<Long> occupyPath(CorridorRun run) {
+        private List<Long> occupyPath(CorridorRun run, int sectionHeight) {
             List<Long> added = new ArrayList<>();
             for (CorridorCell cell : run.cells()) {
-                for (int y = 0; y <= config.corridor.height(); y++) {
+                for (int y = 0; y <= sectionHeight; y++) {
                     long packed = TemplateModel.packCell(cell.x(), cell.y() + y, cell.z());
                     if (corridorCells.add(packed)) {
                         added.add(packed);
@@ -800,10 +862,11 @@ public final class ConstraintLayoutEngine {
                     && a.originZ() - marginX <= bMaxZ && aMaxZ + marginX >= b.originZ();
         }
 
-        private boolean validPath(List<CorridorCell> path, RoomPlacement parent, RoomPlacement child) {
+        private boolean validPath(List<CorridorCell> path, RoomPlacement parent, RoomPlacement child,
+                int sectionHeight) {
             Set<Long> seen = new HashSet<>();
             for (CorridorCell cell : path) {
-                for (int y = 0; y <= config.corridor.height(); y++) {
+                for (int y = 0; y <= sectionHeight; y++) {
                     long packed = TemplateModel.packCell(cell.x(), cell.y() + y, cell.z());
                     if (!seen.add(packed) || corridorCells.contains(packed)) {
                         return false;
@@ -1073,8 +1136,14 @@ public final class ConstraintLayoutEngine {
                     config.corridor.lengthMax() - config.corridor.lengthMin() + 1));
         }
 
+        /**
+         * 该门锚点能否走走廊。
+         *
+         * <p>不再与固定配置截面比对: 门宽高由采集框选实测, 走廊截面直接跟随所用门,
+         * 因此不同尺寸的门可以各自生成对应截面的走廊。
+         */
         private boolean corridorAllowed(DoorAnchor anchor) {
-            if (anchor.width() != config.corridor.width() || anchor.height() != config.corridor.height()) {
+            if (anchor == null || anchor.width() < 1 || anchor.height() < 1) {
                 return false;
             }
             if (config.spatial.proceduralConnections()) {

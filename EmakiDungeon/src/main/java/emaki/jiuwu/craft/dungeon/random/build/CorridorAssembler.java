@@ -25,13 +25,13 @@ import emaki.jiuwu.craft.dungeon.random.nbt.StructureNbt;
  * </ul>
  * 不满足时返回空列表, 调用方回退纯程序化地板。
  */
-final class CorridorAssembler {
+public final class CorridorAssembler {
 
     private CorridorAssembler() {
     }
 
     /** 走廊模板沿其自身轴的块长度。 */
-    static int tileLength(TemplateMeta meta) {
+    public static int tileLength(TemplateMeta meta) {
         if (meta == null || meta.anchors().size() != 2) {
             return 0;
         }
@@ -42,7 +42,7 @@ final class CorridorAssembler {
     }
 
     /** 两个门锚点必须朝向相反且同轴, 否则无法作为可拼接的直走廊段。 */
-    static boolean isStraightCorridor(TemplateMeta meta) {
+    public static boolean isStraightCorridor(TemplateMeta meta) {
         if (meta == null || !TemplateModel.TYPE_CORRIDOR.equals(meta.structureType())) {
             return false;
         }
@@ -55,12 +55,15 @@ final class CorridorAssembler {
     }
 
     /**
-     * 把一段走廊铺成模板块。返回的列表可能为空 (无可用模板或全程不足一段)。
+     * 走廊模板在一段走廊上的铺装锚点: 每段的起点原点和对应变体。
+     *
+     * <p>节点烘焙与方块铺设必须用同一份锚点, 否则模块节点会与模板实体错位。
+     *
+     * @return {index, originX, originY, originZ, rotations}; index 为该段在 run.cells() 中的起始下标
      */
-    static List<PlannedBlock> assemble(CorridorRun run, TemplateMeta meta,
-            StructureNbt.StructureData data, List<BlockData> palette, int tileGap) {
-        List<PlannedBlock> out = new ArrayList<>();
-        if (!isStraightCorridor(meta) || data == null || palette.isEmpty()) {
+    public static List<int[]> tileOrigins(CorridorRun run, TemplateMeta meta, int tileGap) {
+        List<int[]> out = new ArrayList<>();
+        if (!isStraightCorridor(meta)) {
             return out;
         }
         int length = tileLength(meta);
@@ -84,18 +87,39 @@ final class CorridorAssembler {
             int[] entryLocal = Transforms.transform(meta, variant, entry.x(), entry.y(), entry.z());
             for (int index = startIndex; index + length <= endIndex; index += stride) {
                 CorridorCell cell = run.cells().get(index);
-                int originX = cell.x() - entryLocal[0];
-                int originY = cell.y() - entryLocal[1];
-                int originZ = cell.z() - entryLocal[2];
-                for (StructureNbt.BlockEntry entryBlock : data.blocks()) {
-                    if (entryBlock.state() < 0 || entryBlock.state() >= palette.size()) {
-                        continue;
-                    }
-                    int[] local = Transforms.transform(meta, variant,
-                            entryBlock.x(), entryBlock.y(), entryBlock.z());
-                    out.add(new PlannedBlock(originX + local[0], originY + local[1], originZ + local[2],
-                            palette.get(entryBlock.state())));
+                out.add(new int[] {index, cell.x() - entryLocal[0], cell.y() - entryLocal[1],
+                        cell.z() - entryLocal[2], variant.rotations()});
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 把一段走廊铺成模板块。返回的列表可能为空 (无可用模板或全程不足一段)。
+     */
+    static List<PlannedBlock> assemble(CorridorRun run, TemplateMeta meta,
+            StructureNbt.StructureData data, List<BlockData> palette, int tileGap) {
+        List<PlannedBlock> out = new ArrayList<>();
+        if (!isStraightCorridor(meta) || data == null || palette.isEmpty()) {
+            return out;
+        }
+        int length = tileLength(meta);
+        if (length <= 0) {
+            return out;
+        }
+        for (int[] tile : tileOrigins(run, meta, tileGap)) {
+            int originX = tile[1];
+            int originY = tile[2];
+            int originZ = tile[3];
+            Transforms.Variant variant = new Transforms.Variant(tile[4], false);
+            for (StructureNbt.BlockEntry entryBlock : data.blocks()) {
+                if (entryBlock.state() < 0 || entryBlock.state() >= palette.size()) {
+                    continue;
                 }
+                int[] local = Transforms.transform(meta, variant,
+                        entryBlock.x(), entryBlock.y(), entryBlock.z());
+                out.add(new PlannedBlock(originX + local[0], originY + local[1], originZ + local[2],
+                        palette.get(entryBlock.state())));
             }
         }
         return out;

@@ -80,9 +80,15 @@ public final class BuildPipeline {
         for (var run : layout.corridors()) {
             Set<String> tiled = new HashSet<>();
             List<PlannedBlock> templateBlocks = new ArrayList<>();
-            if (corridorTypeId != null) {
-                for (PlannedBlock block : CorridorAssembler.assemble(run, corridorMeta, corridorData,
-                        corridorPalette, tileGap)) {
+            // 每段走廊用自己的模板 (多模板按权重抽样时各段可能不同)
+            String runTypeId = run.templateId() != null ? run.templateId()
+                    : corridorTypeId;
+            StructureNbt.StructureData runData = runTypeId == null ? null : templates.get(runTypeId);
+            TemplateMeta runMeta = runTypeId == null ? null : metas.get(runTypeId);
+            List<BlockData> runPalette = runData == null ? List.of() : paletteOf(runData);
+            if (runData != null) {
+                for (PlannedBlock block : CorridorAssembler.assemble(run, runMeta, runData,
+                        runPalette, tileGap)) {
                     templateBlocks.add(block);
                     tiled.add(TemplateModel.packCell(
                             block.x(), block.y(), block.z()) + "");
@@ -90,9 +96,10 @@ public final class BuildPipeline {
             }
             // 先清空走廊净空, 再铺地板与模板, 否则模板墙体会被后续 AIR 覆盖挖穿
             for (var cell : run.cells()) {
-                connections.add(new PlannedBlock(cell.x(), cell.y() + 1, cell.z(), Material.AIR.createBlockData()));
-                connections.add(new PlannedBlock(cell.x(), cell.y() + 2, cell.z(), Material.AIR.createBlockData()));
-                connections.add(new PlannedBlock(cell.x(), cell.y() + 3, cell.z(), Material.AIR.createBlockData()));
+                for (int y = 1; y <= run.sectionHeight(); y++) {
+                    connections.add(new PlannedBlock(cell.x(), cell.y() + y, cell.z(),
+                            Material.AIR.createBlockData()));
+                }
             }
             for (var cell : run.cells()) {
                 if (!tiled.contains(TemplateModel.packCell(
