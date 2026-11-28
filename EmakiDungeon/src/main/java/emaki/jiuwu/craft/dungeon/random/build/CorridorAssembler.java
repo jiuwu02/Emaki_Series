@@ -59,7 +59,10 @@ public final class CorridorAssembler {
      *
      * <p>节点烘焙与方块铺设必须用同一份锚点, 否则模块节点会与模板实体错位。
      *
-     * @return {index, originX, originY, originZ, rotations}; index 为该段在 run.cells() 中的起始下标
+     * @return {index, originX, originY, originZ, rotations, span, dirX, dirZ};
+     *         index 为该块在 run.cells() 中的起点下标, span 为该块在本段内允许占用的格数
+     *         (段尾放不下整块时小于模板长度), dirX/dirZ 为该段行进方向;
+     *         调用方据此裁剪越过段尾的方块, 节点烘焙则只需前 5 项
      */
     public static List<int[]> tileOrigins(CorridorRun run, TemplateMeta meta, int tileGap) {
         List<int[]> out = new ArrayList<>();
@@ -85,12 +88,15 @@ public final class CorridorAssembler {
                 continue;
             }
             int[] entryLocal = Transforms.transform(meta, variant, entry.x(), entry.y(), entry.z());
-            for (int index = startIndex; index + length <= endIndex; index += stride) {
+            for (int index = startIndex; index < endIndex; index += stride) {
                 CorridorCell cell = run.cells().get(index);
+                // 段尾剩不下一个整块模板时仍然放一块, 只保留本段范围内的方块。整块跳过会让
+                // 该段退化成纯程序化地板 (裸石条), 看起来就是"这段走廊没有模板"。
+                int span = Math.min(length, endIndex - index);
                 // cell.y 是地板方块层, 模板本地 y=0 是门的可行走面层, 原点必须抬一格,
                 // 否则模板门洞比房间门洞低一层, 与房间对不上
                 out.add(new int[] {index, cell.x() - entryLocal[0], cell.y() + 1 - entryLocal[1],
-                        cell.z() - entryLocal[2], variant.rotations()});
+                        cell.z() - entryLocal[2], variant.rotations(), span, dirX, dirZ});
             }
         }
         return out;
@@ -113,6 +119,10 @@ public final class CorridorAssembler {
             int originX = tile[1];
             int originY = tile[2];
             int originZ = tile[3];
+            int span = tile[5];
+            int dirX = tile[6];
+            int dirZ = tile[7];
+            CorridorCell head = run.cells().get(tile[0]);
             Transforms.Variant variant = new Transforms.Variant(tile[4], false);
             for (StructureNbt.BlockEntry entryBlock : data.blocks()) {
                 if (entryBlock.state() < 0 || entryBlock.state() >= palette.size()) {
@@ -120,7 +130,15 @@ public final class CorridorAssembler {
                 }
                 int[] local = Transforms.transform(meta, variant,
                         entryBlock.x(), entryBlock.y(), entryBlock.z());
-                out.add(new PlannedBlock(originX + local[0], originY + local[1], originZ + local[2],
+                int worldX = originX + local[0];
+                int worldZ = originZ + local[2];
+                // 只保留落在本段行程内的方块: 段尾那块的尾部会越过段止点, 不裁剪就直接
+                // 盖进后面的转向点或相邻房间, 表现为走廊与房间错位与多余方块
+                int along = (worldX - head.x()) * dirX + (worldZ - head.z()) * dirZ;
+                if (along < 0 || along >= span) {
+                    continue;
+                }
+                out.add(new PlannedBlock(worldX, originY + local[1], worldZ,
                         palette.get(entryBlock.state())));
             }
         }

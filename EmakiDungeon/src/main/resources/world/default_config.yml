@@ -197,6 +197,10 @@ random:
   #    所用门的宽高, 因此 1x1、2x1 等不同尺寸的门可以同时存在, 各自生成对应截面的走廊。
   #    slope 固定 1:1; overlap-policy 唯一值 reject
   #    含垂直段时水平投影上限 = length-max + 高差
+  #    length-min/length-max 会向走廊模板块长度取整: 实际段长只取模板长度的整数倍,
+  #    保证每段都铺满整块模板。段长比模板短或不是整数倍时, 这一段会被截断甚至铺不出
+  #    模板, 外观上就是走廊缺失、端口与房间门错位。
+  #    max-turns 在段长不足两个整块模板时自动失效 (拐弯需要两截都够一整块), 此时只走直线。
   corridor:
     link-mode: default
     template-ref: ""

@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import emaki.jiuwu.craft.dungeon.random.build.CorridorAssembler;
 import emaki.jiuwu.craft.dungeon.random.config.RandomConfig;
 import emaki.jiuwu.craft.dungeon.random.gen.Assigner;
 import emaki.jiuwu.craft.dungeon.random.gen.Seeds;
@@ -477,6 +478,7 @@ public final class ConstraintLayoutEngine {
                 int rise = config.spatial.floorSpacing();
                 rise += Math.abs(valueOrZero(childAnchor.verticalDelta(), parentAnchor.verticalDelta()));
                 if (rise > 0 && rise <= Math.max(config.corridor.maxHeightDiff(), config.spatial.floorSpacing() * 2)) {
+                    String templateId = pickCorridorTemplate();
                     int length = randomLength();
                     int[][] directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
                     for (int[] horizontal : directions) {
@@ -501,8 +503,7 @@ public final class ConstraintLayoutEngine {
                         int floor = floorFor(parentFloor, 0, child.originY());
                         result.add(new Expansion(parent, parentAnchor, child, childAnchor,
                                 new CorridorRun(-1, List.copyOf(path),
-                                        parentAnchor.width(), parentAnchor.height(),
-                                        pickCorridorTemplate()),
+                                        parentAnchor.width(), parentAnchor.height(), templateId),
                                 "staircase",
                                 target[1] - from[1], floor, false,
                                 expansionWeight(weight, true)));
@@ -539,15 +540,21 @@ public final class ConstraintLayoutEngine {
             if (Math.abs(heightDiff) > config.corridor.maxHeightDiff()) {
                 return;
             }
-            boolean turn = config.corridor.maxTurns() > 0 && random.nextBoolean();
             int dx = TemplateModel.facingDx(facing);
             int dz = TemplateModel.facingDz(facing);
             int sign = random.nextBoolean() ? 1 : -1;
             int pdx = dx == 0 ? sign : 0;
             int pdz = dz == 0 ? sign : 0;
+            String templateId = pickCorridorTemplate();
+            int tile = shortestCorridorTile();
             int length = randomLength();
-            int prefix = turn ? Math.max(1, length / 2) : length;
-            int suffix = turn ? Math.max(1, length - prefix) : 0;
+            // 拐弯必须把一段切成两个同样能整块平铺的子段, 否则拐点两侧都会剩半块模板,
+            // 收尾门框被截断, 表现为走廊端口与房间门"左右差两格"。段长不够两个整块时
+            // 直接走直线, 不做拐弯。
+            boolean turn = config.corridor.maxTurns() > 0 && (tile <= 0 || length >= 2 * tile)
+                    && random.nextBoolean();
+            int prefix = turn ? roundUpToTile(length / 2, tile) : length;
+            int suffix = turn ? length - prefix : 0;
             int stairs = Math.abs(heightDiff);
             int stepX = turn ? pdx : dx;
             int stepZ = turn ? pdz : dz;
@@ -586,8 +593,7 @@ public final class ConstraintLayoutEngine {
             int floor = floorFor(parentFloor, declaredFloorDelta(parentAnchor, childAnchor, 0), child.originY());
             result.add(new Expansion(parent, parentAnchor, child, childAnchor,
                     new CorridorRun(-1, List.copyOf(path),
-                            parentAnchor.width(), parentAnchor.height(),
-                            pickCorridorTemplate()),
+                            parentAnchor.width(), parentAnchor.height(), templateId),
                     stairs == 0 ? "corridor" : "staircase",
                     heightDiff, floor, false, expansionWeight(weight, stairs != 0)));
         }
@@ -1107,9 +1113,46 @@ public final class ConstraintLayoutEngine {
             return explicit != null ? explicit : 0;
         }
 
+        /**
+         * 走廊段的格数, 尽量取走廊模板块长度的整数倍。
+         *
+         * <p>两个理由: 段长比模板短时一整块模板都放不下, 这一段会退化成纯程序化地板;
+         * 段长不是模板块长度的整数倍时, 最后一块只能铺到一半, 收尾门框会被截断, 外观上
+         * 就是走廊与房间之间"差两格"。
+         */
         private int randomLength() {
-            return config.corridor.lengthMin() + random.nextInt(Math.max(1,
-                    config.corridor.lengthMax() - config.corridor.lengthMin() + 1));
+            int min = Math.max(1, config.corridor.lengthMin());
+            int max = Math.max(min, config.corridor.lengthMax());
+            int tile = shortestCorridorTile();
+            if (tile > 0 && max >= tile) {
+                int first = Math.max(1, (min + tile - 1) / tile);
+                int last = max / tile;
+                if (last >= first) {
+                    return (first + random.nextInt(last - first + 1)) * tile;
+                }
+            }
+            return min + random.nextInt(max - min + 1);
+        }
+
+        /** 把长度向上取整到模板块长度的整数倍; 无模板时原样返回。 */
+        private int roundUpToTile(int value, int tile) {
+            if (tile <= 0) {
+                return Math.max(1, value);
+            }
+            return Math.max(tile, (value + tile - 1) / tile * tile);
+        }
+
+        /** 可抽样走廊模板中最短的一块的长度; 无可抽样模板时返回 0。 */
+        private int shortestCorridorTile() {
+            int shortest = 0;
+            for (Assigner.TemplateOption option : corridorOptions) {
+                TemplateMeta meta = metas.get(option.typeId());
+                int length = meta == null ? 0 : CorridorAssembler.tileLength(meta);
+                if (length > 0 && (shortest == 0 || length < shortest)) {
+                    shortest = length;
+                }
+            }
+            return shortest;
         }
 
         /**
