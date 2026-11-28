@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.58"
+version: "1.0.60"
 
 tags:
   challenge: "[ challenge ]"
@@ -376,6 +376,7 @@ editor:
   save_busy: "<yellow>The block write queue is still running, save again shortly</yellow>"
   save_failed: "<red>Save failed (changes stay in the session): <error></red>"
   saved: "<green>Saved and written back to the template (<dungeon>), generation <generation>, terrain changed: <terrain></green>"
+  structures_recaptured: "<green>Re-captured <count> structures from their selections <dungeon></green>"
   discarded: "<green>Editor session discarded, all unsaved config and terrain changes dropped</green>"
   help_mark: |
     <gray>===== Mark reference (21 types) =====</gray>

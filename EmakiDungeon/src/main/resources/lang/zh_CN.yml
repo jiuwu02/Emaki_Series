@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.58"
+version: "1.0.60"
 
 tags:
   challenge: "[ 挑战 ]"
@@ -376,6 +376,7 @@ editor:
   save_busy: "<yellow>方块写入队列尚未完成, 请稍候再保存</yellow>"
   save_failed: "<red>保存失败 (改动仍在会话中): <error></red>"
   saved: "<green>已保存并回写模板 (<dungeon>), 世代 <generation>, 地形变更: <terrain></green>"
+  structures_recaptured: "<green>已按模板选区重采 <count> 个结构 <dungeon></green>"
   discarded: "<green>已放弃编辑会话, 未保存的配置与地形改动全部丢弃</green>"
   help_mark: |
     <gray>===== 标记速查 (共 21 类) =====</gray>

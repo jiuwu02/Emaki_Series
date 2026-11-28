@@ -9,12 +9,14 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers;
 import emaki.jiuwu.craft.dungeon.random.config.RandomConfig;
 import emaki.jiuwu.craft.dungeon.random.layout.AnchorGeometry;
@@ -249,7 +251,13 @@ public final class CaptureService {
                             && !TemplateModel.TYPE_TRANSITION.equals(value)) {
                         return Result.fail("random.template.meta_invalid", Map.of("key", key, "value", value));
                     }
+                    // 已选中某个模板时, 改类型必须落到该模板上; 只改会话字段会让玩家看不到效果
+                    String target = targetOf(session);
                     session.structureType = value;
+                    if (target == null) {
+                        return Result.ok("random.template.meta_set", Map.of("key", key, "value", value));
+                    }
+                    return retypeStructureInner(session, target, value);
                 }
                 case "tags" -> {
                     session.tags.clear();
@@ -925,7 +933,16 @@ public final class CaptureService {
             if (session == null) {
                 return Result.fail("random.template.no_session", Map.of());
             }
-            String normalizedType = nextType == null ? "" : nextType.trim().toLowerCase(Locale.ROOT);
+            return retypeStructureInner(session, templateId, nextType);
+        } finally {
+            fireRefresh(player.getUniqueId());
+        }
+    }
+
+    Result retypeStructureInner(Session session, String templateId, String nextType) {
+        {
+            String normalizedType = nextType == null ? ""
+                    : nextType.trim().toLowerCase(Locale.ROOT);
             if (!TemplateModel.TYPE_ROOM.equals(normalizedType)
                     && !TemplateModel.TYPE_CORRIDOR.equals(normalizedType)
                     && !TemplateModel.TYPE_TRANSITION.equals(normalizedType)) {
@@ -961,24 +978,112 @@ public final class CaptureService {
             deleteStructure(session, templateId);
             session.targetId = renamedId;
             return Result.ok("random.region_retyped", Map.of("id", renamedId, "type", normalizedType));
-        } finally {
-            fireRefresh(player.getUniqueId());
         }
     }
 
+    /**
+     * 新建结构的编号。
+     *
+     * <p>取最小可用空闲号, 而不是"当前最大值 + 1": 删掉 room_1 后新建应当重新得到 room_1,
+     * 否则编号会随着删除/新建不断空洞化。
+     */
     private String nextRegionId(String dungeonId, String prefix) {
         TemplateStore store = storeProvider.apply(dungeonId);
-        int max = 0;
-        for (String existing : store.ids()) {
-            if (!existing.startsWith(prefix + "_")) {
-                continue;
-            }
-            try {
-                max = Math.max(max, Integer.parseInt(existing.substring(prefix.length() + 1)));
-            } catch (NumberFormatException ignored) {
+        java.util.Set<String> used = new java.util.HashSet<>(store.ids());
+        for (int index = 1; index < 100_000; index++) {
+            String candidate = prefix + "_" + index;
+            if (!used.contains(candidate)) {
+                return candidate;
             }
         }
-        return prefix + "_" + (max + 1);
+        return prefix + "_" + System.currentTimeMillis();
+    }
+
+    /**
+     * 按模板自身选区重新采集方块。
+     *
+     * <p>编辑器保存后调用: 玩家框选后修改了结构内容, 但模板里存的是上次采集的方块快照,
+     * 若不重采, 模板与编辑世界里的实际结构会一直不一致。使用模板记录的 selection 而不是
+     * 当前会话选区, 因为会话选区在保存后已被清空。
+     *
+     * @return 成功重采的模板数
+     */
+    public int recaptureStructures(Player player, String dungeonId, RandomConfig config) {
+        if (dungeonId == null || dungeonId.isBlank()) {
+            return 0;
+        }
+        World world = Bukkit.getWorld(EDIT_WORLD_PREFIX + dungeonId);
+        if (world == null) {
+            return 0;
+        }
+        TemplateStore store = storeProvider.apply(dungeonId);
+        int recaptured = 0;
+        for (Map.Entry<String, TemplateMeta> entry : store.loadAll().entrySet()) {
+            TemplateMeta meta = entry.getValue();
+            List<Integer> sel = meta.selection();
+            if (sel.size() != 6) {
+                continue;
+            }
+            int minX = Math.min(sel.get(0), sel.get(3));
+            int minY = Math.min(sel.get(1), sel.get(4));
+            int minZ = Math.min(sel.get(2), sel.get(5));
+            int maxX = Math.max(sel.get(0), sel.get(3));
+            int maxY = Math.max(sel.get(1), sel.get(4));
+            int maxZ = Math.max(sel.get(2), sel.get(5));
+            int sizeX = maxX - minX + 1;
+            int sizeY = maxY - minY + 1;
+            int sizeZ = maxZ - minZ + 1;
+            if (sizeX < 1 || sizeY < 1 || sizeZ < 1) {
+                continue;
+            }
+            long volume = (long) sizeX * sizeY * sizeZ;
+            if (volume > 2_000_000L) {
+                continue;
+            }
+            Mask mask = new Mask(sizeX, sizeY, sizeZ);
+            Map<String, Integer> paletteIndex = new LinkedHashMap<>();
+            List<PaletteEntry> palette = new ArrayList<>();
+            List<BlockEntry> blocks = new ArrayList<>();
+            long blockCount = 0;
+            for (int x = minX; x <= maxX; x++) {
+                for (int y = minY; y <= maxY; y++) {
+                    for (int z = minZ; z <= maxZ; z++) {
+                        BlockData data = world.getBlockAt(x, y, z).getBlockData();
+                        if (data.getMaterial().isAir()) {
+                            continue;
+                        }
+                        blockCount++;
+                        mask.add(x - minX, y - minY, z - minZ);
+                        String key = data.getAsString();
+                        Integer state = paletteIndex.get(key);
+                        if (state == null) {
+                            state = palette.size();
+                            paletteIndex.put(key, state);
+                            palette.add(PaletteEntry.parse(key));
+                        }
+                        blocks.add(new BlockEntry(x - minX, y - minY, z - minZ, state));
+                    }
+                }
+            }
+            if (config != null && blockCount > config.limits.maxTemplateBlocks()) {
+                continue;
+            }
+            StructureNbt.StructureData data = new StructureNbt.StructureData(sizeX, sizeY, sizeZ, palette, blocks);
+            TemplateMeta refreshed = new TemplateMeta(meta.id(), meta.templateRef(), meta.structureType(),
+                    meta.tags(), sizeX, sizeY, sizeZ, meta.floors(), meta.anchors(),
+                    meta.rotatable(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
+                    meta.sealBlock(), meta.nodes(), mask, meta.entities(), meta.selection(), meta.weight());
+            try {
+                store.save(meta.id(), refreshed, data);
+                recaptured++;
+            } catch (IOException exception) {
+                FailureRecorder.recordIgnoredFailure("EmakiDungeon", "CaptureService.java#recapture", exception);
+            }
+        }
+        if (recaptured > 0) {
+            fireRefresh(player == null ? null : player.getUniqueId());
+        }
+        return recaptured;
     }
 
     private void clearSelection(Session session) {

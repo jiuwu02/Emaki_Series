@@ -124,6 +124,10 @@ public final class EditorService implements Listener {
         this.dungeonConfigOf = supplier;
     }
 
+    emaki.jiuwu.craft.dungeon.random.RandomDungeonService randomService() {
+        return randomServiceOf == null ? null : randomServiceOf.get();
+    }
+
     public void bindGui(EditorGui gui) { new EditorServiceDelegate(this).bindGui(gui); }
 
     public void bindMarkers(EditorModuleMarkers markers) { new EditorServiceDelegate(this).bindMarkers(markers); }

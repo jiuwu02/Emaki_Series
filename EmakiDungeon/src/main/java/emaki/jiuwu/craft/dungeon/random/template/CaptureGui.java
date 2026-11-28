@@ -516,12 +516,9 @@ public final class CaptureGui implements Listener {
     private void handleMeta(Player player, Holder holder, CaptureService.Session session, int slot) {
         switch (slot) {
             case 10 -> {
-                String next = switch (session.structureType) {
-                    case TemplateModel.TYPE_ROOM -> TemplateModel.TYPE_CORRIDOR;
-                    case TemplateModel.TYPE_CORRIDOR -> TemplateModel.TYPE_TRANSITION;
-                    default -> TemplateModel.TYPE_ROOM;
-                };
+                String next = nextStructureType(session.structureType);
                 report(player, captures.meta(player, "type", next));
+                refreshEditorMarkers(session);
                 reopen(player, holder);
             }
             case 11 -> promptClose(player, "tags", text -> report(player, captures.meta(player, "tags", text)));
@@ -787,14 +784,13 @@ public final class CaptureGui implements Listener {
         }
         switch (slot) {
             case 10 -> {
-                String next = switch (meta.structureType()) {
-                    case TemplateModel.TYPE_ROOM -> TemplateModel.TYPE_CORRIDOR;
-                    case TemplateModel.TYPE_CORRIDOR -> TemplateModel.TYPE_TRANSITION;
-                    default -> TemplateModel.TYPE_ROOM;
-                };
-                report(player, captures.retypeStructure(player, templateId, next));
+                String next = nextStructureType(meta.structureType());
+                CaptureService.Result result = captures.retypeStructure(player, templateId, next);
+                report(player, result);
                 refreshEditorMarkers(session);
-                open(player, new Holder(Panel.MAIN, new String[0], 0));
+                // 切换类型会改名, 留在结构页并跟随新 id, 否则玩家会掉回主面板而看不到结果
+                String followed = result.ok() ? result.params().getOrDefault("id", templateId) : templateId;
+                open(player, new Holder(Panel.STRUCTURE, new String[] {followed}, 0));
             }
             case 11 -> promptClose(player, "tags", text -> {
                 List<String> tags = new ArrayList<>();
@@ -956,6 +952,15 @@ public final class CaptureGui implements Listener {
 
     private void reopen(Player player, Holder holder) {
         open(player, holder);
+    }
+
+    /** 结构类型的循环顺序: room -> corridor -> transition -> room。 */
+    private String nextStructureType(String current) {
+        return switch (current == null ? "" : current) {
+            case TemplateModel.TYPE_ROOM -> TemplateModel.TYPE_CORRIDOR;
+            case TemplateModel.TYPE_CORRIDOR -> TemplateModel.TYPE_TRANSITION;
+            default -> TemplateModel.TYPE_ROOM;
+        };
     }
 
     private void report(Player player, CaptureService.Result result) {

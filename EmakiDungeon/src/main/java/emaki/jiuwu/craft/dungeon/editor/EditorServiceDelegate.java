@@ -106,6 +106,8 @@ final class EditorServiceDelegate {
     }
 
     void finishSave(EditorSession session, boolean terrainChanged) {
+        // 世界已完成保存且区域已回写, 此时重采才能读到玩家改过的真实方块
+        recaptureRandomStructures(session);
         boolean changed = terrainChanged || session.dirty();
         int generation = changed ? ownerRef.states.bump(session.dungeonId())
                 : ownerRef.states.generationOf(session.dungeonId());
@@ -125,6 +127,31 @@ final class EditorServiceDelegate {
         }
         if (session.exitPending()) {
             ownerRef.discardSession(session);
+        }
+    }
+
+    /**
+     * 随机副本保存时按模板选区重采结构。
+     *
+     * <p>采集 GUI 的保存只写元数据, 方块快照来自玩家上一次保存模板的时刻。玩家框选后
+     * 修改结构内容再退出编辑器, 模板会停留在旧内容上, 因此这里补一次重采。
+     */
+    private void recaptureRandomStructures(EditorSession session) {
+        if (!emaki.jiuwu.craft.dungeon.type.DungeonTypeRegistry.RANDOM
+                .equals(ownerRef.dungeonTypeOf(session.playerId()))) {
+            return;
+        }
+        var service = ownerRef.randomService();
+        if (service == null) {
+            return;
+        }
+        Player player = Bukkit.getPlayer(session.playerId());
+        int count = service.captures().recaptureStructures(player, session.dungeonId(),
+                service.configFor(session.dungeonId()));
+        if (count > 0 && player != null) {
+            ownerRef.messages.send(player, "editor.structures_recaptured", Map.of(
+                    "count", String.valueOf(count),
+                    "dungeon", session.dungeonId()));
         }
     }
 
