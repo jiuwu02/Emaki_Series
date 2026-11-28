@@ -46,6 +46,8 @@ public final class CaptureMarkers {
     public void refresh(CaptureService.Session session) {
         renderer.removeAll(session.markers);
         renderer.clearLabels(EditorModuleMarkers.captureLabelGroup(session.playerId));
+        // 随机副本已改由采集渲染接管, 清掉可能残留的编辑器标签避免两套重叠
+        renderer.clearLabels(EditorModuleMarkers.editorLabelGroup(session.playerId));
         if (session.worldName == null || session.worldName.isBlank()) {
             debugAnchor("refresh_skip_world_blank", Map.of());
             return;

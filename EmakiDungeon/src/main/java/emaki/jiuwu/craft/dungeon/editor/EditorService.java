@@ -128,7 +128,17 @@ public final class EditorService implements Listener {
 
     public void bindMarkers(EditorModuleMarkers markers) { new EditorServiceDelegate(this).bindMarkers(markers); }
 
-    public void refreshMarkers(EditorSession session) { new EditorServiceDelegate(this).refreshMarkers(session); }
+    public void refreshMarkers(EditorSession session) {
+        if (session == null) {
+            return;
+        }
+        // 随机副本的边框与节点统一由采集渲染器负责, 不再叠加编辑器标记
+        if (DungeonTypeRegistry.RANDOM.equals(dungeonTypeOf(session.playerId()))
+                && refreshCaptureMarkers(session)) {
+            return;
+        }
+        new EditorServiceDelegate(this).refreshMarkers(session);
+    }
 
     public void refreshMarkersOf(UUID playerId) {
         EditorSession session = playerId == null ? null : sessions.get(playerId);
@@ -275,10 +285,18 @@ public final class EditorService implements Listener {
             return;
         }
         var service = randomServiceOf == null ? null : randomServiceOf.get();
-        if (service == null) {
-            return;
+        if (service != null) {
+            service.captures().startIn(player, session.editWorldName());
         }
-        service.captures().startIn(player, session.editWorldName());
+    }
+
+    private boolean refreshCaptureMarkers(EditorSession session) {
+        var service = randomServiceOf == null ? null : randomServiceOf.get();
+        if (service == null || !service.captures().hasSession(session.playerId())) {
+            return false;
+        }
+        service.captures().fireRefresh(session.playerId());
+        return true;
     }
 
     private void discardCaptureSession(UUID playerId) {

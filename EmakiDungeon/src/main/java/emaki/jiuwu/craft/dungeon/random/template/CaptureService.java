@@ -110,7 +110,7 @@ public final class CaptureService {
         this.markerRenderer = markerRenderer;
     }
 
-    void fireRefresh(UUID playerId) {
+    public void fireRefresh(UUID playerId) {
         java.util.function.Consumer<Session> hook = refreshHook;
         Session session = playerId == null ? null : sessions.get(playerId);
         if (hook != null && session != null) {

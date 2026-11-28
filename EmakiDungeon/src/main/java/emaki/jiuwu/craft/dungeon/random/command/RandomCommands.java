@@ -117,7 +117,7 @@ public final class RandomCommands {
                 }
                 int count = args.length >= 4 ? Math.max(1, Math.min(9, parseInt(args[3], 1))) : 1;
                 Long seed = args.length >= 5 ? parseLong(args[4]) : null;
-                report(player, service.preview(args[2], count, seed, PREVIEW_SPACING));
+                report(player, service.preview(player, args[2], count, seed, PREVIEW_SPACING));
             }
             case "reload" -> {
                 if (!admin) {

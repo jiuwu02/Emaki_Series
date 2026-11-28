@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.56"
+version: "1.0.57"
 
 tags:
   challenge: "[ 挑战 ]"
@@ -708,6 +708,8 @@ random:
   preview_started: "<green>预览世界 <world> 开始生成 | <count> 份 房量 <rooms> 种子 <seed></green>"
   preview_allocation_failed: "<red>预览第 <index> 份模板分配失败</red>"
   preview_layout_failed: "<red>预览第 <index> 份布局失败 | 卡点 <diagnostic></red>"
+  preview_entered: "<green>预览世界 <world> 已生成, 已传送进入 | 用 /edungeon random leave 退出</green>"
+  preview_left: "<green>已离开预览世界 <world>, 该世界已卸载删除</green>"
   create_started: "<green>随机地牢生成开始 | 实例 <instance> 种子 <seed> 房量 <rooms></green>"
   unknown_instance: "<red>未知实例: <instance></red>"
   instance_not_ready: "<red>实例 <instance> 尚未就绪 (<state>)</red>"

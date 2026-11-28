@@ -436,10 +436,10 @@ public final class EditorModuleMarkers {
         }
         boolean point = box.minX() == box.maxX() && box.minY() == box.maxY()
                 && box.minZ() == box.maxZ();
-        double labelY = point ? box.maxY() + 1.5D
-                : Math.min(box.maxY() + 0.6D, box.centerY() + 1.2D);
-        double labelX = point ? box.minX() + 0.5D : box.centerX();
-        double labelZ = point ? box.minZ() + 0.5D : box.centerZ();
+        double labelY = (point ? box.maxY() + 1.5D
+                : Math.min(box.maxY() + 0.6D, box.centerY() + 1.2D)) + 1.0D;
+        double labelX = box.centerX() + 0.5D;
+        double labelZ = box.centerZ() + 0.5D;
         Location base = new Location(world, labelX, labelY, labelZ);
         service.upsert(new TextDisplaySpec(new DisplayKey(LABEL_NAMESPACE, group, id), text, base,
                 LABEL_PROFILE, 0, Set.of(ownerId)));

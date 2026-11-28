@@ -98,6 +98,8 @@ public final class RandomDungeonService {
     private final InstanceStore instanceStore;
     private final TreasureMapService mapService = new TreasureMapService();
     private final Map<String, RandomInstance> instances = new ConcurrentHashMap<>();
+    /** 预览世界 -> 发起预览的玩家, 退出时据此销毁世界。 */
+    private final Map<String, UUID> previewEntries = new ConcurrentHashMap<>();
     private final Map<String, TemplateStore> stores = new ConcurrentHashMap<>();
     private final Map<String, Map<String, TemplateMeta>> metasByDungeon = new ConcurrentHashMap<>();
     private final Map<String, Map<String, StructureNbt.StructureData>> templatesByDungeon = new ConcurrentHashMap<>();
@@ -372,7 +374,7 @@ public final class RandomDungeonService {
      * 预览: 在同一个临时世界里并排生成 count 份完整副本, 每份间隔约一个区块。
      * 只造方块结构, 不建 flow、不注册实例、不生成出生点。
      */
-    public Result preview(String dungeonId, int count, Long seedOverride, int spacingBlocks) {
+    public Result preview(Player player, String dungeonId, int count, Long seedOverride, int spacingBlocks) {
         if (dungeonId == null || dungeonId.isBlank()) {
             return Result.fail("random.create_no_dungeon", Map.of());
         }
@@ -419,6 +421,9 @@ public final class RandomDungeonService {
             String corridorTypeId = corridorTypeIdOf(metas, config);
             List<BuildPipeline.PlannedBlock> merged = new ArrayList<>();
             int cursorX = 0;
+            int entryX = Integer.MIN_VALUE;
+            int entryY = Integer.MAX_VALUE;
+            int entryZ = 0;
             for (Layout layout : layouts) {
                 BuildPipeline.Plan plan = BuildPipeline.plan(layout, List.of(), metas, templates,
                         config.corridor.floorBlock(), "stone_bricks",
@@ -443,12 +448,31 @@ public final class RandomDungeonService {
                 for (BuildPipeline.PlannedBlock block : plan.connections()) {
                     merged.add(new BuildPipeline.PlannedBlock(block.x() + shift, block.y(), block.z(), block.data()));
                 }
+                if (entryX == Integer.MIN_VALUE) {
+                    // 落点取第一份副本的根房间中心, 站在房间里而不是虚空
+                    for (RoomPlacement room : layout.rooms()) {
+                        if (room.nodeId() != 0) {
+                            continue;
+                        }
+                        entryX = room.originX() + shift
+                                + Transforms.footprintX(room.meta(), room.variant()) / 2;
+                        entryY = room.originY();
+                        entryZ = room.originZ()
+                                + Transforms.footprintZ(room.meta(), room.variant()) / 2;
+                        break;
+                    }
+                }
                 cursorX += (maxX - minX) + spacingBlocks;
             }
             BuildPipeline.Plan shifted = new BuildPipeline.Plan(merged, List.of(), List.of(), merged.size());
+            previewEntries.put(worldName, player.getUniqueId());
+            final int spawnX = entryX == Integer.MIN_VALUE ? 0 : entryX;
+            final int spawnY = entryY == Integer.MAX_VALUE ? 64 : entryY;
+            final int spawnZ = entryZ;
             new BuildPipeline().start(plugin, dispatcher, world, shifted,
-                    config.limits.blocksPerTick(), () -> {
-                    }, warning -> {
+                    config.limits.blocksPerTick(),
+                    () -> deliverPreview(worldName, spawnX, spawnY, spawnZ),
+                    warning -> {
                     });
         });
         return Result.ok("random.preview_started", Map.of(
@@ -456,6 +480,40 @@ public final class RandomDungeonService {
                 "count", String.valueOf(count),
                 "rooms", String.valueOf(roomCount),
                 "seed", String.valueOf(baseSeed)));
+    }
+
+    private void deliverPreview(String worldName, int x, int y, int z) {
+        UUID owner = previewEntries.get(worldName);
+        World world = Bukkit.getWorld(worldName);
+        if (owner == null || world == null) {
+            return;
+        }
+        BuildPipeline.prewarm(world, x, z, 2);
+        Player player = Bukkit.getPlayer(owner);
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        Location target = new Location(world, x + 0.5D, y + 1.0D, z + 0.5D);
+        dispatcher.runEntity(plugin, player, () -> {
+            player.teleport(target);
+            messages.send(player, "random.preview_entered", Map.of("world", worldName));
+        }, () -> {
+        });
+    }
+
+    public Result leavePreview(Player player) {
+        String worldName = player.getWorld() == null ? null : player.getWorld().getName();
+        if (worldName == null || previewEntries.remove(worldName) == null) {
+            return Result.fail("random.not_in_instance", Map.of());
+        }
+        Location back = Bukkit.getWorlds().get(0).getSpawnLocation();
+        // 先传送出世界再销毁, 否则玩家会卡在被卸载的世界里
+        dispatcher.runEntity(plugin, player, () -> {
+            player.teleport(back);
+            disposer.dispose(worldName);
+        }, () -> {
+        });
+        return Result.ok("random.preview_left", Map.of("world", worldName));
     }
 
     /** 房间候选: 只含 structure-type=room 的模板, 走廊模板不参与房间抽样。 */
@@ -740,6 +798,10 @@ public final class RandomDungeonService {
     }
 
     public Result leave(Player player) {
+        Result previewLeft = leavePreview(player);
+        if (previewLeft.ok()) {
+            return previewLeft;
+        }
         String instanceId = null;
         RandomInstance found = null;
         for (RandomInstance instance : instances.values()) {

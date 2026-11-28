@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.56"
+version: "1.0.57"
 
 tags:
   challenge: "[ challenge ]"
@@ -707,6 +707,8 @@ random:
   preview_started: "<green>Preview world <world> is generating | <count> sets, rooms <rooms>, seed <seed></green>"
   preview_allocation_failed: "<red>Preview set <index> failed template allocation</red>"
   preview_layout_failed: "<red>Preview set <index> failed layout | stuck at <diagnostic></red>"
+  preview_entered: "<green>Preview world <world> is ready, you have been teleported in | use /edungeon random leave to exit</green>"
+  preview_left: "<green>Left preview world <world>, the world was unloaded and deleted</green>"
   allocation_failed: "<red>Template allocation failed: mandatory rules unmet after <limit> reallocations</red>"
   create_started: "<green>Random dungeon generation started | instance <instance> seed <seed> rooms <rooms></green>"
   unknown_instance: "<red>Unknown instance: <instance></red>"
