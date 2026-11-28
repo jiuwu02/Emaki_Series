@@ -87,7 +87,9 @@ public final class CorridorAssembler {
             int[] entryLocal = Transforms.transform(meta, variant, entry.x(), entry.y(), entry.z());
             for (int index = startIndex; index + length <= endIndex; index += stride) {
                 CorridorCell cell = run.cells().get(index);
-                out.add(new int[] {index, cell.x() - entryLocal[0], cell.y() - entryLocal[1],
+                // cell.y 是地板方块层, 模板本地 y=0 是门的可行走面层, 原点必须抬一格,
+                // 否则模板门洞比房间门洞低一层, 与房间对不上
+                out.add(new int[] {index, cell.x() - entryLocal[0], cell.y() + 1 - entryLocal[1],
                         cell.z() - entryLocal[2], variant.rotations()});
             }
         }

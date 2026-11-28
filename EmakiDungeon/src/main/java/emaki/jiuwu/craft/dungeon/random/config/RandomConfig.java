@@ -32,6 +32,20 @@ public final class RandomConfig {
     public record Corridor(String linkMode, String templateRef,
             int lengthMin, int lengthMax, int maxTurns, int maxHeightDiff, String overlapPolicy,
             String floorBlock, int tileGap) {
+
+        public static final String LINK_FORCE = "force";
+        public static final String LINK_DEFAULT = "default";
+        public static final String LINK_OFF = "off";
+
+        /** 房间之间是否允许贴边直连。force 只走走廊, off 只走直连。 */
+        public boolean directAllowed() {
+            return !LINK_FORCE.equals(linkMode);
+        }
+
+        /** 房间之间是否允许走廊连接。off 关闭走廊。 */
+        public boolean corridorEnabled() {
+            return !LINK_OFF.equals(linkMode);
+        }
     }
 
     public record Orientation(boolean rotatable, String mirrorAxis) {

@@ -1066,6 +1066,10 @@ public final class CaptureService {
                 continue;
             }
             StructureNbt.StructureData data = new StructureNbt.StructureData(sizeX, sizeY, sizeZ, palette, blocks);
+            // 结构内容与模板里存的一致时直接跳过: 写盘与后续的重载都不必发生
+            if (sameStructure(store, meta, data)) {
+                continue;
+            }
             TemplateMeta refreshed = new TemplateMeta(meta.id(), meta.templateRef(), meta.structureType(),
                     meta.tags(), sizeX, sizeY, sizeZ, meta.floors(), meta.anchors(),
                     meta.rotatable(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
@@ -1081,6 +1085,51 @@ public final class CaptureService {
             fireRefresh(player == null ? null : player.getUniqueId());
         }
         return recaptured;
+    }
+
+    /**
+     * 编辑世界里的结构与模板里已存的一致时返回 true。
+     *
+     * <p>只比对尺寸、方块数与逐方块 (坐标 + 调色板项), 不比对 NBT 字节: 调色板顺序会随
+     * 采集遍历顺序稳定, 但字节级比对仍可能因压缩差异误判。这里用内容相等, 判定更严格也更稳。
+     */
+    private boolean sameStructure(TemplateStore store, TemplateMeta meta, StructureNbt.StructureData fresh) {
+        StructureNbt.StructureData stored = store.loadTemplate(meta.id());
+        if (stored == null) {
+            return false;
+        }
+        if (stored.sizeX() != fresh.sizeX() || stored.sizeY() != fresh.sizeY()
+                || stored.sizeZ() != fresh.sizeZ()) {
+            return false;
+        }
+        if (stored.blocks().size() != fresh.blocks().size()) {
+            return false;
+        }
+        List<String> storedPalette = paletteKeys(stored);
+        List<String> freshPalette = paletteKeys(fresh);
+        for (int index = 0; index < stored.blocks().size(); index++) {
+            StructureNbt.BlockEntry left = stored.blocks().get(index);
+            StructureNbt.BlockEntry right = fresh.blocks().get(index);
+            if (left.x() != right.x() || left.y() != right.y() || left.z() != right.z()) {
+                return false;
+            }
+            if (!paletteEntry(storedPalette, left.state()).equals(paletteEntry(freshPalette, right.state()))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static List<String> paletteKeys(StructureNbt.StructureData data) {
+        List<String> keys = new ArrayList<>(data.palette().size());
+        for (PaletteEntry entry : data.palette()) {
+            keys.add(entry.blockDataString());
+        }
+        return keys;
+    }
+
+    private static String paletteEntry(List<String> palette, int state) {
+        return state >= 0 && state < palette.size() ? palette.get(state) : "";
     }
 
     private void clearSelection(Session session) {

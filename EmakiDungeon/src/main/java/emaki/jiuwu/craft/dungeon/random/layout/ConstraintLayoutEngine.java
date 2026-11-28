@@ -520,7 +520,8 @@ public final class ConstraintLayoutEngine {
             int[] directTarget = {from[0] + TemplateModel.facingDx(facing), from[1],
                     from[2] + TemplateModel.facingDz(facing)};
             RoomPlacement direct = placeAt(rooms.size(), childMeta, variant, childAnchor, directTarget);
-            if (direct != null && parentAnchor.verticalDelta() == null && childAnchor.verticalDelta() == null
+            if (config.corridor.directAllowed()
+                    && direct != null && parentAnchor.verticalDelta() == null && childAnchor.verticalDelta() == null
                     && parentAnchor.floorDelta() == null && childAnchor.floorDelta() == null
                     && validRoom(direct, parent, true)) {
                 result.add(new Expansion(parent, parentAnchor, direct, childAnchor, null,
@@ -618,7 +619,8 @@ public final class ConstraintLayoutEngine {
                         }
                         continue;
                     }
-                    if (from[0] + TemplateModel.facingDx(facing) == to[0]
+                    if (config.corridor.directAllowed()
+                            && from[0] + TemplateModel.facingDx(facing) == to[0]
                             && from[2] + TemplateModel.facingDz(facing) == to[2]
                             && from[1] == to[1]) {
                         result.add(new Expansion(parent, parentAnchor, other, otherAnchor, null,
@@ -1093,17 +1095,16 @@ public final class ConstraintLayoutEngine {
             return Math.max(1, margin);
         }
 
+        /**
+         * 水平走廊两端门的高差。
+         *
+         * <p>默认恒为 0: 门与门必须完整贴合, 同层房间的地板与门洞绝对齐平。楼层与高度差
+         * 只由模板自身的门锚点 Y 位置决定 (例如玩家做的双层走廊, 两层门 Y 不同), 引擎不再
+         * 随机抬升走廊, 否则同一层的房间会高矮不一且门与门错位。
+         */
         private int chooseHeight(DoorAnchor parent, DoorAnchor child) {
             Integer explicit = parent.verticalDelta() != null ? parent.verticalDelta() : child.verticalDelta();
-            if (explicit != null) {
-                return explicit;
-            }
-            int max = Math.min(config.corridor.maxHeightDiff(), config.spatial.floorMaxSlope());
-            if (max <= 0 || random.nextInt(100) >= config.spatial.verticalChance()) {
-                return 0;
-            }
-            int value = 1 + random.nextInt(max);
-            return random.nextBoolean() ? value : -value;
+            return explicit != null ? explicit : 0;
         }
 
         private int randomLength() {
@@ -1119,6 +1120,9 @@ public final class ConstraintLayoutEngine {
          */
         private boolean corridorAllowed(DoorAnchor anchor) {
             if (anchor == null || anchor.width() < 1 || anchor.height() < 1) {
+                return false;
+            }
+            if (!config.corridor.corridorEnabled()) {
                 return false;
             }
             if (config.spatial.proceduralConnections()) {

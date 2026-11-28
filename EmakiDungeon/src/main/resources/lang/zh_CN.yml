@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.62"
+version: "1.0.63"
 
 tags:
   challenge: "[ 挑战 ]"
@@ -704,6 +704,7 @@ random:
   reloaded: "<green>随机地牢配置与模板已重载</green>"
   create_busy: "<red>并发实例已达上限 (<active>), 请稍候再试</red>"
   no_templates: "<red>尚无已注册结构模板, 请先在编辑世界用 /edungeon editor menu 采集房间/走廊区域</red>"
+  no_corridor_template: "<red>corridor.link-mode 为 force, 但既没有 corridor 结构模板也没开程序化地板, 房间之间无法连接 | 请采集走廊模板或改回 default</red>"
   layout_failed: "<red>布局失败: 房量 <room-count> 回溯 <attempts> 次仍冲突 | 卡点 <diagnostic></red>"
   allocation_failed: "<red>模板分配失败: 重分配 <limit> 次未达成必选规则</red>"
   preview_usage: "<red>用法: /edungeon random preview <副本ID> [份数 1-9] [种子]</red>"

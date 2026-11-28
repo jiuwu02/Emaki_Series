@@ -330,6 +330,10 @@ public final class RandomDungeonService {
         if (metas.isEmpty()) {
             return Result.fail("random.no_templates", Map.of());
         }
+        // force 要求房间之间必须走走廊: 既没有走廊模板也没开程序化地板时, 生成必然凑不满房量
+        if (requiresCorridorButMissing(config, metas)) {
+            return Result.fail("random.no_corridor_template", Map.of());
+        }
         int roomCount = config.roomCountFor(players);
         long seed = seedOverride != null ? seedOverride
                 : ("fixed".equals(config.seed.source()) ? config.seed.fixedValue()
@@ -395,6 +399,9 @@ public final class RandomDungeonService {
         Map<String, StructureNbt.StructureData> templates = templatesOf(dungeonId);
         if (metas.isEmpty()) {
             return Result.fail("random.no_templates", Map.of());
+        }
+        if (requiresCorridorButMissing(config, metas)) {
+            return Result.fail("random.no_corridor_template", Map.of());
         }
         int roomCount = config.roomCountFor(1);
         long baseSeed = seedOverride != null ? seedOverride
@@ -543,6 +550,27 @@ public final class RandomDungeonService {
     }
 
     /** 布局内已选定的走廊模板; 该布局没有可用走廊模板时返回 null (回退纯程序化地板)。 */
+    /**
+     * link-mode=force 但既无走廊模板也没开程序化地板。
+     *
+     * <p>这种情况下房间之间一条边也连不出来, 生成必然凑不满房量, 提前拒绝比让搜索
+     * 空转到预算耗尽更有用。
+     */
+    private static boolean requiresCorridorButMissing(RandomConfig config, Map<String, TemplateMeta> metas) {
+        if (!RandomConfig.Corridor.LINK_FORCE.equals(config.corridor.linkMode())) {
+            return false;
+        }
+        if (config.spatial.proceduralConnections()) {
+            return false;
+        }
+        for (TemplateMeta meta : metas.values()) {
+            if (TemplateModel.TYPE_CORRIDOR.equals(meta.structureType())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private String corridorTypeOf(Layout layout) {
         for (CorridorRun run : layout.corridors()) {
             if (run.templateId() != null && !run.templateId().isBlank()) {

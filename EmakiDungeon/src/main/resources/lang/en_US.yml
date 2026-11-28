@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.62"
+version: "1.0.63"
 
 tags:
   challenge: "[ challenge ]"
@@ -704,6 +704,7 @@ random:
   reloaded: "<green>Random dungeon config and templates reloaded</green>"
   create_busy: "<red>Concurrent instance cap reached (<active>), try again later</red>"
   no_templates: "<red>No registered structure templates yet, capture room/corridor regions with /edungeon editor menu in the edit world first</red>"
+  no_corridor_template: "<red>corridor.link-mode is force but there is no corridor template and procedural floors are disabled, so rooms cannot connect | capture a corridor template or switch back to default</red>"
   layout_failed: "<red>Layout failed: room count <room-count> still conflicting after <attempts> backtracks | stuck at <diagnostic></red>"
   preview_usage: "<red>Usage: /edungeon random preview <dungeon> [count 1-9] [seed]</red>"
   preview_started: "<green>Preview world <world> is generating | <count> sets, rooms <rooms>, seed <seed></green>"
