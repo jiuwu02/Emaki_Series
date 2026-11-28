@@ -283,12 +283,30 @@ public final class ConstraintLayoutEngine {
             return targetRooms - roomCount();
         }
 
+        private int floorTarget() {
+            if (!"floors".equals(config.spatial.mode())) {
+                return 1;
+            }
+            return verticalCapable() ? config.spatial.floorCount() : 1;
+        }
+
+        private boolean verticalCapable() {
+            for (TemplateMeta meta : metas.values()) {
+                for (DoorAnchor anchor : meta.anchors()) {
+                    if (TemplateModel.isVertical(anchor.facing())) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         private int pendingFloors() {
             if (!"floors".equals(config.spatial.mode())) {
                 return 0;
             }
             int count = 0;
-            for (int floor = 1; floor <= config.spatial.floorCount(); floor++) {
+            for (int floor = 1; floor <= floorTarget(); floor++) {
                 if (!floors.containsValue(floor)) {
                     count++;
                 }
@@ -841,7 +859,26 @@ public final class ConstraintLayoutEngine {
                 }
             }
             return new Layout(List.copyOf(rooms), List.copyOf(corridors), List.copyOf(links),
-                    List.copyOf(open), searchStates, Map.copyOf(floors));
+                    List.copyOf(open), searchStates, derivedFloors());
+        }
+
+        private Map<Integer, Integer> derivedFloors() {
+            java.util.TreeSet<Integer> heights = new java.util.TreeSet<>();
+            Map<Integer, Integer> roomHeights = new LinkedHashMap<>();
+            for (RoomPlacement room : rooms) {
+                roomHeights.put(room.nodeId(), room.originY());
+                heights.add(room.originY());
+            }
+            Map<Integer, Integer> levels = new LinkedHashMap<>();
+            int level = 1;
+            for (Integer height : heights) {
+                levels.put(height, level++);
+            }
+            Map<Integer, Integer> result = new LinkedHashMap<>();
+            for (Map.Entry<Integer, Integer> entry : roomHeights.entrySet()) {
+                result.put(entry.getKey(), levels.getOrDefault(entry.getValue(), 1));
+            }
+            return Map.copyOf(result);
         }
 
         private boolean mandatoryValid() {
@@ -953,7 +990,7 @@ public final class ConstraintLayoutEngine {
 
         private boolean floorAllowed(int current, int delta) {
             int target = current + delta;
-            return target >= 1 && target <= config.spatial.floorCount();
+            return target >= 1 && target <= floorTarget();
         }
 
         private boolean hasVerticalDeclaration(DoorAnchor first, DoorAnchor second) {
@@ -1006,10 +1043,16 @@ public final class ConstraintLayoutEngine {
             if (declared != 0) {
                 return parentFloor + declared;
             }
-            if ("floors".equals(config.spatial.mode())) {
+            int sameLevel = sameLevelDelta();
+            if (sameLevel <= 0) {
                 return parentFloor;
             }
-            return 1 + Math.floorDiv(originY - baseY, config.spatial.floorSpacing());
+            return parentFloor + Math.floorDiv(originY - baseY, sameLevel);
+        }
+
+        private int sameLevelDelta() {
+            int margin = config.spatial.verticalMargin();
+            return Math.max(1, margin);
         }
 
         private int chooseHeight(DoorAnchor parent, DoorAnchor child) {

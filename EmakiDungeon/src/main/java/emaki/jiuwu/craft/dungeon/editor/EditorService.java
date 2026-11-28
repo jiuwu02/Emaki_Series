@@ -40,6 +40,7 @@ import emaki.jiuwu.craft.dungeon.type.DungeonType;
 import emaki.jiuwu.craft.dungeon.type.DungeonTypeRegistry;
 import emaki.jiuwu.craft.dungeon.flow.FlowPoint;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommandQueue;
+import emaki.jiuwu.craft.dungeon.random.template.CaptureService;
 import emaki.jiuwu.craft.dungeon.world.TemplateRepository;
 import emaki.jiuwu.craft.dungeon.world.WorldCloner;
 import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
@@ -261,11 +262,30 @@ public final class EditorService implements Listener {
                     "dungeon", session.dungeonId(),
                     "world", session.editWorldName()
             ));
+            startCaptureIfRandom(session, player);
             refreshMarkers(session);
             if (gui != null) {
                 gui.openMain(player);
             }
         }, () -> discardSession(session));
+    }
+
+    private void startCaptureIfRandom(EditorSession session, Player player) {
+        if (!DungeonTypeRegistry.RANDOM.equals(dungeonTypeOf(session.playerId()))) {
+            return;
+        }
+        var service = randomServiceOf == null ? null : randomServiceOf.get();
+        if (service == null) {
+            return;
+        }
+        service.captures().startIn(player, session.editWorldName());
+    }
+
+    private void discardCaptureSession(UUID playerId) {
+        var service = randomServiceOf == null ? null : randomServiceOf.get();
+        if (service != null) {
+            service.captures().discardSession(playerId);
+        }
     }
 
     public void openMenu(Player player) {
@@ -858,6 +878,7 @@ public final class EditorService implements Listener {
         }
         session.configDoc().discard();
         session.flowDoc().discard();
+        discardCaptureSession(session.playerId());
         EditorModuleMarkers bound = markers;
         if (bound != null) {
             try {

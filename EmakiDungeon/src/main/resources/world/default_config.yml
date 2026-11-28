@@ -211,22 +211,23 @@ random:
     mirror-axis: none
 
   # 7. 拓扑形状
-  #    style: branch(枝杈状随机树) | chain(蛇形链) | mixed(按 chain-chance 比例混合)
-  #      branch —— 从原点向外随机挑前沿边生长, 必然出现分叉节点(度 3/4), 需要房间模板有足够门锚点
-  #      chain  —— 按行来回铺满网格, 全部房间串成一条链, 只有首尾两个叶节点, 其余度数恰好 2
-  #                房间模板只有 2 个门时用这个; 房量越多 branch 越容易出现度 4 节点
-  #      mixed  —— 按 chain-chance 百分比决定本次走 chain 还是 branch
-  #    chain-chance: mixed 时走 chain 的概率 0-100
-  #    max-loops-percent: 环路数上限占房量的百分比 0-100; 0 关闭环路(纯树), 默认 15
-  #      环路会抬高节点度数; chain 只在链首尾之间闭合, 中间节点度数不变
+  #    生成路径只有一条: 三维约束拼接 (见第 8 节)。房间的连接关系由实际拼出来的几何决定,
+  #    不再先定死拓扑形状再往格子里填房间, 因此不存在"树/链需要多少度"的硬性要求。
+  #    style: constraint(默认) | branch | chain | mixed
+  #      branch / chain / mixed 是旧树状拓扑引擎的取值, 已下线; 填这些值会在加载期归一化为
+  #      constraint 并照常生成, 不会拒绝既有配置, 也不再有任何树/链形状语义。
+  #    chain-chance: 已弃用, 仅为保持配置指纹稳定而保留, 不再影响生成
+  #    max-loops-percent: 环路数上限占房量的百分比 0-100; 0 关闭环路
   topology:
-    style: branch
+    style: constraint
     chain-chance: 50
     max-loops-percent: 15
 
-  # 8. 三维约束生成 (仅 topology.style: constraint 时生效)
+  # 8. 三维约束生成 (始终生效)
   #    mode: floors(明确楼层) | free(自由三维生长)
-  #    floor-count: 楼层总数 1-16
+  #      floors —— 尽量覆盖多个楼层; 但完全服从模板池: 池里没有任何 up/down 竖门锚点时,
+  #                可达楼层自动收敛为 1 层, 不会为一个永远够不到的楼层空转搜索
+  #    floor-count: 楼层总数 1-16 (受模板池实际竖向能力约束)
   #    floor-spacing: 相邻楼层间距 3-128
   #    floor-max-slope: 同层允许的最大高差 0..floor-spacing-1
   #    template-connections / procedural-connections: 是否启用模板连接(楼梯间/电梯井)与程序连接(楼梯)
@@ -279,9 +280,11 @@ random:
     overwrite-policy: reject
 
   # 13. 性能上限: blocks-per-tick 与既有实例写队列预算一致
+  #     compute-budget-ms: 三维约束拼接的搜索预算; 50ms 在 12 房量下会频繁触发 budget 早退,
+  #     默认取 500ms。搜索失败只影响本次生成, 不影响服务器主线程 (搜索在异步线程内做)。
   limits:
     blocks-per-tick: 8192
-    compute-budget-ms: 50
+    compute-budget-ms: 500
     build-budget-ticks: 300
     max-template-blocks: 2000000
     max-layout-backtracks: 1000

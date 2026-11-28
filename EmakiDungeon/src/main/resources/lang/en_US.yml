@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.54"
+version: "1.0.56"
 
 tags:
   challenge: "[ challenge ]"
@@ -707,11 +707,6 @@ random:
   preview_started: "<green>Preview world <world> is generating | <count> sets, rooms <rooms>, seed <seed></green>"
   preview_allocation_failed: "<red>Preview set <index> failed template allocation</red>"
   preview_layout_failed: "<red>Preview set <index> failed layout | stuck at <diagnostic></red>"
-  feasibility_no_topology: "<red>Feasibility precheck failed: empty topology</red>"
-  feasibility_no_room: "<red>Feasibility precheck failed: no template with structure-type=room, capture a room region first</red>"
-  feasibility_degree: "<red>Feasibility precheck failed: a tree topology of <rooms> rooms needs degree <need>, but candidate room templates provide at most <have> door anchors</red>"
-  feasibility_orientation: "<red>Feasibility precheck failed: template <id> has no legal orientation with rotatable disabled</red>"
-  feasibility_forced: "<red>Feasibility precheck failed: room-types min-count total <forced> exceeds room count <rooms></red>"
   allocation_failed: "<red>Template allocation failed: mandatory rules unmet after <limit> reallocations</red>"
   create_started: "<green>Random dungeon generation started | instance <instance> seed <seed> rooms <rooms></green>"
   unknown_instance: "<red>Unknown instance: <instance></red>"
@@ -724,7 +719,6 @@ random:
   record_missing: "<red>Instance record not found: <record></red>"
   replay_config_missing: "<red>Replay rejected: dungeon <dungeon> of record <record> has a missing or invalid random section</red>"
   replay_config_mismatch: "<red>Replay rejected: config_hash mismatch | record <expected> current <actual></red>"
-  replay_topology_mismatch: "<red>Replay rejected: topology hash mismatch | record <expected> current <actual></red>"
   replay_unsupported: "<red>Replay rejected: record <record> has no complete generation identity, regenerate with the current version</red>"
   replay_layout_mismatch: "<red>Replay rejected: full layout fingerprint mismatch | record <expected> current <actual></red>"
   replay_ok: "<green>Replay verified | record <record> topology <topology-hash></green>"
@@ -744,6 +738,7 @@ random:
     pos_cleared: "<green>Capture corners cleared, you can mark again</green>"
     meta_set: "<green>Metadata <key> = <value></green>"
     meta_invalid: "<red>Invalid metadata value: <key> = <value></red>"
+    meta_derived: "<red>Metadata <key> is derived from door anchor Y positions and cannot be set manually</red>"
     meta_unknown: "<red>Unknown metadata key: <key></red>"
     anchor_added: "<green>Door anchor <id> registered @ <coord></green>"
     pos_set_new: "<green>Corner <which> marked: <coord></green> <gray>| target: new room/corridor (auto-created once both points are set)</gray>"
@@ -814,6 +809,7 @@ random:
     meta_type: "<white>Structure type</white>"
     meta_tags: "<white>Tags</white>"
     meta_floors: "<white>Floors</white>"
+    meta_floors_hint: "<gray>Derived from door anchor Y positions; raise or lower a door to split floors</gray>"
     meta_mirrorable: "<white>Mirrorable</white>"
     meta_rotatable: "<white>Rotatable</white>"
     meta_intrusion: "<white>Intrusion policy</white>"

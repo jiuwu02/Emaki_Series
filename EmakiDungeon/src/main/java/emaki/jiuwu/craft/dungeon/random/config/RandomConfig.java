@@ -30,14 +30,16 @@ public final class RandomConfig {
     /**
      * 拓扑形状策略。
      *
-     * @param style           branch(枝杈状随机树) | chain(蛇形/环状链) | mixed(按 seed 比例混合)
-     * @param chainChance     mixed 时产出 chain 的概率百分比 0-100
-     * @param maxLoopsPercent 环路数上限占房量的百分比; 0 关闭环路, 回到纯树
+     * @param style           恒为 constraint, 旧值 branch/chain/mixed 在加载期归一化为此值
+     * @param chainChance     已弃用, 保留仅为维持配置指纹稳定
+     * @param maxLoopsPercent 环路数上限占房量的百分比; 0 关闭环路
      */
     public record Topology(String style, int chainChance, int maxLoopsPercent) {
 
+        public static final String CONSTRAINT = "constraint";
+
         public boolean constraintDriven() {
-            return "constraint".equals(style);
+            return CONSTRAINT.equals(style);
         }
     }
 
@@ -235,11 +237,13 @@ public final class RandomConfig {
 
     private static Topology parseTopology(YamlSection section, List<String> errors) {
         YamlSection node = section.getSection("topology");
-        String style = node == null ? "branch" : node.getString("style", "branch").toLowerCase(Locale.ROOT);
-        if (!"constraint".equals(style) && !"branch".equals(style)
-                && !"chain".equals(style) && !"mixed".equals(style)) {
-            errors.add("topology.style: 非法值 " + style);
+        String raw = node == null ? Topology.CONSTRAINT
+                : node.getString("style", Topology.CONSTRAINT).toLowerCase(Locale.ROOT);
+        if (!Topology.CONSTRAINT.equals(raw) && !"branch".equals(raw)
+                && !"chain".equals(raw) && !"mixed".equals(raw)) {
+            errors.add("topology.style: 非法值 " + raw);
         }
+        String style = Topology.CONSTRAINT;
         int chainChance = node == null ? 50 : node.getInt("chain-chance", 50);
         if (chainChance < 0 || chainChance > 100) {
             errors.add("topology.chain-chance: 必须落在 0-100, 当前 " + chainChance);

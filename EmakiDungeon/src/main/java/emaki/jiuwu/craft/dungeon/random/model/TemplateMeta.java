@@ -75,6 +75,30 @@ public record TemplateMeta(String id, String templateRef, String structureType, 
         return new int[] {min[0] + anchor.x(), min[1] + anchor.y(), min[2] + anchor.z()};
     }
 
+    public Map<Integer, Integer> floorLevels() {
+        java.util.TreeSet<Integer> heights = new java.util.TreeSet<>();
+        for (DoorAnchor door : anchors) {
+            heights.add(door.y());
+        }
+        Map<Integer, Integer> levels = new LinkedHashMap<>();
+        int level = 1;
+        for (Integer height : heights) {
+            levels.put(height, level++);
+        }
+        return levels;
+    }
+
+    public int floorOf(DoorAnchor door) {
+        if (door == null) {
+            return 1;
+        }
+        return floorLevels().getOrDefault(door.y(), 1);
+    }
+
+    public int doorFloors() {
+        return Math.max(1, floorLevels().size());
+    }
+
     /** 编辑世界内的节点绝对坐标 (仅用于编辑期渲染与点选)。 */
     public int[] nodeAbsolute(ModuleNode node) {
         DoorAnchor anchor = node.anchorId() == null || node.anchorId().isBlank()

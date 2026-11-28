@@ -15,6 +15,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers;
 import emaki.jiuwu.craft.dungeon.random.config.RandomConfig;
 import emaki.jiuwu.craft.dungeon.random.layout.AnchorGeometry;
 import emaki.jiuwu.craft.dungeon.random.model.Mask;
@@ -126,18 +127,43 @@ public final class CaptureService {
     }
 
     public Result start(Player player) {
-        if (sessions.containsKey(player.getUniqueId())) {
-            return Result.fail("random.template.already_open", Map.of());
-        }
         World world = player.getWorld();
-        if (world == null || !world.getName().startsWith(EDIT_WORLD_PREFIX)) {
+        return startIn(player, world == null ? "" : world.getName());
+    }
+
+    public Result startIn(Player player, String worldName) {
+        if (sessions.containsKey(player.getUniqueId())) {
+            Session existing = sessions.get(player.getUniqueId());
+            if (existing.worldName.equals(worldName)) {
+                return Result.fail("random.template.already_open", Map.of());
+            }
+            discardSession(existing.playerId);
+        }
+        if (worldName == null || !worldName.startsWith(EDIT_WORLD_PREFIX)) {
             return Result.fail("random.template.world_forbidden", Map.of());
         }
         Session session = new Session();
-        session.worldName = world.getName();
+        session.worldName = worldName;
         session.playerId = player.getUniqueId();
         sessions.put(player.getUniqueId(), session);
-        return Result.ok("random.template.started", Map.of("world", world.getName()));
+        return Result.ok("random.template.started", Map.of("world", worldName));
+    }
+
+    public void discardSession(UUID playerId) {
+        Session removed = playerId == null ? null : sessions.remove(playerId);
+        if (removed != null) {
+            clearMarkersOf(removed);
+        }
+    }
+
+    private void clearMarkersOf(Session removed) {
+        EditorModuleMarkers renderer = markerRenderer;
+        if (renderer != null) {
+            renderer.removeAll(removed.markers);
+            renderer.clearLabels(EditorModuleMarkers.captureLabelGroup(removed.playerId));
+        } else {
+            EditorModuleMarkers.removeAllNow(removed.markers);
+        }
     }
 
     public Result pos(Player player, int which, RandomConfig config) {
@@ -233,7 +259,9 @@ public final class CaptureService {
                         }
                     }
                 }
-                case "floors" -> session.floors = Math.max(1, Integer.parseInt(value.trim()));
+                case "floors" -> {
+                    return Result.fail("random.template.meta_derived", Map.of("key", "floors"));
+                }
                 case "weight" -> session.weight = Math.max(0, Integer.parseInt(value.trim()));
                 case "mirrorable" -> session.mirrorable = Boolean.parseBoolean(value.trim());
                 case "intrusion-policy" -> session.intrusionPolicy = TemplateModel.normalizeIntrusion(value);
@@ -282,7 +310,7 @@ public final class CaptureService {
             if (kept.size() == meta.anchors().size()) {
                 continue;
             }
-            if (!saveStructure(session, meta.withAnchors(kept))) {
+            if (!saveStructure(session, meta.withAnchors(withDerivedFloors(kept)))) {
                 return Result.fail("random.template.save_failed", Map.of("error", "template_write"));
             }
             session.targetId = entry.getKey();
@@ -340,7 +368,7 @@ public final class CaptureService {
             anchors.add(anchor.id().equals(doorId) ? settings.apply(anchor) : anchor);
             found |= anchor.id().equals(doorId);
         }
-        return found && saveStructure(session, meta.withAnchors(anchors));
+        return found && saveStructure(session, meta.withAnchors(withDerivedFloors(anchors)));
     }
 
     public List<DoorAnchor> doorsOf(Session session) {
@@ -488,6 +516,7 @@ public final class CaptureService {
                 facing, width, height, doorY - minY, 1, "", meta.sealBlock()));
         List<DoorAnchor> anchors = new ArrayList<>(meta.anchors());
         anchors.add(anchor);
+        anchors = withDerivedFloors(anchors);
         if (!saveStructure(session, meta.withAnchors(anchors))) {
             return Result.fail("random.template.save_failed", Map.of("error", "template_write"));
         }
@@ -528,6 +557,34 @@ public final class CaptureService {
     }
 
     /** 模板局部锚点换算为编辑世界绝对坐标。 */
+    private static int countDoorFloors(List<DoorAnchor> anchors) {
+        java.util.TreeSet<Integer> heights = new java.util.TreeSet<>();
+        for (DoorAnchor door : anchors) {
+            heights.add(door.y());
+        }
+        return Math.max(1, heights.size());
+    }
+
+    private List<DoorAnchor> withDerivedFloors(List<DoorAnchor> anchors) {
+        java.util.TreeSet<Integer> heights = new java.util.TreeSet<>();
+        for (DoorAnchor door : anchors) {
+            heights.add(door.y());
+        }
+        Map<Integer, Integer> levels = new LinkedHashMap<>();
+        int level = 1;
+        for (Integer height : heights) {
+            levels.put(height, level++);
+        }
+        List<DoorAnchor> result = new ArrayList<>(anchors.size());
+        for (DoorAnchor door : anchors) {
+            int floor = levels.getOrDefault(door.y(), 1);
+            result.add(new DoorAnchor(door.id(), door.x(), door.y(), door.z(), door.facing(),
+                    door.width(), door.height(), door.baseY(), floor, door.policy(), door.sealBlock(),
+                    door.connectionKind(), door.floorDelta(), door.verticalDelta()));
+        }
+        return result;
+    }
+
     private DoorAnchor absoluteAnchor(TemplateMeta meta, DoorAnchor anchor) {
         int[] min = meta.selectionMin();
         return new DoorAnchor(anchor.id(), min[0] + anchor.x(), min[1] + anchor.y(), min[2] + anchor.z(),
@@ -814,7 +871,7 @@ public final class CaptureService {
                     node.yaw(), node.params()));
         }
         TemplateMeta meta = new TemplateMeta(normalizedId, normalizedId, session.structureType,
-                List.copyOf(session.tags), sizeX, sizeY, sizeZ, session.floors,
+                List.copyOf(session.tags), sizeX, sizeY, sizeZ, countDoorFloors(localAnchors),
                 List.copyOf(localAnchors), session.rotatable, session.mirrorable,
                 session.intrusionPolicy, session.doorPolicy, session.sealBlock,
                 List.copyOf(localNodes), mask, entities,
@@ -1171,14 +1228,7 @@ public final class CaptureService {
         if (removed == null) {
             return Result.fail("random.template.no_session", Map.of());
         }
-        emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers renderer = markerRenderer;
-        if (renderer != null) {
-            renderer.removeAll(removed.markers);
-            renderer.clearLabels(emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers
-                    .captureLabelGroup(removed.playerId));
-        } else {
-            emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers.removeAllNow(removed.markers);
-        }
+        clearMarkersOf(removed);
         return Result.ok("random.template.discarded", Map.of());
     }
 }

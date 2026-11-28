@@ -271,7 +271,7 @@ public final class CaptureGui implements Listener {
         inventory.setItem(11, item(Material.NAME_TAG, "random.gui.meta_tags",
                 List.of(String.join(",", session.tags))));
         inventory.setItem(12, item(Material.LADDER, "random.gui.meta_floors",
-                List.of(String.valueOf(session.floors))));
+                List.of(String.valueOf(metaFloorsOf(session)), messages.message("random.gui.meta_floors_hint", Map.of()))));
         inventory.setItem(13, item(Material.GLASS_PANE, "random.gui.meta_mirrorable",
                 List.of(String.valueOf(session.mirrorable))));
         inventory.setItem(14, item(Material.COMPASS, "random.gui.meta_rotatable",
@@ -430,7 +430,7 @@ public final class CaptureGui implements Listener {
         inventory.setItem(11, item(Material.NAME_TAG, "random.gui.meta_tags",
                 List.of(String.join(",", meta.tags()))));
         inventory.setItem(12, item(Material.LADDER, "random.gui.meta_floors",
-                List.of(String.valueOf(meta.floors()))));
+                List.of(String.valueOf(meta.doorFloors()), messages.message("random.gui.meta_floors_hint", Map.of()))));
         inventory.setItem(13, item(Material.GLASS_PANE, "random.gui.meta_mirrorable",
                 List.of(String.valueOf(meta.mirrorable()))));
         inventory.setItem(14, item(Material.COMPASS, "random.gui.meta_rotatable",
@@ -525,10 +525,10 @@ public final class CaptureGui implements Listener {
                 reopen(player, holder);
             }
             case 11 -> promptClose(player, "tags", text -> report(player, captures.meta(player, "tags", text)));
-            case 12 -> prompt(player, holder, "floors", text -> {
-                report(player, captures.meta(player, "floors", text));
+            case 12 -> {
+                report(player, captures.meta(player, "floors", String.valueOf(metaFloorsOf(session))));
                 reopen(player, holder);
-            });
+            }
             case 13 -> {
                 report(player, captures.meta(player, "mirrorable", String.valueOf(!session.mirrorable)));
                 reopen(player, holder);
@@ -606,6 +606,14 @@ public final class CaptureGui implements Listener {
                 reopen(player, holder);
             });
         }
+    }
+
+    private int metaFloorsOf(CaptureService.Session session) {
+        java.util.TreeSet<Integer> heights = new java.util.TreeSet<>();
+        for (DoorAnchor door : captures.doorsOf(session)) {
+            heights.add(door.y());
+        }
+        return Math.max(1, heights.size());
     }
 
     private DoorAnchor doorOf(CaptureService.Session session, String templateId, String doorId) {
@@ -799,13 +807,12 @@ public final class CaptureGui implements Listener {
                         meta.rotatable(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
                         meta.sealBlock(), meta.nodes()));
             });
-            case 12 -> prompt(player, holder, "floors", text -> {
-                int floors = Math.max(1, parseInt(text, meta.floors()));
-                saveStructure(player, templateId, copy(meta, meta.structureType(), meta.tags(), floors,
+            case 12 -> {
+                saveStructure(player, templateId, copy(meta, meta.structureType(), meta.tags(), meta.doorFloors(),
                         meta.rotatable(), meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
                         meta.sealBlock(), meta.nodes()));
                 reopen(player, holder);
-            });
+            }
             case 13 -> {
                 saveStructure(player, templateId, copy(meta, meta.structureType(), meta.tags(), meta.floors(),
                         meta.rotatable(), !meta.mirrorable(), meta.intrusionPolicy(), meta.doorPolicy(),
