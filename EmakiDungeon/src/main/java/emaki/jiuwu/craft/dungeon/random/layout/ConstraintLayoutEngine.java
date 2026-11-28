@@ -276,8 +276,7 @@ public final class ConstraintLayoutEngine {
                 }
                 if (!expansion.loop() && "floors".equals(config.spatial.mode())
                         && missingFloors > 0 && remaining <= missingFloors
-                        && expansion.floor() == floors.get(expansion.parent().nodeId())
-                        && !isTransition(expansion.child().typeId())) {
+                        && expansion.floor() == floors.get(expansion.parent().nodeId())) {
                     continue;
                 }
                 result.add(expansion);
@@ -419,13 +418,7 @@ public final class ConstraintLayoutEngine {
                 if (childMeta == null || childMeta.mask() == null) {
                     continue;
                 }
-                boolean transition = isTransition(option.typeId());
-
-                if (transition && rooms.size() + 1 > nodeCapacity()) {
-                    continue;
-                }
-    
-                if (!transition && targetRooms - roomCount() <= 0) {
+                if (targetRooms - roomCount() <= 0) {
                     continue;
                 }
                 for (Transforms.Variant variant : variants(childMeta)) {
@@ -433,15 +426,11 @@ public final class ConstraintLayoutEngine {
                         if (!DoorCompatibility.from(parentAnchor).accepts(DoorCompatibility.from(childAnchor))) {
                             continue;
                         }
-                        if (transition && !TemplateModel.isVertical(facing)
-                                && !hasVerticalDeclaration(parentAnchor, childAnchor)) {
-                            continue;
-                        }
                         if (config.spatial.verticalChance() <= 0 && (TemplateModel.isVertical(facing)
                                 || hasVerticalDeclaration(parentAnchor, childAnchor))) {
                             continue;
                         }
-                        if (!transition && !"free".equals(config.spatial.mode())
+                        if (!"free".equals(config.spatial.mode())
                                 && (TemplateModel.isVertical(facing) || hasVerticalDeclaration(parentAnchor, childAnchor))
                                 && !floorAllowed(parentFloor, declaredFloorDelta(parentAnchor, childAnchor,
                                         TemplateModel.facingDy(facing)))) {
@@ -471,14 +460,6 @@ public final class ConstraintLayoutEngine {
             }
             int direction = TemplateModel.facingDy(facing);
             int declaredFloor = declaredFloorDelta(parentAnchor, childAnchor, direction);
-            if (isTransition(childMeta.id())) {
-                declaredFloor = 0;
-            }
-            if (isTransition(childMeta.id()) && isTransition(parent.typeId())) {
-                if (TemplateModel.isVertical(facing)) {
-                    return;
-                }
-            }
             if (declaredFloor != 0 && Math.abs(declaredFloor) > 1 && declaredFloor > 0 != direction > 0) {
                 return;
             }
@@ -489,7 +470,7 @@ public final class ConstraintLayoutEngine {
                 if (child != null && validRoom(child, parent, true)) {
                     result.add(new Expansion(parent, parentAnchor, child, childAnchor, null,
                             "template", delta, floorFor(parentFloor, declaredFloor, child.originY()), false,
-                            transitionWeight(childMeta, weight, true)));
+                            expansionWeight(weight, true)));
                 }
             }
             if (config.spatial.proceduralConnections()) {
@@ -524,7 +505,7 @@ public final class ConstraintLayoutEngine {
                                         pickCorridorTemplate()),
                                 "staircase",
                                 target[1] - from[1], floor, false,
-                                transitionWeight(childMeta, weight, true)));
+                                expansionWeight(weight, true)));
                     }
                 }
             }
@@ -544,15 +525,14 @@ public final class ConstraintLayoutEngine {
                     && validRoom(direct, parent, true)) {
                 result.add(new Expansion(parent, parentAnchor, direct, childAnchor, null,
                         "direct", 0, floorFor(parentFloor, 0, direct.originY()), false,
-                        transitionWeight(childMeta, weight, false)));
+                        expansionWeight(weight, false)));
             }
             if (!corridorAllowed(parentAnchor)) {
                 return;
             }
             int heightDiff = chooseHeight(parentAnchor, childAnchor);
-            if (!isTransition(childMeta.id()) && parentAnchor.floorDelta() != null
-                    && parentAnchor.floorDelta() != 0 || !isTransition(childMeta.id())
-                    && childAnchor.floorDelta() != null && childAnchor.floorDelta() != 0) {
+            if (parentAnchor.floorDelta() != null && parentAnchor.floorDelta() != 0
+                    || childAnchor.floorDelta() != null && childAnchor.floorDelta() != 0) {
                 return;
             }
             if (Math.abs(heightDiff) > config.corridor.maxHeightDiff()) {
@@ -608,7 +588,7 @@ public final class ConstraintLayoutEngine {
                             parentAnchor.width(), parentAnchor.height(),
                             pickCorridorTemplate()),
                     stairs == 0 ? "corridor" : "staircase",
-                    heightDiff, floor, false, transitionWeight(childMeta, weight, stairs != 0)));
+                    heightDiff, floor, false, expansionWeight(weight, stairs != 0)));
         }
 
         private void addLoops(List<Expansion> result, RoomPlacement parent, DoorAnchor parentAnchor,
@@ -1068,11 +1048,6 @@ public final class ConstraintLayoutEngine {
             return meta != null && TemplateModel.TYPE_ROOM.equals(meta.structureType());
         }
 
-        private boolean isTransition(String id) {
-            TemplateMeta meta = metas.get(id);
-            return meta != null && TemplateModel.TYPE_TRANSITION.equals(meta.structureType());
-        }
-
         private List<Transforms.Variant> variants(TemplateMeta meta) {
             List<Transforms.Variant> result = new ArrayList<>();
             int[] rotations = config.orientation.rotatable() && meta.rotatable()
@@ -1157,11 +1132,9 @@ public final class ConstraintLayoutEngine {
             return false;
         }
 
-        private double transitionWeight(TemplateMeta meta, int weight, boolean vertical) {
+        /** 展开候选的抽样权重; 竖向连接按 vertical-chance 缩放, 避免跨层段挤掉水平段。 */
+        private double expansionWeight(int weight, boolean vertical) {
             double base = Math.max(1, weight);
-            if (isTransition(meta.id())) {
-                base *= 2.0D;
-            }
             if (vertical) {
                 base *= Math.max(0.01D, config.spatial.verticalChance() / 50.0D);
             }

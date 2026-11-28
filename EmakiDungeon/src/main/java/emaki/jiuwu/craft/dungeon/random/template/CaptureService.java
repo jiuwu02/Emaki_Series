@@ -247,8 +247,7 @@ public final class CaptureService {
         try {
             switch (normalized) {
                 case "type" -> {
-                    if (!TemplateModel.TYPE_ROOM.equals(value) && !TemplateModel.TYPE_CORRIDOR.equals(value)
-                            && !TemplateModel.TYPE_TRANSITION.equals(value)) {
+                    if (!TemplateModel.TYPE_ROOM.equals(value) && !TemplateModel.TYPE_CORRIDOR.equals(value)) {
                         return Result.fail("random.template.meta_invalid", Map.of("key", key, "value", value));
                     }
                     // 已选中某个模板时, 改类型必须落到该模板上; 只改会话字段会让玩家看不到效果
@@ -905,8 +904,7 @@ public final class CaptureService {
             return Result.fail("random.template.no_session", Map.of());
         }
         String normalizedType = structureType == null ? "" : structureType.trim().toLowerCase(Locale.ROOT);
-        if (!TemplateModel.TYPE_ROOM.equals(normalizedType) && !TemplateModel.TYPE_CORRIDOR.equals(normalizedType)
-                && !TemplateModel.TYPE_TRANSITION.equals(normalizedType)) {
+        if (!TemplateModel.TYPE_ROOM.equals(normalizedType) && !TemplateModel.TYPE_CORRIDOR.equals(normalizedType)) {
             return Result.fail("random.region_type_invalid", Map.of("type", String.valueOf(structureType)));
         }
         World world = player.getWorld();
@@ -944,8 +942,7 @@ public final class CaptureService {
             String normalizedType = nextType == null ? ""
                     : nextType.trim().toLowerCase(Locale.ROOT);
             if (!TemplateModel.TYPE_ROOM.equals(normalizedType)
-                    && !TemplateModel.TYPE_CORRIDOR.equals(normalizedType)
-                    && !TemplateModel.TYPE_TRANSITION.equals(normalizedType)) {
+                    && !TemplateModel.TYPE_CORRIDOR.equals(normalizedType)) {
                 return Result.fail("random.region_type_invalid", Map.of("type", String.valueOf(nextType)));
             }
             TemplateMeta meta = structure(session, templateId);

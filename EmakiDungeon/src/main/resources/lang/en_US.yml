@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.60"
+version: "1.0.61"
 
 tags:
   challenge: "[ challenge ]"
@@ -608,6 +608,7 @@ console:
   instance_crashed: "Instance loop crashed | instance=%instance% | error=%error%"
   flow_file_failed: "Failed to create flow YAML | dungeon=%dungeon% | error=%error%"
   random_config_legacy_ignored: "<yellow>Found the retired standalone file random-dungeon.yml and ignored it; move the random dungeon settings into the random section of each dungeon's world/<dungeonId>/config.yml</yellow>"
+  random_transition_retired: "<yellow>Template <id> of dungeon <dungeon> uses the retired structure-type: transition and was skipped; floors are derived from door anchor Y positions, convert it to room or corridor</yellow>"
   random_config_section_missing: "<yellow>Dungeon <dungeon> has no random section in world/<dungeonId>/config.yml, so random generation is unavailable for it; the plugin-level config.yml no longer carries random settings</yellow>"
   flow_load_failed: "Failed to load flow YAML, empty definition used | instance=%instance% | error=%error%"
   editor_worlds_swept: "Startup sweep removed leftover edit worlds | count=%count%"
@@ -804,7 +805,7 @@ random:
     create_region: "<green>Create region</green>"
     create_room: "<green>New region type · room</green>"
     create_corridor: "<green>New region type · corridor</green>"
-    create_transition: "<green>New region type · transition (stairwell / elevator shaft)</green>"
+
     create_hint: "<gray>Pick a type, close the GUI, then mark two points with pos1/pos2 to auto-create</gray>"
     discard: "<red>Discard session</red>"
     status: "<white>Capture status</white>"

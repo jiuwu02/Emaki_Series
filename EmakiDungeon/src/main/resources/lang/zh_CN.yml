@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.60"
+version: "1.0.61"
 
 tags:
   challenge: "[ 挑战 ]"
@@ -608,6 +608,7 @@ console:
   instance_crashed: "实例循环异常终止 | 实例=%instance% | 错误=%error%"
   flow_file_failed: "流程 YAML 创建失败 | 副本=%dungeon% | 错误=%error%"
   random_config_legacy_ignored: "<yellow>检测到已下线的独立配置文件 random-dungeon.yml, 已忽略; 随机地牢配置请改到各副本 world/<副本ID>/config.yml 的 random 段</yellow>"
+  random_transition_retired: "<yellow>副本 <dungeon> 的模板 <id> 使用了已下线的 structure-type: transition, 已跳过; 楼层由门锚点 Y 位置决定, 请把该模板改为 room 或 corridor</yellow>"
   random_config_section_missing: "<yellow>副本 <dungeon> 的 world/<副本ID>/config.yml 缺少 random 段, 该副本无法进行随机生成; 插件顶层 config.yml 不再承载随机段</yellow>"
   flow_load_failed: "流程 YAML 加载失败, 使用空定义 | 实例=%instance% | 错误=%error%"
   editor_worlds_swept: "启动清扫编辑世界残留 | 数量=%count%"
@@ -804,7 +805,7 @@ random:
     create_region: "<green>创建区域</green>"
     create_room: "<green>新区域类型 · 房间</green>"
     create_corridor: "<green>新区域类型 · 走廊</green>"
-    create_transition: "<green>新区域类型 · 跨层连接 (楼梯间/电梯井)</green>"
+
     create_hint: "<gray>选好类型后关闭界面, 用 pos1/pos2 标记两点即自动创建</gray>"
     discard: "<red>丢弃会话</red>"
     status: "<white>采集状态</white>"

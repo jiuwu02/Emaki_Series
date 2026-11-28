@@ -11,7 +11,8 @@ public final class TemplateModel {
 
     public static final String TYPE_ROOM = "room";
     public static final String TYPE_CORRIDOR = "corridor";
-    public static final String TYPE_TRANSITION = "transition";
+    /** 已下线的旧结构类型。楼层由门锚点的 Y 位置决定, 不再需要专门的跨层结构模板。 */
+    public static final String TYPE_LEGACY_TRANSITION = "transition";
     /** 采集面板里 entry 模块落库的 module 名, 在模板内代表副本入口出生点。 */
     public static final String TYPE_ENTRY = "spawn_point";
 

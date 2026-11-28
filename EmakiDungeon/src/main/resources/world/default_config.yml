@@ -241,9 +241,12 @@ random:
   #      floors —— 尽量覆盖多个楼层; 但完全服从模板池: 池里没有任何 up/down 竖门锚点时,
   #                可达楼层自动收敛为 1 层, 不会为一个永远够不到的楼层空转搜索
   #    floor-count: 楼层总数 1-16 (受模板池实际竖向能力约束)
-  #    floor-spacing: 相邻楼层间距 3-128
+  #    floor-spacing: 程序楼梯单次抬升的步数 3-128 (不再用于划分楼层; 楼层由门锚点的 Y 位置推导)
   #    floor-max-slope: 同层允许的最大高差 0..floor-spacing-1
-  #    template-connections / procedural-connections: 是否启用模板连接(楼梯间/电梯井)与程序连接(楼梯)
+  #    template-connections: 是否允许两块模板直接以门对接(含 up/down 竖门上下叠接)
+  #    procedural-connections: 是否允许在门之间程序生成走廊与楼梯
+  #    跨层连接一律由普通房间/走廊模板的 up/down 竖门或 floor-delta 声明驱动,
+  #    不再有专门的 structure-type: transition 过渡结构 (该类型已下线, 旧模板加载时会被跳过并告警)
   #    loop-chance / vertical-chance: 环路与竖向扩展概率 0-100
   #    horizontal-margin / vertical-margin: 非连接面的间隔距离
   #    max-search-states: 搜索状态上限, 触及即明确失败, 防止坏模板池无限搜索

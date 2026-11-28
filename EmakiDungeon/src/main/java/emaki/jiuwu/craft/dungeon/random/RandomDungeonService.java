@@ -219,6 +219,12 @@ public final class RandomDungeonService {
                 if (meta == null) {
                     continue;
                 }
+                // transition 已下线: 楼层由门锚点的 Y 位置决定, 不再需要专门的跨层结构模板
+                if (TemplateModel.TYPE_LEGACY_TRANSITION.equals(meta.structureType())) {
+                    messages.warning(LogTag.CONFIG, "console.random_transition_retired", Map.of(
+                            "dungeon", dungeonId, "id", id));
+                    continue;
+                }
                 dungeonMetas.put(id, meta);
                 StructureNbt.StructureData data = store.loadTemplate(id);
                 if (data != null) {

@@ -413,8 +413,7 @@ public final class CaptureGui implements Listener {
                 List.of(TemplateModel.TYPE_ROOM.equals(session.structureType) ? "*" : "")));
         inventory.setItem(11, item(Material.ORANGE_CONCRETE, "random.gui.create_corridor",
                 List.of(TemplateModel.TYPE_CORRIDOR.equals(session.structureType) ? "*" : "")));
-        inventory.setItem(12, item(Material.LADDER, "random.gui.create_transition",
-                List.of(TemplateModel.TYPE_TRANSITION.equals(session.structureType) ? "*" : "")));
+
         inventory.setItem(SLOT_INFO, item(Material.PAPER, "random.gui.create_hint", List.of()));
         inventory.setItem(SLOT_BACK, item(Material.OAK_DOOR, "random.gui.back", List.of()));
     }
@@ -764,8 +763,8 @@ public final class CaptureGui implements Listener {
             open(player, new Holder(Panel.MAIN, new String[0], 0));
             return;
         }
-        String type = slot == 10 ? TemplateModel.TYPE_ROOM : slot == 11 ? TemplateModel.TYPE_CORRIDOR
-                : slot == 12 ? TemplateModel.TYPE_TRANSITION : null;
+        String type = slot == 10 ? TemplateModel.TYPE_ROOM
+                : slot == 11 ? TemplateModel.TYPE_CORRIDOR : null;
         if (type == null) {
             return;
         }
@@ -954,13 +953,10 @@ public final class CaptureGui implements Listener {
         open(player, holder);
     }
 
-    /** 结构类型的循环顺序: room -> corridor -> transition -> room。 */
+    /** 结构类型的循环顺序: room <-> corridor。 */
     private String nextStructureType(String current) {
-        return switch (current == null ? "" : current) {
-            case TemplateModel.TYPE_ROOM -> TemplateModel.TYPE_CORRIDOR;
-            case TemplateModel.TYPE_CORRIDOR -> TemplateModel.TYPE_TRANSITION;
-            default -> TemplateModel.TYPE_ROOM;
-        };
+        return TemplateModel.TYPE_ROOM.equals(current)
+                ? TemplateModel.TYPE_CORRIDOR : TemplateModel.TYPE_ROOM;
     }
 
     private void report(Player player, CaptureService.Result result) {
